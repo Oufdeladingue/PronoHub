@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
@@ -9,12 +11,18 @@ export default function Home() {
           Créez et participez à des tournois de pronostics sportifs avec vos amis
         </p>
         <div className="flex gap-4 justify-center">
-          <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-            Créer un tournoi
-          </button>
-          <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            Rejoindre un tournoi
-          </button>
+          <Link
+            href="/auth/signup"
+            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+          >
+            S'inscrire
+          </Link>
+          <Link
+            href="/auth/login"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Se connecter
+          </Link>
         </div>
       </div>
     </main>
