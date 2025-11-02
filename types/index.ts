@@ -1,9 +1,12 @@
 // Types de base pour l'application PronoHub
 
+export type UserRole = 'user' | 'admin' | 'super_admin';
+
 export interface User {
   id: string;
   email: string;
   username: string;
+  role: UserRole;
   created_at: Date;
 }
 
