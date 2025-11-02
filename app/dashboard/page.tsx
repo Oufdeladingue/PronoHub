@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import AdminNav from '@/components/AdminNav'
+import { isSuperAdmin } from '@/lib/auth-helpers'
+import { UserRole } from '@/types'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -17,8 +20,14 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single()
 
+  const isSuper = isSuperAdmin(profile?.role as UserRole)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Menu Super Admin */}
+      {isSuper && <AdminNav />}
+
+      {/* Navigation principale */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">PronoHub</h1>
