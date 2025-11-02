@@ -20,27 +20,27 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      // 1. Créer le compte utilisateur
+      // 1. Créer le compte utilisateur avec confirmation email
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            username,
+          },
+        },
       })
 
       if (authError) throw authError
 
+      // 2. Si l'utilisateur est créé, créer le profil
       if (authData.user) {
-        // 2. Créer le profil utilisateur
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            username,
-            email,
-          })
+        // Le profil sera créé après la confirmation de l'email
+        // via un trigger Supabase ou lors de la première connexion
 
-        if (profileError) throw profileError
-
-        router.push('/dashboard')
+        // Rediriger vers la page de vérification
+        router.push('/auth/verify-email')
       }
     } catch (err: any) {
       setError(err.message)
