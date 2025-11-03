@@ -44,11 +44,18 @@ export default function EchauffementPage() {
 
   useEffect(() => {
     fetchTournamentData()
+  }, [tournamentSlug])
+
+  useEffect(() => {
+    if (!tournament?.id) return
+
+    // Charger les joueurs dès que le tournoi est disponible
+    fetchPlayers()
 
     // Actualiser les joueurs toutes les 5 secondes
     const interval = setInterval(fetchPlayers, 5000)
     return () => clearInterval(interval)
-  }, [tournamentSlug])
+  }, [tournament?.id])
 
   const fetchTournamentData = async () => {
     setLoading(true)
@@ -67,9 +74,6 @@ export default function EchauffementPage() {
       if (tournamentError) throw new Error('Tournoi non trouvé')
 
       setTournament(tournamentData)
-
-      // Récupérer les joueurs
-      await fetchPlayers()
     } catch (err: any) {
       setError(err.message)
     } finally {
