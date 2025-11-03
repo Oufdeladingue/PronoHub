@@ -83,18 +83,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Ajouter le créateur comme premier joueur (capitaine)
+    // Ajouter le créateur comme premier participant
     const { error: playerError } = await supabase
-      .from('tournament_players')
+      .from('tournament_participants')
       .insert({
         tournament_id: tournament.id,
-        user_id: user.id,
-        username: user.email?.split('@')[0] || 'Joueur',
-        is_captain: true
+        user_id: user.id
       })
 
     if (playerError) {
-      console.error('Error adding captain:', playerError)
+      console.error('Error adding participant:', playerError)
       // On continue quand même, le tournoi est créé
     }
 

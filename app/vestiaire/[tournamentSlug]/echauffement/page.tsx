@@ -23,9 +23,10 @@ interface Tournament {
 interface Player {
   id: string
   user_id: string
-  username: string
-  is_captain: boolean
   joined_at: string
+  profiles?: {
+    username: string
+  }
 }
 
 export default function EchauffementPage() {
@@ -81,8 +82,8 @@ export default function EchauffementPage() {
       const supabase = createClient()
 
       const { data: playersData, error: playersError } = await supabase
-        .from('tournament_players')
-        .select('*')
+        .from('tournament_participants')
+        .select('*, profiles(username)')
         .eq('tournament_id', tournament?.id)
         .order('joined_at', { ascending: true })
 
@@ -165,22 +166,27 @@ export default function EchauffementPage() {
             </h2>
 
             <div className="space-y-3">
-              {players.map((player, index) => (
-                <div
-                  key={player.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-gray-200"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {index + 1}
+              {players.map((player, index) => {
+                const isCaptain = player.user_id === tournament?.creator_id
+                return (
+                  <div
+                    key={player.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border-2 border-gray-200"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">
+                        {player.profiles?.username || 'Joueur'}
+                      </p>
+                      {isCaptain && (
+                        <span className="text-xs text-yellow-600 font-semibold">⭐ Capitaine</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{player.username}</p>
-                    {player.is_captain && (
-                      <span className="text-xs text-yellow-600 font-semibold">⭐ Capitaine</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
 
               {/* Places vides */}
               {Array.from({ length: tournament.max_players - players.length }).map((_, index) => (
