@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         all_matchdays: allMatchdays,
         bonus_match_enabled: bonusMatchEnabled,
         creator_id: user.id,
-        status: 'warmup',
+        status: 'pending',
         current_participants: 1, // Le créateur
         scoring_exact_score: 3, // Valeurs par défaut
         scoring_correct_winner: 1,
