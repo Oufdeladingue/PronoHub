@@ -20,6 +20,12 @@ interface Tournament {
   created_at: string
 }
 
+interface Competition {
+  id: number
+  name: string
+  emblem: string
+}
+
 interface Player {
   id: string
   user_id: string
@@ -40,6 +46,9 @@ export default function EchauffementPage() {
   const [copySuccess, setCopySuccess] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(10)
+  const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
+  const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
+  const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -55,11 +64,39 @@ export default function EchauffementPage() {
 
     // Charger les joueurs dès que le tournoi est disponible
     fetchPlayers()
+    fetchCompetitionLogo()
+    fetchNextMatchDate()
 
     // Actualiser les joueurs toutes les 5 secondes
     const interval = setInterval(fetchPlayers, 5000)
     return () => clearInterval(interval)
   }, [tournament?.id])
+
+  // Timer en temps réel pour le compte à rebours
+  useEffect(() => {
+    if (!nextMatchDate) return
+
+    const updateTimer = () => {
+      const now = new Date()
+      const diff = nextMatchDate.getTime() - now.getTime()
+
+      if (diff <= 0) {
+        setTimeRemaining({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+      setTimeRemaining({ days, hours, minutes, seconds })
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+    return () => clearInterval(interval)
+  }, [nextMatchDate])
 
   const fetchTournamentData = async () => {
     setLoading(true)
@@ -101,8 +138,8 @@ export default function EchauffementPage() {
     try {
       const response = await fetch('/api/settings/public')
       const data = await response.json()
-      if (data.success && data.settings?.max_participants_free) {
-        setMaxParticipantsLimit(data.settings.max_participants_free)
+      if (data.success && data.settings?.free_tier_max_players) {
+        setMaxParticipantsLimit(parseInt(data.settings.free_tier_max_players, 10))
       }
     } catch (err) {
       console.error('Error fetching max participants limit:', err)
@@ -124,6 +161,49 @@ export default function EchauffementPage() {
       }
     } catch (err) {
       console.error('Error fetching players:', err)
+    }
+  }
+
+  const fetchCompetitionLogo = async () => {
+    if (!tournament?.competition_id) return
+
+    try {
+      const supabase = createClient()
+      const { data: competition } = await supabase
+        .from('competitions')
+        .select('emblem')
+        .eq('id', tournament.competition_id)
+        .single()
+
+      if (competition?.emblem) {
+        setCompetitionLogo(competition.emblem)
+      }
+    } catch (err) {
+      console.error('Error fetching competition logo:', err)
+    }
+  }
+
+  const fetchNextMatchDate = async () => {
+    if (!tournament?.competition_id) return
+
+    try {
+      // Récupérer les matchs de la compétition
+      const response = await fetch(`/api/football/competition-matches?competitionId=${tournament.competition_id}`)
+      const data = await response.json()
+
+      if (data.matches && data.matches.length > 0) {
+        // Trouver le prochain match (premier match non encore joué)
+        const now = new Date()
+        const upcomingMatches = data.matches
+          .filter((match: any) => new Date(match.utc_date) > now)
+          .sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+
+        if (upcomingMatches.length > 0) {
+          setNextMatchDate(new Date(upcomingMatches[0].utc_date))
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching next match date:', err)
     }
   }
 
@@ -150,8 +230,17 @@ export default function EchauffementPage() {
   }
 
   const handleDecreaseMaxPlayers = async () => {
-    if (!tournament || tournament.max_players <= players.length) {
-      alert('Impossible de réduire en dessous du nombre de participants actuels')
+    if (!tournament) return
+
+    // Minimum de 2 places
+    if (tournament.max_players <= 2) {
+      alert('Un tournoi comporte au minimum deux places')
+      return
+    }
+
+    // Ne peut pas réduire en dessous du nombre de participants actuels (protection contre suppression d'une place occupée)
+    if (tournament.max_players <= players.length) {
+      alert('Impossible de supprimer une place déjà occupée par un joueur')
       return
     }
 
@@ -301,9 +390,18 @@ export default function EchauffementPage() {
       <div className="bg-white shadow-md border-b-4 border-green-500">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
-              <p className="text-gray-600 mt-1">{tournament.competition_name}</p>
+            <div className="flex items-center gap-4">
+              {competitionLogo && (
+                <img
+                  src={competitionLogo}
+                  alt={tournament.competition_name}
+                  className="w-16 h-16 object-contain"
+                />
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
+                <p className="text-gray-600 mt-1">{tournament.competition_name}</p>
+              </div>
             </div>
             <div className="text-right">
               <div className="inline-block bg-yellow-100 border-2 border-yellow-400 rounded-lg px-4 py-2">
@@ -324,58 +422,25 @@ export default function EchauffementPage() {
               Contrôles du Capitaine
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Gestion du nombre de places */}
-              <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>👥</span>
-                  Places disponibles
-                </h3>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleDecreaseMaxPlayers}
-                    disabled={tournament.max_players <= players.length}
-                    className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-                  >
-                    −
-                  </button>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {tournament.max_players}
-                  </span>
-                  <button
-                    onClick={handleIncreaseMaxPlayers}
-                    disabled={tournament.max_players >= maxParticipantsLimit}
-                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-                  >
-                    +
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  Max: {maxParticipantsLimit} (compte gratuit)
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>🎮</span>
-                  Actions
-                </h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={handleStartTournament}
-                    disabled={players.length < 2}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
-                  >
-                    🚀 Démarrer le tournoi
-                  </button>
-                  <button
-                    onClick={handleLeaveTournament}
-                    className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
-                  >
-                    {players.length === 1 ? '❌ Annuler le tournoi' : '🚪 Quitter (transférer capitanat)'}
-                  </button>
-                </div>
+            <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span>🎮</span>
+                Actions
+              </h3>
+              <div className="space-y-2">
+                <button
+                  onClick={handleStartTournament}
+                  disabled={players.length < 2}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
+                >
+                  🚀 Démarrer le tournoi
+                </button>
+                <button
+                  onClick={handleLeaveTournament}
+                  className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                >
+                  {players.length === 1 ? '❌ Annuler le tournoi' : '🚪 Quitter (transférer capitanat)'}
+                </button>
               </div>
             </div>
 
@@ -446,6 +511,33 @@ export default function EchauffementPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Boutons gestion des places (visible uniquement pour le capitaine) */}
+              {currentUserId === tournament?.creator_id && (
+                <div className="space-y-2">
+                  {/* Bouton Ajouter une place */}
+                  {tournament.max_players < maxParticipantsLimit && (
+                    <button
+                      onClick={handleIncreaseMaxPlayers}
+                      className="w-full flex items-center justify-center gap-2 p-3 bg-green-50 rounded-lg border-2 border-dashed border-green-400 hover:bg-green-100 transition text-green-700 font-semibold"
+                    >
+                      <span className="text-xl">+</span>
+                      <span>Ajouter une place (limité à {maxParticipantsLimit} joueurs)</span>
+                    </button>
+                  )}
+
+                  {/* Bouton Supprimer une place */}
+                  {tournament.max_players > 2 && tournament.max_players > players.length && (
+                    <button
+                      onClick={handleDecreaseMaxPlayers}
+                      className="w-full flex items-center justify-center gap-2 p-3 bg-red-50 rounded-lg border-2 border-dashed border-red-400 hover:bg-red-100 transition text-red-700 font-semibold"
+                    >
+                      <span className="text-xl">−</span>
+                      <span>Supprimer une place</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -500,14 +592,40 @@ export default function EchauffementPage() {
 
             {/* Info prochaine journée */}
             <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-lg p-6">
-              <h3 className="font-bold text-orange-900 mb-2 flex items-center gap-2">
+              <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
                 <span className="text-xl">⏰</span>
                 Prochaine journée
               </h3>
-              <p className="text-sm text-orange-800">
-                Le tournoi démarrera dès que tous les joueurs auront rejoint et que la prochaine journée
-                de {tournament.competition_name} commencera.
-              </p>
+
+              {timeRemaining && (
+                <div className="mb-4 p-4 bg-white rounded-lg border-2 border-orange-200">
+                  <p className="text-xs text-gray-600 mb-2 text-center">Prochaine journée dans :</p>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.days}</div>
+                      <div className="text-xs text-gray-600">jours</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.hours}</div>
+                      <div className="text-xs text-gray-600">heures</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.minutes}</div>
+                      <div className="text-xs text-gray-600">min</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.seconds}</div>
+                      <div className="text-xs text-gray-600">sec</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-3 bg-red-100 border-l-4 border-red-500 rounded">
+                <p className="text-xs text-red-800 font-semibold">
+                  ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
+                </p>
+              </div>
             </div>
           </div>
         </div>
