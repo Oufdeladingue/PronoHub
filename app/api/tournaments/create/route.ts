@@ -83,6 +83,22 @@ export async function POST(request: Request) {
       )
     }
 
+    // Vérifier si l'utilisateur a un profil
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) {
+      console.error('User has no profile, skipping participant insertion')
+      return NextResponse.json({
+        success: true,
+        tournament,
+        warning: 'Tournoi créé mais profil utilisateur manquant'
+      })
+    }
+
     // Ajouter le créateur comme premier participant
     const { error: playerError } = await supabase
       .from('tournament_participants')
