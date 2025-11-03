@@ -52,9 +52,9 @@ export default async function DashboardPage() {
             <p className="text-gray-600 mb-4">
               Lancez votre propre tournoi de pronostics et invitez vos amis à participer.
             </p>
-            <button className="w-full py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+            <a href="/vestiaire" className="block w-full py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-center">
               Nouveau tournoi
-            </button>
+            </a>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow-lg">

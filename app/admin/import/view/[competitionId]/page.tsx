@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminNav from '@/components/AdminNav'
+import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 
 interface Match {
   id: string
@@ -51,10 +52,6 @@ export default function ViewCompetitionPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedMatchday, setSelectedMatchday] = useState<number | null>(null)
 
-  useEffect(() => {
-    fetchCompetitionData()
-  }, [competitionId])
-
   const fetchCompetitionData = async () => {
     setLoading(true)
     setError(null)
@@ -77,6 +74,17 @@ export default function ViewCompetitionPage() {
       setLoading(false)
     }
   }
+
+  // Hook de rafraîchissement automatique
+  const autoRefresh = useAutoRefresh({
+    matches: data?.matches || [],
+    onRefresh: fetchCompetitionData,
+    enabled: !!data
+  })
+
+  useEffect(() => {
+    fetchCompetitionData()
+  }, [competitionId])
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -175,6 +183,47 @@ export default function ViewCompetitionPage() {
             </div>
           </div>
         </div>
+
+        {/* Indicateur de rafraîchissement automatique */}
+        {autoRefresh.isActive && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-3 h-3 rounded-full ${autoRefresh.isRefreshing ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`}></div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Rafraîchissement automatique actif
+                  </p>
+                  {autoRefresh.timeUntilRefresh && !autoRefresh.isRefreshing && (
+                    <p className="text-xs text-gray-600">
+                      Prochaine mise à jour dans {autoRefresh.timeUntilRefresh}
+                    </p>
+                  )}
+                  {autoRefresh.isRefreshing && (
+                    <p className="text-xs text-green-600 font-medium">
+                      Actualisation en cours...
+                    </p>
+                  )}
+                  {autoRefresh.lastRefreshTime && (
+                    <p className="text-xs text-gray-500">
+                      Dernière MAJ: {autoRefresh.lastRefreshTime.toLocaleTimeString('fr-FR')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={autoRefresh.manualRefresh}
+                disabled={autoRefresh.isRefreshing}
+                className="px-4 py-2 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg className={`w-4 h-4 ${autoRefresh.isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Actualiser maintenant
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Onglets des journées */}
         <div className="mb-6 border-b border-gray-200">

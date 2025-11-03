@@ -298,50 +298,6 @@ export default function AdminImportPage() {
                     </div>
                   )}
 
-                  {/* Bouton d'activation (toggle switch) */}
-                  {comp.isImported && (
-                    <div style={{ marginBottom: '1rem' }}>
-                      <button
-                        onClick={() => toggleActive(comp.id, comp.isActive)}
-                        disabled={toggling === comp.id}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-flex',
-                          height: '32px',
-                          width: '64px',
-                          alignItems: 'center',
-                          borderRadius: '9999px',
-                          border: 'none',
-                          cursor: toggling === comp.id ? 'not-allowed' : 'pointer',
-                          backgroundColor: comp.isActive ? '#22c55e' : '#ef4444',
-                          transition: 'background-color 0.3s',
-                          opacity: toggling === comp.id ? 0.5 : 1,
-                          padding: '4px'
-                        }}
-                        title={comp.isActive ? 'Activé - Cliquez pour désactiver' : 'Désactivé - Cliquez pour activer'}
-                      >
-                        <span style={{
-                          display: 'inline-block',
-                          height: '24px',
-                          width: '24px',
-                          borderRadius: '9999px',
-                          backgroundColor: 'white',
-                          transform: comp.isActive ? 'translateX(32px)' : 'translateX(0)',
-                          transition: 'transform 0.3s',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          color: comp.isActive ? '#22c55e' : '#ef4444'
-                        }}>
-                          {comp.isActive ? '✓' : '✗'}
-                        </span>
-                      </button>
-                    </div>
-                  )}
-
                   {/* Boutons d'action */}
                   <div className="w-full mt-auto" style={{ display: 'flex', flexDirection: comp.isImported ? 'row' : 'column', gap: '0.75rem' }}>
                     {comp.isImported && (
