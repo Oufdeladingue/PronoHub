@@ -227,7 +227,7 @@ export default function AdminImportPage() {
                         title={comp.isActive ? 'Activé - Cliquez pour désactiver' : 'Désactivé - Cliquez pour activer'}
                       >
                         <span style={{
-                          display: 'inline-block',
+                          display: 'flex',
                           height: '24px',
                           width: '24px',
                           borderRadius: '9999px',
@@ -235,7 +235,6 @@ export default function AdminImportPage() {
                           transform: comp.isActive ? 'translateX(32px)' : 'translateX(0)',
                           transition: 'transform 0.3s',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: '14px',

@@ -1,0 +1,113 @@
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient()
+
+    // Vérifier l'authentification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Non authentifié' },
+        { status: 401 }
+      )
+    }
+
+    // Récupérer les données du tournoi
+    const body = await request.json()
+    const {
+      name,
+      slug,
+      competitionId,
+      competitionName,
+      maxPlayers,
+      numMatchdays,
+      allMatchdays,
+      bonusMatchEnabled
+    } = body
+
+    // Validation
+    if (!name || !slug || !competitionId || !competitionName) {
+      return NextResponse.json(
+        { success: false, error: 'Données manquantes' },
+        { status: 400 }
+      )
+    }
+
+    // Vérifier que le slug n'existe pas déjà
+    const { data: existingTournament } = await supabase
+      .from('tournaments')
+      .select('id')
+      .eq('slug', slug)
+      .single()
+
+    if (existingTournament) {
+      return NextResponse.json(
+        { success: false, error: 'Ce code de tournoi existe déjà' },
+        { status: 409 }
+      )
+    }
+
+    // Créer le tournoi
+    const { data: tournament, error: tournamentError } = await supabase
+      .from('tournaments')
+      .insert({
+        name,
+        slug,
+        invite_code: slug, // Pour compatibilité avec ancienne structure
+        competition_id: parseInt(competitionId),
+        competition_name: competitionName,
+        max_players: maxPlayers,
+        max_participants: maxPlayers, // Pour compatibilité avec ancienne structure
+        num_matchdays: numMatchdays,
+        matchdays_count: numMatchdays, // Pour compatibilité avec ancienne structure
+        all_matchdays: allMatchdays,
+        bonus_match_enabled: bonusMatchEnabled,
+        creator_id: user.id,
+        status: 'warmup',
+        current_participants: 1, // Le créateur
+        scoring_exact_score: 3, // Valeurs par défaut
+        scoring_correct_winner: 1,
+        scoring_correct_goal_difference: 2
+      })
+      .select()
+      .single()
+
+    if (tournamentError) {
+      console.error('Error creating tournament:', tournamentError)
+      return NextResponse.json(
+        { success: false, error: 'Erreur lors de la création du tournoi' },
+        { status: 500 }
+      )
+    }
+
+    // Ajouter le créateur comme premier joueur (capitaine)
+    const { error: playerError } = await supabase
+      .from('tournament_players')
+      .insert({
+        tournament_id: tournament.id,
+        user_id: user.id,
+        username: user.email?.split('@')[0] || 'Joueur',
+        is_captain: true
+      })
+
+    if (playerError) {
+      console.error('Error adding captain:', playerError)
+      // On continue quand même, le tournoi est créé
+    }
+
+    return NextResponse.json({
+      success: true,
+      tournament
+    })
+
+  } catch (error: any) {
+    console.error('Error in tournament creation:', error)
+    return NextResponse.json(
+      { success: false, error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}

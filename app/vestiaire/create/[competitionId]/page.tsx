@@ -90,13 +90,46 @@ export default function TableauNoirPage() {
   }
 
   const handleCreateTournament = async () => {
-    // TODO: Implémenter la création du tournoi
-    console.log('Création du tournoi avec les paramètres:', {
-      competitionId,
-      maxPlayers,
-      numMatchdays,
-      bonusMatchEnabled
-    })
+    if (!tournamentName.trim()) {
+      alert('Veuillez entrer un nom de tournoi')
+      return
+    }
+
+    if (!competition) {
+      alert('Compétition non trouvée')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/tournaments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: tournamentName,
+          slug: tournamentSlug,
+          competitionId: competition.id,
+          competitionName: competition.name,
+          maxPlayers,
+          numMatchdays: allMatchdays ? competition.remaining_matchdays : numMatchdays,
+          allMatchdays,
+          bonusMatchEnabled
+        })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        alert('Erreur: ' + (data.error || 'Erreur lors de la création du tournoi'))
+        return
+      }
+
+      // Rediriger vers la page d'échauffement
+      const slug = `${tournamentName.toLowerCase().replace(/\s+/g, '_')}_${tournamentSlug}`
+      router.push(`/vestiaire/${slug}/echauffement`)
+    } catch (error) {
+      console.error('Error creating tournament:', error)
+      alert('Erreur lors de la création du tournoi')
+    }
   }
 
   if (loading) {
