@@ -71,13 +71,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Mettre à jour chaque paramètre
+    // Mettre à jour chaque paramètre (ou l'insérer s'il n'existe pas)
     const updates = []
     for (const [key, value] of Object.entries(settings)) {
       const { error } = await supabase
         .from('admin_settings')
-        .update({ setting_value: String(value) })
-        .eq('setting_key', key)
+        .upsert(
+          { setting_key: key, setting_value: String(value) },
+          { onConflict: 'setting_key' }
+        )
 
       if (error) {
         console.error(`Error updating setting ${key}:`, error)

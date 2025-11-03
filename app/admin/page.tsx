@@ -20,6 +20,17 @@ export default async function AdminPage() {
     redirect('/dashboard')
   }
 
+  // Récupérer le nombre total d'utilisateurs (excluant les super admins)
+  const { count: totalUsers } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .neq('role', 'super_admin')
+
+  // Récupérer le nombre total de tournois créés
+  const { count: totalTournaments } = await supabase
+    .from('tournaments')
+    .select('*', { count: 'exact', head: true })
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNav />
@@ -31,13 +42,13 @@ export default async function AdminPage() {
           {/* Statistiques */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Utilisateurs</h3>
-            <p className="text-3xl font-bold text-blue-600">0</p>
+            <p className="text-3xl font-bold text-blue-600">{totalUsers || 0}</p>
             <p className="text-sm text-gray-500 mt-1">Total inscrits</p>
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Tournois</h3>
-            <p className="text-3xl font-bold text-green-600">0</p>
+            <p className="text-3xl font-bold text-green-600">{totalTournaments || 0}</p>
             <p className="text-sm text-gray-500 mt-1">Total créés</p>
           </div>
 

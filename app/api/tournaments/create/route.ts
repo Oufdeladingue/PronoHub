@@ -15,6 +15,29 @@ export async function POST(request: Request) {
       )
     }
 
+    // Vérifier le nombre de tournois de l'utilisateur
+    const { data: userTournaments } = await supabase
+      .from('tournament_participants')
+      .select('id')
+      .eq('user_id', user.id)
+
+    // Récupérer la limite depuis les paramètres admin
+    const { data: maxTournamentsSettings } = await supabase
+      .from('admin_settings')
+      .select('setting_value')
+      .eq('setting_key', 'max_tournaments_per_user')
+      .single()
+
+    const maxTournaments = parseInt(maxTournamentsSettings?.setting_value || '3')
+    const currentTournamentCount = userTournaments?.length || 0
+
+    if (currentTournamentCount >= maxTournaments) {
+      return NextResponse.json(
+        { success: false, error: `Vous ne pouvez pas participer à plus de ${maxTournaments} tournois simultanément` },
+        { status: 400 }
+      )
+    }
+
     // Récupérer les données du tournoi
     const body = await request.json()
     const {

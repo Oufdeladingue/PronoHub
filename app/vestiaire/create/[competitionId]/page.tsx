@@ -397,18 +397,9 @@ export default function TableauNoirPage() {
 
           {/* Bouton inviter des amis */}
           <div className="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Inviter des amis
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Une fois le tournoi créé, vous pourrez partager un code d'invitation avec vos amis
+            <p className="text-sm text-gray-700 text-center">
+              Une rencontre ne se joue jamais seul ! Pas d'inquiètude, vous pourrez inviter vos amis à la prochaine étape
             </p>
-            <button
-              disabled
-              className="w-full px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
-            >
-              Disponible après la création du tournoi
-            </button>
           </div>
 
           {/* Boutons d'action */}

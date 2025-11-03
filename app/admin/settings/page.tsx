@@ -11,6 +11,7 @@ interface Settings {
   auto_refresh_smart_mode: string
   auto_refresh_pause_inactive: string
   free_tier_max_players: string
+  max_tournaments_per_user: string
 }
 
 export default function AdminSettingsPage() {
@@ -20,7 +21,8 @@ export default function AdminSettingsPage() {
     auto_refresh_interval: '300000',
     auto_refresh_smart_mode: 'true',
     auto_refresh_pause_inactive: 'true',
-    free_tier_max_players: '10'
+    free_tier_max_players: '10',
+    max_tournaments_per_user: '3'
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -41,7 +43,14 @@ export default function AdminSettingsPage() {
 
       const data = await response.json()
       if (data.success && data.settings) {
-        setSettings(data.settings)
+        setSettings({
+          auto_refresh_enabled: data.settings.auto_refresh_enabled || 'true',
+          auto_refresh_interval: data.settings.auto_refresh_interval || '300000',
+          auto_refresh_smart_mode: data.settings.auto_refresh_smart_mode || 'true',
+          auto_refresh_pause_inactive: data.settings.auto_refresh_pause_inactive || 'true',
+          free_tier_max_players: data.settings.free_tier_max_players || '10',
+          max_tournaments_per_user: data.settings.max_tournaments_per_user || '3'
+        })
       }
     } catch (err: any) {
       setError(err.message)
@@ -266,7 +275,7 @@ export default function AdminSettingsPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                   placeholder="Votre clé API"
                   defaultValue={process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY || ''}
                   disabled
@@ -295,8 +304,28 @@ export default function AdminSettingsPage() {
                   }))}
                   min="2"
                   max="50"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre max de tournois simultanés par utilisateur
+                </label>
+                <input
+                  type="number"
+                  value={settings.max_tournaments_per_user}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    max_tournaments_per_user: e.target.value
+                  }))}
+                  min="1"
+                  max="20"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Limite le nombre de tournois auxquels un utilisateur peut participer en même temps
+                </p>
               </div>
 
               <div>
@@ -306,7 +335,7 @@ export default function AdminSettingsPage() {
                 <input
                   type="number"
                   defaultValue={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                 />
               </div>
 
@@ -317,7 +346,7 @@ export default function AdminSettingsPage() {
                 <input
                   type="number"
                   defaultValue={1}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                 />
               </div>
             </div>

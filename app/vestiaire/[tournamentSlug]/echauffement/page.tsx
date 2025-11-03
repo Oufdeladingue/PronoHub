@@ -49,6 +49,7 @@ export default function EchauffementPage() {
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
+  const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -309,25 +310,32 @@ export default function EchauffementPage() {
     }
   }
 
-  const handleTransferCaptaincy = async (newCaptainId: string) => {
+  const showTransferConfirmation = (playerId: string, playerName: string) => {
+    setTransferConfirmation({ show: true, playerId, playerName })
+  }
+
+  const cancelTransfer = () => {
+    setTransferConfirmation({ show: false, playerId: '', playerName: '' })
+  }
+
+  const handleTransferCaptaincy = async () => {
     if (!tournament) return
 
-    if (confirm('Transférer le rôle de capitaine à ce joueur ?')) {
-      try {
-        const supabase = createClient()
-        const { error } = await supabase
-          .from('tournaments')
-          .update({ creator_id: newCaptainId })
-          .eq('id', tournament.id)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ creator_id: transferConfirmation.playerId })
+        .eq('id', tournament.id)
 
-        if (error) throw error
+      if (error) throw error
 
-        alert('Capitaine transféré avec succès')
-        fetchTournamentData()
-      } catch (err) {
-        console.error('Error transferring captaincy:', err)
-        alert('Erreur lors du transfert')
-      }
+      alert('Capitaine transféré avec succès')
+      setTransferConfirmation({ show: false, playerId: '', playerName: '' })
+      fetchTournamentData()
+    } catch (err) {
+      console.error('Error transferring captaincy:', err)
+      alert('Erreur lors du transfert')
     }
   }
 
@@ -386,6 +394,45 @@ export default function EchauffementPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Popup de confirmation de transfert */}
+      {transferConfirmation.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-in">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Confirmer le transfert
+              </h3>
+              <p className="text-gray-600">
+                Êtes-vous sûr de vouloir transférer le rôle de capitaine à{' '}
+                <span className="font-bold text-blue-600">{transferConfirmation.playerName}</span> ?
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+              <p className="text-sm text-yellow-800">
+                <strong>Important :</strong> Vous perdrez tous les privilèges de capitaine. Cette action est irréversible.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={cancelTransfer}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleTransferCaptaincy}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+              >
+                Confirmer le transfert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white shadow-md border-b-4 border-green-500">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -487,7 +534,7 @@ export default function EchauffementPage() {
                     </div>
                     {canTransfer && (
                       <button
-                        onClick={() => handleTransferCaptaincy(player.user_id)}
+                        onClick={() => showTransferConfirmation(player.user_id, player.profiles?.username || 'Joueur')}
                         className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
                       >
                         Transférer
@@ -633,10 +680,10 @@ export default function EchauffementPage() {
         {/* Retour */}
         <div className="mt-8 text-center">
           <Link
-            href="/vestiaire"
+            href="/dashboard"
             className="inline-block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
           >
-            ← Retour au vestiaire
+            ← Sortir du vestiaire
           </Link>
         </div>
       </main>
