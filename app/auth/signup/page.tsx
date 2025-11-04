@@ -119,22 +119,23 @@ export default function SignUpPage() {
     }
 
     try {
-      // Stocker l'email et le mot de passe temporairement
+      // Stocker l'email temporairement
       sessionStorage.setItem('pendingEmail', email)
-      sessionStorage.setItem('pendingPassword', password)
 
-      // Envoyer uniquement un OTP sans créer le compte
-      const { error: otpError } = await supabase.auth.signInWithOtp({
+      // Créer le compte immédiatement (Supabase enverra l'email OTP automatiquement)
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
+        password,
         options: {
-          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
-      if (otpError) {
-        // C'est normal que l'utilisateur n'existe pas encore
-        console.log('OTP envoyé pour nouvel utilisateur')
+      if (signUpError) {
+        throw signUpError
       }
+
+      console.log('Compte créé, email OTP envoyé à:', email)
 
       // Rediriger vers la page de vérification
       router.push('/auth/verify-code')
@@ -187,7 +188,7 @@ export default function SignUpPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
               placeholder="vous@example.com"
             />
           </div>
@@ -203,7 +204,7 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
                 placeholder="••••••••"
               />
               <button
@@ -275,7 +276,7 @@ export default function SignUpPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
                 placeholder="••••••••"
               />
               <button

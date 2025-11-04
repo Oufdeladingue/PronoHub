@@ -78,13 +78,7 @@ export default function VerifyCodePage() {
     }
 
     try {
-      // Récupérer le mot de passe stocké
-      const pendingPassword = sessionStorage.getItem('pendingPassword')
-      if (!pendingPassword) {
-        throw new Error('Session expirée. Veuillez recommencer l\'inscription.')
-      }
-
-      // Vérifier le code OTP
+      // Vérifier le code OTP (le compte a déjà été créé à l'étape précédente)
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: verificationCode,
@@ -93,20 +87,8 @@ export default function VerifyCodePage() {
 
       if (verifyError) throw verifyError
 
-      // Maintenant que le code est vérifié, créer le compte utilisateur
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password: pendingPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (signUpError) throw signUpError
-
       // Nettoyer le sessionStorage
       sessionStorage.removeItem('pendingEmail')
-      sessionStorage.removeItem('pendingPassword')
 
       // Rediriger vers la page de choix du pseudo
       router.push('/auth/choose-username')
@@ -186,7 +168,7 @@ export default function VerifyCodePage() {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 onPaste={index === 0 ? handlePaste : undefined}
-                className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
               />
             ))}
           </div>

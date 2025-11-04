@@ -102,19 +102,20 @@ export default function ChooseUsernamePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Utilisateur non connecté')
 
-      // Créer ou mettre à jour le profil avec le nom d'utilisateur
+      // Créer ou mettre à jour le profil avec le nom d'utilisateur et l'email
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
           username: username,
+          email: user.email,
           updated_at: new Date().toISOString(),
         })
 
       if (profileError) throw profileError
 
-      // Rediriger vers la page d'accueil ou le dashboard
-      router.push('/')
+      // Rediriger vers le dashboard
+      router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -126,11 +127,11 @@ export default function ChooseUsernamePage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6 text-gray-900 flex items-center justify-center gap-2">
-          Choisissez votre pseudo
+          Choisis ton flocage
         </h1>
 
         <p className="text-center text-gray-600 mb-6">
-          Votre pseudo apparaîtra sur votre maillot
+          Il te suivra toute ta carrière
         </p>
 
         {/* Maillot avec flocage dynamique */}
@@ -166,9 +167,6 @@ export default function ChooseUsernamePage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-              Nom d'utilisateur (max 12 caractères)
-            </label>
             <input
               id="username"
               type="text"
@@ -177,7 +175,7 @@ export default function ChooseUsernamePage() {
               required
               maxLength={12}
               minLength={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
               placeholder="john_doe"
             />
             {username.length > 0 && (
@@ -186,7 +184,7 @@ export default function ChooseUsernamePage() {
                   <p className="text-xs text-gray-500">Vérification...</p>
                 )}
                 {!checkingUsername && username.length >= 3 && usernameAvailable === true && (
-                  <p className="text-xs text-green-600">✓ Ce nom d'utilisateur est disponible</p>
+                  <p className="text-xs text-green-600">✓ ça sent le futur ballon d'or</p>
                 )}
                 {!checkingUsername && username.length >= 3 && usernameAvailable === false && (
                   <p className="text-xs text-red-600">✗ Ce nom d'utilisateur est déjà pris</p>
@@ -194,7 +192,7 @@ export default function ChooseUsernamePage() {
                 {username.length < 3 && (
                   <p className="text-xs text-gray-500">Au moins 3 caractères requis</p>
                 )}
-                <p className="text-xs text-gray-400 mt-0.5">{username.length}/12 caractères</p>
+                <p className="text-xs text-gray-400 mt-0.5">3 à 12 caractères max</p>
               </div>
             )}
           </div>
