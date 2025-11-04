@@ -63,7 +63,46 @@ PronoHub/
 
 ## Configuration Supabase
 
-À venir...
+### 1. Créer un projet Supabase
+
+1. Aller sur [supabase.com](https://supabase.com)
+2. Créer un nouveau projet
+3. Récupérer les clés API (URL et anon key)
+
+### 2. Configuration de l'authentification
+
+#### a) Activer les providers
+
+Dans **Authentication > Providers** :
+- **Email** : Activé avec "Enable Email OTP"
+- **Google OAuth** : Configurer avec les credentials OAuth de Google
+
+#### b) Configurer l'email template pour OTP
+
+Dans **Authentication > Email Templates > Magic Link**, modifier le template :
+
+```html
+<h2>Code de vérification PronoHub</h2>
+<p>Votre code de vérification est :</p>
+<h1 style="font-size: 32px; letter-spacing: 5px; text-align: center; font-family: monospace;">{{ .Token }}</h1>
+<p>Ce code expire dans 1 heure.</p>
+```
+
+### 3. Schéma de base de données
+
+Exécuter le script SQL disponible dans `supabase_schema.sql` pour créer :
+- Table `profiles` : Profils utilisateurs avec username
+- Table `tournaments` : Tournois de pronostics
+- Table `predictions` : Pronostics des utilisateurs
+- Triggers et RLS policies
+
+### 4. Variables d'environnement
+
+Créer un fichier `.env.local` avec :
+```env
+NEXT_PUBLIC_SUPABASE_URL=votre_url_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_anon_key
+```
 
 ## Configuration Football-Data API
 
