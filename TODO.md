@@ -1,0 +1,210 @@
+# 📋 TODO Liste PronoHub
+
+Liste des fonctionnalités et améliorations à développer pour PronoHub.
+
+---
+
+## 🎨 Interface & UX
+
+- [ ] **Site responsive**
+  - Adapter toutes les pages pour mobile/tablette
+  - Tester sur différentes tailles d'écran
+  - Menu hamburger pour mobile
+
+- [ ] **Déconnexion / Accueil : visible à l'écran**
+  - Bouton de déconnexion accessible dans le header
+  - Lien retour à l'accueil
+  - Menu de navigation clair et visible
+  - Confirmation avant déconnexion
+
+- [ ] **Modification des loaders**
+  - Remplacer les loaders par défaut
+  - Créer un loader personnalisé avec le logo PronoHub
+  - Animations de chargement cohérentes
+
+- [ ] **Modification des icônes et couleurs**
+  - Harmoniser la charte graphique
+  - Créer un design system cohérent
+  - Icônes personnalisées pour toutes les actions
+
+- [ ] **Mode "sombre"**
+  - Implémenter un thème sombre
+  - Toggle pour basculer entre clair/sombre
+  - Sauvegarder la préférence utilisateur
+
+- [ ] **Appellations et termes pour coller au thème**
+  - Remplacer "tournoi" par des termes football
+  - Utiliser vocabulaire foot cohérent partout
+  - Exemples : "vestiaire", "échauffement", "flocage", etc.
+  - Créer un glossaire des termes utilisés
+
+- [ ] **Section explicative sur la page d'accueil**
+  - Ajouter des screenshots de l'application
+  - Expliquer les fonctionnalités principales
+  - Section "Comment ça marche ?" avec étapes
+  - Badges Google Play et App Store
+  - Liens de téléchargement des applications
+
+- [ ] **Footer avec mentions légales**
+  - CGV (Conditions Générales de Vente)
+  - CGU (Conditions Générales d'Utilisation)
+  - Page de contact
+  - Mentions légales
+  - Politique de confidentialité
+  - Copyright et année
+
+---
+
+## ⚽ Fonctionnalités Pronostics
+
+- [ ] **Affichage des matchs dans l'espace prono**
+  - Liste des matchs à venir
+  - Affichage des scores en direct
+  - Historique des matchs terminés
+  - Filtres par compétition/date
+
+- [ ] **Gestion de l'heure limite du prono**
+  - Bloquer les pronostics après le coup d'envoi
+  - Afficher un compte à rebours
+  - Notifications avant la deadline
+  - Gestion des fuseaux horaires
+
+- [ ] **Règle si un joueur oublie de pronostiquer**
+  - Décider du score par défaut (0-0 ?)
+  - Option : score moyen des autres joueurs ?
+  - Option : pénalité de points ?
+  - Notifier le joueur avant la deadline
+
+- [ ] **Écran de confirmation après rejoindre un tournoi**
+  - Page de confirmation avec détails du tournoi
+  - Informations sur les participants
+  - Prochains matchs à pronostiquer
+  - Bouton pour accéder au vestiaire
+
+---
+
+## 🏆 Calcul des Points & Bonus
+
+- [ ] **Système de calcul des points**
+  - Définir les règles de points (score exact, bon résultat, etc.)
+  - Implémenter la logique de calcul
+  - Historique des points par match
+  - Classement temps réel
+
+- [ ] **Gestion des bonus**
+  - Bonus pour série de bons pronos
+  - Bonus pour score exact
+  - Bonus pour pronostic risqué
+  - Système de multiplicateurs
+
+---
+
+## 📧 Emails & Notifications
+
+- [ ] **Gestion des emails et notifications**
+  - Email de bienvenue après inscription
+  - Rappel avant deadline de pronostic
+  - Notification des résultats
+  - Récap hebdomadaire du classement
+  - Notifications push (web/app)
+
+- [ ] **Alerte quota inscriptions/capacité BDD/mails**
+  - Monitoring de l'usage Supabase
+  - Alerte à 80% du quota
+  - Dashboard admin avec métriques
+  - Système d'alertes automatiques
+
+---
+
+## 💰 Monétisation
+
+- [ ] **Mise en place formule payante**
+  - Définir les plans (gratuit/premium/pro)
+  - Intégration Stripe/PayPal
+  - Page de tarification
+  - Gestion des abonnements
+  - Limites par plan :
+    - Gratuit : 8 participants max
+    - Premium : participants illimités, statistiques avancées
+    - Pro : tournois privés, personnalisation avancée
+
+- [ ] **Sécurisation dashboard et accès liste joueurs gratuits/payants**
+  - Middleware pour vérifier le plan utilisateur
+  - Protection des routes premium
+  - Affichage conditionnel des fonctionnalités
+  - Message d'upgrade pour fonctionnalités payantes
+
+---
+
+## 🔐 Sécurité & Performance
+
+- [ ] **Optimisation appel API football-data**
+  - Cache des résultats (Redis ou Supabase)
+  - Limitation des appels API
+  - Cron job pour mise à jour automatique
+  - Fallback en cas d'erreur API
+  - Gestion du quota gratuit (10 requêtes/minute)
+
+- [ ] **SEO (balises title, meta-description...)**
+  - Balises meta pour toutes les pages
+  - Open Graph pour partage réseaux sociaux
+  - Sitemap.xml
+  - Robots.txt
+  - Descriptions uniques par page
+  - Mots-clés pertinents
+
+---
+
+## 📱 Applications Mobiles
+
+- [ ] **Passage en appli Android et iOS**
+  - Choisir la techno :
+    - React Native (Expo)
+    - Flutter
+    - PWA (Progressive Web App)
+  - Adapter l'UI pour mobile natif
+  - Notifications push natives
+  - Publication sur stores (Google Play, App Store)
+
+---
+
+## 🚀 Futures Idées
+
+- [ ] **Système de paris amicaux**
+  - Paris entre amis (sans argent réel)
+  - Système de jetons virtuels
+  - Défis entre joueurs
+
+- [ ] **Statistiques avancées**
+  - Graphiques de progression
+  - Comparaison avec les autres joueurs
+  - Prédictions IA basées sur l'historique
+
+- [ ] **Chat intégré**
+  - Chat par tournoi
+  - Réactions sur les pronostics
+  - Trash-talk amical
+
+- [ ] **Personnalisation**
+  - Avatar personnalisé
+  - Badge de récompenses
+  - Thèmes de maillots personnalisables
+
+---
+
+## 📝 Notes
+
+Pour ajouter un nouveau point à cette TODO liste :
+1. Ouvrir `TODO.md`
+2. Ajouter `- [ ]` suivi de votre tâche
+3. Placer la tâche dans la section appropriée
+4. Si besoin, créer une nouvelle section avec `## 🎯 Nom de la Section`
+
+**Légende** :
+- `- [ ]` : Tâche à faire
+- `- [x]` : Tâche terminée
+- `- [~]` : Tâche en cours
+
+---
+
+**Dernière mise à jour** : 05/11/2025

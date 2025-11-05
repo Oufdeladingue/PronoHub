@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeProvider } from '@/contexts/ThemeContext'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Tournament {
   id: string
@@ -50,6 +52,7 @@ export default function EchauffementPage() {
   const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
   const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
+  const [cancelConfirmation, setCancelConfirmation] = useState<boolean>(false)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -288,25 +291,30 @@ export default function EchauffementPage() {
     }
   }
 
+  const showCancelConfirmation = () => {
+    setCancelConfirmation(true)
+  }
+
+  const hideCancelConfirmation = () => {
+    setCancelConfirmation(false)
+  }
+
   const handleCancelTournament = async () => {
     if (!tournament) return
 
-    if (confirm('Êtes-vous sûr de vouloir annuler ce tournoi ? Cette action est irréversible.')) {
-      try {
-        const supabase = createClient()
-        const { error } = await supabase
-          .from('tournaments')
-          .delete()
-          .eq('id', tournament.id)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('tournaments')
+        .delete()
+        .eq('id', tournament.id)
 
-        if (error) throw error
+      if (error) throw error
 
-        alert('Tournoi annulé')
-        window.location.href = '/vestiaire'
-      } catch (err) {
-        console.error('Error cancelling tournament:', err)
-        alert('Erreur lors de l\'annulation du tournoi')
-      }
+      window.location.href = '/dashboard'
+    } catch (err) {
+      console.error('Error cancelling tournament:', err)
+      alert('Erreur lors de l\'annulation du tournoi')
     }
   }
 
@@ -342,13 +350,8 @@ export default function EchauffementPage() {
   const handleLeaveTournament = async () => {
     if (!tournament || !currentUserId) return
 
-    if (players.length === 1) {
-      // Le créateur est seul, proposer d'annuler le tournoi
-      handleCancelTournament()
-    } else {
-      // Il y a d'autres participants, demander de transférer le capitanat
-      alert('Vous devez d\'abord transférer le rôle de capitaine à un autre participant avant de quitter')
-    }
+    // Il y a d'autres participants, demander de transférer le capitanat
+    alert('Vous devez d\'abord transférer le rôle de capitaine à un autre participant avant de quitter')
   }
 
   const copyInviteCode = () => {
@@ -365,22 +368,25 @@ export default function EchauffementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+      <ThemeProvider>
+      <div className="min-h-screen theme-bg flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="theme-text-secondary">Chargement...</p>
         </div>
       </div>
+      </ThemeProvider>
     )
   }
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+      <ThemeProvider>
+      <div className="min-h-screen theme-bg flex items-center justify-center p-4">
+        <div className="theme-card p-8 max-w-md w-full text-center">
           <div className="text-red-600 text-5xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Tournoi introuvable</h1>
-          <p className="text-gray-600 mb-6">{error || 'Ce tournoi n\'existe pas'}</p>
+          <h1 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h1>
+          <p className="theme-text-secondary mb-6">{error || 'Ce tournoi n\'existe pas'}</p>
           <Link
             href="/vestiaire"
             className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
@@ -389,11 +395,51 @@ export default function EchauffementPage() {
           </Link>
         </div>
       </div>
+      </ThemeProvider>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+    <ThemeProvider>
+    <div className="min-h-screen theme-bg">
+      {/* Popup de confirmation d'annulation */}
+      {cancelConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-in">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Annuler le tournoi
+              </h3>
+              <p className="text-gray-600">
+                Le tournoi <span className="font-bold text-red-600">{tournament.name}</span> sera supprimé définitivement.
+              </p>
+            </div>
+
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+              <p className="text-sm text-red-800">
+                <strong>Attention :</strong> Cette action est irréversible. Le tournoi sera supprimé pour vous et tous les autres participants. Il n'apparaîtra plus dans "Mes tournois".
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={hideCancelConfirmation}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCancelTournament}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+              >
+                Supprimer le tournoi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popup de confirmation de transfert */}
       {transferConfirmation.show && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -434,9 +480,13 @@ export default function EchauffementPage() {
       )}
 
       {/* Header */}
-      <div className="bg-white shadow-md border-b-4 border-green-500">
+      <div className="theme-nav">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src="/images/logo.svg" alt="PronoHub" className="w-17 h-17" />
+              <ThemeToggle />
+            </div>
             <div className="flex items-center gap-4">
               {competitionLogo && (
                 <img
@@ -446,8 +496,8 @@ export default function EchauffementPage() {
                 />
               )}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{tournament.name}</h1>
-                <p className="text-gray-600 mt-1">{tournament.competition_name}</p>
+                <h1 className="text-3xl font-bold theme-text">{tournament.name}</h1>
+                <p className="theme-text-secondary mt-1">{tournament.competition_name}</p>
               </div>
             </div>
             <div className="text-right">
@@ -463,32 +513,38 @@ export default function EchauffementPage() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Contrôles du capitaine */}
         {currentUserId === tournament?.creator_id && (
-          <div className="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-2xl">⚙️</span>
-              Contrôles du Capitaine
-            </h2>
+          <div className="mb-6 theme-card border-2 border-yellow-400">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold theme-text flex items-center gap-2">
+                <img src="/images/icons/cap.svg" alt="Capitaine" className="w-6 h-6 dark:brightness-0 dark:invert" />
+                Les privilèges du capitaine
+              </h2>
+              <p className="text-sm theme-text-secondary mt-1 italic">Le brassard implique de grandes responsabilités</p>
+            </div>
 
-            <div className="bg-white rounded-lg p-4 border-2 border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span>🎮</span>
-                Actions
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={handleStartTournament}
-                  disabled={players.length < 2}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
-                >
-                  🚀 Démarrer le tournoi
-                </button>
-                <button
-                  onClick={handleLeaveTournament}
-                  className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
-                >
-                  {players.length === 1 ? '❌ Annuler le tournoi' : '🚪 Quitter (transférer capitanat)'}
-                </button>
-              </div>
+            <div className="space-y-2">
+              <button
+                onClick={handleStartTournament}
+                disabled={players.length < 2}
+                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-green-600 hover:text-white disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 transition font-semibold flex items-center justify-center gap-2"
+              >
+                <img src="/images/icons/start.svg" alt="" className="w-5 h-5" />
+                Démarrer le tournoi {tournament.name}
+              </button>
+              <button
+                onClick={showCancelConfirmation}
+                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-red-600 hover:text-white transition font-semibold flex items-center justify-center gap-2"
+              >
+                <img src="/images/icons/cancel.svg" alt="" className="w-5 h-5" />
+                Annuler le tournoi {tournament.name}
+              </button>
+              <button
+                onClick={handleLeaveTournament}
+                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-orange-600 hover:text-white transition flex items-center justify-center gap-2"
+              >
+                <img src="/images/icons/quit.svg" alt="" className="w-5 h-5" />
+                Quitter le tournoi {tournament.name}
+              </button>
             </div>
 
             {/* Info pour le transfert */}
@@ -504,8 +560,8 @@ export default function EchauffementPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Joueurs */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="theme-card">
+            <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
               <span className="text-2xl">👥</span>
               Joueurs ({players.length}/{tournament.max_players})
             </h2>
@@ -525,7 +581,7 @@ export default function EchauffementPage() {
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold theme-text">
                         {player.profiles?.username || 'Joueur'}
                       </p>
                       {isCaptain && (
@@ -590,8 +646,8 @@ export default function EchauffementPage() {
 
           {/* Code d'invitation */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="theme-card">
+              <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
                 <span className="text-2xl">🎫</span>
                 Code d'invitation
               </h2>
@@ -611,8 +667,8 @@ export default function EchauffementPage() {
             </div>
 
             {/* QR Code */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="theme-card">
+              <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
                 <span className="text-2xl">📱</span>
                 QR Code
               </h2>
@@ -688,5 +744,6 @@ export default function EchauffementPage() {
         </div>
       </main>
     </div>
+    </ThemeProvider>
   )
 }
