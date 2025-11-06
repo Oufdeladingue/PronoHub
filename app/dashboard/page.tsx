@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   // Récupérer les détails des tournois
   const { data: userTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, current_participants, max_participants, max_players')
+    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players')
     .in('id', tournamentIds)
 
   // Récupérer les IDs de compétitions
@@ -67,6 +67,17 @@ export default async function DashboardPage() {
     }
   }
 
+  // Compter les participants réels pour chaque tournoi
+  const participantCounts: Record<string, number> = {}
+  for (const tournamentId of tournamentIds) {
+    const { count } = await supabase
+      .from('tournament_participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+
+    participantCounts[tournamentId] = count || 0
+  }
+
   // Formater les données pour un accès plus facile
   const tournaments = (userTournaments || []).map((t: any) => {
     // Créer le slug complet : nom-du-tournoi_CODE
@@ -81,7 +92,7 @@ export default async function DashboardPage() {
       competition_name: t.competition_name,
       creator_id: t.creator_id,
       status: t.status,
-      current_participants: t.current_participants || 0,
+      current_participants: participantCounts[t.id] || 0,
       max_players: t.max_players || t.max_participants || 8,
       emblem: competitionsMap[t.competition_id],
       isCaptain: t.creator_id === user.id

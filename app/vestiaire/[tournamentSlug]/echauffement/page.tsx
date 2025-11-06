@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { ThemeProvider } from '@/contexts/ThemeContext'
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import ThemeToggle from '@/components/ThemeToggle'
+import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 
 interface Tournament {
   id: string
@@ -53,6 +54,15 @@ export default function EchauffementPage() {
   const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
   const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
   const [cancelConfirmation, setCancelConfirmation] = useState<boolean>(false)
+  const [startConfirmation, setStartConfirmation] = useState<boolean>(false)
+  const [username, setUsername] = useState<string>('utilisateur')
+  const [matchdayWarning, setMatchdayWarning] = useState<{
+    show: boolean
+    remainingMatchdays: number
+    plannedMatchdays: number
+    currentMatchday: number
+    totalMatchdays: number
+  } | null>(null)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -132,6 +142,17 @@ export default function EchauffementPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setCurrentUserId(user.id)
+
+        // Récupérer le username depuis le profil
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.username) {
+          setUsername(profile.username)
+        }
       }
     } catch (err) {
       console.error('Error fetching current user:', err)
@@ -264,31 +285,90 @@ export default function EchauffementPage() {
     }
   }
 
-  const handleStartTournament = async () => {
-    if (!tournament) return
-
+  const showStartConfirmation = () => {
     if (players.length < 2) {
       alert('Il faut au moins 2 participants pour démarrer le tournoi')
       return
     }
+    setStartConfirmation(true)
+  }
 
-    if (confirm(`Démarrer le tournoi avec ${players.length} participants ?`)) {
-      try {
-        const supabase = createClient()
-        const { error } = await supabase
-          .from('tournaments')
-          .update({ status: 'active' })
-          .eq('id', tournament.id)
+  const hideStartConfirmation = () => {
+    setStartConfirmation(false)
+  }
 
-        if (error) throw error
+  const handleStartTournament = async () => {
+    if (!tournament) return
 
-        alert('Tournoi démarré ! Redirection...')
-        // TODO: Rediriger vers la page du tournoi actif
-      } catch (err) {
-        console.error('Error starting tournament:', err)
-        alert('Erreur lors du démarrage du tournoi')
+    try {
+      // Appeler l'API de démarrage pour vérifier les journées
+      const response = await fetch('/api/tournaments/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          adjustMatchdays: false  // Premier appel sans ajustement
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.warning) {
+        // Il y a un problème de journées insuffisantes
+        setMatchdayWarning({
+          show: true,
+          remainingMatchdays: data.remainingMatchdays,
+          plannedMatchdays: data.plannedMatchdays,
+          currentMatchday: data.currentMatchday,
+          totalMatchdays: data.totalMatchdays
+        })
+        setStartConfirmation(false)
+      } else if (data.success) {
+        // Démarrage réussi, redirection
+        window.location.href = `/vestiaire/${tournamentSlug}/opposition`
+      } else {
+        throw new Error(data.error || 'Failed to start tournament')
       }
+    } catch (err: any) {
+      console.error('Error starting tournament:', err)
+      alert(err.message || 'Erreur lors du démarrage du tournoi')
+      setStartConfirmation(false)
     }
+  }
+
+  const handleStartWithAdjustment = async () => {
+    if (!tournament) return
+
+    try {
+      // Appeler l'API de démarrage avec ajustement automatique
+      const response = await fetch('/api/tournaments/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          adjustMatchdays: true  // Activer l'ajustement
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Fermer le modal et rediriger
+        setMatchdayWarning(null)
+        window.location.href = `/vestiaire/${tournamentSlug}/opposition`
+      } else {
+        throw new Error(data.error || 'Failed to start tournament')
+      }
+    } catch (err: any) {
+      console.error('Error starting tournament with adjustment:', err)
+      alert(err.message || 'Erreur lors du démarrage du tournoi')
+      setMatchdayWarning(null)
+    }
+  }
+
+  const handleCancelMatchdayWarning = () => {
+    setMatchdayWarning(null)
+    setStartConfirmation(false)
   }
 
   const showCancelConfirmation = () => {
@@ -402,6 +482,44 @@ export default function EchauffementPage() {
   return (
     <ThemeProvider>
     <div className="min-h-screen theme-bg">
+      {/* Popup de confirmation de démarrage */}
+      {startConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="theme-card shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
+            <div className="text-center mb-6">
+              <img src="/images/icons/start-tour.svg" alt="Démarrer" className="w-16 h-16 mx-auto mb-3" />
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Démarrer le tournoi
+              </h3>
+              <p className="theme-text-secondary">
+                Le tournoi <span className="font-bold text-green-600 dark:text-green-400">{tournament.name}</span> va démarrer avec <span className="font-bold">{players.length} participants</span>.
+              </p>
+            </div>
+
+            <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
+              <p className="text-sm text-green-800 dark:text-green-300">
+                <strong>Tout le monde est chaud ?</strong> Une fois le tournoi démarré, tout le monde aura accès aux pronostics.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={hideStartConfirmation}
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleStartTournament}
+                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                Démarrer le tournoi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popup de confirmation d'annulation */}
       {cancelConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -481,10 +599,12 @@ export default function EchauffementPage() {
 
       {/* Header */}
       <div className="theme-nav">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src="/images/logo.svg" alt="PronoHub" className="w-17 h-17" />
+              <Link href="/dashboard">
+                <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14 cursor-pointer hover:opacity-80 transition" />
+              </Link>
               <ThemeToggle />
             </div>
             <div className="flex items-center gap-4">
@@ -496,15 +616,55 @@ export default function EchauffementPage() {
                 />
               )}
               <div>
-                <h1 className="text-3xl font-bold theme-text">{tournament.name}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-bold theme-text">{tournament.name}</h1>
+                  <span className="px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
+                    En attente
+                  </span>
+                </div>
                 <p className="theme-text-secondary mt-1">{tournament.competition_name}</p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="inline-block bg-yellow-100 border-2 border-yellow-400 rounded-lg px-4 py-2">
-                <p className="text-xs text-yellow-800 font-semibold">PHASE</p>
-                <p className="text-lg font-bold text-yellow-900">ÉCHAUFFEMENT</p>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="theme-text text-sm">Bonjour, {username} !</span>
+
+              {/* Séparateur */}
+              <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+              {/* Lien Carrière avec icône */}
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
+                style={{ color: 'var(--theme-accent, #ff9900)' }}
+              >
+                <img
+                  src="/images/icons/profil.svg"
+                  alt="Carrière"
+                  className="w-5 h-5"
+                  style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
+                />
+                Carrière
+              </Link>
+
+              {/* Séparateur */}
+              <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+              {/* Bouton Déconnexion avec icône */}
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
+                  style={{ color: 'var(--theme-accent, #ff9900)' }}
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-5 h-5"
+                    style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
+                  />
+                  Quitter le terrain
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -524,7 +684,7 @@ export default function EchauffementPage() {
 
             <div className="space-y-2">
               <button
-                onClick={handleStartTournament}
+                onClick={showStartConfirmation}
                 disabled={players.length < 2}
                 className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-green-600 hover:text-white disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 transition font-semibold flex items-center justify-center gap-2"
               >
@@ -743,6 +903,20 @@ export default function EchauffementPage() {
           </Link>
         </div>
       </main>
+
+      {/* Modal d'avertissement de journées insuffisantes */}
+      {matchdayWarning && (
+        <MatchdayWarningModal
+          isOpen={matchdayWarning.show}
+          onClose={handleCancelMatchdayWarning}
+          remainingMatchdays={matchdayWarning.remainingMatchdays}
+          plannedMatchdays={matchdayWarning.plannedMatchdays}
+          currentMatchday={matchdayWarning.currentMatchday}
+          totalMatchdays={matchdayWarning.totalMatchdays}
+          onStartWithAdjustment={handleStartWithAdjustment}
+          onCancel={handleCancelMatchdayWarning}
+        />
+      )}
     </div>
     </ThemeProvider>
   )

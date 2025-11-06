@@ -26,27 +26,39 @@ export async function GET() {
     // Pour chaque compétition, compter les journées restantes
     const competitionsWithStats = await Promise.all(
       (competitions || []).map(async (comp) => {
-        // Récupérer toutes les journées de la compétition
-        const { data: allMatchdays } = await supabase
+        // Utiliser total_matchdays de la base de données (qui inclut les matchs à élimination)
+        const totalMatchdays = comp.total_matchdays || 0
+
+        // Si current_matchday est null ou 0, utiliser 1 comme valeur par défaut
+        let currentMatchday = comp.current_matchday || 1
+
+        // Vérifier si le premier match de la journée actuelle commence dans moins de 2 heures
+        const { data: firstMatch } = await supabase
           .from('imported_matches')
-          .select('matchday')
+          .select('utc_date')
           .eq('competition_id', comp.id)
-          .order('matchday')
+          .eq('matchday', currentMatchday)
+          .order('utc_date', { ascending: true })
+          .limit(1)
+          .single()
 
-        // Obtenir toutes les journées uniques
-        const allUniqueMatchdays = allMatchdays
-          ? [...new Set(allMatchdays.map(m => m.matchday))].sort((a, b) => a - b)
-          : []
+        if (firstMatch?.utc_date) {
+          const now = new Date()
+          const matchTime = new Date(firstMatch.utc_date)
+          const hoursUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-        // Si current_matchday est null ou 0, utiliser la première journée
-        const currentMatchday = comp.current_matchday || (allUniqueMatchdays.length > 0 ? allUniqueMatchdays[0] : 1)
+          // Si le premier match commence dans moins de 2 heures, exclure cette journée
+          if (hoursUntilMatch < 2) {
+            currentMatchday = currentMatchday + 1
+          }
+        }
 
-        // Calculer les journées restantes (current_matchday inclus et suivantes)
-        const remainingMatchdays = allUniqueMatchdays.filter(
-          md => md >= currentMatchday
-        )
+        // Calculer les journées restantes: total - journée de départ + 1 (inclure la journée de départ)
+        const remainingMatchdays = totalMatchdays > 0
+          ? Math.max(0, totalMatchdays - currentMatchday + 1)
+          : 0
 
-        // Compter les matchs restants
+        // Compter les matchs restants (seulement ceux qui ont été importés)
         const { count } = await supabase
           .from('imported_matches')
           .select('*', { count: 'exact', head: true })
@@ -55,7 +67,7 @@ export async function GET() {
 
         return {
           ...comp,
-          remaining_matchdays: remainingMatchdays.length,
+          remaining_matchdays: remainingMatchdays,
           remaining_matches: count || 0
         }
       })

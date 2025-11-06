@@ -12,6 +12,9 @@ interface Settings {
   auto_refresh_pause_inactive: string
   free_tier_max_players: string
   max_tournaments_per_user: string
+  points_exact_score: string
+  points_correct_result: string
+  points_incorrect_result: string
 }
 
 export default function AdminSettingsPage() {
@@ -22,7 +25,10 @@ export default function AdminSettingsPage() {
     auto_refresh_smart_mode: 'true',
     auto_refresh_pause_inactive: 'true',
     free_tier_max_players: '10',
-    max_tournaments_per_user: '3'
+    max_tournaments_per_user: '3',
+    points_exact_score: '3',
+    points_correct_result: '1',
+    points_incorrect_result: '0'
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -44,12 +50,15 @@ export default function AdminSettingsPage() {
       const data = await response.json()
       if (data.success && data.settings) {
         setSettings({
-          auto_refresh_enabled: data.settings.auto_refresh_enabled || 'true',
-          auto_refresh_interval: data.settings.auto_refresh_interval || '300000',
-          auto_refresh_smart_mode: data.settings.auto_refresh_smart_mode || 'true',
-          auto_refresh_pause_inactive: data.settings.auto_refresh_pause_inactive || 'true',
-          free_tier_max_players: data.settings.free_tier_max_players || '10',
-          max_tournaments_per_user: data.settings.max_tournaments_per_user || '3'
+          auto_refresh_enabled: data.settings.auto_refresh_enabled ?? 'true',
+          auto_refresh_interval: data.settings.auto_refresh_interval ?? '300000',
+          auto_refresh_smart_mode: data.settings.auto_refresh_smart_mode ?? 'true',
+          auto_refresh_pause_inactive: data.settings.auto_refresh_pause_inactive ?? 'true',
+          free_tier_max_players: data.settings.free_tier_max_players ?? '10',
+          max_tournaments_per_user: data.settings.max_tournaments_per_user ?? '3',
+          points_exact_score: data.settings.points_exact_score ?? '3',
+          points_correct_result: data.settings.points_correct_result ?? '1',
+          points_incorrect_result: data.settings.points_incorrect_result ?? '0'
         })
       }
     } catch (err: any) {
@@ -334,7 +343,13 @@ export default function AdminSettingsPage() {
                 </label>
                 <input
                   type="number"
-                  defaultValue={3}
+                  value={settings.points_exact_score}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    points_exact_score: e.target.value
+                  }))}
+                  min="0"
+                  max="20"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                 />
               </div>
@@ -345,7 +360,30 @@ export default function AdminSettingsPage() {
                 </label>
                 <input
                   type="number"
-                  defaultValue={1}
+                  value={settings.points_correct_result}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    points_correct_result: e.target.value
+                  }))}
+                  min="0"
+                  max="20"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Points pour mauvais résultat
+                </label>
+                <input
+                  type="number"
+                  value={settings.points_incorrect_result}
+                  onChange={(e) => setSettings(prev => ({
+                    ...prev,
+                    points_incorrect_result: e.target.value
+                  }))}
+                  min="0"
+                  max="20"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
                 />
               </div>

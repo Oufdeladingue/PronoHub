@@ -19,23 +19,26 @@ export async function GET() {
       )
     }
 
-    // Formatter les données pour correspondre à l'interface Competition
-    const formattedCompetitions = competitions?.map((comp) => ({
-      id: comp.id,
-      name: comp.name,
-      code: comp.code,
-      emblem: comp.emblem,
-      area: comp.area_name,
-      currentSeason: {
-        startDate: comp.current_season_start_date,
-        endDate: comp.current_season_end_date,
-        currentMatchday: comp.current_matchday
-      },
-      isImported: true,
-      isActive: comp.is_active,
-      importedAt: comp.imported_at,
-      lastUpdatedAt: comp.last_updated_at
-    })) || []
+    // Formater les compétitions en utilisant total_matchdays de la table competitions
+    const formattedCompetitions = competitions?.map((comp) => {
+      return {
+        id: comp.id,
+        name: comp.name,
+        code: comp.code,
+        emblem: comp.emblem,
+        area: comp.area_name,
+        currentSeason: {
+          startDate: comp.current_season_start_date,
+          endDate: comp.current_season_end_date,
+          currentMatchday: comp.current_matchday,
+          totalMatchdays: comp.total_matchdays
+        },
+        isImported: true,
+        isActive: comp.is_active,
+        importedAt: comp.imported_at,
+        lastUpdatedAt: comp.last_updated_at
+      }
+    }) || []
 
     return NextResponse.json({
       competitions: formattedCompetitions,

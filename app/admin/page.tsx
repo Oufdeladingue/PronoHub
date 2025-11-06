@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import AdminNav from '@/components/AdminNav'
+import Link from 'next/link'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -46,11 +47,13 @@ export default async function AdminPage() {
             <p className="text-sm text-gray-500 mt-1">Total inscrits</p>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Tournois</h3>
-            <p className="text-3xl font-bold text-green-600">{totalTournaments || 0}</p>
-            <p className="text-sm text-gray-500 mt-1">Total créés</p>
-          </div>
+          <Link href="/admin/tournaments">
+            <div className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Tournois</h3>
+              <p className="text-3xl font-bold text-green-600">{totalTournaments || 0}</p>
+              <p className="text-sm text-gray-500 mt-1">Total créés</p>
+            </div>
+          </Link>
 
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-700 mb-2">Pronostics</h3>

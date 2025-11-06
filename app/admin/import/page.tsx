@@ -14,6 +14,7 @@ interface Competition {
     startDate: string
     endDate: string
     currentMatchday: number
+    totalMatchdays?: number
   }
   isImported: boolean
   isActive: boolean
@@ -287,6 +288,7 @@ export default function AdminImportPage() {
                   {comp.currentSeason && (
                     <div className="text-sm font-medium text-gray-700 mb-3">
                       Journée actuelle: {comp.currentSeason.currentMatchday}
+                      {comp.currentSeason.totalMatchdays && `/${comp.currentSeason.totalMatchdays}`}
                     </div>
                   )}
 

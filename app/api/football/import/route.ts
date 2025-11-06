@@ -39,6 +39,12 @@ export async function POST(request: Request) {
 
     const compData = await compResponse.json()
 
+    console.log('[IMPORT] Competition data:', {
+      id: compData.id,
+      name: compData.name,
+      currentSeason: compData.currentSeason
+    })
+
     // 2. Sauvegarder la compétition
     const { error: compError } = await supabase.from('competitions').upsert({
       id: compData.id,
@@ -49,6 +55,7 @@ export async function POST(request: Request) {
       current_season_start_date: compData.currentSeason?.startDate,
       current_season_end_date: compData.currentSeason?.endDate,
       current_matchday: compData.currentSeason?.currentMatchday,
+      last_updated_at: new Date().toISOString(),
     })
 
     if (compError) throw compError
@@ -67,24 +74,55 @@ export async function POST(request: Request) {
 
     const matchesData = await matchesResponse.json()
 
-    // 4. Préparer les matchs pour l'insertion
-    const matchesToInsert = matchesData.matches.map((match: any) => ({
-      football_data_match_id: match.id,
-      competition_id: competitionId,
-      matchday: match.matchday,
-      utc_date: match.utcDate,
-      status: match.status,
-      home_team_id: match.homeTeam.id,
-      home_team_name: match.homeTeam.name,
-      home_team_crest: match.homeTeam.crest,
-      away_team_id: match.awayTeam.id,
-      away_team_name: match.awayTeam.name,
-      away_team_crest: match.awayTeam.crest,
-      home_score: match.score?.fullTime?.home,
-      away_score: match.score?.fullTime?.away,
-    }))
+    // 4. Calculer le nombre total de journées
+    const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
+    const calculatedMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
 
-    // 5. Insérer ou mettre à jour les matchs
+    // 5. Vérifier s'il existe une configuration manuelle pour cette compétition
+    const { data: configData } = await supabase
+      .from('competition_config')
+      .select('total_matchdays_override')
+      .eq('competition_id', competitionId)
+      .single()
+
+    const totalMatchdays = configData?.total_matchdays_override || calculatedMatchdays
+
+    console.log('[IMPORT] Matchdays info:', {
+      calculated: calculatedMatchdays,
+      override: configData?.total_matchdays_override,
+      final: totalMatchdays
+    })
+
+    // 6. Mettre à jour le nombre total de journées dans la compétition
+    if (totalMatchdays) {
+      await supabase.from('competitions').update({
+        total_matchdays: totalMatchdays
+      }).eq('id', competitionId)
+    }
+
+    // 6. Préparer les matchs pour l'insertion
+    // Filtrer les matchs qui n'ont pas encore d'équipes assignées (matchs futurs dépendant de résultats)
+    const matchesToInsert = matchesData.matches
+      .filter((match: any) => match.homeTeam?.id && match.awayTeam?.id)
+      .map((match: any) => ({
+        football_data_match_id: match.id,
+        competition_id: competitionId,
+        matchday: match.matchday,
+        utc_date: match.utcDate,
+        status: match.status,
+        home_team_id: match.homeTeam.id,
+        home_team_name: match.homeTeam.name,
+        home_team_crest: match.homeTeam.crest,
+        away_team_id: match.awayTeam.id,
+        away_team_name: match.awayTeam.name,
+        away_team_crest: match.awayTeam.crest,
+        home_score: match.score?.fullTime?.home,
+        away_score: match.score?.fullTime?.away,
+      }))
+
+    const skippedMatches = matchesData.matches.length - matchesToInsert.length
+
+    // 7. Insérer ou mettre à jour les matchs
     const { error: matchesError } = await supabase
       .from('imported_matches')
       .upsert(matchesToInsert, {
@@ -97,6 +135,8 @@ export async function POST(request: Request) {
       success: true,
       competition: compData.name,
       matchesCount: matchesToInsert.length,
+      totalMatchdays,
+      skippedMatches: skippedMatches > 0 ? skippedMatches : undefined,
     })
   } catch (error: any) {
     console.error('Error importing competition:', error)

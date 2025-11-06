@@ -1,49 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
-export async function POST(request: Request) {
+interface JoinTournamentRequest {
+  inviteCode: string
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const body: JoinTournamentRequest = await request.json()
+    const { inviteCode } = body
 
-    // Vérifier l'authentification
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    if (!inviteCode || inviteCode.length !== 8) {
       return NextResponse.json(
-        { success: false, error: 'Non authentifié' },
-        { status: 401 }
-      )
-    }
-
-    // Récupérer le code du tournoi
-    const body = await request.json()
-    const { code } = body
-
-    if (!code || code.length !== 8) {
-      return NextResponse.json(
-        { success: false, error: 'Code invalide (8 caractères requis)' },
+        { error: 'Code invalide (8 caractères requis)' },
         { status: 400 }
       )
     }
 
-    // Rechercher le tournoi par son code (slug ou invite_code)
+    const supabase = await createClient()
+
+    // Récupérer l'utilisateur connecté
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Vous devez être connecté pour rejoindre un tournoi' },
+        { status: 401 }
+      )
+    }
+
+    // Chercher le tournoi avec ce code d'invitation
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('*')
-      .or(`slug.eq.${code},invite_code.eq.${code}`)
+      .select('id, name, slug, invite_code, status, max_players, creator_id')
+      .or(`invite_code.eq.${inviteCode.toUpperCase()},slug.eq.${inviteCode.toUpperCase()}`)
       .single()
 
     if (tournamentError || !tournament) {
       return NextResponse.json(
-        { success: false, error: 'Tournoi introuvable avec ce code' },
+        { error: 'Tournoi introuvable avec ce code' },
         { status: 404 }
       )
     }
 
-    // Vérifier que le tournoi n'est pas terminé
-    if (tournament.status === 'finished') {
+    // Vérifier que le tournoi est en attente
+    if (tournament.status !== 'pending') {
       return NextResponse.json(
-        { success: false, error: 'Ce tournoi est terminé' },
+        { error: 'Ce tournoi a déjà commencé ou est terminé' },
         { status: 400 }
       )
     }
@@ -57,92 +60,64 @@ export async function POST(request: Request) {
       .single()
 
     if (existingParticipation) {
-      return NextResponse.json(
-        { success: false, error: 'Vous participez déjà à ce tournoi' },
-        { status: 400 }
-      )
+      // L'utilisateur participe déjà, rediriger quand même vers le tournoi
+      const tournamentSlug = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`
+      return NextResponse.json({
+        success: true,
+        message: 'Vous participez déjà à ce tournoi',
+        tournament: {
+          id: tournament.id,
+          slug: tournamentSlug
+        }
+      })
     }
 
-    // Vérifier le nombre de tournois de l'utilisateur
-    const { data: userTournaments } = await supabase
+    // Vérifier le nombre de participants
+    const { count: participantCount } = await supabase
       .from('tournament_participants')
-      .select('id')
-      .eq('user_id', user.id)
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournament.id)
 
-    // Récupérer la limite depuis les paramètres admin
-    const { data: maxTournamentsSettings } = await supabase
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'max_tournaments_per_user')
-      .single()
-
-    const maxTournaments = parseInt(maxTournamentsSettings?.setting_value || '3')
-    const currentTournamentCount = userTournaments?.length || 0
-
-    if (currentTournamentCount >= maxTournaments) {
+    if (participantCount && participantCount >= tournament.max_players) {
       return NextResponse.json(
-        { success: false, error: `Vous ne pouvez pas participer à plus de ${maxTournaments} tournois simultanément` },
+        { error: 'Ce tournoi est complet' },
         { status: 400 }
-      )
-    }
-
-    // Vérifier si le tournoi est complet
-    const maxPlayers = tournament.max_players || tournament.max_participants || 8
-    const currentParticipants = tournament.current_participants || 0
-
-    if (currentParticipants >= maxPlayers) {
-      return NextResponse.json(
-        { success: false, error: 'Ce tournoi est complet' },
-        { status: 400 }
-      )
-    }
-
-    // Vérifier si l'utilisateur a un profil
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { success: false, error: 'Profil utilisateur introuvable' },
-        { status: 404 }
       )
     }
 
     // Ajouter l'utilisateur au tournoi
-    const { error: participationError } = await supabase
+    const { error: joinError } = await supabase
       .from('tournament_participants')
       .insert({
         tournament_id: tournament.id,
-        user_id: user.id
+        user_id: user.id,
+        joined_at: new Date().toISOString()
       })
 
-    if (participationError) {
-      console.error('Error adding participant:', participationError)
+    if (joinError) {
+      console.error('Error joining tournament:', joinError)
       return NextResponse.json(
-        { success: false, error: 'Erreur lors de l\'inscription au tournoi' },
+        { error: 'Erreur lors de l\'ajout au tournoi' },
         { status: 500 }
       )
     }
 
+    // Construire le slug complet pour la redirection
+    const tournamentSlug = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`
+
     return NextResponse.json({
       success: true,
+      message: 'Vous avez rejoint le tournoi avec succès',
       tournament: {
         id: tournament.id,
-        name: tournament.name,
-        slug: tournament.slug,
-        invite_code: tournament.invite_code,
-        competition_name: tournament.competition_name,
-        status: tournament.status
+        slug: tournamentSlug
       }
     })
 
   } catch (error: any) {
-    console.error('Error in tournament join:', error)
+    console.error('Error in join tournament route:', error)
     return NextResponse.json(
-      { success: false, error: 'Erreur serveur' },
+      { error: error.message || 'Erreur serveur' },
       { status: 500 }
     )
   }

@@ -40,6 +40,14 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const countdownRef = useRef<NodeJS.Timeout | null>(null)
   const nextRefreshTimeRef = useRef<number>(0)
+  const isRefreshingRef = useRef<boolean>(false)
+  const onRefreshRef = useRef(onRefresh)
+  const wasActiveRef = useRef<boolean>(false)
+
+  // Garder la référence à jour
+  useEffect(() => {
+    onRefreshRef.current = onRefresh
+  }, [onRefresh])
 
   // Charger les paramètres depuis l'API
   useEffect(() => {
@@ -74,7 +82,7 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
     }
   }, [])
 
-  // Mettre à jour le compte à rebours
+  // Mettre à jour le compte à rebours (fonction stable sans dépendances)
   const updateCountdown = useCallback(() => {
     const now = Date.now()
     const remaining = nextRefreshTimeRef.current - now
@@ -92,16 +100,17 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
         timeUntilRefresh: formatTimeUntilRefresh(remaining)
       }))
     }
-  }, [])
+  }, []) // Pas de dépendances - utilise uniquement des refs
 
-  // Fonction de rafraîchissement
+  // Fonction de rafraîchissement (fonction stable utilisant des refs)
   const refresh = useCallback(async () => {
-    if (state.isRefreshing) return
+    if (isRefreshingRef.current) return
 
+    isRefreshingRef.current = true
     setState(prev => ({ ...prev, isRefreshing: true }))
 
     try {
-      await onRefresh()
+      await onRefreshRef.current()
       setState(prev => ({
         ...prev,
         lastRefreshTime: new Date()
@@ -109,9 +118,10 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
     } catch (error) {
       console.error('Error during auto-refresh:', error)
     } finally {
+      isRefreshingRef.current = false
       setState(prev => ({ ...prev, isRefreshing: false }))
     }
-  }, [onRefresh, state.isRefreshing])
+  }, []) // Pas de dépendances - utilise uniquement des refs
 
   // Rafraîchissement manuel
   const manualRefresh = useCallback(async () => {
@@ -123,17 +133,9 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
 
     await refresh()
 
-    // Redémarrer le timer
-    if (enabled && state.settings.enabled) {
-      const interval = calculateSmartRefreshInterval(
-        matches,
-        state.settings.interval,
-        state.settings.smartMode
-      )
-      nextRefreshTimeRef.current = Date.now() + interval
-      timerRef.current = setTimeout(refresh, interval)
-    }
-  }, [refresh, enabled, state.settings, matches])
+    // Redémarrer le timer après le rafraîchissement manuel
+    // Le useEffect principal se chargera de le redémarrer si nécessaire
+  }, [refresh])
 
   // Logique principale de rafraîchissement automatique
   useEffect(() => {
@@ -155,13 +157,19 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
       (!state.settings.pauseInactive || isPageVisible)
 
     if (!shouldBeActive) {
-      setState(prev => ({
-        ...prev,
-        nextRefreshIn: 0,
-        timeUntilRefresh: ''
-      }))
+      // Ne mettre à jour le state que si on était actif avant
+      if (wasActiveRef.current) {
+        setState(prev => ({
+          ...prev,
+          nextRefreshIn: 0,
+          timeUntilRefresh: ''
+        }))
+        wasActiveRef.current = false
+      }
       return
     }
+
+    wasActiveRef.current = true
 
     // Calculer l'intervalle de rafraîchissement
     const interval = calculateSmartRefreshInterval(
@@ -196,9 +204,8 @@ export function useAutoRefresh({ matches, onRefresh, enabled = true }: UseAutoRe
     state.settings.smartMode,
     state.settings.pauseInactive,
     isPageVisible,
-    matches,
-    refresh,
-    updateCountdown
+    matches
+    // refresh et updateCountdown sont stables (pas de dépendances)
   ])
 
   return {
