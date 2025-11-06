@@ -810,7 +810,8 @@ export default function OppositionPage() {
                                         handleScoreChange(match.id, 'away', val)
                                       }
                                     }}
-                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    disabled={isClosed}
+                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   />
                                   <div className="flex flex-col gap-0.5">
                                     <button
@@ -818,7 +819,8 @@ export default function OppositionPage() {
                                         const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
                                         handleScoreChange(match.id, 'away', newValue)
                                       }}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition"
+                                      disabled={isClosed}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       +
                                     </button>
@@ -827,7 +829,8 @@ export default function OppositionPage() {
                                         const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
                                         handleScoreChange(match.id, 'away', newValue)
                                       }}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition"
+                                      disabled={isClosed}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       −
                                     </button>
