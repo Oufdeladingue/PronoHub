@@ -63,6 +63,7 @@ export default function OppositionPage() {
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [savedPredictions, setSavedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos sauvegardés
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos modifiés
+  const [lockedPredictions, setLockedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos verrouillés
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -83,8 +84,12 @@ export default function OppositionPage() {
 
   useEffect(() => {
     if (selectedMatchday !== null && tournament) {
-      fetchMatches()
-      fetchUserPredictions()
+      // Charger d'abord les prédictions utilisateur, puis les matchs
+      const loadData = async () => {
+        await fetchUserPredictions()
+        await fetchMatches()
+      }
+      loadData()
     }
   }, [selectedMatchday, tournament])
 
@@ -266,7 +271,9 @@ export default function OppositionPage() {
       // Initialiser les prédictions à 0-0 pour tous les matchs qui n'ont pas encore de prédiction
       if (matchesData) {
         setPredictions(prev => {
+          console.log('🔄 fetchMatches - État actuel des prédictions:', Object.keys(prev).length, 'matchs')
           const newPredictions = { ...prev }
+          let addedCount = 0
           matchesData.forEach(match => {
             if (!newPredictions[match.id]) {
               newPredictions[match.id] = {
@@ -274,8 +281,11 @@ export default function OppositionPage() {
                 predicted_home_score: 0,
                 predicted_away_score: 0
               }
+              addedCount++
             }
           })
+          console.log('🔄 fetchMatches - Ajout de', addedCount, 'prédictions à 0-0')
+          console.log('🔄 fetchMatches - Total après:', Object.keys(newPredictions).length, 'matchs')
           return newPredictions
         })
       }
@@ -293,11 +303,24 @@ export default function OppositionPage() {
 
       if (!user) return
 
+      // D'abord, récupérer les IDs des matchs de la journée sélectionnée
+      const { data: matchesData } = await supabase
+        .from('imported_matches')
+        .select('id')
+        .eq('competition_id', tournament.competition_id)
+        .eq('matchday', selectedMatchday)
+
+      if (!matchesData || matchesData.length === 0) return
+
+      const matchIds = matchesData.map(m => m.id)
+
+      // Ensuite, récupérer les prédictions pour ces matchs
       const { data: predictionsData, error } = await supabase
         .from('predictions')
         .select('match_id, predicted_home_score, predicted_away_score')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
+        .in('match_id', matchIds)
 
       if (error) {
         console.error('Erreur Supabase:', error)
@@ -307,13 +330,22 @@ export default function OppositionPage() {
       // Convertir en objet pour un accès rapide
       const predictionsMap: Record<number, Prediction> = {}
       const savedMap: Record<number, boolean> = {}
+      const lockedMap: Record<number, boolean> = {}
       predictionsData?.forEach(pred => {
         predictionsMap[pred.match_id] = pred
         savedMap[pred.match_id] = true // Marquer comme sauvegardé
+        lockedMap[pred.match_id] = true // Marquer comme verrouillé
       })
+
+      console.log('📥 Pronostics chargés depuis la BDD:', predictionsData?.length || 0)
+      console.log('📥 Détails:', predictionsData?.map(p => ({
+        matchId: p.match_id,
+        scores: `${p.predicted_home_score}-${p.predicted_away_score}`
+      })))
 
       setPredictions(predictionsMap)
       setSavedPredictions(savedMap)
+      setLockedPredictions(lockedMap)
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics:', err)
       console.error('Type d\'erreur:', typeof err)
@@ -334,6 +366,10 @@ export default function OppositionPage() {
     if (savedPredictions[matchId]) {
       setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
     }
+  }
+
+  const unlockPrediction = (matchId: number) => {
+    setLockedPredictions(prev => ({ ...prev, [matchId]: false }))
   }
 
   const savePrediction = async (matchId: number) => {
@@ -361,16 +397,22 @@ export default function OppositionPage() {
 
       if (existing) {
         // Mettre à jour
-        await supabase
+        const { error: updateError } = await supabase
           .from('predictions')
           .update({
             predicted_home_score: prediction.predicted_home_score,
             predicted_away_score: prediction.predicted_away_score
           })
           .eq('id', existing.id)
+
+        if (updateError) {
+          console.error('Erreur lors de la mise à jour:', updateError)
+          throw updateError
+        }
+        console.log('✅ Pronostic mis à jour:', { matchId, scores: `${prediction.predicted_home_score}-${prediction.predicted_away_score}` })
       } else {
         // Créer
-        await supabase
+        const { error: insertError } = await supabase
           .from('predictions')
           .insert({
             tournament_id: tournament.id,
@@ -379,11 +421,18 @@ export default function OppositionPage() {
             predicted_home_score: prediction.predicted_home_score,
             predicted_away_score: prediction.predicted_away_score
           })
+
+        if (insertError) {
+          console.error('Erreur lors de l\'insertion:', insertError)
+          throw insertError
+        }
+        console.log('✅ Pronostic créé:', { matchId, scores: `${prediction.predicted_home_score}-${prediction.predicted_away_score}` })
       }
 
-      // Marquer comme sauvegardé et non modifié
+      // Marquer comme sauvegardé, non modifié et verrouillé
       setSavedPredictions(prev => ({ ...prev, [matchId]: true }))
       setModifiedPredictions(prev => ({ ...prev, [matchId]: false }))
+      setLockedPredictions(prev => ({ ...prev, [matchId]: true }))
 
       console.log('Pronostic enregistré avec succès')
     } catch (err) {
@@ -719,6 +768,7 @@ export default function OppositionPage() {
                             const isClosed = arePronosticsClosed()
                             const isSaved = savedPredictions[match.id]
                             const isModified = modifiedPredictions[match.id]
+                            const isLocked = lockedPredictions[match.id]
 
                             // Déterminer la couleur de bordure
                             let borderColor = 'border-gray-300 dark:border-gray-600' // Par défaut
@@ -762,7 +812,7 @@ export default function OppositionPage() {
                                         const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
                                         handleScoreChange(match.id, 'home', newValue)
                                       }}
-                                      disabled={isClosed}
+                                      disabled={isClosed || isLocked}
                                       className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       +
@@ -772,7 +822,7 @@ export default function OppositionPage() {
                                         const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
                                         handleScoreChange(match.id, 'home', newValue)
                                       }}
-                                      disabled={isClosed}
+                                      disabled={isClosed || isLocked}
                                       className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       −
@@ -789,7 +839,7 @@ export default function OppositionPage() {
                                         handleScoreChange(match.id, 'home', val)
                                       }
                                     }}
-                                    disabled={isClosed}
+                                    disabled={isClosed || isLocked}
                                     className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   />
                                 </div>
@@ -810,7 +860,7 @@ export default function OppositionPage() {
                                         handleScoreChange(match.id, 'away', val)
                                       }
                                     }}
-                                    disabled={isClosed}
+                                    disabled={isClosed || isLocked}
                                     className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   />
                                   <div className="flex flex-col gap-0.5">
@@ -819,7 +869,7 @@ export default function OppositionPage() {
                                         const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
                                         handleScoreChange(match.id, 'away', newValue)
                                       }}
-                                      disabled={isClosed}
+                                      disabled={isClosed || isLocked}
                                       className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       +
@@ -829,7 +879,7 @@ export default function OppositionPage() {
                                         const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
                                         handleScoreChange(match.id, 'away', newValue)
                                       }}
-                                      disabled={isClosed}
+                                      disabled={isClosed || isLocked}
                                       className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       −
@@ -852,7 +902,7 @@ export default function OppositionPage() {
                                 </div>
 
                                 {/* Indicateur et bouton d'état */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-end gap-2 w-48">
                                   {isClosed ? (
                                     <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -860,12 +910,22 @@ export default function OppositionPage() {
                                       </svg>
                                       <span className="text-sm font-medium">Clôturé</span>
                                     </div>
-                                  ) : isSaved && !isModified ? (
-                                    <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                      </svg>
-                                      <span className="text-sm font-medium">Enregistré</span>
+                                  ) : isSaved && !isModified && isLocked ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                      </div>
+                                      <button
+                                        onClick={() => unlockPrediction(match.id)}
+                                        className="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                                        title="Modifier le pronostic"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                        </svg>
+                                      </button>
                                     </div>
                                   ) : (
                                     <button
