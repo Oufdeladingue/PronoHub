@@ -16,7 +16,14 @@
       "Bash(git push:*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git pull:*)",
+      "Bash(docker:*)",
+      "Bash(powershell -Command \"scoop --version\")",
+      "Bash(powershell:*)",
+      "Bash(C:Userskochrscoopshimssupabase.exe --version)",
+      "Bash(timeout:*)",
+      "Bash(git grep:*)"
     ],
     "deny": [],
     "ask": []

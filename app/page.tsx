@@ -63,13 +63,13 @@ export default function Home() {
         <div className="flex justify-center items-center gap-3 flex-wrap mt-8">
           <Link
             href="/auth/signup"
-            className="font-semibold text-base border-none rounded-lg px-7 py-3 cursor-pointer transition-all duration-[250ms] ease-[ease] bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_10px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_16px_rgba(255,153,0,0.6)] hover:-translate-y-0.5"
+            className="font-semibold text-base border-none rounded-lg px-7 py-3 cursor-pointer transition-all duration-[250ms] ease-[ease] bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_10px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_16px_rgba(255,153,0,0.6)] hover:-translate-y-0.5 w-44 text-center"
           >
             S'inscrire
           </Link>
           <Link
             href="/auth/login"
-            className="font-semibold text-base border-none rounded-lg px-7 py-3 cursor-pointer transition-all duration-[250ms] ease-[ease] bg-[#1a1a1a] text-white shadow-[0_0_10px_rgba(0,0,0,0.4)] hover:bg-[#333333] hover:shadow-[0_0_16px_rgba(255,255,255,0.1)] hover:-translate-y-0.5"
+            className="font-semibold text-base border-none rounded-lg px-7 py-3 cursor-pointer transition-all duration-[250ms] ease-[ease] bg-[#1a1a1a] text-white shadow-[0_0_10px_rgba(0,0,0,0.4)] hover:bg-[#333333] hover:shadow-[0_0_16px_rgba(255,255,255,0.1)] hover:-translate-y-0.5 w-44 text-center"
           >
             Se connecter
           </Link>
