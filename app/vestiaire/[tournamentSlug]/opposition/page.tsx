@@ -33,8 +33,8 @@ interface Match {
 
 interface Prediction {
   match_id: number
-  home_score: number | null
-  away_score: number | null
+  predicted_home_score: number | null
+  predicted_away_score: number | null
 }
 
 export default function OppositionPage() {
@@ -60,6 +60,7 @@ export default function OppositionPage() {
   const [allMatches, setAllMatches] = useState<Match[]>([]) // Tous les matchs du tournoi pour calculer les statuts
   const [predictions, setPredictions] = useState<Record<number, Prediction>>({})
   const [savingPrediction, setSavingPrediction] = useState<number | null>(null)
+  const [timeRemaining, setTimeRemaining] = useState<string>('')
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -259,6 +260,23 @@ export default function OppositionPage() {
       if (error) throw error
 
       setMatches(matchesData || [])
+
+      // Initialiser les prédictions à 0-0 pour tous les matchs qui n'ont pas encore de prédiction
+      if (matchesData) {
+        setPredictions(prev => {
+          const newPredictions = { ...prev }
+          matchesData.forEach(match => {
+            if (!newPredictions[match.id]) {
+              newPredictions[match.id] = {
+                match_id: match.id,
+                predicted_home_score: 0,
+                predicted_away_score: 0
+              }
+            }
+          })
+          return newPredictions
+        })
+      }
     } catch (err) {
       console.error('Erreur lors du chargement des matchs:', err)
     }
@@ -275,11 +293,14 @@ export default function OppositionPage() {
 
       const { data: predictionsData, error } = await supabase
         .from('predictions')
-        .select('match_id, home_score, away_score')
+        .select('match_id, predicted_home_score, predicted_away_score')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erreur Supabase:', error)
+        throw error
+      }
 
       // Convertir en objet pour un accès rapide
       const predictionsMap: Record<number, Prediction> = {}
@@ -290,6 +311,8 @@ export default function OppositionPage() {
       setPredictions(predictionsMap)
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics:', err)
+      console.error('Type d\'erreur:', typeof err)
+      console.error('Erreur stringifiée:', JSON.stringify(err, null, 2))
     }
   }
 
@@ -298,8 +321,8 @@ export default function OppositionPage() {
       ...prev,
       [matchId]: {
         match_id: matchId,
-        home_score: team === 'home' ? value : (prev[matchId]?.home_score ?? null),
-        away_score: team === 'away' ? value : (prev[matchId]?.away_score ?? null)
+        predicted_home_score: team === 'home' ? value : (prev[matchId]?.predicted_home_score ?? null),
+        predicted_away_score: team === 'away' ? value : (prev[matchId]?.predicted_away_score ?? null)
       }
     }))
   }
@@ -313,7 +336,7 @@ export default function OppositionPage() {
       if (!user || !tournament) return
 
       const prediction = predictions[matchId]
-      if (prediction.home_score === null || prediction.away_score === null) {
+      if (prediction.predicted_home_score === null || prediction.predicted_away_score === null) {
         alert('Veuillez renseigner les deux scores')
         return
       }
@@ -332,8 +355,8 @@ export default function OppositionPage() {
         await supabase
           .from('predictions')
           .update({
-            home_score: prediction.home_score,
-            away_score: prediction.away_score
+            predicted_home_score: prediction.predicted_home_score,
+            predicted_away_score: prediction.predicted_away_score
           })
           .eq('id', existing.id)
       } else {
@@ -344,8 +367,8 @@ export default function OppositionPage() {
             tournament_id: tournament.id,
             user_id: user.id,
             match_id: matchId,
-            home_score: prediction.home_score,
-            away_score: prediction.away_score
+            predicted_home_score: prediction.predicted_home_score,
+            predicted_away_score: prediction.predicted_away_score
           })
       }
 
@@ -405,6 +428,47 @@ export default function OppositionPage() {
     })
     return groups
   }
+
+  // Calculer le temps restant avant la clôture des pronostics (1h avant le 1er match)
+  const calculateTimeRemaining = () => {
+    if (matches.length === 0) return ''
+
+    const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+    const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000) // 1 heure avant
+    const now = new Date()
+    const diff = closingTime.getTime() - now.getTime()
+
+    if (diff <= 0) {
+      return 'Pronostics clôturés'
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+
+    if (days > 0) {
+      return `${days}j ${hours}h ${minutes}min`
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}min ${seconds}s`
+    } else {
+      return `${minutes}min ${seconds}s`
+    }
+  }
+
+  // Timer en temps réel
+  useEffect(() => {
+    if (matches.length === 0) return
+
+    const updateTimer = () => {
+      setTimeRemaining(calculateTimeRemaining())
+    }
+
+    updateTimer()
+    const interval = setInterval(updateTimer, 1000)
+
+    return () => clearInterval(interval)
+  }, [matches])
 
   if (loading) {
     return (
@@ -594,6 +658,27 @@ export default function OppositionPage() {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {/* Timer avant le premier match */}
+                    {timeRemaining && (
+                      <div className={`p-4 rounded-lg text-center ${
+                        timeRemaining === 'Pronostics clôturés'
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
+                      }`}>
+                        <div className="flex items-center justify-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                          </svg>
+                          <span className="font-semibold">
+                            {timeRemaining === 'Pronostics clôturés'
+                              ? 'Pronostics clôturés pour cette journée'
+                              : `Temps restant pour valider vos pronostics : ${timeRemaining}`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {Object.entries(groupMatchesByDate(matches)).map(([date, dateMatches]) => (
                       <div key={date}>
                         {/* En-tête de date */}
@@ -606,7 +691,7 @@ export default function OppositionPage() {
                         {/* Matchs du jour */}
                         <div className="space-y-3">
                           {dateMatches.map(match => {
-                            const prediction = predictions[match.id] || { match_id: match.id, home_score: null, away_score: null }
+                            const prediction = predictions[match.id] || { match_id: match.id, predicted_home_score: 0, predicted_away_score: 0 }
                             const matchTime = new Date(match.utc_date).toLocaleTimeString('fr-FR', {
                               hour: '2-digit',
                               minute: '2-digit'
@@ -640,10 +725,10 @@ export default function OppositionPage() {
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => {
-                                      const newValue = Math.max(0, (prediction.home_score ?? 0) - 1)
+                                      const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
                                       handleScoreChange(match.id, 'home', newValue)
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold"
+                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
                                   >
                                     −
                                   </button>
@@ -651,21 +736,21 @@ export default function OppositionPage() {
                                     type="number"
                                     min="0"
                                     max="9"
-                                    value={prediction.home_score ?? ''}
+                                    value={prediction.predicted_home_score ?? 0}
                                     onChange={(e) => {
                                       const val = parseInt(e.target.value)
                                       if (!isNaN(val) && val >= 0 && val <= 9) {
                                         handleScoreChange(match.id, 'home', val)
                                       }
                                     }}
-                                    className="w-12 h-10 text-center text-lg font-bold theme-card theme-text border-2 border-gray-300 rounded focus:border-[#ff9900] focus:outline-none"
+                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                   <button
                                     onClick={() => {
-                                      const newValue = Math.min(9, (prediction.home_score ?? 0) + 1)
+                                      const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
                                       handleScoreChange(match.id, 'home', newValue)
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold"
+                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
                                   >
                                     +
                                   </button>
@@ -678,10 +763,10 @@ export default function OppositionPage() {
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => {
-                                      const newValue = Math.max(0, (prediction.away_score ?? 0) - 1)
+                                      const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
                                       handleScoreChange(match.id, 'away', newValue)
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold"
+                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
                                   >
                                     −
                                   </button>
@@ -689,21 +774,21 @@ export default function OppositionPage() {
                                     type="number"
                                     min="0"
                                     max="9"
-                                    value={prediction.away_score ?? ''}
+                                    value={prediction.predicted_away_score ?? 0}
                                     onChange={(e) => {
                                       const val = parseInt(e.target.value)
                                       if (!isNaN(val) && val >= 0 && val <= 9) {
                                         handleScoreChange(match.id, 'away', val)
                                       }
                                     }}
-                                    className="w-12 h-10 text-center text-lg font-bold theme-card theme-text border-2 border-gray-300 rounded focus:border-[#ff9900] focus:outline-none"
+                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                   <button
                                     onClick={() => {
-                                      const newValue = Math.min(9, (prediction.away_score ?? 0) + 1)
+                                      const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
                                       handleScoreChange(match.id, 'away', newValue)
                                     }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold"
+                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
                                   >
                                     +
                                   </button>
