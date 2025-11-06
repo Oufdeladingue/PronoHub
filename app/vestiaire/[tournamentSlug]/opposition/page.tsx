@@ -61,6 +61,8 @@ export default function OppositionPage() {
   const [predictions, setPredictions] = useState<Record<number, Prediction>>({})
   const [savingPrediction, setSavingPrediction] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<string>('')
+  const [savedPredictions, setSavedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos sauvegardés
+  const [modifiedPredictions, setModifiedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos modifiés
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -304,11 +306,14 @@ export default function OppositionPage() {
 
       // Convertir en objet pour un accès rapide
       const predictionsMap: Record<number, Prediction> = {}
+      const savedMap: Record<number, boolean> = {}
       predictionsData?.forEach(pred => {
         predictionsMap[pred.match_id] = pred
+        savedMap[pred.match_id] = true // Marquer comme sauvegardé
       })
 
       setPredictions(predictionsMap)
+      setSavedPredictions(savedMap)
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics:', err)
       console.error('Type d\'erreur:', typeof err)
@@ -325,6 +330,10 @@ export default function OppositionPage() {
         predicted_away_score: team === 'away' ? value : (prev[matchId]?.predicted_away_score ?? null)
       }
     }))
+    // Marquer comme modifié si déjà sauvegardé
+    if (savedPredictions[matchId]) {
+      setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
+    }
   }
 
   const savePrediction = async (matchId: number) => {
@@ -372,7 +381,10 @@ export default function OppositionPage() {
           })
       }
 
-      // Afficher un message de succès (optionnel)
+      // Marquer comme sauvegardé et non modifié
+      setSavedPredictions(prev => ({ ...prev, [matchId]: true }))
+      setModifiedPredictions(prev => ({ ...prev, [matchId]: false }))
+
       console.log('Pronostic enregistré avec succès')
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement du pronostic:', err)
@@ -427,6 +439,14 @@ export default function OppositionPage() {
       groups[date].push(match)
     })
     return groups
+  }
+
+  // Vérifier si les pronostics sont clôturés
+  const arePronosticsClosed = () => {
+    if (matches.length === 0) return false
+    const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+    const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000)
+    return new Date() >= closingTime
   }
 
   // Calculer le temps restant avant la clôture des pronostics (1h avant le 1er match)
@@ -696,11 +716,24 @@ export default function OppositionPage() {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
+                            const isClosed = arePronosticsClosed()
+                            const isSaved = savedPredictions[match.id]
+                            const isModified = modifiedPredictions[match.id]
+
+                            // Déterminer la couleur de bordure
+                            let borderColor = 'border-gray-300 dark:border-gray-600' // Par défaut
+                            if (isClosed) {
+                              borderColor = 'border-gray-400 dark:border-gray-500'
+                            } else if (isModified) {
+                              borderColor = 'border-orange-400 dark:border-orange-500'
+                            } else if (isSaved) {
+                              borderColor = 'border-green-400 dark:border-green-500'
+                            }
 
                             return (
                               <div
                                 key={match.id}
-                                className="flex items-center gap-4 p-4 theme-card hover:shadow-lg transition"
+                                className={`flex items-center gap-4 p-4 theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
                               >
                                 {/* Horaire */}
                                 <div className="w-16 text-sm theme-text-secondary font-semibold">
@@ -723,15 +756,28 @@ export default function OppositionPage() {
 
                                 {/* Score domicile */}
                                 <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => {
-                                      const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
-                                      handleScoreChange(match.id, 'home', newValue)
-                                    }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
-                                  >
-                                    −
-                                  </button>
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      onClick={() => {
+                                        const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
+                                        handleScoreChange(match.id, 'home', newValue)
+                                      }}
+                                      disabled={isClosed}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      +
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
+                                        handleScoreChange(match.id, 'home', newValue)
+                                      }}
+                                      disabled={isClosed}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      −
+                                    </button>
+                                  </div>
                                   <input
                                     type="number"
                                     min="0"
@@ -743,17 +789,9 @@ export default function OppositionPage() {
                                         handleScoreChange(match.id, 'home', val)
                                       }
                                     }}
-                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    disabled={isClosed}
+                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                   />
-                                  <button
-                                    onClick={() => {
-                                      const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
-                                      handleScoreChange(match.id, 'home', newValue)
-                                    }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
-                                  >
-                                    +
-                                  </button>
                                 </div>
 
                                 {/* Séparateur */}
@@ -761,15 +799,6 @@ export default function OppositionPage() {
 
                                 {/* Score extérieur */}
                                 <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => {
-                                      const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
-                                      handleScoreChange(match.id, 'away', newValue)
-                                    }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
-                                  >
-                                    −
-                                  </button>
                                   <input
                                     type="number"
                                     min="0"
@@ -783,15 +812,26 @@ export default function OppositionPage() {
                                     }}
                                     className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
-                                  <button
-                                    onClick={() => {
-                                      const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
-                                      handleScoreChange(match.id, 'away', newValue)
-                                    }}
-                                    className="w-8 h-8 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition"
-                                  >
-                                    +
-                                  </button>
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      onClick={() => {
+                                        const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
+                                        handleScoreChange(match.id, 'away', newValue)
+                                      }}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition"
+                                    >
+                                      +
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
+                                        handleScoreChange(match.id, 'away', newValue)
+                                      }}
+                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition"
+                                    >
+                                      −
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {/* Équipe extérieure */}
@@ -808,14 +848,53 @@ export default function OppositionPage() {
                                   </span>
                                 </div>
 
-                                {/* Bouton enregistrer */}
-                                <button
-                                  onClick={() => savePrediction(match.id)}
-                                  disabled={savingPrediction === match.id}
-                                  className="px-4 py-2 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                  {savingPrediction === match.id ? 'Enregistrement...' : 'Enregistrer'}
-                                </button>
+                                {/* Indicateur et bouton d'état */}
+                                <div className="flex items-center gap-2">
+                                  {isClosed ? (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="text-sm font-medium">Clôturé</span>
+                                    </div>
+                                  ) : isSaved && !isModified ? (
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="text-sm font-medium">Enregistré</span>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => savePrediction(match.id)}
+                                      disabled={savingPrediction === match.id}
+                                      className={`px-4 py-2 rounded-lg transition font-semibold flex items-center gap-2 ${
+                                        isModified
+                                          ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
+                                          : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
+                                      } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                    >
+                                      {savingPrediction === match.id ? (
+                                        <>
+                                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                          <span>Envoi...</span>
+                                        </>
+                                      ) : isModified ? (
+                                        <>
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                          </svg>
+                                          <span>Modifier</span>
+                                        </>
+                                      ) : (
+                                        <span>Enregistrer</span>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             )
                           })}
