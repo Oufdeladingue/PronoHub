@@ -23,7 +23,8 @@
       "Bash(powershell:*)",
       "Bash(C:Userskochrscoopshimssupabase.exe --version)",
       "Bash(timeout:*)",
-      "Bash(git grep:*)"
+      "Bash(git grep:*)",
+      "Bash(netstat:*)"
     ],
     "deny": [],
     "ask": []

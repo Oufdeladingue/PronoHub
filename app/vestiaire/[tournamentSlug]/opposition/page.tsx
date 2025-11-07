@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import ThemeToggle from '@/components/ThemeToggle'
+import TournamentNav from '@/components/TournamentNav'
 import TournamentRankings from '@/components/TournamentRankings'
 import { getAvatarUrl } from '@/lib/avatars'
 
@@ -856,88 +856,14 @@ export default function OppositionPage() {
     <ThemeProvider>
       <div className="min-h-screen theme-bg">
         {/* Header */}
-        <div className="theme-nav">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link href="/dashboard">
-                  <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14 cursor-pointer hover:opacity-80 transition" />
-                </Link>
-                <ThemeToggle />
-              </div>
-              <div className="flex items-center gap-4">
-                {competitionLogo && (
-                  <img
-                    src={competitionLogo}
-                    alt={tournament.competition_name}
-                    className="w-16 h-16 object-contain"
-                  />
-                )}
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold theme-text">{tournament.name}</h1>
-                    <span className="px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-                      En cours
-                    </span>
-                  </div>
-                  <p className="theme-text-secondary mt-1">{tournament.competition_name}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
-                    <Image
-                      src={getAvatarUrl(userAvatar)}
-                      alt={username}
-                      fill
-                      className="object-cover"
-                      sizes="32px"
-                    />
-                  </div>
-                  <span className="theme-text text-sm">Bonjour, {username} !</span>
-                </div>
-
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Lien Carrière avec icône */}
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-                  style={{ color: 'var(--theme-accent, #ff9900)' }}
-                >
-                  <img
-                    src="/images/icons/profil.svg"
-                    alt="Carrière"
-                    className="w-5 h-5"
-                    style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
-                  />
-                  Carrière
-                </Link>
-
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Bouton Déconnexion avec icône */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-                    style={{ color: 'var(--theme-accent, #ff9900)' }}
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-5 h-5"
-                      style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
-                    />
-                    Quitter le terrain
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TournamentNav
+          tournamentName={tournament.name}
+          competitionName={tournament.competition_name}
+          competitionLogo={competitionLogo}
+          status="active"
+          username={username}
+          userAvatar={userAvatar}
+        />
 
         {/* Navigation par onglets */}
         <div className="max-w-7xl mx-auto px-4 mt-6">

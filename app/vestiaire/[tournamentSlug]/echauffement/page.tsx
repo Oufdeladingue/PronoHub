@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
-import ThemeToggle from '@/components/ThemeToggle'
+import TournamentNav from '@/components/TournamentNav'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 
 interface Tournament {
@@ -38,9 +38,10 @@ interface Player {
   }
 }
 
-export default function EchauffementPage() {
+function EchauffementPageContent() {
   const params = useParams()
   const tournamentSlug = params.tournamentSlug as string
+  const { theme } = useTheme()
 
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
@@ -56,6 +57,7 @@ export default function EchauffementPage() {
   const [cancelConfirmation, setCancelConfirmation] = useState<boolean>(false)
   const [startConfirmation, setStartConfirmation] = useState<boolean>(false)
   const [username, setUsername] = useState<string>('utilisateur')
+  const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [matchdayWarning, setMatchdayWarning] = useState<{
     show: boolean
     remainingMatchdays: number
@@ -143,15 +145,18 @@ export default function EchauffementPage() {
       if (user) {
         setCurrentUserId(user.id)
 
-        // Récupérer le username depuis le profil
+        // Récupérer le username et avatar depuis le profil
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username')
+          .select('username, avatar')
           .eq('id', user.id)
           .single()
 
         if (profile?.username) {
           setUsername(profile.username)
+        }
+        if (profile?.avatar) {
+          setUserAvatar(profile.avatar)
         }
       }
     } catch (err) {
@@ -448,20 +453,17 @@ export default function EchauffementPage() {
 
   if (loading) {
     return (
-      <ThemeProvider>
       <div className="min-h-screen theme-bg flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
           <p className="theme-text-secondary">Chargement...</p>
         </div>
       </div>
-      </ThemeProvider>
     )
   }
 
   if (error || !tournament) {
     return (
-      <ThemeProvider>
       <div className="min-h-screen theme-bg flex items-center justify-center p-4">
         <div className="theme-card p-8 max-w-md w-full text-center">
           <div className="text-red-600 text-5xl mb-4">⚠️</div>
@@ -475,12 +477,10 @@ export default function EchauffementPage() {
           </Link>
         </div>
       </div>
-      </ThemeProvider>
     )
   }
 
   return (
-    <ThemeProvider>
     <div className="min-h-screen theme-bg">
       {/* Popup de confirmation de démarrage */}
       {startConfirmation && (
@@ -598,77 +598,14 @@ export default function EchauffementPage() {
       )}
 
       {/* Header */}
-      <div className="theme-nav">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14 cursor-pointer hover:opacity-80 transition" />
-              </Link>
-              <ThemeToggle />
-            </div>
-            <div className="flex items-center gap-4">
-              {competitionLogo && (
-                <img
-                  src={competitionLogo}
-                  alt={tournament.competition_name}
-                  className="w-16 h-16 object-contain"
-                />
-              )}
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold theme-text">{tournament.name}</h1>
-                  <span className="px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
-                    En attente
-                  </span>
-                </div>
-                <p className="theme-text-secondary mt-1">{tournament.competition_name}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="theme-text text-sm">Bonjour, {username} !</span>
-
-              {/* Séparateur */}
-              <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-              {/* Lien Carrière avec icône */}
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-                style={{ color: 'var(--theme-accent, #ff9900)' }}
-              >
-                <img
-                  src="/images/icons/profil.svg"
-                  alt="Carrière"
-                  className="w-5 h-5"
-                  style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
-                />
-                Carrière
-              </Link>
-
-              {/* Séparateur */}
-              <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-              {/* Bouton Déconnexion avec icône */}
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-                  style={{ color: 'var(--theme-accent, #ff9900)' }}
-                >
-                  <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-5 h-5"
-                    style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
-                  />
-                  Quitter le terrain
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TournamentNav
+        tournamentName={tournament.name}
+        competitionName={tournament.competition_name}
+        competitionLogo={competitionLogo}
+        status="pending"
+        username={username}
+        userAvatar={userAvatar}
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Contrôles du capitaine */}
@@ -676,7 +613,12 @@ export default function EchauffementPage() {
           <div className="mb-6 theme-card border-2 border-yellow-400">
             <div className="mb-4">
               <h2 className="text-xl font-bold theme-text flex items-center gap-2">
-                <img src="/images/icons/cap.svg" alt="Capitaine" className="w-6 h-6 dark:brightness-0 dark:invert" />
+                <img
+                  src="/images/icons/cap.svg"
+                  alt="Capitaine"
+                  className="w-6 h-6"
+                  style={{ filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none' }}
+                />
                 Les privilèges du capitaine
               </h2>
               <p className="text-sm theme-text-secondary mt-1 italic">Le brassard implique de grandes responsabilités</p>
@@ -688,22 +630,22 @@ export default function EchauffementPage() {
                 disabled={players.length < 2}
                 className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-green-600 hover:text-white disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 transition font-semibold flex items-center justify-center gap-2"
               >
-                <img src="/images/icons/start.svg" alt="" className="w-5 h-5" />
+                <img src="/images/icons/start-referee.svg" alt="" className="w-5 h-5" />
                 Démarrer le tournoi {tournament.name}
               </button>
               <button
                 onClick={showCancelConfirmation}
                 className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-red-600 hover:text-white transition font-semibold flex items-center justify-center gap-2"
               >
-                <img src="/images/icons/cancel.svg" alt="" className="w-5 h-5" />
-                Annuler le tournoi {tournament.name}
+                <img src="/images/icons/poubelle.svg" alt="" className="w-5 h-5" />
+                Annuler le tournoi
               </button>
               <button
                 onClick={handleLeaveTournament}
                 className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-orange-600 hover:text-white transition flex items-center justify-center gap-2"
               >
-                <img src="/images/icons/quit.svg" alt="" className="w-5 h-5" />
-                Quitter le tournoi {tournament.name}
+                <img src="/images/icons/dehors.svg" alt="" className="w-5 h-5" />
+                Quitter le tournoi
               </button>
             </div>
 
@@ -740,19 +682,21 @@ export default function EchauffementPage() {
                 return (
                   <div
                     key={player.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700"
+                    className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2"
                   >
                     <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
-                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="fill-green-600 dark:fill-[#ff9900]">
+                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="dark-fill-white">
                         <path d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
                       </svg>
                       <span className="absolute text-white dark:text-[#ff9900] font-bold text-xs">{index + 1}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold theme-text flex items-center gap-2">
-                        {player.profiles?.username || 'Joueur'}
+                      <p className="font-semibold flex items-center gap-2">
+                        <span className={player.user_id === currentUserId ? 'text-[#ff9900]' : 'theme-text'}>
+                          {player.profiles?.username || 'Joueur'}
+                        </span>
                         {isCaptain && (
-                          <span className="text-xs text-yellow-600 dark:text-yellow-400 font-semibold">(cap.)</span>
+                          <span className="text-xs dark-text-white font-semibold">(cap.)</span>
                         )}
                       </p>
                     </div>
@@ -772,7 +716,7 @@ export default function EchauffementPage() {
               {Array.from({ length: tournament.max_players - players.length }).map((_, index) => (
                 <div
                   key={`empty-${index}`}
-                  className="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600"
+                  className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2 border-dashed opacity-50"
                 >
                   <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
                     <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="fill-gray-400 dark:fill-gray-600">
@@ -786,17 +730,53 @@ export default function EchauffementPage() {
                 </div>
               ))}
 
+              {/* Info prochaine journée (visible pour tous) */}
+              {timeRemaining && (
+                <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-600 rounded-lg">
+                  <h3 className="font-bold text-orange-900 dark:text-orange-400 mb-3 flex items-center gap-2">
+                    <span className="text-xl">⏰</span>
+                    Prochaine journée
+                  </h3>
+                  <div className="mb-3 p-3 bg-white dark:bg-[#0f172a] rounded-lg border-2 border-orange-200 dark:border-orange-700">
+                    <p className="text-xs theme-text-secondary mb-2 text-center">Prochaine journée dans :</p>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.days}</div>
+                        <div className="text-xs theme-text-secondary">jours</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.hours}</div>
+                        <div className="text-xs theme-text-secondary">heures</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.minutes}</div>
+                        <div className="text-xs theme-text-secondary">min</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.seconds}</div>
+                        <div className="text-xs theme-text-secondary">sec</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 dark:border-red-600 rounded">
+                    <p className="text-xs text-red-800 dark:text-red-400 font-semibold">
+                      ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Boutons gestion des places (visible uniquement pour le capitaine) */}
               {currentUserId === tournament?.creator_id && (
-                <div className="space-y-2">
+                <div className="space-y-2 mt-4">
                   {/* Bouton Ajouter une place */}
                   {tournament.max_players < maxParticipantsLimit && (
                     <button
                       onClick={handleIncreaseMaxPlayers}
-                      className="w-full flex items-center justify-center gap-2 p-3 bg-green-50 rounded-lg border-2 border-dashed border-green-400 hover:bg-green-100 transition text-green-700 font-semibold"
+                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
                     >
-                      <span className="text-xl">+</span>
-                      <span>Ajouter une place (limité à {maxParticipantsLimit} effectif)</span>
+                      <span className="text-xl dark-text-accent">+</span>
+                      <span className="dark-text-accent">Ajouter une place (max {maxParticipantsLimit} en mode gratuit)</span>
                     </button>
                   )}
 
@@ -804,10 +784,10 @@ export default function EchauffementPage() {
                   {tournament.max_players > 2 && tournament.max_players > players.length && (
                     <button
                       onClick={handleDecreaseMaxPlayers}
-                      className="w-full flex items-center justify-center gap-2 p-3 bg-red-50 rounded-lg border-2 border-dashed border-red-400 hover:bg-red-100 transition text-red-700 font-semibold"
+                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
                     >
-                      <span className="text-xl">−</span>
-                      <span>Supprimer une place</span>
+                      <span className="text-xl dark-text-accent">−</span>
+                      <span className="dark-text-accent">Supprimer une place</span>
                     </button>
                   )}
                 </div>
@@ -819,18 +799,40 @@ export default function EchauffementPage() {
           <div className="space-y-6">
             <div className="theme-card">
               <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
-                <span className="text-2xl">🎫</span>
+                <img src="/images/icons/code.svg" alt="Code" className="w-6 h-6" />
                 Code d'invitation
               </h2>
 
-              <div className="bg-gradient-to-r from-purple-100 to-blue-100 border-2 border-purple-300 rounded-lg p-6 text-center">
-                <p className="text-sm text-gray-600 mb-2">Partagez ce code avec vos amis :</p>
-                <div className="text-5xl font-bold text-purple-700 tracking-wider mb-4 font-mono">
+              <div
+                className="border-2 rounded-lg p-6 text-center"
+                style={{
+                  backgroundColor: theme === 'dark' ? '#0f172a' : 'linear-gradient(to right, #f3e8ff, #dbeafe)',
+                  backgroundImage: theme === 'dark' ? 'none' : 'linear-gradient(to right, #f3e8ff, #dbeafe)',
+                  borderColor: theme === 'dark' ? '#374151' : '#d8b4fe'
+                }}
+              >
+                <p className="text-sm mb-2" style={{ color: theme === 'dark' ? '#9ca3af' : '#4b5563' }}>
+                  Partagez ce code avec vos amis :
+                </p>
+                <div
+                  className="text-5xl font-bold tracking-wider mb-4 font-mono"
+                  style={{ color: theme === 'dark' ? '#ff9900' : '#7e22ce' }}
+                >
                   {tournamentCode}
                 </div>
                 <button
                   onClick={copyInviteCode}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
+                  className="w-full px-4 py-2 rounded-lg transition font-semibold"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#ff9900' : '#9333ea',
+                    color: theme === 'dark' ? '#6b7280' : '#ffffff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#e68a00' : '#7e22ce'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#ff9900' : '#9333ea'
+                  }}
                 >
                   {copySuccess ? '✓ Copié !' : '📋 Copier le code'}
                 </button>
@@ -840,11 +842,11 @@ export default function EchauffementPage() {
             {/* QR Code */}
             <div className="theme-card">
               <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
-                <span className="text-2xl">📱</span>
+                <img src="/images/icons/qr.svg" alt="QR" className="w-6 h-6" />
                 QR Code
               </h2>
 
-              <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 text-center">
+              <div className="bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
                 <div className="bg-white inline-block p-4 rounded-lg">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
@@ -854,51 +856,23 @@ export default function EchauffementPage() {
                     className="w-48 h-48 mx-auto"
                   />
                 </div>
-                <p className="text-sm text-gray-600 mt-4">Scannez pour rejoindre le tournoi</p>
+                <p className="text-sm theme-text-secondary mt-4">Scannez pour rejoindre le tournoi</p>
                 <button
                   onClick={shareUrl}
-                  className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                  className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#ff9900' : '#2563eb',
+                    color: theme === 'dark' ? '#0f172a' : '#ffffff'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#e68a00' : '#1d4ed8'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#ff9900' : '#2563eb'
+                  }}
                 >
                   📤 Partager le lien
                 </button>
-              </div>
-            </div>
-
-            {/* Info prochaine journée */}
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-lg p-6">
-              <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
-                <span className="text-xl">⏰</span>
-                Prochaine journée
-              </h3>
-
-              {timeRemaining && (
-                <div className="mb-4 p-4 bg-white rounded-lg border-2 border-orange-200">
-                  <p className="text-xs text-gray-600 mb-2 text-center">Prochaine journée dans :</p>
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    <div>
-                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.days}</div>
-                      <div className="text-xs text-gray-600">jours</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.hours}</div>
-                      <div className="text-xs text-gray-600">heures</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.minutes}</div>
-                      <div className="text-xs text-gray-600">min</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-orange-700">{timeRemaining.seconds}</div>
-                      <div className="text-xs text-gray-600">sec</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-3 bg-red-100 border-l-4 border-red-500 rounded">
-                <p className="text-xs text-red-800 font-semibold">
-                  ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
-                </p>
               </div>
             </div>
           </div>
@@ -929,6 +903,13 @@ export default function EchauffementPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function EchauffementPage() {
+  return (
+    <ThemeProvider>
+      <EchauffementPageContent />
     </ThemeProvider>
   )
 }
