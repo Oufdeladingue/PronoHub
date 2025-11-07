@@ -34,14 +34,29 @@ interface RankingsData {
 interface TournamentRankingsProps {
   tournamentId: string
   availableMatchdays: number[]
+  tournamentName?: string
+  allMatches?: any[]
 }
 
-export default function TournamentRankings({ tournamentId, availableMatchdays }: TournamentRankingsProps) {
+export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | number>('general')
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Fonction pour vérifier si une journée a déjà commencé
+  const hasMatchdayStarted = (matchday: number): boolean => {
+    if (!allMatches) return true // Par défaut, considérer comme commencé si pas de données
+
+    const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
+    if (matchesForDay.length === 0) return true
+
+    const now = new Date()
+    const firstMatchTime = new Date(Math.min(...matchesForDay.map((m: any) => new Date(m.utc_date).getTime())))
+
+    return now >= firstMatchTime
+  }
 
   useEffect(() => {
     fetchCurrentUser()
@@ -88,6 +103,16 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
     }
   }
 
+  // Calculer les meilleurs scores exacts et bons résultats
+  const getBestStats = () => {
+    if (!rankingsData || rankingsData.rankings.length === 0) {
+      return { maxExactScores: 0, maxCorrectResults: 0 }
+    }
+    const maxExactScores = Math.max(...rankingsData.rankings.map(p => p.exactScores))
+    const maxCorrectResults = Math.max(...rankingsData.rankings.map(p => p.correctResults))
+    return { maxExactScores, maxCorrectResults }
+  }
+
   const getRankChangeIcon = (rankChange?: 'up' | 'down' | 'same') => {
     if (!rankChange) return null
 
@@ -131,19 +156,24 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
           >
             Général
           </button>
-          {availableMatchdays.map(matchday => (
-            <button
-              key={matchday}
-              onClick={() => setSelectedView(matchday)}
-              className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
-                selectedView === matchday
-                  ? 'bg-[#ff9900] text-[#111]'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
-              }`}
-            >
-              J{matchday}
-            </button>
-          ))}
+          {availableMatchdays.map(matchday => {
+            const hasStarted = hasMatchdayStarted(matchday)
+            return (
+              <button
+                key={matchday}
+                onClick={() => setSelectedView(matchday)}
+                className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
+                  selectedView === matchday
+                    ? 'bg-[#ff9900] text-[#111]'
+                    : hasStarted
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                      : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700'
+                }`}
+              >
+                J{matchday}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -174,9 +204,9 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
           {/* Informations sur le classement */}
           <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-sm theme-text-secondary">
-              {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} terminé{rankingsData.matchesFinished > 1 ? 's' : ''}
+              {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
               {' / '}
-              {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} total{rankingsData.matchesTotal > 1 ? 'aux' : ''}
+              {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
             </p>
           </div>
 
@@ -192,13 +222,13 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
                   <th className="text-left py-3 px-2 theme-text font-semibold">Joueur</th>
                   <th className="text-center py-3 px-2 theme-text font-semibold">Points</th>
                   <th className="text-center py-3 px-2 theme-text font-semibold hidden md:table-cell">
-                    Scores exacts
-                  </th>
-                  <th className="text-center py-3 px-2 theme-text font-semibold hidden lg:table-cell">
                     Bons résultats
                   </th>
+                  <th className="text-center py-3 px-2 theme-text font-semibold hidden lg:table-cell">
+                    Scores exacts
+                  </th>
                   <th className="text-center py-3 px-2 theme-text font-semibold hidden xl:table-cell">
-                    Matchs joués
+                    {selectedView === 'general' ? 'Pronos placés' : 'Matchs joués'}
                   </th>
                 </tr>
               </thead>
@@ -211,18 +241,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
                     {/* Rang */}
                     <td className="py-4 px-2 theme-text font-bold">
                       <div className="flex items-center gap-2">
-                        {player.rank <= 3 ? (
-                          <span className={`
-                            w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold
-                            ${player.rank === 1 ? 'bg-yellow-500' : ''}
-                            ${player.rank === 2 ? 'bg-gray-400' : ''}
-                            ${player.rank === 3 ? 'bg-amber-600' : ''}
-                          `}>
-                            {player.rank}
-                          </span>
-                        ) : (
-                          <span className="w-6 text-center">{player.rank}</span>
-                        )}
+                        <span className="w-6 text-center">{player.rank}</span>
                       </div>
                     </td>
 
@@ -253,19 +272,45 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
 
                     {/* Points */}
                     <td className="py-4 px-2 text-center">
-                      <span className="inline-block px-3 py-1 bg-[#ff9900] text-[#111] rounded-full font-bold">
-                        {player.totalPoints}
-                      </span>
-                    </td>
-
-                    {/* Scores exacts */}
-                    <td className="py-4 px-2 text-center theme-text hidden md:table-cell">
-                      {player.exactScores}
+                      {selectedView === 'general' && player.rank <= 3 ? (
+                        <span className={`inline-block px-3 py-1 rounded-full font-bold ${
+                          player.rank === 1
+                            ? 'bg-yellow-500 text-[#0f172a]'
+                            : player.rank === 2
+                              ? 'bg-gray-400 text-[#0f172a]'
+                              : 'bg-amber-600 text-[#0f172a]'
+                        }`}>
+                          {player.totalPoints}
+                        </span>
+                      ) : (
+                        <span className="theme-text font-bold">
+                          {player.totalPoints}
+                        </span>
+                      )}
                     </td>
 
                     {/* Bons résultats */}
+                    <td className="py-4 px-2 text-center theme-text hidden md:table-cell">
+                      <div className="flex items-center justify-center">
+                        <span className="w-4 text-right">{player.correctResults}</span>
+                        <span className="w-4 text-left">
+                          {player.correctResults === getBestStats().maxCorrectResults && player.correctResults > 0 && (
+                            <span className="text-yellow-500">★</span>
+                          )}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Scores exacts */}
                     <td className="py-4 px-2 text-center theme-text hidden lg:table-cell">
-                      {player.correctResults}
+                      <div className="flex items-center justify-center">
+                        <span className="w-4 text-right">{player.exactScores}</span>
+                        <span className="w-4 text-left">
+                          {player.exactScores === getBestStats().maxExactScores && player.exactScores > 0 && (
+                            <span className="text-yellow-500">★</span>
+                          )}
+                        </span>
+                      </div>
                     </td>
 
                     {/* Matchs joués */}
@@ -285,8 +330,9 @@ export default function TournamentRankings({ tournamentId, availableMatchdays }:
               <div key={player.playerId} className="mb-2 pb-2 border-b theme-border last:border-0">
                 <p className="text-sm theme-text font-medium">{player.playerName}</p>
                 <p className="text-xs theme-text-secondary">
-                  Scores exacts: {player.exactScores} • Bons résultats: {player.correctResults} •
-                  Matchs joués: {player.matchesPlayed}/{player.matchesAvailable}
+                  Bons résultats: {player.correctResults}{player.correctResults === getBestStats().maxCorrectResults && player.correctResults > 0 && ' ★'} •
+                  Scores exacts: {player.exactScores}{player.exactScores === getBestStats().maxExactScores && player.exactScores > 0 && ' ★'} •
+                  {selectedView === 'general' ? 'Pronos placés' : 'Matchs joués'}: {player.matchesPlayed}/{player.matchesAvailable}
                 </p>
               </div>
             ))}

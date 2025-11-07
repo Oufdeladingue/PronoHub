@@ -1413,6 +1413,8 @@ export default function OppositionPage() {
             <TournamentRankings
               tournamentId={tournament.id}
               availableMatchdays={availableMatchdays}
+              tournamentName={tournament.name}
+              allMatches={allMatches}
             />
           )}
 
