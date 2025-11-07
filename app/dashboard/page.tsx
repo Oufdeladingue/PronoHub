@@ -102,6 +102,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       username={profile?.username || 'utilisateur'}
+      avatar={profile?.avatar || 'avatar1'}
       isSuper={isSuper}
       hasReachedLimit={hasReachedLimit}
       currentTournamentCount={currentTournamentCount}

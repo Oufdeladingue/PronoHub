@@ -3,11 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import ThemeToggle from './ThemeToggle'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
+import { getAvatarUrl } from '@/lib/avatars'
 
 interface DashboardClientProps {
   username: string
+  avatar?: string
   isSuper: boolean
   hasReachedLimit: boolean
   currentTournamentCount: number
@@ -18,6 +21,7 @@ interface DashboardClientProps {
 
 function DashboardContent({
   username,
+  avatar,
   isSuper,
   hasReachedLimit,
   currentTournamentCount,
@@ -82,7 +86,18 @@ function DashboardContent({
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="theme-text text-sm">Bonjour, {username} !</span>
+            <div className="flex items-center gap-2">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+                <Image
+                  src={getAvatarUrl(avatar || 'avatar1')}
+                  alt={username}
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              </div>
+              <span className="theme-text text-sm">Bonjour, {username} !</span>
+            </div>
 
             {/* Séparateur */}
             <div className="h-6 w-[2px] bg-[#e68a00]"></div>

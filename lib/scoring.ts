@@ -1,0 +1,184 @@
+// Types pour le système de scoring
+export interface Prediction {
+  predictedHomeScore: number
+  predictedAwayScore: number
+}
+
+export interface MatchResult {
+  homeScore: number
+  awayScore: number
+}
+
+export interface PointsSettings {
+  exactScore: number
+  correctResult: number
+  incorrectResult: number
+}
+
+export interface ScoringResult {
+  points: number
+  isExactScore: boolean
+  isCorrectResult: boolean
+}
+
+export interface PlayerStats {
+  playerId: string
+  playerName: string
+  totalPoints: number
+  exactScores: number
+  correctResults: number
+  matchesPlayed: number
+  matchesAvailable: number
+  rank: number
+  previousRank?: number
+  rankChange?: 'up' | 'down' | 'same'
+}
+
+// Détermine le résultat d'un match (victoire domicile, nul, victoire extérieur)
+type MatchOutcome = 'HOME_WIN' | 'DRAW' | 'AWAY_WIN'
+
+function getMatchOutcome(homeScore: number, awayScore: number): MatchOutcome {
+  if (homeScore > awayScore) return 'HOME_WIN'
+  if (homeScore < awayScore) return 'AWAY_WIN'
+  return 'DRAW'
+}
+
+/**
+ * Calcule les points gagnés pour un pronostic
+ * @param prediction Le pronostic du joueur
+ * @param result Le résultat réel du match
+ * @param settings Les paramètres de points
+ * @param isBonusMatch Si c'est un match bonus (points x2)
+ * @returns Le résultat du scoring avec les points et les drapeaux
+ */
+export function calculatePoints(
+  prediction: Prediction,
+  result: MatchResult,
+  settings: PointsSettings,
+  isBonusMatch: boolean = false
+): ScoringResult {
+  const { predictedHomeScore, predictedAwayScore } = prediction
+  const { homeScore, awayScore } = result
+
+  // Vérifier si c'est un score exact
+  const isExactScore = predictedHomeScore === homeScore && predictedAwayScore === awayScore
+  if (isExactScore) {
+    return {
+      points: settings.exactScore * (isBonusMatch ? 2 : 1),
+      isExactScore: true,
+      isCorrectResult: true
+    }
+  }
+
+  // Vérifier si c'est un bon résultat (victoire domicile/nul/victoire extérieur)
+  const predictedOutcome = getMatchOutcome(predictedHomeScore, predictedAwayScore)
+  const actualOutcome = getMatchOutcome(homeScore, awayScore)
+  const isCorrectResult = predictedOutcome === actualOutcome
+
+  if (isCorrectResult) {
+    return {
+      points: settings.correctResult * (isBonusMatch ? 2 : 1),
+      isExactScore: false,
+      isCorrectResult: true
+    }
+  }
+
+  // Mauvais résultat
+  return {
+    points: settings.incorrectResult * (isBonusMatch ? 2 : 1),
+    isExactScore: false,
+    isCorrectResult: false
+  }
+}
+
+/**
+ * Génère un match bonus de manière reproductible
+ * Utilise un hash du tournamentId + matchday comme seed pour avoir toujours le même résultat
+ * @param tournamentId L'ID du tournoi
+ * @param matchday Le numéro de la journée
+ * @param availableMatches Liste des IDs de matchs disponibles (UUIDs)
+ * @returns L'ID du match bonus sélectionné
+ */
+export function generateBonusMatch(
+  tournamentId: string,
+  matchday: number,
+  availableMatches: string[]
+): string {
+  if (availableMatches.length === 0) {
+    throw new Error('Aucun match disponible pour le match bonus')
+  }
+
+  // Créer un seed à partir du tournamentId et du matchday
+  const seed = hashString(`${tournamentId}-${matchday}`)
+
+  // Utiliser le seed pour sélectionner un match de manière déterministe
+  const index = seed % availableMatches.length
+  return availableMatches[index]
+}
+
+/**
+ * Hash simple d'une chaîne de caractères pour obtenir un nombre
+ * @param str La chaîne à hasher
+ * @returns Un nombre positif
+ */
+function hashString(str: string): number {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return Math.abs(hash)
+}
+
+/**
+ * Calcule les classements avec rangs et progressions
+ * @param players Liste des joueurs avec leurs stats (sans rang)
+ * @param previousRankings Classement de la journée précédente (optionnel)
+ * @returns Liste des joueurs avec rangs et changements de rang
+ */
+export function calculateRankings(
+  players: Omit<PlayerStats, 'rank' | 'rankChange'>[],
+  previousRankings?: PlayerStats[]
+): PlayerStats[] {
+  // Trier par points décroissants, puis par scores exacts décroissants
+  const sorted = [...players].sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) {
+      return b.totalPoints - a.totalPoints
+    }
+    // En cas d'égalité de points, départager par le nombre de scores exacts
+    if (b.exactScores !== a.exactScores) {
+      return b.exactScores - a.exactScores
+    }
+    // En cas d'égalité de scores exacts, départager par le nombre de bons résultats
+    return b.correctResults - a.correctResults
+  })
+
+  // Calculer les rangs et les changements de rang
+  return sorted.map((player, index) => {
+    const rank = index + 1
+    let rankChange: 'up' | 'down' | 'same' | undefined
+    let previousRank: number | undefined
+
+    if (previousRankings) {
+      const prevPlayer = previousRankings.find(p => p.playerId === player.playerId)
+      if (prevPlayer) {
+        previousRank = prevPlayer.rank
+        if (rank < prevPlayer.rank) {
+          rankChange = 'up'
+        } else if (rank > prevPlayer.rank) {
+          rankChange = 'down'
+        } else {
+          rankChange = 'same'
+        }
+      }
+    }
+
+    return {
+      ...player,
+      rank,
+      previousRank,
+      rankChange
+    }
+  })
+}

@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import ThemeToggle from '@/components/ThemeToggle'
+import TournamentRankings from '@/components/TournamentRankings'
+import { getAvatarUrl } from '@/lib/avatars'
 
 interface Tournament {
   id: string
@@ -29,6 +32,9 @@ interface Match {
   away_team_name: string
   home_team_crest: string | null
   away_team_crest: string | null
+  finished?: boolean
+  home_score?: number | null
+  away_score?: number | null
 }
 
 interface Prediction {
@@ -47,6 +53,8 @@ export default function OppositionPage() {
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'regles'>('pronostics')
   const [username, setUsername] = useState<string>('utilisateur')
+  const [userAvatar, setUserAvatar] = useState<string>('avatar1')
+  const [userId, setUserId] = useState<string | null>(null)
   const [pointsSettings, setPointsSettings] = useState<{
     exactScore: number
     correctResult: number
@@ -65,6 +73,24 @@ export default function OppositionPage() {
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos modifiés
   const [lockedPredictions, setLockedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos verrouillés
 
+  // États pour le classement
+  const [rankingsView, setRankingsView] = useState<'general' | number>('general')
+  const [rankings, setRankings] = useState<any[]>([])
+  const [loadingRankings, setLoadingRankings] = useState(false)
+
+  // États pour les matchs bonus
+  const [bonusMatchIds, setBonusMatchIds] = useState<Set<number>>(new Set())
+
+  // État pour les points gagnés par match
+  const [matchPoints, setMatchPoints] = useState<Record<number, number>>({})
+
+  // État pour les points totaux de la journée
+  const [matchdayTotalPoints, setMatchdayTotalPoints] = useState<number>(0)
+
+  // États pour les accordéons de pronostics des autres
+  const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set())
+  const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<number, any[]>>({})
+
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
 
@@ -79,6 +105,7 @@ export default function OppositionPage() {
       fetchCompetitionLogo()
       fetchAvailableMatchdays()
       fetchAllMatches()
+      fetchBonusMatches()
     }
   }, [tournament?.competition_id])
 
@@ -88,6 +115,7 @@ export default function OppositionPage() {
       const loadData = async () => {
         await fetchUserPredictions()
         await fetchMatches()
+        await fetchMatchPoints()
       }
       loadData()
     }
@@ -98,15 +126,19 @@ export default function OppositionPage() {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Récupérer le username depuis le profil
+        setUserId(user.id)
+        // Récupérer le username et avatar depuis le profil
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username')
+          .select('username, avatar')
           .eq('id', user.id)
           .single()
 
         if (profile?.username) {
           setUsername(profile.username)
+        }
+        if (profile?.avatar) {
+          setUserAvatar(profile.avatar)
         }
       }
     } catch (err) {
@@ -191,6 +223,38 @@ export default function OppositionPage() {
     }
   }
 
+  const findNextMatchdayToPlay = async (matchdays: number[]) => {
+    if (!tournament) return
+
+    const supabase = createClient()
+
+    // Pour chaque journée, vérifier si elle est clôturée
+    for (const matchday of matchdays) {
+      const { data: matchesData } = await supabase
+        .from('imported_matches')
+        .select('utc_date')
+        .eq('competition_id', tournament.competition_id)
+        .eq('matchday', matchday)
+        .order('utc_date', { ascending: true })
+        .limit(1)
+
+      if (matchesData && matchesData.length > 0) {
+        const firstMatchTime = new Date(matchesData[0].utc_date)
+        const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000) // 1h avant
+        const now = new Date()
+
+        // Si cette journée n'est pas encore clôturée, on la sélectionne
+        if (now < closingTime) {
+          setSelectedMatchday(matchday)
+          return
+        }
+      }
+    }
+
+    // Si toutes les journées sont clôturées, sélectionner la dernière
+    setSelectedMatchday(matchdays[matchdays.length - 1])
+  }
+
   const fetchAvailableMatchdays = async () => {
     try {
       if (!tournament) return
@@ -212,9 +276,9 @@ export default function OppositionPage() {
       setAvailableMatchdays(matchdays)
 
       // Sélectionner la prochaine journée à pronostiquer par défaut
-      // Pour l'instant, on sélectionne la première journée disponible
       if (matchdays.length > 0 && selectedMatchday === null) {
-        setSelectedMatchday(matchdays[0])
+        // Trouver la première journée non clôturée
+        findNextMatchdayToPlay(matchdays)
       }
     } catch (err) {
       console.error('Erreur lors du chargement des journées:', err)
@@ -249,6 +313,23 @@ export default function OppositionPage() {
       setAllMatches(allMatchesData || [])
     } catch (err) {
       console.error('Erreur lors du chargement de tous les matchs:', err)
+    }
+  }
+
+  const fetchBonusMatches = async () => {
+    try {
+      if (!tournament) return
+
+      const response = await fetch(`/api/tournaments/${tournament.id}/bonus-matches`)
+      if (!response.ok) return
+
+      const data = await response.json()
+      if (data.bonusMatches) {
+        const bonusIds = new Set(data.bonusMatches.map((bm: any) => bm.match_id))
+        setBonusMatchIds(bonusIds)
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des matchs bonus:', err)
     }
   }
 
@@ -350,6 +431,205 @@ export default function OppositionPage() {
       console.error('Erreur lors du chargement des pronostics:', err)
       console.error('Type d\'erreur:', typeof err)
       console.error('Erreur stringifiée:', JSON.stringify(err, null, 2))
+    }
+  }
+
+  const fetchMatchPoints = async () => {
+    try {
+      if (!tournament || selectedMatchday === null) return
+
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      // Récupérer les matchs terminés de cette journée
+      const { data: matchesData } = await supabase
+        .from('imported_matches')
+        .select('id, home_score, away_score, finished')
+        .eq('competition_id', tournament.competition_id)
+        .eq('matchday', selectedMatchday)
+        .eq('finished', true)
+
+      if (!matchesData || matchesData.length === 0) return
+
+      const matchIds = matchesData.map(m => m.id)
+
+      // Récupérer les pronostics de l'utilisateur pour ces matchs
+      const { data: predictionsData } = await supabase
+        .from('predictions')
+        .select('match_id, predicted_home_score, predicted_away_score')
+        .eq('tournament_id', tournament.id)
+        .eq('user_id', user.id)
+        .in('match_id', matchIds)
+
+      if (!predictionsData) return
+
+      // Récupérer les matchs bonus
+      const isBonusMatch = (matchId: number) => bonusMatchIds.has(matchId)
+
+      // Calculer les points pour chaque match
+      const pointsMap: Record<number, number> = {}
+      for (const prediction of predictionsData) {
+        const match = matchesData.find(m => m.id === prediction.match_id)
+        if (!match || match.home_score === null || match.away_score === null) continue
+
+        const pred_home = prediction.predicted_home_score
+        const pred_away = prediction.predicted_away_score
+
+        if (pred_home === null || pred_away === null) continue
+
+        // Calculer les points
+        const isExact = pred_home === match.home_score && pred_away === match.away_score
+        const predOutcome = pred_home > pred_away ? 'H' : (pred_home < pred_away ? 'A' : 'D')
+        const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+        const isCorrect = predOutcome === realOutcome
+
+        let points = 0
+        if (isExact) {
+          points = pointsSettings.exactScore
+        } else if (isCorrect) {
+          points = pointsSettings.correctResult
+        } else {
+          points = pointsSettings.incorrectResult
+        }
+
+        // Doubler si match bonus
+        if (isBonusMatch(prediction.match_id)) {
+          points *= 2
+        }
+
+        pointsMap[prediction.match_id] = points
+      }
+
+      setMatchPoints(pointsMap)
+
+      // Calculer le total des points pour cette journée
+      const totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
+      setMatchdayTotalPoints(totalPoints)
+    } catch (err) {
+      console.error('Erreur lors du chargement des points:', err)
+    }
+  }
+
+  // Fonction pour récupérer les pronostics de tous les participants pour un match
+  const fetchAllPlayersPredictionsForMatch = async (matchId: number, match: Match) => {
+    try {
+      if (!tournament || !userId) return
+
+      // Appeler l'API pour récupérer tous les pronostics (bypass RLS)
+      const response = await fetch(`/api/tournaments/${tournament.id}/match-predictions?matchId=${matchId}`)
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des pronostics')
+      }
+
+      const data = await response.json()
+      const predictions = data.predictions
+
+      if (!predictions) return
+
+      // Créer un tableau avec les pronostics de chaque participant
+      const playersPredictions = predictions
+        .filter((p: any) => p.user_id !== userId) // Exclure l'utilisateur actuel
+        .map((prediction: any) => {
+          const username = prediction.username
+
+          if (!prediction.has_prediction) {
+            return {
+              username,
+              avatar: prediction.avatar || 'avatar1',
+              predictedHome: 0,
+              predictedAway: 0,
+              hasPronostic: false,
+              points: 0,
+              isExact: false,
+              isCorrect: false
+            }
+          }
+
+          // Calculer les points si le match est terminé
+          let points = 0
+          let isExact = false
+          let isCorrect = false
+
+          if (match.finished && match.home_score !== null && match.away_score !== null) {
+            isExact = prediction.predicted_home_score === match.home_score && prediction.predicted_away_score === match.away_score
+            const predOutcome = prediction.predicted_home_score > prediction.predicted_away_score ? 'H' : (prediction.predicted_home_score < prediction.predicted_away_score ? 'A' : 'D')
+            const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+            isCorrect = predOutcome === realOutcome
+
+            if (isExact) {
+              points = pointsSettings.exactScore
+            } else if (isCorrect) {
+              points = pointsSettings.correctResult
+            } else {
+              points = pointsSettings.incorrectResult
+            }
+
+            // Doubler si match bonus
+            if (bonusMatchIds.has(matchId)) {
+              points *= 2
+            }
+          }
+
+          return {
+            username,
+            avatar: prediction.avatar || 'avatar1',
+            predictedHome: prediction.predicted_home_score,
+            predictedAway: prediction.predicted_away_score,
+            hasPronostic: true,
+            points,
+            isExact,
+            isCorrect
+          }
+        })
+        .sort((a: any, b: any) => b.points - a.points) // Trier par points décroissants
+
+      setAllPlayersPredictions(prev => ({
+        ...prev,
+        [matchId]: playersPredictions
+      }))
+    } catch (err) {
+      console.error('Erreur lors du chargement des pronostics des autres:', err)
+    }
+  }
+
+  // Fonction pour toggle l'accordéon
+  const toggleMatchExpansion = async (matchId: number, match: Match) => {
+    const newExpanded = new Set(expandedMatches)
+
+    if (newExpanded.has(matchId)) {
+      newExpanded.delete(matchId)
+    } else {
+      newExpanded.add(matchId)
+      // Charger les pronostics si pas déjà chargés
+      if (!allPlayersPredictions[matchId]) {
+        await fetchAllPlayersPredictionsForMatch(matchId, match)
+      }
+    }
+
+    setExpandedMatches(newExpanded)
+  }
+
+  // Fonction pour obtenir les styles de couleur en fonction des points
+  const getPointsColorStyle = (points: number) => {
+    if (points === 0) {
+      return { backgroundColor: '#e5e7eb', color: '#0f172a' } // Gris
+    } else if (points === 2) {
+      return { backgroundColor: '#ea580c', color: '#0f172a' } // Orange foncé
+    } else if (points === 3) {
+      return { backgroundColor: '#fb923c', color: '#0f172a' } // Orange pâle
+    } else if (points === 4) {
+      return { backgroundColor: '#86efac', color: '#0f172a' } // Vert clair
+    } else if (points === 5) {
+      return { backgroundColor: '#22c55e', color: '#0f172a' } // Vert
+    } else if (points === 6) {
+      return { backgroundColor: '#16a34a', color: '#ffffff' } // Vert plus foncé
+    } else if (points === 10) {
+      return { backgroundColor: '#fbbf24', color: '#0f172a' } // Or
+    } else {
+      return { backgroundColor: '#22c55e', color: '#0f172a' } // Défaut vert
     }
   }
 
@@ -461,11 +741,11 @@ export default function OppositionPage() {
       return 'Terminée'
     }
 
-    // Vérifier si au moins un match a commencé
+    // Vérifier si la journée est en cours (1h avant le premier match ou après)
     const firstMatchTime = new Date(Math.min(...matchdayMatches.map(m => new Date(m.utc_date).getTime())))
     const hoursUntilFirstMatch = (firstMatchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    if (hoursUntilFirstMatch < 0) {
+    if (hoursUntilFirstMatch < 1) {
       return 'En cours'
     }
 
@@ -604,7 +884,18 @@ export default function OppositionPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="theme-text text-sm">Bonjour, {username} !</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+                    <Image
+                      src={getAvatarUrl(userAvatar)}
+                      alt={username}
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                    />
+                  </div>
+                  <span className="theme-text text-sm">Bonjour, {username} !</span>
+                </div>
 
                 {/* Séparateur */}
                 <div className="h-6 w-[2px] bg-[#e68a00]"></div>
@@ -694,6 +985,7 @@ export default function OppositionPage() {
                   <div className="flex gap-2">
                     {availableMatchdays.map(matchday => {
                       const matchdayStatus = getMatchdayStatus(matchday)
+                      const isFinished = matchdayStatus === 'Terminée'
                       return (
                         <button
                           key={matchday}
@@ -701,12 +993,14 @@ export default function OppositionPage() {
                           className={`px-4 py-3 rounded-lg font-semibold transition whitespace-nowrap flex flex-col items-center min-w-[80px] ${
                             selectedMatchday === matchday
                               ? 'bg-[#ff9900] text-[#111]'
-                              : 'bg-gray-100 text-gray-700 hover:bg-[#ff9900] hover:text-[#111]'
+                              : isFinished
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 opacity-60'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
                           }`}
                         >
                           <span className="text-lg">J{matchday}</span>
                           <span className={`text-xs mt-1 ${
-                            selectedMatchday === matchday ? 'text-[#111]' : 'text-gray-500'
+                            selectedMatchday === matchday ? 'text-[#111]' : isFinished ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'
                           }`}>
                             {matchdayStatus}
                           </span>
@@ -729,18 +1023,14 @@ export default function OppositionPage() {
                   <div className="space-y-6">
                     {/* Timer avant le premier match */}
                     {timeRemaining && (
-                      <div className={`p-4 rounded-lg text-center ${
-                        timeRemaining === 'Pronostics clôturés'
-                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                          : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
-                      }`}>
+                      <div className="p-4 rounded-lg text-center theme-bg text-[#ff9900]">
                         <div className="flex items-center justify-center gap-2">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                           </svg>
                           <span className="font-semibold">
                             {timeRemaining === 'Pronostics clôturés'
-                              ? 'Pronostics clôturés pour cette journée'
+                              ? `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
                               : `Temps restant pour valider vos pronostics : ${timeRemaining}`
                             }
                           </span>
@@ -752,7 +1042,7 @@ export default function OppositionPage() {
                       <div key={date}>
                         {/* En-tête de date */}
                         <div className="mb-4">
-                          <h3 className="text-lg font-bold theme-text capitalize">
+                          <h3 className="text-sm font-bold theme-text capitalize text-center">
                             {date}
                           </h3>
                         </div>
@@ -769,6 +1059,7 @@ export default function OppositionPage() {
                             const isSaved = savedPredictions[match.id]
                             const isModified = modifiedPredictions[match.id]
                             const isLocked = lockedPredictions[match.id]
+                            const isBonusMatch = bonusMatchIds.has(match.id)
 
                             // Déterminer la couleur de bordure
                             let borderColor = 'border-gray-300 dark:border-gray-600' // Par défaut
@@ -783,11 +1074,39 @@ export default function OppositionPage() {
                             return (
                               <div
                                 key={match.id}
-                                className={`flex items-center gap-4 p-4 theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
+                                className={`relative flex flex-col p-4 theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
                               >
-                                {/* Horaire */}
-                                <div className="w-16 text-sm theme-text-secondary font-semibold">
-                                  {matchTime}
+                                <style jsx>{`
+                                  @keyframes pulse-bonus {
+                                    0%, 100% {
+                                      opacity: 1;
+                                      transform: scale(1);
+                                    }
+                                    50% {
+                                      opacity: 0.7;
+                                      transform: scale(1.05);
+                                    }
+                                  }
+                                  .bonus-badge {
+                                    animation: pulse-bonus 2s ease-in-out infinite;
+                                  }
+                                `}</style>
+
+                                {/* Contenu principal du match */}
+                                <div className="grid items-center gap-4" style={{ gridTemplateColumns: '80px 1fr auto 1fr 192px' }}>
+                                  {/* Horaire et badge bonus */}
+                                  <div className="flex flex-col items-center gap-1 w-20">
+                                  <div className="text-sm theme-text-secondary font-semibold">
+                                    {matchTime}
+                                  </div>
+                                  {isBonusMatch && (
+                                    <div className="bonus-badge flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[10px] font-bold text-white shadow-lg">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      </svg>
+                                      <span>BONUS</span>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Équipe domicile */}
@@ -804,86 +1123,108 @@ export default function OppositionPage() {
                                   )}
                                 </div>
 
-                                {/* Score domicile */}
-                                <div className="flex items-center gap-1">
-                                  <div className="flex flex-col gap-0.5">
-                                    <button
-                                      onClick={() => {
-                                        const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
-                                        handleScoreChange(match.id, 'home', newValue)
-                                      }}
-                                      disabled={isClosed || isLocked}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      +
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
-                                        handleScoreChange(match.id, 'home', newValue)
-                                      }}
-                                      disabled={isClosed || isLocked}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      −
-                                    </button>
-                                  </div>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="9"
-                                    value={prediction.predicted_home_score ?? 0}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value)
-                                      if (!isNaN(val) && val >= 0 && val <= 9) {
-                                        handleScoreChange(match.id, 'home', val)
-                                      }
-                                    }}
-                                    disabled={isClosed || isLocked}
-                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                  />
-                                </div>
+                                {/* Zone centrale avec scores */}
+                                <div className="flex flex-col items-center gap-3 flex-1">
+                                  {/* Vrai score si match terminé */}
+                                  {match.finished && match.home_score !== null && match.away_score !== null && (
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded">
+                                      <span className="text-xs font-semibold text-green-700 dark:text-green-400">
+                                        Score final :
+                                      </span>
+                                      <span className="text-sm font-bold text-green-700 dark:text-green-400">
+                                        {match.home_score} - {match.away_score}
+                                      </span>
+                                    </div>
+                                  )}
 
-                                {/* Séparateur */}
-                                <span className="theme-text-secondary font-bold text-xl">−</span>
+                                  {/* Ligne de pronostic */}
+                                  <div className="flex items-center gap-3">
+                                    {/* Score domicile */}
+                                    <div className="flex items-center gap-1">
+                                      {!isClosed && (
+                                        <div className="flex flex-col gap-0.5">
+                                          <button
+                                            onClick={() => {
+                                              const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
+                                              handleScoreChange(match.id, 'home', newValue)
+                                            }}
+                                            disabled={isLocked}
+                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            +
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
+                                              handleScoreChange(match.id, 'home', newValue)
+                                            }}
+                                            disabled={isLocked}
+                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            −
+                                          </button>
+                                        </div>
+                                      )}
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="9"
+                                        value={prediction.predicted_home_score ?? 0}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value)
+                                          if (!isNaN(val) && val >= 0 && val <= 9) {
+                                            handleScoreChange(match.id, 'home', val)
+                                          }
+                                        }}
+                                        disabled={isClosed || isLocked}
+                                        className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                      />
+                                    </div>
 
-                                {/* Score extérieur */}
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="9"
-                                    value={prediction.predicted_away_score ?? 0}
-                                    onChange={(e) => {
-                                      const val = parseInt(e.target.value)
-                                      if (!isNaN(val) && val >= 0 && val <= 9) {
-                                        handleScoreChange(match.id, 'away', val)
-                                      }
-                                    }}
-                                    disabled={isClosed || isLocked}
-                                    className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                  />
-                                  <div className="flex flex-col gap-0.5">
-                                    <button
-                                      onClick={() => {
-                                        const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
-                                        handleScoreChange(match.id, 'away', newValue)
-                                      }}
-                                      disabled={isClosed || isLocked}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      +
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
-                                        handleScoreChange(match.id, 'away', newValue)
-                                      }}
-                                      disabled={isClosed || isLocked}
-                                      className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      −
-                                    </button>
+                                    {/* Séparateur */}
+                                    <span className="theme-text-secondary font-bold text-xl">−</span>
+
+                                    {/* Score extérieur */}
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="9"
+                                        value={prediction.predicted_away_score ?? 0}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value)
+                                          if (!isNaN(val) && val >= 0 && val <= 9) {
+                                            handleScoreChange(match.id, 'away', val)
+                                          }
+                                        }}
+                                        disabled={isClosed || isLocked}
+                                        className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                      />
+                                      {!isClosed && (
+                                        <div className="flex flex-col gap-0.5">
+                                          <button
+                                            onClick={() => {
+                                              const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
+                                              handleScoreChange(match.id, 'away', newValue)
+                                            }}
+                                            disabled={isLocked}
+                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            +
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
+                                              handleScoreChange(match.id, 'away', newValue)
+                                            }}
+                                            disabled={isLocked}
+                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            −
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 
@@ -904,12 +1245,21 @@ export default function OppositionPage() {
                                 {/* Indicateur et bouton d'état */}
                                 <div className="flex items-center justify-end gap-2 w-48">
                                   {isClosed ? (
-                                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                      </svg>
-                                      <span className="text-sm font-medium">Clôturé</span>
-                                    </div>
+                                    matchPoints[match.id] !== undefined ? (
+                                      <div
+                                        className="px-4 py-2 rounded-lg font-bold text-sm"
+                                        style={getPointsColorStyle(matchPoints[match.id])}
+                                      >
+                                        {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="text-sm font-medium">Clôturé</span>
+                                      </div>
+                                    )
                                   ) : isSaved && !isModified && isLocked ? (
                                     <div className="flex items-center gap-2">
                                       <div className="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
@@ -919,7 +1269,7 @@ export default function OppositionPage() {
                                       </div>
                                       <button
                                         onClick={() => unlockPrediction(match.id)}
-                                        className="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                                        className="flex items-center justify-center w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                                         title="Modifier le pronostic"
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -958,6 +1308,95 @@ export default function OppositionPage() {
                                     </button>
                                   )}
                                 </div>
+                                </div>
+
+                                {/* Accordéon pour voir les pronostics des autres (seulement si journée clôturée) */}
+                                {isClosed && (
+                                  <div className="mt-3 border-t theme-border pt-3">
+                                    <button
+                                      onClick={() => toggleMatchExpansion(match.id, match)}
+                                      className="w-full px-2 py-2 text-xs transition hover:opacity-80 flex items-center justify-center gap-2 theme-text"
+                                    >
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-3 w-3"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        {expandedMatches.has(match.id) ? (
+                                          <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                        ) : (
+                                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                        )}
+                                      </svg>
+                                      <span>Voir les pronostics de mes adversaires</span>
+                                    </button>
+
+                                    {/* Contenu de l'accordéon */}
+                                    {expandedMatches.has(match.id) && allPlayersPredictions[match.id] && (
+                                      <div className="mt-3 space-y-2 animate-fadeIn">
+                                        {allPlayersPredictions[match.id].length === 0 ? (
+                                          <p className="text-sm text-center theme-text-secondary py-4">
+                                            Aucun autre participant n'a fait de pronostic sur ce match
+                                          </p>
+                                        ) : (
+                                          allPlayersPredictions[match.id].map((playerPred, idx) => (
+                                            <div
+                                              key={`${match.id}-${playerPred.username}-${idx}`}
+                                              className="grid items-center gap-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                                              style={{ backgroundColor: 'var(--background)', gridTemplateColumns: 'auto 1fr auto 1fr 192px' }}
+                                            >
+                                              {/* Nom du joueur avec avatar à gauche */}
+                                              <div className="flex items-center gap-2">
+                                                <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+                                                  <Image
+                                                    src={getAvatarUrl(playerPred.avatar || 'avatar1')}
+                                                    alt={playerPred.username}
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="32px"
+                                                  />
+                                                </div>
+                                                <span className="theme-text font-medium whitespace-nowrap">{playerPred.username}</span>
+                                              </div>
+
+                                              {/* Espace flexible */}
+                                              <div></div>
+
+                                              {/* Pronostic centré - aligné avec la zone centrale du match */}
+                                              <div className="flex items-center justify-center">
+                                                {playerPred.hasPronostic ? (
+                                                  <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
+                                                    <span className="font-bold" style={{ color: '#0f172a' }}>{playerPred.predictedHome}</span>
+                                                    <span style={{ color: '#64748b' }}>-</span>
+                                                    <span className="font-bold" style={{ color: '#0f172a' }}>{playerPred.predictedAway}</span>
+                                                  </div>
+                                                ) : (
+                                                  <span className="text-sm theme-text-secondary italic">Pas de pronostic</span>
+                                                )}
+                                              </div>
+
+                                              {/* Espace flexible */}
+                                              <div></div>
+
+                                              {/* Points - aligné avec bouton de points */}
+                                              <div className="flex items-center justify-end">
+                                                {match.finished && match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
+                                                  <div
+                                                    className="w-24 px-4 py-2 rounded-lg font-bold text-sm text-center"
+                                                    style={getPointsColorStyle(playerPred.points)}
+                                                  >
+                                                    {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )
                           })}
@@ -970,14 +1409,11 @@ export default function OppositionPage() {
             </div>
           )}
 
-          {activeTab === 'classement' && (
-            <div className="theme-card">
-              <h2 className="text-2xl font-bold theme-text mb-4">Classement</h2>
-              <p className="theme-text-secondary">
-                Le classement général du tournoi sera affiché ici.
-              </p>
-              {/* Le contenu du classement sera ajouté ici */}
-            </div>
+          {activeTab === 'classement' && tournament && (
+            <TournamentRankings
+              tournamentId={tournament.id}
+              availableMatchdays={availableMatchdays}
+            />
           )}
 
           {activeTab === 'regles' && (
