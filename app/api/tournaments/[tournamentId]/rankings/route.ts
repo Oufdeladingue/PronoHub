@@ -103,7 +103,8 @@ export async function GET(
     const pointsSettings = {
       exactScore: parseInt(exactScoreSetting?.setting_value || '3'),
       correctResult: parseInt(correctResultSetting?.setting_value || '1'),
-      incorrectResult: parseInt(incorrectResultSetting?.setting_value || '0')
+      incorrectResult: parseInt(incorrectResultSetting?.setting_value || '0'),
+      drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
     }
 
     // 8. Calculer les statistiques pour chaque joueur
@@ -142,41 +143,30 @@ export async function GET(
           if (!isValidPrediction) continue
 
           const isBonusMatch = bonusMatchIds.has(match.id)
+          const isDefaultPrediction = prediction.is_default_prediction || false
 
-          // Gérer les pronostics par défaut
-          let points = 0
-          let isExactScore = false
-          let isCorrectResult = false
+          // Calculer les points avec la fonction dédiée
+          const result = calculatePoints(
+            {
+              predictedHomeScore: prediction.predicted_home_score,
+              predictedAwayScore: prediction.predicted_away_score
+            },
+            {
+              homeScore: match.home_score,
+              awayScore: match.away_score
+            },
+            pointsSettings,
+            isBonusMatch,
+            isDefaultPrediction
+          )
 
-          if (prediction.is_default_prediction) {
-            // Pronostic par défaut : seulement 1 point si match nul
-            // NE PAS compter dans matchesPlayed, exactScores, correctResults
-            const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
-            if (realOutcome === 'D') {
-              points = 1
-              // Ne pas mettre isCorrectResult = true pour ne pas incrémenter correctResults
-            }
-          } else {
-            // Pronostic normal : compter dans matchesPlayed
+          const points = result.points
+          const isExactScore = result.isExactScore
+          const isCorrectResult = result.isCorrectResult
+
+          // Incrémenter les stats uniquement pour les pronostics non par défaut
+          if (!isDefaultPrediction) {
             matchesPlayed++
-
-            const result = calculatePoints(
-              {
-                predictedHomeScore: prediction.predicted_home_score,
-                predictedAwayScore: prediction.predicted_away_score
-              },
-              {
-                homeScore: match.home_score,
-                awayScore: match.away_score
-              },
-              pointsSettings,
-              isBonusMatch
-            )
-            points = result.points
-            isExactScore = result.isExactScore
-            isCorrectResult = result.isCorrectResult
-
-            // Incrémenter les stats uniquement pour les vrais pronostics
             if (isExactScore) exactScores++
             if (isCorrectResult) correctResults++
           }

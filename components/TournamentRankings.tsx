@@ -142,14 +142,14 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
   return (
     <div className="theme-card">
-      <h2 className="text-2xl font-bold theme-text mb-6">Classement</h2>
+      <h2 className="text-xl md:text-2xl font-bold theme-text mb-4 md:mb-6">Classement</h2>
 
       {/* Navigation des vues */}
-      <div className="mb-6 pb-4 border-b theme-border overflow-x-auto">
+      <div className="mb-4 md:mb-6 pb-3 md:pb-4 border-b theme-border overflow-x-auto">
         <div className="flex gap-2">
           <button
             onClick={() => setSelectedView('general')}
-            className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap ${
               selectedView === 'general'
                 ? 'bg-[#ff9900] text-[#111]'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
@@ -163,7 +163,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               <button
                 key={matchday}
                 onClick={() => setSelectedView(matchday)}
-                className={`px-4 py-2 rounded-lg font-semibold transition whitespace-nowrap ${
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap ${
                   selectedView === matchday
                     ? 'bg-[#ff9900] text-[#111]'
                     : hasStarted
@@ -203,9 +203,9 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       ) : (
         <div>
           {/* Informations sur le classement */}
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm theme-text-secondary">
+          <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg" style={{ backgroundColor: 'var(--info-bg)' }}>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4">
+              <p className="text-xs md:text-sm theme-text-secondary">
                 {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
                 {' / '}
                 {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
@@ -224,23 +224,30 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           </div>
 
           {/* Tableau de classement */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-2 md:mx-0">
             <table className="w-full">
               <thead>
                 <tr className="border-b-2 theme-border">
-                  <th className="text-left py-3 px-2 theme-text font-semibold">#</th>
+                  <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">#</th>
                   {selectedView === 'general' && (
-                    <th className="text-center py-3 px-2 theme-text font-semibold w-12"></th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold w-8 md:w-12 hidden md:table-cell"></th>
                   )}
-                  <th className="text-left py-3 px-2 theme-text font-semibold">Joueur</th>
-                  <th className="text-center py-3 px-2 theme-text font-semibold">Points</th>
-                  <th className="text-center py-3 px-2 theme-text font-semibold hidden md:table-cell">
-                    Bons résultats
+                  <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Joueur</th>
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Points">
+                    <span className="md:hidden">Pts</span>
+                    <span className="hidden md:inline">Points</span>
                   </th>
-                  <th className="text-center py-3 px-2 theme-text font-semibold hidden lg:table-cell">
-                    Scores exacts
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Bons résultats">
+                    <span className="md:hidden">✓</span>
+                    <span className="hidden md:inline">Bons résultats</span>
                   </th>
-                  <th className="text-center py-3 px-2 theme-text font-semibold hidden xl:table-cell">
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Scores exacts">
+                    <span className="md:hidden flex justify-center">
+                      <img src="/images/icons/target.svg" alt="Scores exacts" className="w-4 h-4 icon-filter-theme" />
+                    </span>
+                    <span className="hidden md:inline">Scores exacts</span>
+                  </th>
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base hidden xl:table-cell">
                     {selectedView === 'general' ? 'Pronos placés' : 'Matchs joués'}
                   </th>
                 </tr>
@@ -252,23 +259,25 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                     className="border-b theme-border hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                   >
                     {/* Rang */}
-                    <td className="py-4 px-2 theme-text font-bold">
-                      <div className="flex items-center gap-2">
-                        <span className="w-6 text-center">{player.rank}</span>
+                    <td className="py-2 md:py-4 px-1 md:px-2 theme-text font-bold text-xs md:text-base">
+                      <div className="flex items-center gap-1 md:gap-2">
+                        <span className="w-4 md:w-6 text-center">{player.rank}</span>
                       </div>
                     </td>
 
                     {/* Indicateur de progression (uniquement pour le classement général) */}
                     {selectedView === 'general' && (
-                      <td className="py-4 px-2 text-center">
-                        {getRankChangeIcon(player.rankChange)}
+                      <td className="py-2 md:py-4 px-1 md:px-2 text-center hidden md:table-cell">
+                        <div className="scale-75 md:scale-100">
+                          {getRankChangeIcon(player.rankChange)}
+                        </div>
                       </td>
                     )}
 
                     {/* Nom du joueur avec avatar */}
-                    <td className="py-4 px-2 font-medium">
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+                    <td className="py-2 md:py-4 px-1 md:px-2 font-medium">
+                      <div className="flex items-center gap-1 md:gap-2">
+                        <div className="relative w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
                           <Image
                             src={getAvatarUrl(player.avatar || 'avatar1')}
                             alt={player.playerName}
@@ -277,16 +286,16 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                             sizes="32px"
                           />
                         </div>
-                        <span className={player.playerId === currentUserId ? 'text-[#ff9900] font-bold' : 'theme-text'}>
+                        <span className={`text-xs md:text-base truncate max-w-[80px] md:max-w-none ${player.playerId === currentUserId ? 'text-[#ff9900] font-bold' : 'theme-text'}`}>
                           {player.playerName}
                         </span>
                       </div>
                     </td>
 
                     {/* Points */}
-                    <td className="py-4 px-2 text-center">
+                    <td className="py-2 md:py-4 px-1 md:px-2 text-center">
                       {selectedView === 'general' && player.rank <= 3 ? (
-                        <span className={`inline-block px-3 py-1 rounded-full font-bold ${
+                        <span className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full font-bold text-xs md:text-base ${
                           player.rank === 1
                             ? 'bg-yellow-500 text-[#0f172a]'
                             : player.rank === 2
@@ -296,38 +305,38 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                           {player.totalPoints}
                         </span>
                       ) : (
-                        <span className="theme-text font-bold">
+                        <span className="theme-text font-bold text-xs md:text-base">
                           {player.totalPoints}
                         </span>
                       )}
                     </td>
 
                     {/* Bons résultats */}
-                    <td className="py-4 px-2 text-center theme-text hidden md:table-cell">
+                    <td className="py-2 md:py-4 px-0.5 md:px-2 text-center theme-text text-xs md:text-base">
                       <div className="flex items-center justify-center">
-                        <span className="w-4 text-right">{player.correctResults}</span>
-                        <span className="w-4 text-left">
+                        <span className="text-right">{player.correctResults}</span>
+                        <span className="w-3 md:w-4 text-left">
                           {player.correctResults === getBestStats().maxCorrectResults && player.correctResults > 0 && (
-                            <span className="text-yellow-500">★</span>
+                            <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>
                       </div>
                     </td>
 
                     {/* Scores exacts */}
-                    <td className="py-4 px-2 text-center theme-text hidden lg:table-cell">
+                    <td className="py-2 md:py-4 px-0.5 md:px-2 text-center theme-text text-xs md:text-base">
                       <div className="flex items-center justify-center">
-                        <span className="w-4 text-right">{player.exactScores}</span>
-                        <span className="w-4 text-left">
+                        <span className="text-right">{player.exactScores}</span>
+                        <span className="w-3 md:w-4 text-left">
                           {player.exactScores === getBestStats().maxExactScores && player.exactScores > 0 && (
-                            <span className="text-yellow-500">★</span>
+                            <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>
                       </div>
                     </td>
 
                     {/* Matchs joués */}
-                    <td className="py-4 px-2 text-center theme-text-secondary hidden xl:table-cell">
+                    <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text-secondary text-xs md:text-base hidden xl:table-cell">
                       {player.matchesPlayed} / {player.matchesAvailable}
                     </td>
                   </tr>
@@ -337,18 +346,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           </div>
 
           {/* Légende pour mobile */}
-          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg md:hidden">
-            <p className="text-xs theme-text-secondary mb-2">Statistiques complètes :</p>
-            {rankingsData.rankings.map((player) => (
-              <div key={player.playerId} className="mb-2 pb-2 border-b theme-border last:border-0">
-                <p className="text-sm theme-text font-medium">{player.playerName}</p>
-                <p className="text-xs theme-text-secondary">
-                  Bons résultats: {player.correctResults}{player.correctResults === getBestStats().maxCorrectResults && player.correctResults > 0 && ' ★'} •
-                  Scores exacts: {player.exactScores}{player.exactScores === getBestStats().maxExactScores && player.exactScores > 0 && ' ★'} •
-                  {selectedView === 'general' ? 'Pronos placés' : 'Matchs joués'}: {player.matchesPlayed}/{player.matchesAvailable}
-                </p>
-              </div>
-            ))}
+          <div className="mt-3 p-2 rounded-lg xl:hidden" style={{ backgroundColor: 'var(--info-bg)' }}>
+            <div className="space-y-1">
+              <p className="text-xs theme-text-secondary flex items-center gap-1">
+                <span>* ✓ =</span>
+                <span>nombre de bons résultats</span>
+              </p>
+              <p className="text-xs theme-text-secondary flex items-center gap-1">
+                <span>*</span>
+                <img src="/images/icons/target.svg" alt="Target" className="w-3 h-3 inline-block icon-filter-theme" />
+                <span>= nombre de scores exacts</span>
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import TournamentNav from '@/components/TournamentNav'
 import TournamentRankings from '@/components/TournamentRankings'
+import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 
 interface Tournament {
@@ -22,6 +23,7 @@ interface Tournament {
   all_matchdays?: boolean
   starting_matchday?: number
   ending_matchday?: number
+  scoring_draw_with_default_prediction?: number
 }
 
 interface Match {
@@ -32,6 +34,7 @@ interface Match {
   away_team_name: string
   home_team_crest: string | null
   away_team_crest: string | null
+  status?: string
   finished?: boolean
   home_score?: number | null
   away_score?: number | null
@@ -44,6 +47,11 @@ interface Prediction {
   is_default_prediction?: boolean
 }
 
+// Helper function pour déterminer si un match est terminé
+const isMatchFinished = (match: Match): boolean => {
+  return match.status === 'FINISHED' || match.finished === true
+}
+
 export default function OppositionPage() {
   const params = useParams()
   const tournamentSlug = params.tournamentSlug as string
@@ -52,7 +60,7 @@ export default function OppositionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'regles'>('pronostics')
+  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'regles' | 'tchat'>('pronostics')
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [userId, setUserId] = useState<string | null>(null)
@@ -73,6 +81,7 @@ export default function OppositionPage() {
   const [savedPredictions, setSavedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos sauvegardés
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos modifiés
   const [lockedPredictions, setLockedPredictions] = useState<Record<number, boolean>>({}) // Suivi des pronos verrouillés
+  const [loadingMatches, setLoadingMatches] = useState(false) // Loader lors du changement de journée
 
   // États pour le classement
   const [rankingsView, setRankingsView] = useState<'general' | number>('general')
@@ -112,11 +121,18 @@ export default function OppositionPage() {
 
   useEffect(() => {
     if (selectedMatchday !== null && tournament) {
+      // Activer le loader lors du changement de journée
+      setLoadingMatches(true)
+
       // Charger d'abord les prédictions utilisateur, puis les matchs
       const loadData = async () => {
-        await fetchUserPredictions()
-        await fetchMatches()
-        await fetchMatchPoints()
+        try {
+          await fetchUserPredictions()
+          await fetchMatches()
+          await fetchMatchPoints()
+        } finally {
+          setLoadingMatches(false)
+        }
       }
       loadData()
     }
@@ -802,7 +818,20 @@ export default function OppositionPage() {
     return groups
   }
 
-  // Vérifier si les pronostics sont clôturés (1h avant le premier match)
+  // Vérifier si un match spécifique est verrouillé (1h avant son coup d'envoi)
+  const isMatchLocked = (match: Match) => {
+    const matchTime = new Date(match.utc_date)
+    const lockTime = new Date(matchTime.getTime() - 60 * 60 * 1000) // 1h avant
+    return new Date() >= lockTime
+  }
+
+  // Vérifier si un match a commencé (au moment du coup d'envoi)
+  const hasMatchStarted = (match: Match) => {
+    const matchTime = new Date(match.utc_date)
+    return new Date() >= matchTime
+  }
+
+  // Vérifier si les pronostics sont clôturés (1h avant le premier match) - Pour compatibilité
   const arePronosticsClosed = () => {
     if (matches.length === 0) return false
     const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
@@ -913,43 +942,89 @@ export default function OppositionPage() {
         />
 
         {/* Navigation par onglets */}
-        <div className="max-w-7xl mx-auto px-4 mt-6">
-          <div className="flex gap-2 border-b theme-border">
+        <div className="max-w-7xl mx-auto px-2 md:px-4 mt-3 md:mt-6">
+          <div className="flex justify-between md:justify-start md:gap-2 border-b theme-border">
             <button
               onClick={() => setActiveTab('pronostics')}
-              className={`px-6 py-3 font-semibold transition-all relative ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'pronostics'
-                  ? 'theme-text border-b-2 border-[#ff9900]'
-                  : 'theme-text-secondary hover:theme-text'
+                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  : 'theme-slate-text hover:theme-text'
               }`}
             >
-              Pronostics
+              <img
+                src="/images/icons/prediction.svg"
+                alt="Pronostics"
+                className={`w-7 h-7 md:w-5 md:h-5 ${
+                  activeTab === 'pronostics'
+                    ? 'icon-filter-orange'
+                    : 'icon-filter-slate'
+                }`}
+              />
+              <span className="hidden md:inline">Pronostics</span>
             </button>
             <button
               onClick={() => setActiveTab('classement')}
-              className={`px-6 py-3 font-semibold transition-all relative ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'classement'
-                  ? 'theme-text border-b-2 border-[#ff9900]'
-                  : 'theme-text-secondary hover:theme-text'
+                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  : 'theme-slate-text hover:theme-text'
               }`}
             >
-              Classement
+              <img
+                src="/images/icons/ranking.svg"
+                alt="Classement"
+                className={`w-7 h-7 md:w-5 md:h-5 ${
+                  activeTab === 'classement'
+                    ? 'icon-filter-orange'
+                    : 'icon-filter-slate'
+                }`}
+              />
+              <span className="hidden md:inline">Classement</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('tchat')}
+              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+                activeTab === 'tchat'
+                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  : 'theme-slate-text hover:theme-text'
+              }`}
+            >
+              <img
+                src="/images/icons/talk.svg"
+                alt="Causerie"
+                className={`w-7 h-7 md:w-5 md:h-5 ${
+                  activeTab === 'tchat'
+                    ? 'icon-filter-orange'
+                    : 'icon-filter-slate'
+                }`}
+              />
+              <span className="hidden md:inline">Causerie</span>
             </button>
             <button
               onClick={() => setActiveTab('regles')}
-              className={`px-6 py-3 font-semibold transition-all relative ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'regles'
-                  ? 'theme-text border-b-2 border-[#ff9900]'
-                  : 'theme-text-secondary hover:theme-text'
+                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  : 'theme-slate-text hover:theme-text'
               }`}
             >
-              Règles
+              <img
+                src="/images/icons/rules.svg"
+                alt="Règles"
+                className={`w-7 h-7 md:w-5 md:h-5 ${
+                  activeTab === 'regles'
+                    ? 'icon-filter-orange'
+                    : 'icon-filter-slate'
+                }`}
+              />
+              <span className="hidden md:inline">Règles</span>
             </button>
           </div>
         </div>
 
         {/* Contenu des onglets */}
-        <main className="max-w-7xl mx-auto px-4 py-8">
+        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8">
           {activeTab === 'pronostics' && (
             <div className="theme-card">
               {/* Menu de navigation des journées */}
@@ -963,7 +1038,7 @@ export default function OppositionPage() {
                         <button
                           key={matchday}
                           onClick={() => setSelectedMatchday(matchday)}
-                          className={`px-4 py-3 rounded-lg font-semibold transition whitespace-nowrap flex flex-col items-center min-w-[80px] ${
+                          className={`px-3 py-2 md:px-4 md:py-3 rounded-lg font-semibold transition whitespace-nowrap flex flex-col items-center min-w-[60px] md:min-w-[80px] ${
                             selectedMatchday === matchday
                               ? 'bg-[#ff9900] text-[#111]'
                               : isFinished
@@ -971,8 +1046,8 @@ export default function OppositionPage() {
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
                           }`}
                         >
-                          <span className="text-lg">J{matchday}</span>
-                          <span className={`text-xs mt-1 ${
+                          <span className="text-base md:text-lg">J{matchday}</span>
+                          <span className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${
                             selectedMatchday === matchday ? 'text-[#111]' : isFinished ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'
                           }`}>
                             {matchdayStatus}
@@ -986,7 +1061,12 @@ export default function OppositionPage() {
 
               {/* Liste des matchs */}
               <div>
-                {matches.length === 0 ? (
+                {loadingMatches ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+                    <p className="mt-4 theme-text-secondary">Chargement des matchs...</p>
+                  </div>
+                ) : matches.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="theme-text-secondary">
                       Aucun match disponible pour cette journée
@@ -998,16 +1078,32 @@ export default function OppositionPage() {
                     {timeRemaining && (
                       <div className="p-4 rounded-lg text-center theme-bg text-[#ff9900]">
                         <div className="flex items-center justify-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                           </svg>
-                          <span className="font-semibold">
-                            {timeRemaining === 'Pronostics clôturés'
-                              ? hasFirstMatchStarted() && !hasLastMatchEnded()
-                                ? `Pronostics clôturés pour cette journée : vous avez marqué pour le moment ${matchdayTotalPoints} pts (matchs en cours)`
-                                : `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
-                              : `Temps restant pour valider vos pronostics : ${timeRemaining}`
-                            }
+                          <span className="font-semibold text-xs md:text-base">
+                            {timeRemaining === 'Pronostics clôturés' ? (
+                              <>
+                                <span className="hidden md:inline">
+                                  {hasFirstMatchStarted() && !hasLastMatchEnded()
+                                    ? `Pronostics clôturés pour cette journée : vous avez marqué pour le moment ${matchdayTotalPoints} pts (matchs en cours)`
+                                    : `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
+                                  }
+                                </span>
+                                <span className="md:hidden">
+                                  {hasFirstMatchStarted() && !hasLastMatchEnded() ? (
+                                    <>Pronostics clôturés pour cette journée :<br />vous avez marqué pour le moment {matchdayTotalPoints} pts (matchs en cours)</>
+                                  ) : (
+                                    <>Pronostics clôturés pour cette journée :<br />vous avez marqué {matchdayTotalPoints} pts</>
+                                  )}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="hidden md:inline">Temps restant pour valider vos pronostics : {timeRemaining}</span>
+                                <span className="md:hidden">Temps restant pour valider vos pronostics :<br />{timeRemaining}</span>
+                              </>
+                            )}
                           </span>
                         </div>
                       </div>
@@ -1030,7 +1126,8 @@ export default function OppositionPage() {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
-                            const isClosed = arePronosticsClosed()
+                            const isClosed = isMatchLocked(match) // Verrouillé 1h avant ce match spécifique
+                            const isMatchInProgress = hasMatchStarted(match) // Match a commencé
                             const isSaved = savedPredictions[match.id]
                             const isModified = modifiedPredictions[match.id]
                             const isLocked = lockedPredictions[match.id]
@@ -1067,103 +1164,154 @@ export default function OppositionPage() {
                                   }
                                 `}</style>
 
-                                {/* Badge pronostic par défaut - coin supérieur droit */}
-                                {prediction.is_default_prediction && (
-                                  <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] opacity-70 hover:opacity-100 transition-opacity">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="font-medium text-yellow-700 dark:text-yellow-500">
-                                      Prono par défaut (max 1pt)
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Contenu principal du match */}
-                                <div className="match-grid">
-                                  {/* Horaire et badge bonus */}
-                                  <div className="flex flex-col items-center gap-1 w-20">
-                                  <div className="text-sm theme-text-secondary font-semibold">
-                                    {matchTime}
-                                  </div>
-                                  {isBonusMatch && (
-                                    <div className="bonus-badge flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[10px] font-bold text-white shadow-lg">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                      </svg>
-                                      <span>BONUS</span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Équipe domicile */}
-                                <div className="flex items-center gap-3 flex-1 justify-end">
-                                  <span className="theme-text font-medium text-right">
-                                    {match.home_team_name}
-                                  </span>
-                                  {match.home_team_crest && (
-                                    <img
-                                      src={match.home_team_crest}
-                                      alt={match.home_team_name}
-                                      className="w-8 h-8 object-contain"
-                                    />
-                                  )}
-                                </div>
-
-                                {/* Zone centrale avec scores */}
-                                <div className="flex flex-col items-center gap-3 flex-1">
-                                  {/* Vrai score si match terminé ou en cours */}
-                                  {match.home_score !== null && match.away_score !== null && (
-                                    <div className={`flex items-center gap-2 px-3 py-1 rounded ${
-                                      match.finished
-                                        ? 'bg-green-100 dark:bg-green-900/30'
-                                        : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
-                                    }`}>
-                                      <span className={`text-xs font-semibold ${
-                                        match.finished
-                                          ? 'text-green-700 dark:text-green-400'
-                                          : 'text-orange-700 dark:text-orange-400'
-                                      }`}>
-                                        {match.finished ? 'Score final :' : 'En direct :'}
-                                      </span>
-                                      <span className={`text-sm font-bold ${
-                                        match.finished
-                                          ? 'text-green-700 dark:text-green-400'
-                                          : 'text-orange-700 dark:text-orange-400'
-                                      }`}>
-                                        {match.home_score} - {match.away_score}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {/* Ligne de pronostic */}
-                                  <div className="flex items-center gap-3">
-                                    {/* Score domicile */}
-                                    <div className="flex items-center gap-1">
-                                      {!isClosed && (
-                                        <div className="flex flex-col gap-0.5">
-                                          <button
-                                            onClick={() => {
-                                              const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
-                                              handleScoreChange(match.id, 'home', newValue)
-                                            }}
-                                            disabled={isLocked}
-                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            +
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
-                                              handleScoreChange(match.id, 'home', newValue)
-                                            }}
-                                            disabled={isLocked}
-                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            −
-                                          </button>
-                                        </div>
+                                {/* Affichage MOBILE uniquement */}
+                                <div className="md:hidden">
+                                  {/* Grille 3 colonnes égales sur mobile */}
+                                  <div className="grid grid-cols-3 gap-2 mb-3">
+                                    {/* COLONNE 1 - Équipe domicile */}
+                                    <div className="flex flex-col items-center gap-1">
+                                      {/* Badge bonus en haut si c'est le match bonus - aligné à gauche */}
+                                      <div className="w-full flex justify-start mb-1">
+                                        {isBonusMatch ? (
+                                          <div className="bonus-badge flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[9px] font-bold text-white shadow-lg whitespace-nowrap">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                            <span>BONUS</span>
+                                          </div>
+                                        ) : (
+                                          <div className="h-5"></div>
+                                        )}
+                                      </div>
+                                      {/* Logo équipe */}
+                                      {match.home_team_crest && (
+                                        <img
+                                          src={match.home_team_crest}
+                                          alt={match.home_team_name}
+                                          className="w-10 h-10 object-contain flex-shrink-0"
+                                        />
                                       )}
+                                      {/* Nom équipe */}
+                                      <span className="theme-text font-medium text-center text-xs leading-tight">
+                                        {match.home_team_name}
+                                      </span>
+                                    </div>
+
+                                    {/* COLONNE 2 - Centre (horaire, score réel, pronostic, points) */}
+                                    <div className="flex flex-col items-center gap-1">
+                                      {/* Horaire */}
+                                      <div className="text-xs theme-text-secondary font-semibold mb-1">
+                                        {matchTime}
+                                      </div>
+
+                                      {/* Vrai score si match en cours ou fini */}
+                                      {match.home_score !== null && match.away_score !== null && isMatchInProgress ? (
+                                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${
+                                          isMatchFinished(match)
+                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                            : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
+                                        }`}>
+                                          <span className={`text-[9px] font-semibold ${
+                                            isMatchFinished(match)
+                                              ? 'text-green-700 dark:text-green-400'
+                                              : 'text-orange-700 dark:text-orange-400'
+                                          }`}>
+                                            {isMatchFinished(match) ? 'Final' : 'Live'}
+                                          </span>
+                                          <span className={`text-xs font-bold ${
+                                            isMatchFinished(match)
+                                              ? 'text-green-700 dark:text-green-400'
+                                              : 'text-orange-700 dark:text-orange-400'
+                                          }`}>
+                                            {match.home_score} - {match.away_score}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="h-5"></div>
+                                      )}
+
+                                      {/* Pronostic de l'utilisateur */}
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-base font-bold theme-text">
+                                          {prediction.predicted_home_score ?? 0}
+                                        </span>
+                                        <span className="theme-text-secondary font-bold text-sm">−</span>
+                                        <span className="text-base font-bold theme-text">
+                                          {prediction.predicted_away_score ?? 0}
+                                        </span>
+                                      </div>
+
+                                      {/* Points gagnés */}
+                                      {hasFirstMatchStarted() && matchPoints[match.id] !== undefined ? (
+                                        <div
+                                          className="px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap"
+                                          style={getPointsColorStyle(matchPoints[match.id])}
+                                        >
+                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                        </div>
+                                      ) : (
+                                        <div className="h-4"></div>
+                                      )}
+                                    </div>
+
+                                    {/* COLONNE 3 - Équipe extérieure */}
+                                    <div className="flex flex-col items-center gap-1">
+                                      {/* Badge prono par défaut en haut si applicable - aligné à droite */}
+                                      <div className="w-full flex justify-end mb-1">
+                                        {prediction.is_default_prediction ? (
+                                          <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] opacity-70">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                          </div>
+                                        ) : (
+                                          <div className="h-5"></div>
+                                        )}
+                                      </div>
+                                      {/* Logo équipe */}
+                                      {match.away_team_crest && (
+                                        <img
+                                          src={match.away_team_crest}
+                                          alt={match.away_team_name}
+                                          className="w-10 h-10 object-contain flex-shrink-0"
+                                        />
+                                      )}
+                                      {/* Nom équipe */}
+                                      <span className="theme-text font-medium text-center text-xs leading-tight">
+                                        {match.away_team_name}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Ligne de modification du pronostic (uniquement si pas clôturé) */}
+                                  {!isClosed && (
+                                    <div className="flex items-center justify-center gap-2 mb-3">
+                                      {/* Boutons pour score domicile */}
+                                      <div className="flex flex-col gap-0.5">
+                                        <button
+                                          onClick={() => {
+                                            const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
+                                            handleScoreChange(match.id, 'home', newValue)
+                                          }}
+                                          disabled={isLocked}
+                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          +
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
+                                            handleScoreChange(match.id, 'home', newValue)
+                                          }}
+                                          disabled={isLocked}
+                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          −
+                                        </button>
+                                      </div>
+
+                                      {/* Input domicile */}
                                       <input
                                         type="number"
                                         min="0"
@@ -1175,16 +1323,13 @@ export default function OppositionPage() {
                                             handleScoreChange(match.id, 'home', val)
                                           }
                                         }}
-                                        disabled={isClosed || isLocked}
+                                        disabled={isLocked}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
-                                    </div>
 
-                                    {/* Séparateur */}
-                                    <span className="theme-text-secondary font-bold text-xl">−</span>
+                                      <span className="theme-text-secondary font-bold text-lg">−</span>
 
-                                    {/* Score extérieur */}
-                                    <div className="flex items-center gap-1">
+                                      {/* Input extérieur */}
                                       <input
                                         type="number"
                                         min="0"
@@ -1196,121 +1341,358 @@ export default function OppositionPage() {
                                             handleScoreChange(match.id, 'away', val)
                                           }
                                         }}
-                                        disabled={isClosed || isLocked}
+                                        disabled={isLocked}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
-                                      {!isClosed && (
-                                        <div className="flex flex-col gap-0.5">
-                                          <button
-                                            onClick={() => {
-                                              const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
-                                              handleScoreChange(match.id, 'away', newValue)
-                                            }}
-                                            disabled={isLocked}
-                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            +
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
-                                              handleScoreChange(match.id, 'away', newValue)
-                                            }}
-                                            disabled={isLocked}
-                                            className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            −
-                                          </button>
-                                        </div>
-                                      )}
+
+                                      {/* Boutons pour score extérieur */}
+                                      <div className="flex flex-col gap-0.5">
+                                        <button
+                                          onClick={() => {
+                                            const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
+                                            handleScoreChange(match.id, 'away', newValue)
+                                          }}
+                                          disabled={isLocked}
+                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          +
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
+                                            handleScoreChange(match.id, 'away', newValue)
+                                          }}
+                                          disabled={isLocked}
+                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          −
+                                        </button>
+                                      </div>
                                     </div>
+                                  )}
+
+                                  {/* Bouton d'action (sauvegarder/modifier) */}
+                                  <div className="flex justify-center">
+                                    {isClosed ? (
+                                      hasFirstMatchStarted() ? null : (
+                                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                          </svg>
+                                          <span className="text-xs font-medium">Clôturé</span>
+                                        </div>
+                                      )
+                                    ) : isSaved && !isModified && isLocked ? (
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                          </svg>
+                                        </div>
+                                        <button
+                                          onClick={() => unlockPrediction(match.id)}
+                                          className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                                          title="Modifier le pronostic"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => savePrediction(match.id)}
+                                        disabled={savingPrediction === match.id}
+                                        className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs ${
+                                          isModified
+                                            ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
+                                            : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
+                                        } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                      >
+                                        {savingPrediction === match.id ? (
+                                          <>
+                                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>Envoi...</span>
+                                          </>
+                                        ) : isModified ? (
+                                          <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                            <span>Modifier</span>
+                                          </>
+                                        ) : (
+                                          <span>Enregistrer</span>
+                                        )}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
 
-                                {/* Équipe extérieure */}
-                                <div className="flex items-center gap-3 flex-1">
-                                  {match.away_team_crest && (
-                                    <img
-                                      src={match.away_team_crest}
-                                      alt={match.away_team_name}
-                                      className="w-8 h-8 object-contain"
-                                    />
-                                  )}
-                                  <span className="theme-text font-medium">
-                                    {match.away_team_name}
-                                  </span>
-                                </div>
-
-                                {/* Indicateur et bouton d'état */}
-                                <div className="flex items-center justify-end gap-2 w-48">
-                                  {isClosed ? (
-                                    // Si le premier match a commencé OU si le match a un score, afficher les points
-                                    hasFirstMatchStarted() || matchPoints[match.id] !== undefined ? (
-                                      matchPoints[match.id] !== undefined ? (
-                                        <div
-                                          className="px-4 py-2 rounded-lg font-bold text-sm"
-                                          style={getPointsColorStyle(matchPoints[match.id])}
-                                        >
-                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                        </div>
-                                      ) : null
-                                    ) : (
-                                      // Afficher "Clôturé" seulement entre la clôture et le début du premier match
-                                      <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                        </svg>
-                                        <span className="text-sm font-medium">Clôturé</span>
+                                {/* Affichage DESKTOP (inchangé) */}
+                                <div className="hidden md:block">
+                                  <div className="grid grid-cols-[80px_1fr_auto] gap-4 items-center">
+                                    {/* COLONNE GAUCHE - Horaire et badge bonus */}
+                                    <div className="flex flex-col items-center gap-1">
+                                      <div className="text-sm theme-text-secondary font-semibold whitespace-nowrap">
+                                        {matchTime}
                                       </div>
-                                    )
-                                  ) : isSaved && !isModified && isLocked ? (
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center justify-center w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                      </div>
-                                      <button
-                                        onClick={() => unlockPrediction(match.id)}
-                                        className="flex items-center justify-center w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-                                        title="Modifier le pronostic"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={() => savePrediction(match.id)}
-                                      disabled={savingPrediction === match.id}
-                                      className={`px-4 py-2 rounded-lg transition font-semibold flex items-center gap-2 ${
-                                        isModified
-                                          ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
-                                          : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
-                                      } disabled:bg-gray-400 disabled:cursor-not-allowed`}
-                                    >
-                                      {savingPrediction === match.id ? (
-                                        <>
-                                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      {isBonusMatch && (
+                                        <div className="bonus-badge flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[10px] font-bold text-white shadow-lg whitespace-nowrap">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                           </svg>
-                                          <span>Envoi...</span>
-                                        </>
-                                      ) : isModified ? (
-                                        <>
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                          <span>BONUS</span>
+                                        </div>
+                                      )}
+                                      {prediction.is_default_prediction && (
+                                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] opacity-70">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                          </svg>
+                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">
+                                            Prono par défaut
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* COLONNE CENTRALE - Match et scores */}
+                                    <div className="flex flex-col gap-3">
+                                      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                                        {/* Équipe domicile */}
+                                        <div className="flex items-center gap-3 justify-end">
+                                          <span className="theme-text font-medium text-right truncate">
+                                            {match.home_team_name}
+                                          </span>
+                                          {match.home_team_crest && (
+                                            <img
+                                              src={match.home_team_crest}
+                                              alt={match.home_team_name}
+                                              className="w-8 h-8 object-contain flex-shrink-0"
+                                            />
+                                          )}
+                                        </div>
+
+                                        {/* Zone centrale avec badges et scores */}
+                                        <div className="flex flex-col items-center gap-2 justify-center">
+                                        {/* Badge Verrouillé - affiché 1h avant le match */}
+                                        {isClosed && !isMatchInProgress && !isMatchFinished(match) && (
+                                          <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 rounded bg-gray-200 dark:bg-gray-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="text-[10px] md:text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                              Verrouillé
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* Vrai score - affiché seulement si le match a commencé ET qu'il y a un score */}
+                                        {match.home_score !== null && match.away_score !== null && isMatchInProgress && (
+                                          <div className={`flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 rounded ${
+                                            isMatchFinished(match)
+                                              ? 'bg-green-100 dark:bg-green-900/30'
+                                              : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
+                                          }`}>
+                                            <span className={`text-[10px] md:text-xs font-semibold ${
+                                              isMatchFinished(match)
+                                                ? 'text-green-700 dark:text-green-400'
+                                                : 'text-orange-700 dark:text-orange-400'
+                                            }`}>
+                                              {isMatchFinished(match) ? 'Score final :' : 'En direct :'}
+                                            </span>
+                                            <span className={`text-xs md:text-sm font-bold ${
+                                              isMatchFinished(match)
+                                                ? 'text-green-700 dark:text-green-400'
+                                                : 'text-orange-700 dark:text-orange-400'
+                                            }`}>
+                                              {match.home_score} - {match.away_score}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                        {/* Ligne de pronostic */}
+                                        <div className="flex items-center gap-1 md:gap-2 justify-center">
+                                          {/* Score domicile */}
+                                          <div className="flex items-center gap-0.5 md:gap-1">
+                                            {!isClosed && (
+                                              <div className="flex flex-col gap-0.5">
+                                                <button
+                                                  onClick={() => {
+                                                    const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
+                                                    handleScoreChange(match.id, 'home', newValue)
+                                                  }}
+                                                  disabled={isLocked}
+                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  +
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    const newValue = Math.max(0, (prediction.predicted_home_score ?? 0) - 1)
+                                                    handleScoreChange(match.id, 'home', newValue)
+                                                  }}
+                                                  disabled={isLocked}
+                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  −
+                                                </button>
+                                              </div>
+                                            )}
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="9"
+                                              value={prediction.predicted_home_score ?? 0}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value)
+                                                if (!isNaN(val) && val >= 0 && val <= 9) {
+                                                  handleScoreChange(match.id, 'home', val)
+                                                }
+                                              }}
+                                              disabled={isClosed || isLocked}
+                                              className="w-10 h-9 md:w-12 md:h-10 text-center text-base md:text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                            />
+                                          </div>
+
+                                          {/* Séparateur */}
+                                          <span className="theme-text-secondary font-bold text-lg md:text-xl">−</span>
+
+                                          {/* Score extérieur */}
+                                          <div className="flex items-center gap-0.5 md:gap-1">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              max="9"
+                                              value={prediction.predicted_away_score ?? 0}
+                                              onChange={(e) => {
+                                                const val = parseInt(e.target.value)
+                                                if (!isNaN(val) && val >= 0 && val <= 9) {
+                                                  handleScoreChange(match.id, 'away', val)
+                                                }
+                                              }}
+                                              disabled={isClosed || isLocked}
+                                              className="w-10 h-9 md:w-12 md:h-10 text-center text-base md:text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                            />
+                                            {!isClosed && (
+                                              <div className="flex flex-col gap-0.5">
+                                                <button
+                                                  onClick={() => {
+                                                    const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
+                                                    handleScoreChange(match.id, 'away', newValue)
+                                                  }}
+                                                  disabled={isLocked}
+                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  +
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    const newValue = Math.max(0, (prediction.predicted_away_score ?? 0) - 1)
+                                                    handleScoreChange(match.id, 'away', newValue)
+                                                  }}
+                                                  disabled={isLocked}
+                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  −
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                        {/* Équipe extérieure */}
+                                        <div className="flex items-center gap-3 justify-start">
+                                          {match.away_team_crest && (
+                                            <img
+                                              src={match.away_team_crest}
+                                              alt={match.away_team_name}
+                                              className="w-8 h-8 object-contain flex-shrink-0"
+                                            />
+                                          )}
+                                          <span className="theme-text font-medium text-left truncate">
+                                            {match.away_team_name}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* COLONNE DROITE - Indicateurs, badges et boutons d'état */}
+                                  <div className="flex items-center justify-end md:justify-end gap-2">
+                                    {isClosed ? (
+                                      // Si le premier match a commencé OU si le match a un score, afficher les points
+                                      hasFirstMatchStarted() || matchPoints[match.id] !== undefined ? (
+                                        matchPoints[match.id] !== undefined ? (
+                                          <div
+                                            className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm whitespace-nowrap"
+                                            style={getPointsColorStyle(matchPoints[match.id])}
+                                          >
+                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                          </div>
+                                        ) : null
+                                      ) : (
+                                        // Afficher "Clôturé" seulement entre la clôture et le début du premier match
+                                        <div className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                          </svg>
+                                          <span className="text-xs md:text-sm font-medium">Clôturé</span>
+                                        </div>
+                                      )
+                                    ) : isSaved && !isModified && isLocked ? (
+                                      <div className="flex items-center gap-1 md:gap-2">
+                                        <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400 flex-shrink-0">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                          </svg>
+                                        </div>
+                                        <button
+                                          onClick={() => unlockPrediction(match.id)}
+                                          className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
+                                          title="Modifier le pronostic"
+                                        >
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                           </svg>
-                                          <span>Modifier</span>
-                                        </>
-                                      ) : (
-                                        <span>Enregistrer</span>
-                                      )}
-                                    </button>
-                                  )}
-                                </div>
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => savePrediction(match.id)}
+                                        disabled={savingPrediction === match.id}
+                                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition font-semibold flex items-center gap-1 md:gap-2 whitespace-nowrap text-xs md:text-sm ${
+                                          isModified
+                                            ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
+                                            : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
+                                        } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                      >
+                                        {savingPrediction === match.id ? (
+                                          <>
+                                            <svg className="animate-spin h-3 w-3 md:h-4 md:w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span className="hidden sm:inline">Envoi...</span>
+                                          </>
+                                        ) : isModified ? (
+                                          <>
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
+                                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                            </svg>
+                                            <span className="hidden sm:inline">Modifier</span>
+                                          </>
+                                        ) : (
+                                          <span className="hidden sm:inline">Enregistrer</span>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Accordéon pour voir les pronostics des autres (seulement si journée clôturée) */}
@@ -1346,61 +1728,120 @@ export default function OppositionPage() {
                                           allPlayersPredictions[match.id].map((playerPred, idx) => (
                                             <div
                                               key={`${match.id}-${playerPred.username}-${idx}`}
-                                              className="player-match-grid p-3 rounded-lg border border-gray-200 dark:border-gray-700 theme-bg"
+                                              className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 theme-bg"
                                             >
-                                              {/* Nom du joueur avec avatar à gauche */}
-                                              <div className="flex items-center gap-2">
-                                                <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
-                                                  <Image
-                                                    src={getAvatarUrl(playerPred.avatar || 'avatar1')}
-                                                    alt={playerPred.username}
-                                                    fill
-                                                    className="object-cover"
-                                                    sizes="32px"
-                                                  />
-                                                </div>
-                                                <span className="theme-text font-medium whitespace-nowrap">{playerPred.username}</span>
-                                              </div>
-
-                                              {/* Espace flexible */}
-                                              <div></div>
-
-                                              {/* Pronostic centré - aligné avec la zone centrale du match */}
-                                              <div className="flex items-center justify-center relative">
-                                                {playerPred.hasPronostic ? (
-                                                  <>
-                                                    <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
-                                                      <span className="font-bold theme-dark-text">{playerPred.predictedHome}</span>
-                                                      <span className="text-slate-500">-</span>
-                                                      <span className="font-bold theme-dark-text">{playerPred.predictedAway}</span>
+                                              {/* Version MOBILE */}
+                                              <div className="block md:hidden">
+                                                <div className="grid grid-cols-3 gap-2 items-center">
+                                                  {/* Colonne 1 - Avatar + Nom */}
+                                                  <div className="flex flex-col items-center gap-1">
+                                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+                                                      <Image
+                                                        src={getAvatarUrl(playerPred.avatar || 'avatar1')}
+                                                        alt={playerPred.username}
+                                                        fill
+                                                        className="object-cover"
+                                                        sizes="32px"
+                                                      />
                                                     </div>
-                                                    {playerPred.isDefaultPrediction && (
-                                                      <div className="absolute left-full ml-2 flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] whitespace-nowrap">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                        </svg>
-                                                        <span className="font-medium text-yellow-700 dark:text-yellow-500">Par défaut</span>
+                                                    <span className="theme-text font-medium text-xs text-center leading-tight">{playerPred.username}</span>
+                                                  </div>
+
+                                                  {/* Colonne 2 - Pronostic */}
+                                                  <div className="flex flex-col items-center gap-1">
+                                                    {playerPred.hasPronostic ? (
+                                                      <>
+                                                        <div className="flex items-center gap-1">
+                                                          <span className="font-bold theme-text text-base">{playerPred.predictedHome}</span>
+                                                          <span className="theme-text-secondary text-sm">-</span>
+                                                          <span className="font-bold theme-text text-base">{playerPred.predictedAway}</span>
+                                                        </div>
+                                                        {playerPred.isDefaultPrediction && (
+                                                          <div className="flex items-center gap-0.5 px-1 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[8px]">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                                          </div>
+                                                        )}
+                                                      </>
+                                                    ) : (
+                                                      <span className="text-xs theme-text-secondary italic">Pas de prono</span>
+                                                    )}
+                                                  </div>
+
+                                                  {/* Colonne 3 - Points */}
+                                                  <div className="flex items-center justify-center">
+                                                    {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
+                                                      <div
+                                                        className="px-2 py-1 rounded font-bold text-xs text-center"
+                                                        style={getPointsColorStyle(playerPred.points)}
+                                                      >
+                                                        {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
                                                       </div>
                                                     )}
-                                                  </>
-                                                ) : (
-                                                  <span className="text-sm theme-text-secondary italic">Pas de pronostic</span>
-                                                )}
+                                                  </div>
+                                                </div>
                                               </div>
 
-                                              {/* Espace flexible */}
-                                              <div></div>
-
-                                              {/* Points - aligné avec bouton de points */}
-                                              <div className="flex items-center justify-end">
-                                                {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
-                                                  <div
-                                                    className="w-24 px-4 py-2 rounded-lg font-bold text-sm text-center"
-                                                    style={getPointsColorStyle(playerPred.points)}
-                                                  >
-                                                    {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
+                                              {/* Version DESKTOP */}
+                                              <div className="hidden md:block">
+                                                <div className="player-match-grid">
+                                                {/* Nom du joueur avec avatar à gauche */}
+                                                <div className="flex items-center gap-2">
+                                                  <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+                                                    <Image
+                                                      src={getAvatarUrl(playerPred.avatar || 'avatar1')}
+                                                      alt={playerPred.username}
+                                                      fill
+                                                      className="object-cover"
+                                                      sizes="32px"
+                                                    />
                                                   </div>
-                                                )}
+                                                  <span className="theme-text font-medium whitespace-nowrap">{playerPred.username}</span>
+                                                </div>
+
+                                                {/* Espace flexible */}
+                                                <div></div>
+
+                                                {/* Pronostic centré - aligné avec la zone centrale du match */}
+                                                <div className="flex items-center justify-center relative">
+                                                  {playerPred.hasPronostic ? (
+                                                    <>
+                                                      <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
+                                                        <span className="font-bold theme-dark-text">{playerPred.predictedHome}</span>
+                                                        <span className="text-slate-500">-</span>
+                                                        <span className="font-bold theme-dark-text">{playerPred.predictedAway}</span>
+                                                      </div>
+                                                      {playerPred.isDefaultPrediction && (
+                                                        <div className="absolute left-full ml-2 flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] whitespace-nowrap">
+                                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                          </svg>
+                                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Par défaut</span>
+                                                        </div>
+                                                      )}
+                                                    </>
+                                                  ) : (
+                                                    <span className="text-sm theme-text-secondary italic">Pas de pronostic</span>
+                                                  )}
+                                                </div>
+
+                                                {/* Espace flexible */}
+                                                <div></div>
+
+                                                {/* Points - aligné avec bouton de points */}
+                                                <div className="flex items-center justify-end">
+                                                  {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
+                                                    <div
+                                                      className="w-24 px-4 py-2 rounded-lg font-bold text-sm text-center"
+                                                      style={getPointsColorStyle(playerPred.points)}
+                                                    >
+                                                      {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
+                                                    </div>
+                                                  )}
+                                                </div>
+                                                </div>
                                               </div>
                                             </div>
                                           ))
@@ -1472,6 +1913,15 @@ export default function OppositionPage() {
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === 'tchat' && tournament && userId && (
+            <TournamentChat
+              tournamentId={tournament.id}
+              currentUserId={userId}
+              currentUsername={username}
+              currentUserAvatar={userAvatar}
+            />
           )}
         </main>
       </div>

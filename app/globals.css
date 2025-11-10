@@ -23,6 +23,7 @@
   --text-secondary: #94a3b8;
   --input-bg: #334155;
   --input-border: #475569;
+  --info-bg: #0f172a;
 }
 
 /* Default to light theme */
@@ -36,6 +37,7 @@
   --text-secondary: #64748b;
   --input-bg: #ffffff;
   --input-border: #cbd5e1;
+  --info-bg: #f9fafb;
 }
 
 body {
@@ -43,6 +45,13 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Theme classes */
@@ -56,6 +65,22 @@ body {
   border-radius: 0.5rem;
   padding: 1.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Sur mobile, les cartes prennent 95% de la largeur */
+@media (max-width: 768px) {
+  .theme-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0.75rem !important; /* Padding réduit sur mobile */
+  }
+
+  /* Sur mobile, les conteneurs max-w-7xl prennent toute la largeur */
+  .max-w-7xl {
+    max-width: 100% !important;
+  }
 }
 
 .theme-nav {
@@ -263,6 +288,11 @@ input:-moz-autofill:focus {
   color: #ff9900 !important;
 }
 
+/* Couleur accent orange toujours visible (light et dark) */
+.theme-accent-text-always {
+  color: #ff9900 !important;
+}
+
 .theme-accent-border {
   border-color: transparent;
 }
@@ -408,6 +438,15 @@ input:-moz-autofill:focus {
   filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
 }
 
+/* Filtre pour #94a3b8 (gris-bleu slate) */
+.icon-filter-slate {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-filter-slate {
+  filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%) !important;
+}
+
 /* Backgrounds pour authentification */
 .auth-card-bg {
   background: linear-gradient(180deg, #1a1a1a 0%, #111111 100%);
@@ -430,4 +469,32 @@ input:-moz-autofill:focus {
   grid-template-columns: auto 1fr auto 1fr 192px;
   gap: 1rem;
   align-items: center;
+}
+
+/* Boutons de chat */
+.btn-send-message {
+  background-color: #ff9900;
+  color: #111;
+}
+
+.btn-send-message:hover {
+  background-color: #e68a00;
+}
+
+.btn-emoji-picker {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+:root[data-theme="dark"] .btn-emoji-picker {
+  background-color: #0f172a !important;
+  color: #9ca3af !important;
+}
+
+.btn-emoji-picker:hover {
+  background-color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .btn-emoji-picker:hover {
+  background-color: #1e293b !important;
 }

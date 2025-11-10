@@ -45,7 +45,7 @@ export default async function DashboardPage() {
   // Récupérer les détails des tournois
   const { data: userTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players')
+    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday')
     .in('id', tournamentIds)
 
   // Récupérer les IDs de compétitions
@@ -80,29 +80,51 @@ export default async function DashboardPage() {
 
   // Récupérer les informations sur les journées pour chaque tournoi
   const journeyInfo: Record<string, any> = {}
-  for (const tournamentId of tournamentIds) {
-    // Récupérer toutes les journées du tournoi
-    const { data: journeys, count: totalJourneys } = await supabase
-      .from('tournament_journeys')
-      .select('*', { count: 'exact' })
-      .eq('tournament_id', tournamentId)
-      .order('journey_number', { ascending: true })
+  for (const tournament of userTournaments || []) {
+    const startMatchday = tournament.starting_matchday
+    const endMatchday = tournament.ending_matchday
 
-    // Compter les journées terminées
-    const completedJourneys = journeys?.filter(j => j.status === 'completed').length || 0
+    if (!startMatchday || !endMatchday) {
+      journeyInfo[tournament.id] = {
+        total: 0,
+        completed: 0,
+        currentNumber: 1
+      }
+      continue
+    }
 
-    // Trouver la journée en cours
-    const currentJourney = journeys?.find(j => j.status === 'active')
+    // Calculer le nombre total de journées du tournoi
+    const totalJourneys = endMatchday - startMatchday + 1
 
-    // Trouver la prochaine journée (première journée non commencée)
-    const nextJourney = journeys?.find(j => j.status === 'pending')
+    // Compter combien de journées sont terminées en vérifiant les matchs réels
+    let completedJourneys = 0
+    for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
+      // Récupérer tous les matchs de cette journée
+      const { data: matches } = await supabase
+        .from('imported_matches')
+        .select('status, finished')
+        .eq('competition_id', tournament.competition_id)
+        .eq('matchday', matchday)
 
-    journeyInfo[tournamentId] = {
-      total: totalJourneys || 0,
+      if (matches && matches.length > 0) {
+        // Une journée est terminée si tous ses matchs sont terminés
+        const allFinished = matches.every(m => m.status === 'FINISHED' || m.finished === true)
+        if (allFinished) {
+          completedJourneys++
+        } else {
+          // Dès qu'on trouve une journée non terminée, on s'arrête
+          break
+        }
+      }
+    }
+
+    // La journée actuelle est la suivante après les journées complétées
+    const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
+
+    journeyInfo[tournament.id] = {
+      total: totalJourneys,
       completed: completedJourneys,
-      current: currentJourney,
-      next: nextJourney,
-      currentNumber: currentJourney ? currentJourney.journey_number : (completedJourneys + 1)
+      currentNumber: currentNumber
     }
   }
 

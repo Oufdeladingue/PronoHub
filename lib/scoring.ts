@@ -13,6 +13,7 @@ export interface PointsSettings {
   exactScore: number
   correctResult: number
   incorrectResult: number
+  drawWithDefaultPrediction?: number // Points pour match nul avec prono 0-0 par défaut
 }
 
 export interface ScoringResult {
@@ -49,16 +50,32 @@ function getMatchOutcome(homeScore: number, awayScore: number): MatchOutcome {
  * @param result Le résultat réel du match
  * @param settings Les paramètres de points
  * @param isBonusMatch Si c'est un match bonus (points x2)
+ * @param isDefaultPrediction Si c'est un pronostic par défaut (0-0 non saisi par le joueur)
  * @returns Le résultat du scoring avec les points et les drapeaux
  */
 export function calculatePoints(
   prediction: Prediction,
   result: MatchResult,
   settings: PointsSettings,
-  isBonusMatch: boolean = false
+  isBonusMatch: boolean = false,
+  isDefaultPrediction: boolean = false
 ): ScoringResult {
   const { predictedHomeScore, predictedAwayScore } = prediction
   const { homeScore, awayScore } = result
+
+  // Cas spécial : prono par défaut (0-0) avec match nul
+  if (isDefaultPrediction && predictedHomeScore === 0 && predictedAwayScore === 0) {
+    const actualOutcome = getMatchOutcome(homeScore, awayScore)
+    if (actualOutcome === 'DRAW') {
+      // Match nul avec prono par défaut : appliquer les points configurés
+      const drawPoints = settings.drawWithDefaultPrediction ?? settings.correctResult
+      return {
+        points: drawPoints * (isBonusMatch ? 2 : 1),
+        isExactScore: false,
+        isCorrectResult: true
+      }
+    }
+  }
 
   // Vérifier si c'est un score exact
   const isExactScore = predictedHomeScore === homeScore && predictedAwayScore === awayScore

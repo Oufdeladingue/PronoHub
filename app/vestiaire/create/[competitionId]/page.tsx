@@ -32,6 +32,7 @@ export default function TableauNoirPage() {
   const [allMatchdays, setAllMatchdays] = useState(false)
   const [bonusMatchEnabled, setBonusMatchEnabled] = useState(false)
   const [tournamentSlug, setTournamentSlug] = useState('')
+  const [drawWithDefaultPredictionPoints, setDrawWithDefaultPredictionPoints] = useState(1)
 
   // Générer un slug unique au chargement
   useEffect(() => {
@@ -112,7 +113,8 @@ export default function TableauNoirPage() {
           maxPlayers,
           numMatchdays: allMatchdays ? competition.remaining_matchdays : numMatchdays,
           allMatchdays,
-          bonusMatchEnabled
+          bonusMatchEnabled,
+          drawWithDefaultPredictionPoints
         })
       })
 
@@ -393,6 +395,48 @@ export default function TableauNoirPage() {
                 />
               </button>
             </div>
+          </div>
+
+          {/* Points pour match nul avec prono par défaut */}
+          <div className="mb-8">
+            <label className="block text-lg font-semibold text-gray-900 mb-2">
+              Points pour match nul avec pronostic par défaut (0-0)
+            </label>
+            <p className="text-sm text-gray-600 mb-4">
+              Nombre de points attribués si un joueur n'a pas saisi de pronostic (0-0 par défaut) et que le match se termine par un match nul
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => setDrawWithDefaultPredictionPoints(Math.max(0, drawWithDefaultPredictionPoints - 1))}
+                disabled={drawWithDefaultPredictionPoints <= 0}
+                className="w-12 h-12 flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed rounded-lg text-2xl font-bold text-gray-700 transition"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min="0"
+                max="3"
+                value={drawWithDefaultPredictionPoints}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value)
+                  if (!isNaN(val) && val >= 0 && val <= 3) {
+                    setDrawWithDefaultPredictionPoints(val)
+                  }
+                }}
+                className="w-24 h-12 text-center text-2xl font-bold text-green-600 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <button
+                onClick={() => setDrawWithDefaultPredictionPoints(Math.min(3, drawWithDefaultPredictionPoints + 1))}
+                disabled={drawWithDefaultPredictionPoints >= 3}
+                className="w-12 h-12 flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed rounded-lg text-2xl font-bold text-gray-700 transition"
+              >
+                +
+              </button>
+            </div>
+            <p className="text-center text-sm text-gray-500 mt-2">
+              Min: 0 • Max: 3 • Recommandé: 1
+            </p>
           </div>
 
           {/* Bouton inviter des amis */}
