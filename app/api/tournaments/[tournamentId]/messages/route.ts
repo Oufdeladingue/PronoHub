@@ -147,3 +147,53 @@ export async function POST(
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
+
+// PUT - Marquer les messages comme lus
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ tournamentId: string }> }
+) {
+  try {
+    const supabase = await createClient()
+    const { tournamentId } = await params
+
+    // Vérifier l'authentification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    }
+
+    // Vérifier que l'utilisateur est participant du tournoi
+    const { data: participant, error: participantError } = await supabase
+      .from('tournament_participants')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .eq('user_id', user.id)
+      .single()
+
+    if (participantError || !participant) {
+      return NextResponse.json({ error: 'Vous devez être participant du tournoi' }, { status: 403 })
+    }
+
+    // Mettre à jour ou créer le statut de lecture
+    const { error: upsertError } = await supabase
+      .from('message_read_status')
+      .upsert({
+        tournament_id: tournamentId,
+        user_id: user.id,
+        last_read_at: new Date().toISOString()
+      }, {
+        onConflict: 'tournament_id,user_id'
+      })
+
+    if (upsertError) {
+      console.error('Error updating read status:', upsertError)
+      return NextResponse.json({ error: 'Erreur lors de la mise à jour du statut de lecture' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error in PUT /api/tournaments/[tournamentId]/messages:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+}

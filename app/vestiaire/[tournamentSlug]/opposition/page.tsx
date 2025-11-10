@@ -101,6 +101,9 @@ export default function OppositionPage() {
   const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set())
   const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<number, any[]>>({})
 
+  // État pour le compteur de messages non lus
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
+
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
 
@@ -109,6 +112,13 @@ export default function OppositionPage() {
     fetchTournamentData()
     fetchPointsSettings()
   }, [tournamentSlug])
+
+  // Charger le compteur de messages non lus au chargement et quand le tournoi change
+  useEffect(() => {
+    if (tournament?.id) {
+      fetchUnreadMessagesCount()
+    }
+  }, [tournament?.id])
 
   useEffect(() => {
     if (tournament?.competition_id) {
@@ -220,6 +230,51 @@ export default function OppositionPage() {
     } catch (err) {
       console.error('Erreur lors du chargement des paramètres de points:', err)
     }
+  }
+
+  const fetchUnreadMessagesCount = async () => {
+    if (!tournament?.id) return
+
+    try {
+      const response = await fetch(`/api/tournaments/${tournament.id}/unread-messages`)
+      if (!response.ok) {
+        // Si la table n'existe pas encore, on ignore silencieusement
+        console.log('Message read status table not yet created')
+        return
+      }
+
+      const data = await response.json()
+      setUnreadMessagesCount(data.unreadCount || 0)
+    } catch (err) {
+      // Erreur silencieuse en attendant la migration
+      console.log('Unread messages feature not yet activated')
+    }
+  }
+
+  const markMessagesAsRead = async () => {
+    if (!tournament?.id) return
+
+    try {
+      const response = await fetch(`/api/tournaments/${tournament.id}/messages`, {
+        method: 'PUT'
+      })
+      if (!response.ok) {
+        // Si la table n'existe pas encore, on ignore silencieusement
+        console.log('Message read status table not yet created')
+        return
+      }
+
+      // Réinitialiser le compteur à 0
+      setUnreadMessagesCount(0)
+    } catch (err) {
+      // Erreur silencieuse en attendant la migration
+      console.log('Unread messages feature not yet activated')
+    }
+  }
+
+  const handleCauserieClick = () => {
+    setActiveTab('tchat')
+    markMessagesAsRead()
   }
 
   const fetchCompetitionLogo = async () => {
@@ -895,6 +950,35 @@ export default function OppositionPage() {
     return () => clearInterval(interval)
   }, [matches])
 
+  // Écouter les nouveaux messages en temps réel pour mettre à jour le compteur
+  useEffect(() => {
+    if (!tournament?.id || activeTab === 'tchat') return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`tournament-${tournament.id}-unread-messages`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tournament_messages',
+          filter: `tournament_id=eq.${tournament.id}`
+        },
+        (payload) => {
+          // Ne pas compter ses propres messages
+          if (payload.new.user_id !== userId) {
+            setUnreadMessagesCount(prev => prev + 1)
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tournament?.id, userId, activeTab])
+
   if (loading) {
     return (
       <ThemeProvider>
@@ -983,23 +1067,39 @@ export default function OppositionPage() {
               <span className="hidden md:inline">Classement</span>
             </button>
             <button
-              onClick={() => setActiveTab('tchat')}
+              onClick={handleCauserieClick}
               className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'tchat'
                   ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
               }`}
             >
-              <img
-                src="/images/icons/talk.svg"
-                alt="Causerie"
-                className={`w-7 h-7 md:w-5 md:h-5 ${
-                  activeTab === 'tchat'
-                    ? 'icon-filter-orange'
-                    : 'icon-filter-slate'
-                }`}
-              />
-              <span className="hidden md:inline">Causerie</span>
+              {/* Badge sur l'icône en mobile */}
+              <div className="relative md:contents">
+                <img
+                  src="/images/icons/talk.svg"
+                  alt="Causerie"
+                  className={`w-7 h-7 md:w-5 md:h-5 ${
+                    activeTab === 'tchat'
+                      ? 'icon-filter-orange'
+                      : 'icon-filter-slate'
+                  }`}
+                />
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 md:hidden bg-[#ff9900] text-[#0f172a] text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                  </span>
+                )}
+              </div>
+              {/* Badge sur le texte en desktop */}
+              <span className="hidden md:inline relative">
+                Causerie
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-3 bg-[#ff9900] text-[#0f172a] text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                  </span>
+                )}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab('regles')}
@@ -1030,7 +1130,7 @@ export default function OppositionPage() {
               {/* Menu de navigation des journées */}
               {availableMatchdays.length > 0 && (
                 <div className="mb-6 pb-6 border-b theme-border overflow-x-auto">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
                     {availableMatchdays.map(matchday => {
                       const matchdayStatus = getMatchdayStatus(matchday)
                       const isFinished = matchdayStatus === 'Terminée'
@@ -1038,17 +1138,17 @@ export default function OppositionPage() {
                         <button
                           key={matchday}
                           onClick={() => setSelectedMatchday(matchday)}
-                          className={`px-3 py-2 md:px-4 md:py-3 rounded-lg font-semibold transition whitespace-nowrap flex flex-col items-center min-w-[60px] md:min-w-[80px] ${
+                          className={`px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] ${
                             selectedMatchday === matchday
-                              ? 'bg-[#ff9900] text-[#111]'
+                              ? 'bg-[#ff9900] text-[#0f172a]'
                               : isFinished
-                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 opacity-60'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                                ? 'bg-slate-700 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-600 dark:hover:bg-slate-700'
+                                : 'bg-slate-600 dark:bg-slate-700 text-slate-200 dark:text-slate-300 hover:bg-slate-500 dark:hover:bg-slate-600'
                           }`}
                         >
-                          <span className="text-base md:text-lg">J{matchday}</span>
-                          <span className={`text-[10px] md:text-xs mt-0.5 md:mt-1 ${
-                            selectedMatchday === matchday ? 'text-[#111]' : isFinished ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'
+                          <span className="text-lg md:text-xl">J{matchday}</span>
+                          <span className={`text-[10px] md:text-xs mt-1 font-medium ${
+                            selectedMatchday === matchday ? 'text-[#0f172a]' : isFinished ? 'text-slate-400 dark:text-slate-500' : 'text-slate-300 dark:text-slate-400'
                           }`}>
                             {matchdayStatus}
                           </span>
@@ -1146,7 +1246,7 @@ export default function OppositionPage() {
                             return (
                               <div
                                 key={match.id}
-                                className={`relative flex flex-col p-4 theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
+                                className={`relative flex flex-col p-[10px] theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
                               >
                                 <style jsx>{`
                                   @keyframes pulse-bonus {
@@ -1433,10 +1533,22 @@ export default function OppositionPage() {
                                 </div>
 
                                 {/* Affichage DESKTOP (inchangé) */}
-                                <div className="hidden md:block">
-                                  <div className="grid grid-cols-[80px_1fr_auto] gap-4 items-center">
+                                <div className="hidden md:block relative">
+                                  {/* Badge "Prono par défaut" en haut à droite du cadre */}
+                                  {prediction.is_default_prediction && (
+                                    <div className="absolute -top-2 right-2 flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] z-10">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                      </svg>
+                                      <span className="font-medium text-yellow-700 dark:text-yellow-500">
+                                        Prono par défaut
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  <div className="grid grid-cols-[20%_60%_20%]">
                                     {/* COLONNE GAUCHE - Horaire et badge bonus */}
-                                    <div className="flex flex-col items-center gap-1">
+                                    <div className="flex flex-col items-start gap-1 justify-center">
                                       <div className="text-sm theme-text-secondary font-semibold whitespace-nowrap">
                                         {matchTime}
                                       </div>
@@ -1448,21 +1560,11 @@ export default function OppositionPage() {
                                           <span>BONUS</span>
                                         </div>
                                       )}
-                                      {prediction.is_default_prediction && (
-                                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] opacity-70">
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                          </svg>
-                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">
-                                            Prono par défaut
-                                          </span>
-                                        </div>
-                                      )}
                                     </div>
 
                                     {/* COLONNE CENTRALE - Match et scores */}
                                     <div className="flex flex-col gap-3">
-                                      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                                      <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-3 items-center">
                                         {/* Équipe domicile */}
                                         <div className="flex items-center gap-3 justify-end">
                                           <span className="theme-text font-medium text-right truncate">
@@ -1619,25 +1721,26 @@ export default function OppositionPage() {
                                             {match.away_team_name}
                                           </span>
                                         </div>
+
+                                        {/* Points gagnés sur le match */}
+                                        <div className="flex items-center justify-end">
+                                          {isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
+                                            <div
+                                              className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm whitespace-nowrap"
+                                              style={getPointsColorStyle(matchPoints[match.id])}
+                                            >
+                                              {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  {/* COLONNE DROITE - Indicateurs, badges et boutons d'état */}
-                                  <div className="flex items-center justify-end md:justify-end gap-2">
+                                    {/* COLONNE DROITE - Indicateurs, badges et boutons d'état */}
+                                    <div className="flex items-center justify-end gap-2">
                                     {isClosed ? (
-                                      // Si le premier match a commencé OU si le match a un score, afficher les points
-                                      hasFirstMatchStarted() || matchPoints[match.id] !== undefined ? (
-                                        matchPoints[match.id] !== undefined ? (
-                                          <div
-                                            className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm whitespace-nowrap"
-                                            style={getPointsColorStyle(matchPoints[match.id])}
-                                          >
-                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                          </div>
-                                        ) : null
-                                      ) : (
-                                        // Afficher "Clôturé" seulement entre la clôture et le début du premier match
+                                      // Afficher "Clôturé" seulement entre la clôture et le début du premier match (si pas encore de points)
+                                      !(hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
                                         <div className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -1692,12 +1795,13 @@ export default function OppositionPage() {
                                         )}
                                       </button>
                                     )}
+                                    </div>
                                   </div>
                                 </div>
 
                                 {/* Accordéon pour voir les pronostics des autres (seulement si journée clôturée) */}
                                 {isClosed && (
-                                  <div className="mt-3 border-t theme-border pt-3">
+                                  <div className="mt-2 border-t theme-border pt-2">
                                     <button
                                       onClick={() => toggleMatchExpansion(match.id, match)}
                                       className="w-full px-2 py-2 text-xs transition hover:opacity-80 flex items-center justify-center gap-2 theme-text"
@@ -1751,10 +1855,10 @@ export default function OppositionPage() {
                                                   <div className="flex flex-col items-center gap-1">
                                                     {playerPred.hasPronostic ? (
                                                       <>
-                                                        <div className="flex items-center gap-1">
-                                                          <span className="font-bold theme-text text-base">{playerPred.predictedHome}</span>
-                                                          <span className="theme-text-secondary text-sm">-</span>
-                                                          <span className="font-bold theme-text text-base">{playerPred.predictedAway}</span>
+                                                        <div className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-slate-700 rounded">
+                                                          <span className="font-bold text-slate-900 dark:text-white text-base">{playerPred.predictedHome ?? 0}</span>
+                                                          <span className="text-slate-500 dark:text-slate-400 text-sm">-</span>
+                                                          <span className="font-bold text-slate-900 dark:text-white text-base">{playerPred.predictedAway ?? 0}</span>
                                                         </div>
                                                         {playerPred.isDefaultPrediction && (
                                                           <div className="flex items-center gap-0.5 px-1 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[8px]">
@@ -1787,60 +1891,54 @@ export default function OppositionPage() {
                                               {/* Version DESKTOP */}
                                               <div className="hidden md:block">
                                                 <div className="player-match-grid">
-                                                {/* Nom du joueur avec avatar à gauche */}
-                                                <div className="flex items-center gap-2">
-                                                  <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
-                                                    <Image
-                                                      src={getAvatarUrl(playerPred.avatar || 'avatar1')}
-                                                      alt={playerPred.username}
-                                                      fill
-                                                      className="object-cover"
-                                                      sizes="32px"
-                                                    />
-                                                  </div>
-                                                  <span className="theme-text font-medium whitespace-nowrap">{playerPred.username}</span>
-                                                </div>
-
-                                                {/* Espace flexible */}
-                                                <div></div>
-
-                                                {/* Pronostic centré - aligné avec la zone centrale du match */}
-                                                <div className="flex items-center justify-center relative">
-                                                  {playerPred.hasPronostic ? (
-                                                    <>
-                                                      <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
-                                                        <span className="font-bold theme-dark-text">{playerPred.predictedHome}</span>
-                                                        <span className="text-slate-500">-</span>
-                                                        <span className="font-bold theme-dark-text">{playerPred.predictedAway}</span>
-                                                      </div>
-                                                      {playerPred.isDefaultPrediction && (
-                                                        <div className="absolute left-full ml-2 flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] whitespace-nowrap">
-                                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                          </svg>
-                                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Par défaut</span>
-                                                        </div>
-                                                      )}
-                                                    </>
-                                                  ) : (
-                                                    <span className="text-sm theme-text-secondary italic">Pas de pronostic</span>
-                                                  )}
-                                                </div>
-
-                                                {/* Espace flexible */}
-                                                <div></div>
-
-                                                {/* Points - aligné avec bouton de points */}
-                                                <div className="flex items-center justify-end">
-                                                  {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
-                                                    <div
-                                                      className="w-24 px-4 py-2 rounded-lg font-bold text-sm text-center"
-                                                      style={getPointsColorStyle(playerPred.points)}
-                                                    >
-                                                      {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
+                                                  {/* COLONNE GAUCHE - Avatar et nom du joueur */}
+                                                  <div className="flex items-center gap-2">
+                                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+                                                      <Image
+                                                        src={getAvatarUrl(playerPred.avatar || 'avatar1')}
+                                                        alt={playerPred.username}
+                                                        fill
+                                                        className="object-cover"
+                                                        sizes="32px"
+                                                      />
                                                     </div>
-                                                  )}
-                                                </div>
+                                                    <span className="theme-text font-medium truncate">{playerPred.username}</span>
+                                                  </div>
+
+                                                  {/* COLONNE CENTRALE - Pronostic centré */}
+                                                  <div className="flex flex-col items-center gap-1">
+                                                    {playerPred.hasPronostic ? (
+                                                      <>
+                                                        <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-700 rounded">
+                                                          <span className="font-bold text-slate-900 dark:text-white text-sm">{playerPred.predictedHome ?? 0}</span>
+                                                          <span className="text-slate-500 dark:text-slate-400 text-sm">-</span>
+                                                          <span className="font-bold text-slate-900 dark:text-white text-sm">{playerPred.predictedAway ?? 0}</span>
+                                                        </div>
+                                                        {playerPred.isDefaultPrediction && (
+                                                          <div className="flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px]">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                            </svg>
+                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                                          </div>
+                                                        )}
+                                                      </>
+                                                    ) : (
+                                                      <span className="text-xs theme-text-secondary italic">Pas de prono</span>
+                                                    )}
+                                                  </div>
+
+                                                  {/* COLONNE DROITE - Points */}
+                                                  <div className="flex items-center justify-end">
+                                                    {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
+                                                      <div
+                                                        className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm whitespace-nowrap"
+                                                        style={getPointsColorStyle(playerPred.points)}
+                                                      >
+                                                        {playerPred.points > 0 ? `+${playerPred.points}` : '0'} pts
+                                                      </div>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </div>
                                             </div>

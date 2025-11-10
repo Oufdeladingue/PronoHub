@@ -54,6 +54,25 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Curseur pointer pour tous les éléments cliquables */
+a,
+button,
+[role="button"],
+[onclick],
+.cursor-pointer,
+input[type="submit"],
+input[type="button"],
+input[type="reset"] {
+  cursor: pointer !important;
+}
+
+/* Curseur par défaut pour les boutons désactivés */
+button:disabled,
+input:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+}
+
 /* Theme classes */
 .theme-bg {
   background: var(--background);
@@ -63,7 +82,7 @@ html, body {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  padding: 1.5rem;
+  padding: 10px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
@@ -466,8 +485,7 @@ input:-moz-autofill:focus {
 
 .player-match-grid {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr 192px;
-  gap: 1rem;
+  grid-template-columns: 25% 50% 25%;
   align-items: center;
 }
 
