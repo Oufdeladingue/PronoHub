@@ -57,19 +57,23 @@ export async function GET(
       ? [parseInt(matchday)]
       : Array.from({ length: endMatchday - startMatchday + 1 }, (_, i) => startMatchday + i)
 
-    // 4. Récupérer tous les matchs terminés pour ces journées
+    // 4. Récupérer tous les matchs avec scores pour ces journées (terminés ou en cours)
     const { data: finishedMatches, error: matchesError } = await supabase
       .from('imported_matches')
       .select('*')
       .eq('competition_id', tournament.competition_id)
       .in('matchday', matchdaysToCalculate)
-      .eq('finished', true)
       .not('home_score', 'is', null)
       .not('away_score', 'is', null)
 
     if (matchesError) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des matchs' }, { status: 500 })
     }
+
+    // Détecter s'il y a des matchs en cours
+    const hasInProgressMatches = finishedMatches?.some(m =>
+      m.status === 'IN_PLAY' || m.status === 'PAUSED'
+    ) || false
 
     // 5. Récupérer tous les matchs disponibles (pour calculer matchesAvailable)
     const { data: allMatches, error: allMatchesError } = await supabase
@@ -113,7 +117,7 @@ export async function GET(
       // Récupérer tous les pronostics du joueur pour ces journées
       const { data: predictions, error: predError } = await supabase
         .from('predictions')
-        .select('*')
+        .select('*, is_default_prediction')
         .eq('user_id', userId)
         .eq('tournament_id', tournamentId)
         .in('match_id', finishedMatches?.map(m => m.id) || [])
@@ -137,25 +141,47 @@ export async function GET(
 
           if (!isValidPrediction) continue
 
-          matchesPlayed++
-
           const isBonusMatch = bonusMatchIds.has(match.id)
-          const result = calculatePoints(
-            {
-              predictedHomeScore: prediction.predicted_home_score,
-              predictedAwayScore: prediction.predicted_away_score
-            },
-            {
-              homeScore: match.home_score,
-              awayScore: match.away_score
-            },
-            pointsSettings,
-            isBonusMatch
-          )
 
-          totalPoints += result.points
-          if (result.isExactScore) exactScores++
-          if (result.isCorrectResult) correctResults++
+          // Gérer les pronostics par défaut
+          let points = 0
+          let isExactScore = false
+          let isCorrectResult = false
+
+          if (prediction.is_default_prediction) {
+            // Pronostic par défaut : seulement 1 point si match nul
+            // NE PAS compter dans matchesPlayed, exactScores, correctResults
+            const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+            if (realOutcome === 'D') {
+              points = 1
+              // Ne pas mettre isCorrectResult = true pour ne pas incrémenter correctResults
+            }
+          } else {
+            // Pronostic normal : compter dans matchesPlayed
+            matchesPlayed++
+
+            const result = calculatePoints(
+              {
+                predictedHomeScore: prediction.predicted_home_score,
+                predictedAwayScore: prediction.predicted_away_score
+              },
+              {
+                homeScore: match.home_score,
+                awayScore: match.away_score
+              },
+              pointsSettings,
+              isBonusMatch
+            )
+            points = result.points
+            isExactScore = result.isExactScore
+            isCorrectResult = result.isCorrectResult
+
+            // Incrémenter les stats uniquement pour les vrais pronostics
+            if (isExactScore) exactScores++
+            if (isCorrectResult) correctResults++
+          }
+
+          totalPoints += points
         }
       }
 
@@ -189,7 +215,8 @@ export async function GET(
       matchday: matchday ? parseInt(matchday) : null,
       pointsSettings,
       matchesFinished: finishedMatches?.length || 0,
-      matchesTotal: allMatches?.length || 0
+      matchesTotal: allMatches?.length || 0,
+      hasInProgressMatches
     })
 
   } catch (error: any) {

@@ -95,14 +95,12 @@ export default function TournamentNav({
             {/* Lien Carrière avec icône */}
             <Link
               href="/profile"
-              className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-              style={{ color: 'var(--theme-accent, #ff9900)' }}
+              className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
             >
               <img
                 src="/images/icons/profil.svg"
                 alt="Carrière"
-                className="w-5 h-5"
-                style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
+                className="w-5 h-5 icon-filter-orange"
               />
               Carrière
             </Link>
@@ -114,14 +112,12 @@ export default function TournamentNav({
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer"
-                style={{ color: 'var(--theme-accent, #ff9900)' }}
+                className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
               >
                 <img
                   src="/images/icons/logout.svg"
                   alt="Quitter"
-                  className="w-5 h-5"
-                  style={{ filter: 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)' }}
+                  className="w-5 h-5 icon-filter-orange"
                 />
                 Quitter le terrain
               </button>

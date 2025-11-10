@@ -37,7 +37,7 @@ export async function GET(
     // Récupérer toutes les prédictions pour ce match
     const { data: predictions, error: predictionsError } = await supabase
       .from('predictions')
-      .select('*')
+      .select('*, is_default_prediction')
       .eq('tournament_id', tournamentId)
       .eq('match_id', matchId)
 
@@ -52,6 +52,7 @@ export async function GET(
         avatar: (participant.profiles as any)?.avatar || 'avatar1',
         predicted_home_score: pred?.predicted_home_score ?? null,
         predicted_away_score: pred?.predicted_away_score ?? null,
+        is_default_prediction: pred?.is_default_prediction ?? false,
         has_prediction: !!pred && pred.predicted_home_score !== null && pred.predicted_away_score !== null
       }
     })

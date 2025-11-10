@@ -616,8 +616,7 @@ function EchauffementPageContent() {
                 <img
                   src="/images/icons/cap.svg"
                   alt="Capitaine"
-                  className="w-6 h-6"
-                  style={{ filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none' }}
+                  className="w-6 h-6 icon-filter-white"
                 />
                 Les privilèges du capitaine
               </h2>
@@ -804,35 +803,21 @@ function EchauffementPageContent() {
               </h2>
 
               <div
-                className="border-2 rounded-lg p-6 text-center"
+                className="border-2 rounded-lg p-6 text-center theme-dark-bg"
                 style={{
-                  backgroundColor: theme === 'dark' ? '#0f172a' : 'linear-gradient(to right, #f3e8ff, #dbeafe)',
                   backgroundImage: theme === 'dark' ? 'none' : 'linear-gradient(to right, #f3e8ff, #dbeafe)',
                   borderColor: theme === 'dark' ? '#374151' : '#d8b4fe'
                 }}
               >
-                <p className="text-sm mb-2" style={{ color: theme === 'dark' ? '#9ca3af' : '#4b5563' }}>
+                <p className="text-sm mb-2 theme-text-secondary">
                   Partagez ce code avec vos amis :
                 </p>
-                <div
-                  className="text-5xl font-bold tracking-wider mb-4 font-mono"
-                  style={{ color: theme === 'dark' ? '#ff9900' : '#7e22ce' }}
-                >
+                <div className="text-5xl font-bold tracking-wider mb-4 font-mono theme-accent-text" style={{ color: theme === 'light' ? '#7e22ce' : undefined }}>
                   {tournamentCode}
                 </div>
                 <button
                   onClick={copyInviteCode}
-                  className="w-full px-4 py-2 rounded-lg transition font-semibold"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#ff9900' : '#9333ea',
-                    color: theme === 'dark' ? '#6b7280' : '#ffffff'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#e68a00' : '#7e22ce'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#ff9900' : '#9333ea'
-                  }}
+                  className="w-full px-4 py-2 rounded-lg transition font-semibold btn-copy-code"
                 >
                   {copySuccess ? '✓ Copié !' : '📋 Copier le code'}
                 </button>
@@ -859,17 +844,7 @@ function EchauffementPageContent() {
                 <p className="text-sm theme-text-secondary mt-4">Scannez pour rejoindre le tournoi</p>
                 <button
                   onClick={shareUrl}
-                  className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#ff9900' : '#2563eb',
-                    color: theme === 'dark' ? '#0f172a' : '#ffffff'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#e68a00' : '#1d4ed8'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#ff9900' : '#2563eb'
-                  }}
+                  className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold btn-share"
                 >
                   📤 Partager le lien
                 </button>

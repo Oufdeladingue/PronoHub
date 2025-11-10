@@ -41,6 +41,7 @@ interface Prediction {
   match_id: number
   predicted_home_score: number | null
   predicted_away_score: number | null
+  is_default_prediction?: boolean
 }
 
 export default function OppositionPage() {
@@ -391,17 +392,25 @@ export default function OppositionPage() {
         .eq('competition_id', tournament.competition_id)
         .eq('matchday', selectedMatchday)
 
+      console.log('🔍 [fetchUserPredictions] Matchs trouvés:', matchesData?.length || 0)
+
       if (!matchesData || matchesData.length === 0) return
 
       const matchIds = matchesData.map(m => m.id)
+      console.log('🔍 [fetchUserPredictions] Match IDs:', matchIds)
+      console.log('🔍 [fetchUserPredictions] Tournament ID:', tournament.id)
+      console.log('🔍 [fetchUserPredictions] User ID:', user.id)
 
       // Ensuite, récupérer les prédictions pour ces matchs
       const { data: predictionsData, error } = await supabase
         .from('predictions')
-        .select('match_id, predicted_home_score, predicted_away_score')
+        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
+
+      console.log('🔍 [fetchUserPredictions] Predictions query error:', error)
+      console.log('🔍 [fetchUserPredictions] Predictions found:', predictionsData?.length || 0)
 
       if (error) {
         console.error('Erreur Supabase:', error)
@@ -443,13 +452,13 @@ export default function OppositionPage() {
 
       if (!user) return
 
-      // Récupérer les matchs terminés de cette journée
+      // Récupérer les matchs avec scores de cette journée (terminés ou en cours)
       const { data: matchesData } = await supabase
         .from('imported_matches')
-        .select('id, home_score, away_score, finished')
+        .select('id, home_score, away_score, finished, status')
         .eq('competition_id', tournament.competition_id)
         .eq('matchday', selectedMatchday)
-        .eq('finished', true)
+        .not('home_score', 'is', null)
 
       if (!matchesData || matchesData.length === 0) return
 
@@ -458,7 +467,7 @@ export default function OppositionPage() {
       // Récupérer les pronostics de l'utilisateur pour ces matchs
       const { data: predictionsData } = await supabase
         .from('predictions')
-        .select('match_id, predicted_home_score, predicted_away_score')
+        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
@@ -486,17 +495,27 @@ export default function OppositionPage() {
         const isCorrect = predOutcome === realOutcome
 
         let points = 0
-        if (isExact) {
-          points = pointsSettings.exactScore
-        } else if (isCorrect) {
-          points = pointsSettings.correctResult
-        } else {
-          points = pointsSettings.incorrectResult
-        }
 
-        // Doubler si match bonus
-        if (isBonusMatch(prediction.match_id)) {
-          points *= 2
+        // Si c'est un pronostic par défaut (0-0) et que c'est un match nul, seulement 1 point
+        if (prediction.is_default_prediction && realOutcome === 'D') {
+          points = 1
+        } else if (prediction.is_default_prediction) {
+          // Si c'est un pronostic par défaut mais pas un match nul, 0 point
+          points = 0
+        } else {
+          // Pronostic normal
+          if (isExact) {
+            points = pointsSettings.exactScore
+          } else if (isCorrect) {
+            points = pointsSettings.correctResult
+          } else {
+            points = pointsSettings.incorrectResult
+          }
+
+          // Doubler si match bonus (seulement pour les vrais pronostics)
+          if (isBonusMatch(prediction.match_id)) {
+            points *= 2
+          }
         }
 
         pointsMap[prediction.match_id] = points
@@ -541,6 +560,7 @@ export default function OppositionPage() {
               avatar: prediction.avatar || 'avatar1',
               predictedHome: 0,
               predictedAway: 0,
+              isDefaultPrediction: false,
               hasPronostic: false,
               points: 0,
               isExact: false,
@@ -548,28 +568,39 @@ export default function OppositionPage() {
             }
           }
 
-          // Calculer les points si le match est terminé
+          // Calculer les points si le match a un score (terminé ou en cours)
           let points = 0
           let isExact = false
           let isCorrect = false
 
-          if (match.finished && match.home_score !== null && match.away_score !== null) {
-            isExact = prediction.predicted_home_score === match.home_score && prediction.predicted_away_score === match.away_score
-            const predOutcome = prediction.predicted_home_score > prediction.predicted_away_score ? 'H' : (prediction.predicted_home_score < prediction.predicted_away_score ? 'A' : 'D')
-            const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
-            isCorrect = predOutcome === realOutcome
-
-            if (isExact) {
-              points = pointsSettings.exactScore
-            } else if (isCorrect) {
-              points = pointsSettings.correctResult
+          if (match.home_score !== null && match.away_score !== null) {
+            // Gérer les pronostics par défaut
+            if (prediction.is_default_prediction) {
+              // Pronostic par défaut : seulement 1 point si match nul
+              const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+              if (realOutcome === 'D') {
+                points = 1
+                isCorrect = true
+              }
             } else {
-              points = pointsSettings.incorrectResult
-            }
+              // Pronostic normal
+              isExact = prediction.predicted_home_score === match.home_score && prediction.predicted_away_score === match.away_score
+              const predOutcome = prediction.predicted_home_score > prediction.predicted_away_score ? 'H' : (prediction.predicted_home_score < prediction.predicted_away_score ? 'A' : 'D')
+              const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+              isCorrect = predOutcome === realOutcome
 
-            // Doubler si match bonus
-            if (bonusMatchIds.has(matchId)) {
-              points *= 2
+              if (isExact) {
+                points = pointsSettings.exactScore
+              } else if (isCorrect) {
+                points = pointsSettings.correctResult
+              } else {
+                points = pointsSettings.incorrectResult
+              }
+
+              // Doubler si match bonus (seulement pour les vrais pronostics)
+              if (bonusMatchIds.has(matchId)) {
+                points *= 2
+              }
             }
           }
 
@@ -578,6 +609,7 @@ export default function OppositionPage() {
             avatar: prediction.avatar || 'avatar1',
             predictedHome: prediction.predicted_home_score,
             predictedAway: prediction.predicted_away_score,
+            isDefaultPrediction: prediction.is_default_prediction || false,
             hasPronostic: true,
             points,
             isExact,
@@ -770,12 +802,27 @@ export default function OppositionPage() {
     return groups
   }
 
-  // Vérifier si les pronostics sont clôturés
+  // Vérifier si les pronostics sont clôturés (1h avant le premier match)
   const arePronosticsClosed = () => {
     if (matches.length === 0) return false
     const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
     const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000)
     return new Date() >= closingTime
+  }
+
+  // Vérifier si le premier match a commencé
+  const hasFirstMatchStarted = () => {
+    if (matches.length === 0) return false
+    const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+    return new Date() >= firstMatchTime
+  }
+
+  // Vérifier si le dernier match est terminé (plus de 2h après)
+  const hasLastMatchEnded = () => {
+    if (matches.length === 0) return false
+    const lastMatchTime = new Date(Math.max(...matches.map(m => new Date(m.utc_date).getTime())))
+    const twoHoursAfter = new Date(lastMatchTime.getTime() + 2 * 60 * 60 * 1000)
+    return new Date() >= twoHoursAfter
   }
 
   // Calculer le temps restant avant la clôture des pronostics (1h avant le 1er match)
@@ -956,7 +1003,9 @@ export default function OppositionPage() {
                           </svg>
                           <span className="font-semibold">
                             {timeRemaining === 'Pronostics clôturés'
-                              ? `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
+                              ? hasFirstMatchStarted() && !hasLastMatchEnded()
+                                ? `Pronostics clôturés pour cette journée : vous avez marqué pour le moment ${matchdayTotalPoints} pts (matchs en cours)`
+                                : `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
                               : `Temps restant pour valider vos pronostics : ${timeRemaining}`
                             }
                           </span>
@@ -1018,8 +1067,20 @@ export default function OppositionPage() {
                                   }
                                 `}</style>
 
+                                {/* Badge pronostic par défaut - coin supérieur droit */}
+                                {prediction.is_default_prediction && (
+                                  <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] opacity-70 hover:opacity-100 transition-opacity">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <span className="font-medium text-yellow-700 dark:text-yellow-500">
+                                      Prono par défaut (max 1pt)
+                                    </span>
+                                  </div>
+                                )}
+
                                 {/* Contenu principal du match */}
-                                <div className="grid items-center gap-4" style={{ gridTemplateColumns: '80px 1fr auto 1fr 192px' }}>
+                                <div className="match-grid">
                                   {/* Horaire et badge bonus */}
                                   <div className="flex flex-col items-center gap-1 w-20">
                                   <div className="text-sm theme-text-secondary font-semibold">
@@ -1051,13 +1112,25 @@ export default function OppositionPage() {
 
                                 {/* Zone centrale avec scores */}
                                 <div className="flex flex-col items-center gap-3 flex-1">
-                                  {/* Vrai score si match terminé */}
-                                  {match.finished && match.home_score !== null && match.away_score !== null && (
-                                    <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded">
-                                      <span className="text-xs font-semibold text-green-700 dark:text-green-400">
-                                        Score final :
+                                  {/* Vrai score si match terminé ou en cours */}
+                                  {match.home_score !== null && match.away_score !== null && (
+                                    <div className={`flex items-center gap-2 px-3 py-1 rounded ${
+                                      match.finished
+                                        ? 'bg-green-100 dark:bg-green-900/30'
+                                        : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
+                                    }`}>
+                                      <span className={`text-xs font-semibold ${
+                                        match.finished
+                                          ? 'text-green-700 dark:text-green-400'
+                                          : 'text-orange-700 dark:text-orange-400'
+                                      }`}>
+                                        {match.finished ? 'Score final :' : 'En direct :'}
                                       </span>
-                                      <span className="text-sm font-bold text-green-700 dark:text-green-400">
+                                      <span className={`text-sm font-bold ${
+                                        match.finished
+                                          ? 'text-green-700 dark:text-green-400'
+                                          : 'text-orange-700 dark:text-orange-400'
+                                      }`}>
                                         {match.home_score} - {match.away_score}
                                       </span>
                                     </div>
@@ -1171,14 +1244,18 @@ export default function OppositionPage() {
                                 {/* Indicateur et bouton d'état */}
                                 <div className="flex items-center justify-end gap-2 w-48">
                                   {isClosed ? (
-                                    matchPoints[match.id] !== undefined ? (
-                                      <div
-                                        className="px-4 py-2 rounded-lg font-bold text-sm"
-                                        style={getPointsColorStyle(matchPoints[match.id])}
-                                      >
-                                        {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                      </div>
+                                    // Si le premier match a commencé OU si le match a un score, afficher les points
+                                    hasFirstMatchStarted() || matchPoints[match.id] !== undefined ? (
+                                      matchPoints[match.id] !== undefined ? (
+                                        <div
+                                          className="px-4 py-2 rounded-lg font-bold text-sm"
+                                          style={getPointsColorStyle(matchPoints[match.id])}
+                                        >
+                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                        </div>
+                                      ) : null
                                     ) : (
+                                      // Afficher "Clôturé" seulement entre la clôture et le début du premier match
                                       <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                           <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
@@ -1269,8 +1346,7 @@ export default function OppositionPage() {
                                           allPlayersPredictions[match.id].map((playerPred, idx) => (
                                             <div
                                               key={`${match.id}-${playerPred.username}-${idx}`}
-                                              className="grid items-center gap-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-                                              style={{ backgroundColor: 'var(--background)', gridTemplateColumns: 'auto 1fr auto 1fr 192px' }}
+                                              className="player-match-grid p-3 rounded-lg border border-gray-200 dark:border-gray-700 theme-bg"
                                             >
                                               {/* Nom du joueur avec avatar à gauche */}
                                               <div className="flex items-center gap-2">
@@ -1290,13 +1366,23 @@ export default function OppositionPage() {
                                               <div></div>
 
                                               {/* Pronostic centré - aligné avec la zone centrale du match */}
-                                              <div className="flex items-center justify-center">
+                                              <div className="flex items-center justify-center relative">
                                                 {playerPred.hasPronostic ? (
-                                                  <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
-                                                    <span className="font-bold" style={{ color: '#0f172a' }}>{playerPred.predictedHome}</span>
-                                                    <span style={{ color: '#64748b' }}>-</span>
-                                                    <span className="font-bold" style={{ color: '#0f172a' }}>{playerPred.predictedAway}</span>
-                                                  </div>
+                                                  <>
+                                                    <div className="flex items-center gap-2 px-3 py-1 bg-white rounded">
+                                                      <span className="font-bold theme-dark-text">{playerPred.predictedHome}</span>
+                                                      <span className="text-slate-500">-</span>
+                                                      <span className="font-bold theme-dark-text">{playerPred.predictedAway}</span>
+                                                    </div>
+                                                    {playerPred.isDefaultPrediction && (
+                                                      <div className="absolute left-full ml-2 flex items-center gap-1 px-2 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] whitespace-nowrap">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                        <span className="font-medium text-yellow-700 dark:text-yellow-500">Par défaut</span>
+                                                      </div>
+                                                    )}
+                                                  </>
                                                 ) : (
                                                   <span className="text-sm theme-text-secondary italic">Pas de pronostic</span>
                                                 )}
@@ -1307,7 +1393,7 @@ export default function OppositionPage() {
 
                                               {/* Points - aligné avec bouton de points */}
                                               <div className="flex items-center justify-end">
-                                                {match.finished && match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
+                                                {match.home_score !== null && match.away_score !== null && playerPred.hasPronostic && (
                                                   <div
                                                     className="w-24 px-4 py-2 rounded-lg font-bold text-sm text-center"
                                                     style={getPointsColorStyle(playerPred.points)}

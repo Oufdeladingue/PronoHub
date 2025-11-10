@@ -240,3 +240,194 @@ input:-moz-autofill:focus {
 :root[data-theme="dark"] .dark-fill-white {
   fill: #ffffff !important;
 }
+
+/* ========================================
+   CLASSES UTILITAIRES THÈME SOMBRE
+   Couleurs principales : #ff9900, #1e293b, #0f172a, #94a3b8
+   ======================================== */
+
+/* Couleur accent orange #ff9900 */
+.theme-accent-bg {
+  background-color: transparent;
+}
+
+:root[data-theme="dark"] .theme-accent-bg {
+  background-color: #ff9900 !important;
+}
+
+.theme-accent-text {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .theme-accent-text {
+  color: #ff9900 !important;
+}
+
+.theme-accent-border {
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .theme-accent-border {
+  border-color: #ff9900 !important;
+}
+
+/* Couleur secondaire #1e293b */
+.theme-secondary-bg {
+  background-color: #ffffff;
+}
+
+:root[data-theme="dark"] .theme-secondary-bg {
+  background-color: #1e293b !important;
+}
+
+.theme-secondary-text {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .theme-secondary-text {
+  color: #1e293b !important;
+}
+
+.theme-secondary-border {
+  border-color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .theme-secondary-border {
+  border-color: #1e293b !important;
+}
+
+/* Couleur primaire foncée #0f172a */
+.theme-dark-bg {
+  background-color: #f9fafb;
+}
+
+:root[data-theme="dark"] .theme-dark-bg {
+  background-color: #0f172a !important;
+}
+
+.theme-dark-text {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .theme-dark-text {
+  color: #0f172a !important;
+}
+
+.theme-dark-border {
+  border-color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .theme-dark-border {
+  border-color: #0f172a !important;
+}
+
+/* Couleur gris-bleu #94a3b8 */
+.theme-slate-bg {
+  background-color: transparent;
+}
+
+:root[data-theme="dark"] .theme-slate-bg {
+  background-color: #94a3b8 !important;
+}
+
+.theme-slate-text {
+  color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .theme-slate-text {
+  color: #94a3b8 !important;
+}
+
+.theme-slate-border {
+  border-color: transparent;
+}
+
+:root[data-theme="dark"] .theme-slate-border {
+  border-color: #94a3b8 !important;
+}
+
+/* Boutons avec styles thématiques */
+.btn-copy-code {
+  background-color: #9333ea;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .btn-copy-code {
+  background-color: #ff9900 !important;
+  color: #6b7280 !important;
+}
+
+.btn-copy-code:hover {
+  background-color: #7e22ce;
+}
+
+:root[data-theme="dark"] .btn-copy-code:hover {
+  background-color: #e68a00 !important;
+}
+
+.btn-share {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .btn-share {
+  background-color: #ff9900 !important;
+  color: #0f172a !important;
+}
+
+.btn-share:hover {
+  background-color: #1d4ed8;
+}
+
+:root[data-theme="dark"] .btn-share:hover {
+  background-color: #e68a00 !important;
+}
+
+/* Filtres SVG pour icônes */
+.icon-filter-orange {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-filter-orange {
+  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+}
+
+.icon-filter-white {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-filter-white {
+  filter: invert(1) brightness(2) !important;
+}
+
+.icon-filter-theme {
+  filter: invert(17%) sepia(93%) saturate(4520%) hue-rotate(355deg) brightness(88%) contrast(104%);
+}
+
+:root[data-theme="dark"] .icon-filter-theme {
+  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+}
+
+/* Backgrounds pour authentification */
+.auth-card-bg {
+  background: linear-gradient(180deg, #1a1a1a 0%, #111111 100%);
+}
+
+.auth-divider-bg {
+  background: linear-gradient(180deg, #1a1a1a 0%, #111111 100%);
+}
+
+/* Grilles de layout spécifiques */
+.match-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr auto 1fr 192px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.player-match-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr 192px;
+  gap: 1rem;
+  align-items: center;
+}

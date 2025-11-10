@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="absolute top-0 left-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
       <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
 
-      <div className="relative z-10 w-full max-w-[420px] rounded-[14px] p-10 shadow-[0_15px_50px_rgba(0,0,0,0.75)]" style={{ background: 'linear-gradient(180deg, #1a1a1a 0%, #111111 100%)' }}>
+      <div className="relative z-10 w-full max-w-[420px] rounded-[14px] p-10 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
         <div className="flex items-center justify-center gap-3 mb-7">
           <h1 className="text-2xl font-bold text-white m-0">
             Rejoins le vestiaire

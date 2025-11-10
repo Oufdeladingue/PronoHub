@@ -1,0 +1,146 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
+
+/**
+ * API pour synchroniser les scores des matchs en cours et terminés
+ *
+ * Usage:
+ * - GET /api/football/sync-scores - Synchronise tous les matchs en cours
+ * - GET /api/football/sync-scores?competitionId=2013 - Synchronise une compétition spécifique
+ * - GET /api/football/sync-scores?matchday=33 - Synchronise une journée spécifique
+ */
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const competitionId = searchParams.get('competitionId')
+    const matchday = searchParams.get('matchday')
+
+    const apiKey = process.env.FOOTBALL_DATA_API_KEY
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Football Data API key not configured' },
+        { status: 500 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    // 1. Récupérer les compétitions à synchroniser
+    let competitionsToSync: number[] = []
+
+    if (competitionId) {
+      // Une seule compétition spécifiée
+      competitionsToSync = [parseInt(competitionId)]
+    } else {
+      // Récupérer toutes les compétitions actives
+      const { data: activeComps } = await supabase
+        .from('competitions')
+        .select('id')
+        .eq('is_active', true)
+
+      competitionsToSync = activeComps?.map(c => c.id) || []
+    }
+
+    if (competitionsToSync.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No active competitions to sync',
+        updatedMatches: 0
+      })
+    }
+
+    let totalUpdated = 0
+    let totalErrors = 0
+    const errors: any[] = []
+
+    // 2. Pour chaque compétition, synchroniser les matchs
+    for (const compId of competitionsToSync) {
+      try {
+        console.log(`[SYNC] Synchronizing competition ${compId}...`)
+
+        // Récupérer les matchs depuis l'API
+        const matchesResponse = await fetch(
+          `${FOOTBALL_DATA_API}/competitions/${compId}/matches`,
+          {
+            headers: { 'X-Auth-Token': apiKey },
+          }
+        )
+
+        if (!matchesResponse.ok) {
+          throw new Error(`Failed to fetch matches for competition ${compId}: ${matchesResponse.statusText}`)
+        }
+
+        const matchesData = await matchesResponse.json()
+
+        // Filtrer les matchs à synchroniser
+        // - Matchs EN_PLAY (en cours)
+        // - Matchs FINISHED (terminés)
+        // - Matchs PAUSED (mi-temps)
+        // - Si matchday spécifié, filtrer par journée
+        const matchesToSync = matchesData.matches.filter((match: any) => {
+          const isRelevantStatus = ['IN_PLAY', 'PAUSED', 'FINISHED'].includes(match.status)
+          const matchesMatchday = matchday ? match.matchday === parseInt(matchday) : true
+          const hasTeams = match.homeTeam?.id && match.awayTeam?.id
+
+          return isRelevantStatus && matchesMatchday && hasTeams
+        })
+
+        console.log(`[SYNC] Found ${matchesToSync.length} matches to sync for competition ${compId}`)
+
+        // 3. Mettre à jour chaque match
+        for (const match of matchesToSync) {
+          const updateData: any = {
+            status: match.status,
+            home_score: match.score?.fullTime?.home,
+            away_score: match.score?.fullTime?.away,
+            finished: match.status === 'FINISHED'
+          }
+
+          const { error } = await supabase
+            .from('imported_matches')
+            .update(updateData)
+            .eq('football_data_match_id', match.id)
+
+          if (error) {
+            console.error(`[SYNC] Error updating match ${match.id}:`, error)
+            totalErrors++
+            errors.push({
+              matchId: match.id,
+              error: error.message
+            })
+          } else {
+            totalUpdated++
+            console.log(`[SYNC] Updated match ${match.id}: ${match.homeTeam.name} ${match.score?.fullTime?.home ?? '-'} - ${match.score?.fullTime?.away ?? '-'} ${match.awayTeam.name}`)
+          }
+        }
+
+      } catch (compError: any) {
+        console.error(`[SYNC] Error syncing competition ${compId}:`, compError)
+        totalErrors++
+        errors.push({
+          competitionId: compId,
+          error: compError.message
+        })
+      }
+    }
+
+    // 4. Retourner le résultat
+    return NextResponse.json({
+      success: true,
+      message: `Synchronized ${totalUpdated} match(es)`,
+      updatedMatches: totalUpdated,
+      errors: totalErrors > 0 ? errors : undefined,
+      competitionsSync: competitionsToSync.length
+    })
+
+  } catch (error: any) {
+    console.error('[SYNC] Error in sync-scores:', error)
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    )
+  }
+}

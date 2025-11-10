@@ -135,6 +135,25 @@ export async function POST(request: Request) {
       // On continue quand même, le tournoi est créé
     }
 
+    // Créer les journées du tournoi
+    const journeys = []
+    for (let i = 1; i <= numMatchdays; i++) {
+      journeys.push({
+        tournament_id: tournament.id,
+        journey_number: i,
+        status: 'pending'
+      })
+    }
+
+    const { error: journeysError } = await supabase
+      .from('tournament_journeys')
+      .insert(journeys)
+
+    if (journeysError) {
+      console.error('Error creating tournament journeys:', journeysError)
+      // On continue quand même, le tournoi est créé
+    }
+
     return NextResponse.json({
       success: true,
       tournament

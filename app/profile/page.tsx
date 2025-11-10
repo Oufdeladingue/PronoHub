@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import Link from 'next/link'
 import { getAvatarUrl } from '@/lib/avatars'
 import Image from 'next/image'
+import Link from 'next/link'
+import AppNav from '@/components/AppNav'
 
 function ProfileContent() {
   const [username, setUsername] = useState('')
@@ -117,13 +118,7 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen theme-bg">
-      <nav className="theme-nav">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/dashboard" className="text-2xl font-bold theme-text hover:opacity-80">
-            PronoHub
-          </Link>
-        </div>
-      </nav>
+      <AppNav username={username} avatar={selectedAvatar} showBackToDashboard={true} hideProfileLink={true} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="theme-card">

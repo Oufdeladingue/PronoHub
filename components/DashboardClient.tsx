@@ -1,12 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import ThemeToggle from './ThemeToggle'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
+
+// Fonction pour formater la date au format "dd/mm à hhhmm"
+function formatMatchDate(dateString: string) {
+  const date = new Date(dateString)
+
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+
+  return `${day}/${month} à ${hours}h${minutes}`
+}
 
 interface DashboardClientProps {
   username: string
@@ -114,12 +126,7 @@ function DashboardContent({
               <img
                 src="/images/icons/profil.svg"
                 alt="Carrière"
-                className="w-5 h-5"
-                style={{
-                  filter: theme === 'dark'
-                    ? 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)'
-                    : 'invert(17%) sepia(93%) saturate(4520%) hue-rotate(355deg) brightness(88%) contrast(104%)'
-                }}
+                className="w-5 h-5 icon-filter-theme"
               />
               Carrière
             </Link>
@@ -140,12 +147,7 @@ function DashboardContent({
                 <img
                   src="/images/icons/logout.svg"
                   alt="Quitter"
-                  className="w-5 h-5"
-                  style={{
-                    filter: theme === 'dark'
-                      ? 'invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%)'
-                      : 'invert(17%) sepia(93%) saturate(4520%) hue-rotate(355deg) brightness(88%) contrast(104%)'
-                  }}
+                  className="w-5 h-5 icon-filter-theme"
                 />
                 Quitter le terrain
               </button>
@@ -207,13 +209,15 @@ function DashboardContent({
                     {/* Logo de la compétition */}
                     <div className="relative z-10">
                     {tournament.emblem ? (
-                      <img
-                        src={tournament.emblem}
-                        alt={tournament.competition_name}
-                        className="w-12 h-12 object-contain"
-                      />
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
+                        <img
+                          src={tournament.emblem}
+                          alt={tournament.competition_name}
+                          className="w-10 h-10 object-contain"
+                        />
+                      </div>
                     ) : (
-                      <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
                         <span className="text-gray-400 text-xs">N/A</span>
                       </div>
                     )}
@@ -249,6 +253,18 @@ function DashboardContent({
                           : `${tournament.current_participants} joueurs`
                         }
                       </p>
+                      {/* Informations de journée pour tournois actifs */}
+                      {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
+                        <p className="text-xs theme-accent-text mt-1 font-semibold">
+                          {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                        </p>
+                      )}
+                      {/* Date de la prochaine journée pour tournois en attente */}
+                      {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
+                        <p className="text-xs theme-accent-text mt-1 font-semibold">
+                          Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
+                        </p>
+                      )}
                     </div>
                   </a>
                 )
