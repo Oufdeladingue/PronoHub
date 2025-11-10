@@ -47,6 +47,7 @@ function DashboardContent({
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
@@ -91,68 +92,120 @@ function DashboardContent({
 
       {/* Navigation principale */}
       <nav className="theme-nav">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
-            <ThemeToggle />
-          </div>
+        <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-6">
+          <div className="grid grid-cols-[auto_1fr_auto] gap-2 md:gap-4 items-center">
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900]">
+            {/* COLONNE GAUCHE - Theme Toggle sur mobile, Logo + Theme Toggle sur desktop */}
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
+              <img src="/images/logo.svg" alt="PronoHub" className="hidden md:block w-14 h-14" />
+              <ThemeToggle />
+            </div>
+
+            {/* COLONNE CENTRALE - Logo centré sur mobile, vide sur desktop */}
+            <div className="flex md:hidden justify-center">
+              <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
+            </div>
+
+            {/* COLONNE DROITE - Avatar + Menu */}
+            <div className="flex flex-row md:flex-row items-center gap-1 md:gap-3">
+              {/* Avatar */}
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
                 <Image
                   src={getAvatarUrl(avatar || 'avatar1')}
                   alt={username}
                   fill
                   className="object-cover"
-                  sizes="32px"
+                  sizes="40px"
                 />
               </div>
-              <span className="theme-text text-sm">Bonjour, {username} !</span>
-            </div>
 
-            {/* Séparateur */}
-            <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-            {/* Lien Carrière avec icône */}
-            <Link
-              href="/profile"
-              className={`flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer ${
-                theme === 'dark'
-                  ? 'text-[#e68a00] hover:text-[#ff9900]'
-                  : 'text-red-600 hover:text-red-800'
-              }`}
-            >
-              <img
-                src="/images/icons/profil.svg"
-                alt="Carrière"
-                className="w-5 h-5 icon-filter-theme"
-              />
-              Carrière
-            </Link>
-
-            {/* Séparateur */}
-            <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-            {/* Bouton Déconnexion avec icône */}
-            <form action="/auth/signout" method="post">
+              {/* Hamburger menu sur mobile, menu complet sur desktop */}
               <button
-                type="submit"
-                className={`flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer ${
-                  theme === 'dark'
-                    ? 'text-[#e68a00] hover:text-[#ff9900]'
-                    : 'text-red-600 hover:text-red-800'
-                }`}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden flex flex-col gap-1 p-1 cursor-pointer"
+                aria-label="Menu"
+              >
+                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+              </button>
+
+              {/* Menu desktop (caché sur mobile) */}
+              <div className="hidden md:flex items-center gap-3">
+                <span className="theme-text text-sm">Bonjour, {username} !</span>
+
+                {/* Séparateur */}
+                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+                {/* Lien Carrière avec icône */}
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                >
+                  <img
+                    src="/images/icons/profil.svg"
+                    alt="Carrière"
+                    className="w-5 h-5 icon-filter-orange"
+                  />
+                  Carrière
+                </Link>
+
+                {/* Séparateur */}
+                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+                {/* Bouton Déconnexion avec icône */}
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  >
+                    <img
+                      src="/images/icons/logout.svg"
+                      alt="Quitter"
+                      className="w-5 h-5 icon-filter-orange"
+                    />
+                    Quitter le terrain
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Menu mobile dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
+              <div className="theme-text text-sm text-center mb-2">
+                Bonjour, {username} !
+              </div>
+
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <img
-                  src="/images/icons/logout.svg"
-                  alt="Quitter"
-                  className="w-5 h-5 icon-filter-theme"
+                  src="/images/icons/profil.svg"
+                  alt="Carrière"
+                  className="w-5 h-5 icon-filter-orange"
                 />
-                Quitter le terrain
-              </button>
-            </form>
-          </div>
+                Carrière
+              </Link>
+
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-5 h-5 icon-filter-orange"
+                  />
+                  Quitter le terrain
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </nav>
 
