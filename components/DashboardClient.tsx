@@ -48,6 +48,23 @@ function DashboardContent({
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [hasNewTrophies, setHasNewTrophies] = useState(false)
+
+  useEffect(() => {
+    // Charger l'état des trophées
+    const loadTrophiesStatus = async () => {
+      try {
+        const response = await fetch('/api/user/trophies')
+        const data = await response.json()
+        if (data.success) {
+          setHasNewTrophies(data.hasNewTrophies)
+        }
+      } catch (error) {
+        console.error('Error loading trophies status:', error)
+      }
+    }
+    loadTrophiesStatus()
+  }, [])
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
@@ -109,7 +126,7 @@ function DashboardContent({
             {/* COLONNE DROITE - Avatar + Menu */}
             <div className="flex flex-row md:flex-row items-center gap-1 md:gap-3">
               {/* Avatar */}
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+              <Link href="/profile" className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0 cursor-pointer hover:opacity-80 transition">
                 <Image
                   src={getAvatarUrl(avatar || 'avatar1')}
                   alt={username}
@@ -117,7 +134,11 @@ function DashboardContent({
                   className="object-cover"
                   sizes="40px"
                 />
-              </div>
+                {/* Pastille de notification pour nouveaux trophées */}
+                {hasNewTrophies && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-white"></div>
+                )}
+              </Link>
 
               {/* Hamburger menu sur mobile, menu complet sur desktop */}
               <button
@@ -231,11 +252,11 @@ function DashboardContent({
 
         {/* Section Mes tournois en premier */}
         <div className="theme-card mb-8">
-          <div className="flex items-baseline gap-2 mb-4">
-            <h2 className="text-xl font-bold theme-text">Mes tournois</h2>
-            <span className="text-sm theme-text-secondary">
-              (Participez jusqu'à {maxTournaments} tournois simultanés en version gratuite)
-            </span>
+          <div className="mb-4">
+            <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap">Mes tournois</h2>
+            <p className="text-sm theme-text-secondary mt-1">
+              Participez jusqu'à {maxTournaments} tournois en version gratuite
+            </p>
           </div>
           {tournaments.length === 0 ? (
             <p className="theme-text-secondary text-center py-8">
@@ -257,67 +278,146 @@ function DashboardContent({
                   <a
                     key={tournament.id}
                     href={tournamentUrl}
-                    className="glossy-card group relative flex items-center gap-4 p-4 border theme-border rounded-lg overflow-hidden"
+                    className="glossy-card group relative flex flex-col md:flex-row items-center md:gap-4 p-2 md:p-4 border theme-border rounded-lg overflow-hidden"
                   >
-                    {/* Logo de la compétition */}
-                    <div className="relative z-10">
-                    {tournament.emblem ? (
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
-                        <img
-                          src={tournament.emblem}
-                          alt={tournament.competition_name}
-                          className="w-10 h-10 object-contain"
-                        />
+                    {/* Version mobile - Layout compact */}
+                    <div className="md:hidden w-full flex flex-col gap-2 relative z-10">
+                      {/* Première ligne: Nom du tournoi (gauche) + Nb joueurs (droite) */}
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold theme-text text-base flex-1">
+                          {tournament.name}
+                          {tournament.isCaptain && (
+                            <span className="text-yellow-600 font-normal text-sm"> (capitaine)</span>
+                          )}
+                        </h3>
+                        <p className="text-xs theme-text-secondary whitespace-nowrap">
+                          {tournament.status === 'pending' || tournament.status === 'warmup'
+                            ? `${tournament.current_participants}/${tournament.max_players} joueurs`
+                            : `${tournament.current_participants} joueurs`
+                          }
+                        </p>
                       </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">N/A</span>
-                      </div>
-                    )}
-                    </div>
 
-                    {/* Informations du tournoi */}
-                    <div className="flex-1 relative z-10">
-                      <h3 className="font-semibold theme-text">
-                        {tournament.name}
-                        {tournament.isCaptain && (
-                          <span className="text-yellow-600 font-normal"> (capitaine)</span>
+                      {/* Deuxième ligne: Logo + Nom compétition + Badge statut */}
+                      <div className="flex items-center justify-between gap-3">
+                        {/* Partie gauche: Logo + Nom compétition */}
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          {/* Logo de la compétition */}
+                          <div className="flex-shrink-0">
+                            {tournament.emblem ? (
+                              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
+                                <img
+                                  src={tournament.emblem}
+                                  alt={tournament.competition_name}
+                                  className="w-10 h-10 object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                <span className="text-gray-400 text-xs">N/A</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Nom de la compétition */}
+                          <div className="flex items-center min-w-0">
+                            <p className="text-sm theme-text-secondary font-medium">{tournament.competition_name}</p>
+                          </div>
+                        </div>
+
+                        {/* Badge statut à droite */}
+                        <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap flex-shrink-0 ${
+                          tournament.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : tournament.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {tournament.status === 'pending' && 'En attente'}
+                          {tournament.status === 'active' && 'En cours'}
+                          {tournament.status === 'finished' && 'Terminé'}
+                        </span>
+                      </div>
+
+                      {/* Troisième ligne: Info journée ou date en bas à gauche */}
+                      <div>
+                        {/* Informations de journée pour tournois actifs */}
+                        {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
+                          <p className="text-xs theme-accent-text font-semibold">
+                            {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                          </p>
                         )}
-                      </h3>
-                      <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>
+                        {/* Date de la prochaine journée pour tournois en attente */}
+                        {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
+                          <p className="text-xs theme-accent-text font-semibold">
+                            Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Statut et informations */}
-                    <div className="text-right relative z-10">
-                      <span className={`px-3 py-1 rounded-full text-sm ${
-                        tournament.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : tournament.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {tournament.status === 'pending' && 'En attente'}
-                        {tournament.status === 'active' && 'En cours'}
-                        {tournament.status === 'finished' && 'Terminé'}
-                      </span>
-                      <p className="text-xs theme-text-secondary mt-1">
-                        {tournament.status === 'pending' || tournament.status === 'warmup'
-                          ? `${tournament.current_participants}/${tournament.max_players} joueurs`
-                          : `${tournament.current_participants} joueurs`
-                        }
-                      </p>
-                      {/* Informations de journée pour tournois actifs */}
-                      {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
-                        <p className="text-xs theme-accent-text mt-1 font-semibold">
-                          {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                    {/* Version desktop - Layout horizontal (inchangé) */}
+                    <div className="hidden md:flex md:items-center md:gap-4 md:w-full relative z-10">
+                      {/* Logo de la compétition */}
+                      <div>
+                        {tournament.emblem ? (
+                          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
+                            <img
+                              src={tournament.emblem}
+                              alt={tournament.competition_name}
+                              className="w-10 h-10 object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">N/A</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Informations du tournoi */}
+                      <div className="flex-1">
+                        <h3 className="font-semibold theme-text">
+                          {tournament.name}
+                          {tournament.isCaptain && (
+                            <span className="text-yellow-600 font-normal"> (capitaine)</span>
+                          )}
+                        </h3>
+                        <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>
+                      </div>
+
+                      {/* Statut et informations */}
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded-full text-sm ${
+                          tournament.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : tournament.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {tournament.status === 'pending' && 'En attente'}
+                          {tournament.status === 'active' && 'En cours'}
+                          {tournament.status === 'finished' && 'Terminé'}
+                        </span>
+                        <p className="text-xs theme-text-secondary mt-1">
+                          {tournament.status === 'pending' || tournament.status === 'warmup'
+                            ? `${tournament.current_participants}/${tournament.max_players} joueurs`
+                            : `${tournament.current_participants} joueurs`
+                          }
                         </p>
-                      )}
-                      {/* Date de la prochaine journée pour tournois en attente */}
-                      {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
-                        <p className="text-xs theme-accent-text mt-1 font-semibold">
-                          Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
-                        </p>
-                      )}
+                        {/* Informations de journée pour tournois actifs */}
+                        {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
+                          <p className="text-xs theme-accent-text mt-1 font-semibold">
+                            {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                          </p>
+                        )}
+                        {/* Date de la prochaine journée pour tournois en attente */}
+                        {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
+                          <p className="text-xs theme-accent-text mt-1 font-semibold">
+                            Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </a>
                 )
@@ -329,7 +429,7 @@ function DashboardContent({
         {/* Actions : Créer et Rejoindre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
-            <h2 className="text-xl font-bold mb-4 theme-text">Créer un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text">Créer un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Lancez votre propre tournoi de pronostics et invitez vos amis à participer.
             </p>
@@ -348,7 +448,7 @@ function DashboardContent({
           </div>
 
           <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
-            <h2 className="text-xl font-bold mb-4 theme-text">Rejoindre un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text">Rejoindre un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Vous avez reçu un code d'invitation ? Rejoignez un tournoi existant.
             </p>

@@ -14,7 +14,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light')
+  const [theme, setThemeState] = useState<Theme>('dark')
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
 
@@ -26,6 +26,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (savedTheme) {
       setThemeState(savedTheme)
       document.documentElement.setAttribute('data-theme', savedTheme)
+    } else {
+      // Si pas de thème sauvegardé, utiliser dark par défaut
+      document.documentElement.setAttribute('data-theme', 'dark')
     }
 
     // Puis charger depuis la base de données si l'utilisateur est connecté
@@ -42,6 +45,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           setThemeState(profile.theme_preference as Theme)
           document.documentElement.setAttribute('data-theme', profile.theme_preference)
           localStorage.setItem('theme', profile.theme_preference)
+        } else {
+          // Si pas de préférence en BDD, sauvegarder dark comme défaut
+          setThemeState('dark')
+          document.documentElement.setAttribute('data-theme', 'dark')
+          localStorage.setItem('theme', 'dark')
         }
       }
     }

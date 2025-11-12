@@ -23,7 +23,7 @@ interface Tournament {
   all_matchdays?: boolean
   starting_matchday?: number
   ending_matchday?: number
-  scoring_draw_with_default_prediction?: number
+  scoring_default_prediction_max?: number
 }
 
 interface Match {
@@ -1971,7 +1971,7 @@ export default function OppositionPage() {
 
           {activeTab === 'regles' && (
             <div className="theme-card">
-              <h2 className="text-2xl font-bold theme-text mb-4">Règles du tournoi</h2>
+              <h2 className="text-2xl font-bold theme-accent-text mb-4">Règles du tournoi</h2>
               <div className="space-y-4 theme-text-secondary">
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Système de points</h3>
@@ -1993,15 +1993,25 @@ export default function OppositionPage() {
                         {tournament?.num_matchdays && tournament.num_matchdays > 1 ? 'journées' : 'journée'} de compétition
                       </>
                     )}
+                    {!tournament?.all_matchdays && availableMatchdays.length > 0 && tournament?.num_matchdays && availableMatchdays.length < tournament.num_matchdays && (
+                      <>
+                        . Il se déroule finalement sur{' '}
+                        <span className="font-semibold theme-text">{availableMatchdays.length}</span>{' '}
+                        {availableMatchdays.length > 1 ? 'journées' : 'journée'}
+                      </>
+                    )}
+                    .
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Délais de pronostic</h3>
                   <p>
-                    Les pronostics doivent être saisis avant le coup d'envoi du match.{' '}
+                    Les pronostics doivent être saisis au minimum une heure avant le coup d'envoi du match.{' '}
                     <span className="font-semibold theme-text">
-                      Si un score n'est pas renseigné une heure avant le coup d'envoi du premier match de la journée de compétition,
-                      c'est le score de 0-0 qui est validé par défaut.
+                      Si ce délai venait à ne pas être respecté, c'est le score de 0-0 qui sera retenu et ne pourra pas donner plus de{' '}
+                      {tournament?.scoring_default_prediction_max || 1}{' '}
+                      {(tournament?.scoring_default_prediction_max || 1) > 1 ? 'points' : 'point'}{' '}
+                      en cas de bon résultat ou de score exact.
                     </span>
                   </p>
                 </div>

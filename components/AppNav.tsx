@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import ThemeToggle from './ThemeToggle'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -15,6 +16,23 @@ interface AppNavProps {
 
 export default function AppNav({ username, avatar, showBackToDashboard = false, hideProfileLink = false }: AppNavProps) {
   const { theme } = useTheme()
+  const [hasNewTrophies, setHasNewTrophies] = useState(false)
+
+  useEffect(() => {
+    // Charger l'état des trophées
+    const loadTrophiesStatus = async () => {
+      try {
+        const response = await fetch('/api/user/trophies')
+        const data = await response.json()
+        if (data.success) {
+          setHasNewTrophies(data.hasNewTrophies)
+        }
+      } catch (error) {
+        console.error('Error loading trophies status:', error)
+      }
+    }
+    loadTrophiesStatus()
+  }, [])
 
   return (
     <nav className="theme-nav">
@@ -32,7 +50,7 @@ export default function AppNav({ username, avatar, showBackToDashboard = false, 
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 theme-accent-border">
+            <Link href="/profile" className="relative w-8 h-8 rounded-full overflow-hidden border-2 theme-accent-border cursor-pointer hover:opacity-80 transition">
               <Image
                 src={getAvatarUrl(avatar || 'avatar1')}
                 alt={username}
@@ -40,7 +58,11 @@ export default function AppNav({ username, avatar, showBackToDashboard = false, 
                 className="object-cover"
                 sizes="32px"
               />
-            </div>
+              {/* Pastille de notification pour nouveaux trophées */}
+              {hasNewTrophies && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+              )}
+            </Link>
             <span className="theme-text text-sm">Bonjour, {username} !</span>
           </div>
 

@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         scoring_exact_score: 3, // Valeurs par défaut
         scoring_correct_winner: 1,
         scoring_correct_goal_difference: 2,
-        scoring_draw_with_default_prediction: drawWithDefaultPredictionPoints || 1
+        scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1
       })
       .select()
       .single()
