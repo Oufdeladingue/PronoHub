@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
 
     // Vérifier les trophées à débloquer
-    const trophiesToUnlock = []
+    const trophiesToUnlock: Array<{ type: string, unlocked_at: string }> = []
 
     // Récupérer tous les tournois de l'utilisateur (utilisé par plusieurs vérifications)
     const { data: tournaments } = await supabase
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
             // Vérifier que tous les matchs de cette journée sont terminés
             const { data: journeyMatches } = await supabase
               .from('imported_matches')
-              .select('id, status, finished, home_score, away_score')
+              .select('id, status, finished, home_score, away_score, utc_date')
               .eq('competition_id', tournament.competition_id)
               .eq('matchday', matchday)
 
@@ -99,12 +99,18 @@ export async function GET(request: Request) {
 
             // Si l'utilisateur a le maximum de points pour cette journée
             if (userPoints[user.id] === maxPoints && maxPoints > 0) {
-              trophiesToUnlock.push('king_of_day')
+              // Trouver la date du match le plus récent de cette journée
+              const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
+                if (!latest || match.utc_date > latest.utc_date) return match
+                return latest
+              }, null)
+
+              trophiesToUnlock.push({ type: 'king_of_day', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
               break // On sort de la boucle des journées
             }
           }
 
-          if (trophiesToUnlock.includes('king_of_day')) break // On sort de la boucle des tournois
+          if (trophiesToUnlock.some(t => t.type === 'king_of_day')) break // On sort de la boucle des tournois
         }
       }
     }
@@ -123,7 +129,7 @@ export async function GET(request: Request) {
       if (matchIds.length > 0) {
         const { data: fetchedMatches } = await supabase
           .from('imported_matches')
-          .select('id, home_score, away_score, status, finished, matchday, is_bonus_match')
+          .select('id, home_score, away_score, status, finished, matchday, utc_date')
           .in('id', matchIds)
 
         matches = fetchedMatches || []
@@ -151,8 +157,8 @@ export async function GET(request: Request) {
 
         // Vérifier le score exact d'abord
         if (predHomeScore === actualHomeScore && predAwayScore === actualAwayScore) {
-          trophiesToUnlock.push('exact_score')
-          trophiesToUnlock.push('correct_result')
+          trophiesToUnlock.push({ type: 'exact_score', unlocked_at: match.utc_date })
+          trophiesToUnlock.push({ type: 'correct_result', unlocked_at: match.utc_date })
           break
         }
 
@@ -161,7 +167,7 @@ export async function GET(request: Request) {
         const actualResult = actualHomeScore > actualAwayScore ? 'HOME' : actualHomeScore < actualAwayScore ? 'AWAY' : 'DRAW'
 
         if (predResult === actualResult) {
-          trophiesToUnlock.push('correct_result')
+          trophiesToUnlock.push({ type: 'correct_result', unlocked_at: match.utc_date })
           // Continue pour vérifier s'il y a un score exact
         }
       }
@@ -176,6 +182,13 @@ export async function GET(request: Request) {
 
     if (finishedTournaments && finishedTournaments.length > 0) {
       for (const tournament of finishedTournaments) {
+        // Récupérer les détails du tournoi
+        const { data: tournamentDetails } = await supabase
+          .from('tournaments')
+          .select('id, competition_id, ending_matchday')
+          .eq('id', tournament.tournament_id)
+          .single()
+
         // Récupérer le classement final du tournoi
         const { data: finalRanking } = await supabase
           .from('tournament_participants')
@@ -184,8 +197,18 @@ export async function GET(request: Request) {
           .order('total_points', { ascending: false })
           .limit(1)
 
-        if (finalRanking && finalRanking.length > 0 && finalRanking[0].user_id === user.id) {
-          trophiesToUnlock.push('tournament_winner')
+        if (finalRanking && finalRanking.length > 0 && finalRanking[0].user_id === user.id && tournamentDetails) {
+          // Trouver la date du dernier match du tournoi
+          const { data: lastMatches } = await supabase
+            .from('imported_matches')
+            .select('utc_date')
+            .eq('competition_id', tournamentDetails.competition_id)
+            .eq('matchday', tournamentDetails.ending_matchday)
+            .order('utc_date', { ascending: false })
+            .limit(1)
+
+          const unlockDate = lastMatches?.[0]?.utc_date || new Date().toISOString()
+          trophiesToUnlock.push({ type: 'tournament_winner', unlocked_at: unlockDate })
           break
         }
       }
@@ -208,7 +231,7 @@ export async function GET(request: Request) {
         for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
           const { data: journeyMatches } = await supabase
             .from('imported_matches')
-            .select('id, status, finished, home_score, away_score')
+            .select('id, status, finished, home_score, away_score, utc_date')
             .eq('competition_id', tournament.competition_id)
             .eq('matchday', matchday)
 
@@ -263,7 +286,13 @@ export async function GET(request: Request) {
           if (userPoints[user.id] === maxPoints && maxPoints > 0) {
             consecutiveWins++
             if (consecutiveWins >= 2) {
-              trophiesToUnlock.push('double_king')
+              // Trouver la date du match le plus récent de cette journée
+              const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
+                if (!latest || match.utc_date > latest.utc_date) return match
+                return latest
+              }, null)
+
+              trophiesToUnlock.push({ type: 'double_king', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
               break
             }
           } else {
@@ -271,7 +300,7 @@ export async function GET(request: Request) {
           }
         }
 
-        if (trophiesToUnlock.includes('double_king')) break
+        if (trophiesToUnlock.some(t => t.type === 'double_king')) break
       }
     }
 
@@ -299,7 +328,7 @@ export async function GET(request: Request) {
           pred_away: pred.predicted_away_score,
           actual_home: match.home_score,
           actual_away: match.away_score,
-          is_bonus: match.is_bonus_match || false
+          utc_date: match.utc_date
         })
       }
 
@@ -307,8 +336,14 @@ export async function GET(request: Request) {
       for (const matchdayPreds of Object.values(predictionsByMatchday)) {
         let correctResults = 0
         let exactScores = 0
-        let bonusCorrectResult = false
-        let bonusExactScore = false
+        let latestMatchDate = matchdayPreds[0]?.utc_date
+
+        // Trouver la date du match le plus récent de cette journée
+        for (const p of matchdayPreds) {
+          if (p.utc_date && (!latestMatchDate || p.utc_date > latestMatchDate)) {
+            latestMatchDate = p.utc_date
+          }
+        }
 
         for (const p of matchdayPreds) {
           const predResult = p.pred_home > p.pred_away ? 'HOME' : p.pred_home < p.pred_away ? 'AWAY' : 'DRAW'
@@ -319,28 +354,33 @@ export async function GET(request: Request) {
 
           if (isExact) {
             exactScores++
-            if (p.is_bonus) bonusExactScore = true
           }
           if (isCorrect) {
             correctResults++
-            if (p.is_bonus) bonusCorrectResult = true
           }
         }
 
-        if (correctResults >= 2) trophiesToUnlock.push('opportunist')
-        if (exactScores >= 2) trophiesToUnlock.push('nostradamus')
-        if (bonusCorrectResult) trophiesToUnlock.push('bonus_profiteer')
-        if (bonusExactScore) trophiesToUnlock.push('bonus_optimizer')
+        if (correctResults >= 2) trophiesToUnlock.push({ type: 'opportunist', unlocked_at: latestMatchDate })
+        if (exactScores >= 2) trophiesToUnlock.push({ type: 'nostradamus', unlocked_at: latestMatchDate })
       }
     }
 
     // Débloquer les trophées qui n'existent pas encore
-    for (const trophyType of [...new Set(trophiesToUnlock)]) {
+    // Dédupliquer les trophées par type (garder le premier de chaque type)
+    const uniqueTrophies: Record<string, { type: string, unlocked_at: string }> = {}
+    for (const trophy of trophiesToUnlock) {
+      if (!uniqueTrophies[trophy.type]) {
+        uniqueTrophies[trophy.type] = trophy
+      }
+    }
+
+    for (const trophy of Object.values(uniqueTrophies)) {
       await supabase
         .from('user_trophies')
         .upsert({
           user_id: user.id,
-          trophy_type: trophyType,
+          trophy_type: trophy.type,
+          unlocked_at: trophy.unlocked_at,
           is_new: true
         }, {
           onConflict: 'user_id,trophy_type',
