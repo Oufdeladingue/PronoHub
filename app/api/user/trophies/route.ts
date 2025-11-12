@@ -98,15 +98,23 @@ export async function GET(request: Request) {
             const maxPoints = Math.max(...Object.values(userPoints))
 
             // Si l'utilisateur a le maximum de points pour cette journée
-            if (userPoints[user.id] === maxPoints && maxPoints > 0) {
-              // Trouver la date du match le plus récent de cette journée
-              const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
-                if (!latest || match.utc_date > latest.utc_date) return match
-                return latest
-              }, null)
+            if (userPoints[user.id] === maxPoints) {
+              // Vérifier qu'il est SEUL en tête (pas d'égalité)
+              const usersWithMaxPoints = Object.values(userPoints).filter(pts => pts === maxPoints).length
 
-              trophiesToUnlock.push({ type: 'king_of_day', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
-              break // On sort de la boucle des journées
+              // Délivrer le trophée UNIQUEMENT si:
+              // - maxPoints > 0 OU
+              // - maxPoints === 0 ET il est le seul avec 0 points
+              if (maxPoints > 0 || usersWithMaxPoints === 1) {
+                // Trouver la date du match le plus récent de cette journée
+                const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
+                  if (!latest || match.utc_date > latest.utc_date) return match
+                  return latest
+                }, null)
+
+                trophiesToUnlock.push({ type: 'king_of_day', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
+                break // On sort de la boucle des journées
+              }
             }
           }
 
@@ -330,17 +338,27 @@ export async function GET(request: Request) {
           })
 
           const maxPoints = Math.max(...Object.values(userPoints))
-          if (userPoints[user.id] === maxPoints && maxPoints > 0) {
-            consecutiveWins++
-            if (consecutiveWins >= 2) {
-              // Trouver la date du match le plus récent de cette journée
-              const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
-                if (!latest || match.utc_date > latest.utc_date) return match
-                return latest
-              }, null)
+          if (userPoints[user.id] === maxPoints) {
+            // Vérifier qu'il est SEUL en tête (pas d'égalité)
+            const usersWithMaxPoints = Object.values(userPoints).filter(pts => pts === maxPoints).length
 
-              trophiesToUnlock.push({ type: 'double_king', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
-              break
+            // Délivrer le trophée UNIQUEMENT si:
+            // - maxPoints > 0 OU
+            // - maxPoints === 0 ET il est le seul avec 0 points
+            if (maxPoints > 0 || usersWithMaxPoints === 1) {
+              consecutiveWins++
+              if (consecutiveWins >= 2) {
+                // Trouver la date du match le plus récent de cette journée
+                const latestMatch = journeyMatches.reduce((latest: any, match: any) => {
+                  if (!latest || match.utc_date > latest.utc_date) return match
+                  return latest
+                }, null)
+
+                trophiesToUnlock.push({ type: 'double_king', unlocked_at: latestMatch?.utc_date || new Date().toISOString() })
+                break
+              }
+            } else {
+              consecutiveWins = 0
             }
           } else {
             consecutiveWins = 0
