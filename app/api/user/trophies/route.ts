@@ -115,7 +115,7 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Vérifier "Bon résultat" - Au moins un bon résultat pronostiqué
+    // 2. Vérifier "Bon résultat" et "Score exact" - Au moins un bon résultat ou score exact pronostiqué
     const { data: predictions } = await supabase
       .from('predictions')
       .select('id, predicted_home_score, predicted_away_score, match_id, points_earned, tournament_id')
@@ -142,7 +142,12 @@ export async function GET(request: Request) {
         matchesMap[match.id] = match
       })
 
-      // Vérifier s'il y a au moins un bon résultat
+      let hasCorrectResult = false
+      let hasExactScore = false
+      let correctResultDate = ''
+      let exactScoreDate = ''
+
+      // Parcourir tous les pronostics pour trouver le premier bon résultat et le premier score exact
       for (const pred of predictions || []) {
         const match = matchesMap[pred.match_id]
 
@@ -155,21 +160,33 @@ export async function GET(request: Request) {
         const actualHomeScore = match.home_score
         const actualAwayScore = match.away_score
 
-        // Vérifier le score exact d'abord
-        if (predHomeScore === actualHomeScore && predAwayScore === actualAwayScore) {
-          trophiesToUnlock.push({ type: 'exact_score', unlocked_at: match.utc_date })
-          trophiesToUnlock.push({ type: 'correct_result', unlocked_at: match.utc_date })
-          break
+        // Vérifier le score exact
+        if (!hasExactScore && predHomeScore === actualHomeScore && predAwayScore === actualAwayScore) {
+          hasExactScore = true
+          exactScoreDate = match.utc_date
         }
 
-        // Sinon vérifier le bon résultat
-        const predResult = predHomeScore > predAwayScore ? 'HOME' : predHomeScore < predAwayScore ? 'AWAY' : 'DRAW'
-        const actualResult = actualHomeScore > actualAwayScore ? 'HOME' : actualHomeScore < actualAwayScore ? 'AWAY' : 'DRAW'
+        // Vérifier le bon résultat
+        if (!hasCorrectResult) {
+          const predResult = predHomeScore > predAwayScore ? 'HOME' : predHomeScore < predAwayScore ? 'AWAY' : 'DRAW'
+          const actualResult = actualHomeScore > actualAwayScore ? 'HOME' : actualHomeScore < actualAwayScore ? 'AWAY' : 'DRAW'
 
-        if (predResult === actualResult) {
-          trophiesToUnlock.push({ type: 'correct_result', unlocked_at: match.utc_date })
-          // Continue pour vérifier s'il y a un score exact
+          if (predResult === actualResult) {
+            hasCorrectResult = true
+            correctResultDate = match.utc_date
+          }
         }
+
+        // Si on a trouvé les deux, on peut arrêter
+        if (hasCorrectResult && hasExactScore) break
+      }
+
+      // Ajouter les trophées trouvés
+      if (hasExactScore) {
+        trophiesToUnlock.push({ type: 'exact_score', unlocked_at: exactScoreDate })
+      }
+      if (hasCorrectResult) {
+        trophiesToUnlock.push({ type: 'correct_result', unlocked_at: correctResultDate })
       }
     }
 
@@ -304,9 +321,21 @@ export async function GET(request: Request) {
       }
     }
 
-    // 5. Vérifier "L'Opportuniste" - Deux bons résultats sur une même journée
-    // 6. Vérifier "Le Nostradamus" - Deux scores exacts sur une même journée
-    if (predictions && predictions.length > 0 && matches.length > 0) {
+    // 5. Vérifier "L'Opportuniste", "Le Nostradamus", "Le Profiteur" et "L'Optimisateur"
+    if (predictions && predictions.length > 0 && matches.length > 0 && tournaments && tournaments.length > 0) {
+      // Récupérer tous les matchs bonus pour les tournois de l'utilisateur
+      const tournamentIds = tournaments.map(t => t.tournament_id)
+      const { data: bonusMatches } = await supabase
+        .from('tournament_bonus_matches')
+        .select('tournament_id, matchday, match_id')
+        .in('tournament_id', tournamentIds)
+
+      // Créer un set pour accès rapide aux IDs de matchs bonus
+      const bonusMatchIds = new Set<string>()
+      bonusMatches?.forEach(bm => {
+        bonusMatchIds.add(bm.match_id)
+      })
+
       const matchesMap: Record<number, any> = {}
       matches.forEach((match: any) => {
         matchesMap[match.id] = match
@@ -324,11 +353,13 @@ export async function GET(request: Request) {
         if (!predictionsByMatchday[key]) predictionsByMatchday[key] = []
 
         predictionsByMatchday[key].push({
+          match_id: pred.match_id,
           pred_home: pred.predicted_home_score,
           pred_away: pred.predicted_away_score,
           actual_home: match.home_score,
           actual_away: match.away_score,
-          utc_date: match.utc_date
+          utc_date: match.utc_date,
+          is_bonus: bonusMatchIds.has(pred.match_id)
         })
       }
 
@@ -337,6 +368,10 @@ export async function GET(request: Request) {
         let correctResults = 0
         let exactScores = 0
         let latestMatchDate = matchdayPreds[0]?.utc_date
+        let bonusCorrectResultDate = ''
+        let bonusExactScoreDate = ''
+        let hasBonusCorrectResult = false
+        let hasBonusExactScore = false
 
         // Trouver la date du match le plus récent de cette journée
         for (const p of matchdayPreds) {
@@ -354,14 +389,24 @@ export async function GET(request: Request) {
 
           if (isExact) {
             exactScores++
+            if (p.is_bonus && !hasBonusExactScore) {
+              hasBonusExactScore = true
+              bonusExactScoreDate = p.utc_date
+            }
           }
           if (isCorrect) {
             correctResults++
+            if (p.is_bonus && !hasBonusCorrectResult) {
+              hasBonusCorrectResult = true
+              bonusCorrectResultDate = p.utc_date
+            }
           }
         }
 
         if (correctResults >= 2) trophiesToUnlock.push({ type: 'opportunist', unlocked_at: latestMatchDate })
         if (exactScores >= 2) trophiesToUnlock.push({ type: 'nostradamus', unlocked_at: latestMatchDate })
+        if (hasBonusCorrectResult) trophiesToUnlock.push({ type: 'bonus_profiteer', unlocked_at: bonusCorrectResultDate })
+        if (hasBonusExactScore) trophiesToUnlock.push({ type: 'bonus_optimizer', unlocked_at: bonusExactScoreDate })
       }
     }
 
