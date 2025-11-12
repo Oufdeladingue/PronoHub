@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+// Force recompilation - Fixed trophy logic v2.0
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
@@ -85,13 +86,14 @@ export async function GET(request: Request) {
 
             if (!journeyPredictions || journeyPredictions.length === 0) continue
 
-            // Grouper par utilisateur et calculer les points totaux
+            // Initialiser tous les participants à 0 points
             const userPoints: Record<string, number> = {}
+            userIds.forEach(uid => {
+              userPoints[uid] = 0
+            })
 
+            // Calculer les points pour ceux qui ont pronostiqué
             journeyPredictions.forEach((pred: any) => {
-              if (!userPoints[pred.user_id]) {
-                userPoints[pred.user_id] = 0
-              }
               userPoints[pred.user_id] += pred.points_earned || 0
             })
 
@@ -101,6 +103,13 @@ export async function GET(request: Request) {
             if (userPoints[user.id] === maxPoints) {
               // Vérifier qu'il est SEUL en tête (pas d'égalité)
               const usersWithMaxPoints = Object.values(userPoints).filter(pts => pts === maxPoints).length
+
+              console.log('[KING OF DAY CHECK]', {
+                userId: user.id,
+                maxPoints,
+                usersWithMaxPoints,
+                shouldAward: maxPoints > 0 || usersWithMaxPoints === 1
+              })
 
               // Délivrer le trophée UNIQUEMENT si:
               // - maxPoints > 0 OU
@@ -331,9 +340,14 @@ export async function GET(request: Request) {
             continue
           }
 
+          // Initialiser tous les participants à 0 points
           const userPoints: Record<string, number> = {}
+          userIds.forEach(uid => {
+            userPoints[uid] = 0
+          })
+
+          // Calculer les points pour ceux qui ont pronostiqué
           journeyPredictions.forEach((pred: any) => {
-            if (!userPoints[pred.user_id]) userPoints[pred.user_id] = 0
             userPoints[pred.user_id] += pred.points_earned || 0
           })
 
