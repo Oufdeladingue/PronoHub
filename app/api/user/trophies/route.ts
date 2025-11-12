@@ -202,9 +202,33 @@ export async function GET(request: Request) {
         // Récupérer les détails du tournoi
         const { data: tournamentDetails } = await supabase
           .from('tournaments')
-          .select('id, competition_id, ending_matchday')
+          .select('id, competition_id, starting_matchday, ending_matchday')
           .eq('id', tournament.tournament_id)
           .single()
+
+        if (!tournamentDetails || !tournamentDetails.starting_matchday || !tournamentDetails.ending_matchday) {
+          continue
+        }
+
+        // VÉRIFIER QUE TOUS LES MATCHS DU TOURNOI SONT RÉELLEMENT TERMINÉS
+        const { data: allTournamentMatches } = await supabase
+          .from('imported_matches')
+          .select('id, status, finished, home_score, away_score')
+          .eq('competition_id', tournamentDetails.competition_id)
+          .gte('matchday', tournamentDetails.starting_matchday)
+          .lte('matchday', tournamentDetails.ending_matchday)
+
+        // Vérifier que tous les matchs sont terminés avec des scores valides
+        const allMatchesComplete = allTournamentMatches?.every(m =>
+          (m.status === 'FINISHED' || m.finished === true) &&
+          m.home_score !== null &&
+          m.away_score !== null
+        )
+
+        // Si tous les matchs ne sont pas terminés, ne pas délivrer le trophée
+        if (!allMatchesComplete) {
+          continue
+        }
 
         // Récupérer le classement final du tournoi
         const { data: finalRanking } = await supabase
@@ -212,9 +236,15 @@ export async function GET(request: Request) {
           .select('user_id, total_points')
           .eq('tournament_id', tournament.tournament_id)
           .order('total_points', { ascending: false })
-          .limit(1)
+          .limit(2) // Prendre les 2 premiers pour détecter les égalités
 
-        if (finalRanking && finalRanking.length > 0 && finalRanking[0].user_id === user.id && tournamentDetails) {
+        // Vérifier que l'utilisateur est SEUL premier (pas d'égalité)
+        if (finalRanking && finalRanking.length > 0 && finalRanking[0].user_id === user.id) {
+          // Si égalité avec le 2ème, ne pas délivrer le trophée
+          if (finalRanking.length > 1 && finalRanking[0].total_points === finalRanking[1].total_points) {
+            continue
+          }
+
           // Trouver la date du dernier match du tournoi
           const { data: lastMatches } = await supabase
             .from('imported_matches')
