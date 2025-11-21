@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminNav from '@/components/AdminNav'
+import AdminLayout from '@/components/AdminLayout'
 
 interface Tournament {
   id: string
@@ -92,10 +92,9 @@ export default function AdminTournamentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
+    <AdminLayout currentPage="general">
+      <div className="min-h-screen bg-gray-50">
+        <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestion des Tournois</h1>
@@ -235,6 +234,7 @@ export default function AdminTournamentsPage() {
           </ul>
         </div>
       </main>
-    </div>
+      </div>
+    </AdminLayout>
   )
 }

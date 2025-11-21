@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
-import TournamentNav from '@/components/TournamentNav'
+import Navigation from '@/components/Navigation'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 
 interface Tournament {
@@ -598,13 +598,16 @@ function EchauffementPageContent() {
       )}
 
       {/* Header */}
-      <TournamentNav
-        tournamentName={tournament.name}
-        competitionName={tournament.competition_name}
-        competitionLogo={competitionLogo}
-        status="pending"
+      <Navigation
         username={username}
         userAvatar={userAvatar}
+        context="tournament"
+        tournamentContext={{
+          tournamentName: tournament.name,
+          competitionName: tournament.competition_name,
+          competitionLogo: competitionLogo,
+          status: "pending"
+        }}
       />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -662,14 +665,14 @@ function EchauffementPageContent() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Effectif */}
           <div className="theme-card">
-            <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
-              <svg width="24" height="24" viewBox="0 0 512 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <svg width="24" height="24" viewBox="0 0 512 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="theme-accent-text">
                 <path d="M438.927,145.082c-6.995-7.467-16.875-11.748-27.105-11.748H387.02c-10.23,0-20.11,4.282-27.104,11.748c-6.994,7.466-10.623,17.603-9.957,27.811l1.1,16.901l2.573,39.471c1.026,15.716,9.877,29.629,23.675,37.219c6.924,3.808,14.517,5.712,22.113,5.712c7.593,0,15.191-1.904,22.113-5.712c13.799-7.589,22.65-21.503,23.674-37.219l2.941-45.103l0.735-11.269C449.551,162.685,445.922,152.548,438.927,145.082z"/>
                 <path d="M511.836,358.861l-4.107-22.673c-5.063-27.95-27.206-50.258-55.099-55.51c-4.21-0.794-8.517-1.195-12.801-1.195h-12.371c-2.705,0-5.298,1.075-7.212,2.987l-20.825,20.825l-20.826-20.826c-1.913-1.912-4.507-2.987-7.212-2.987h-12.37c-4.284,0-8.591,0.402-12.801,1.195c-9.069,1.707-17.54,5.17-25.225,10.256c-3.598-0.44-7.223-0.683-10.839-0.683h-22.533c-2.711,0-5.31,1.079-7.224,2.999l-24.636,24.719l-25.248-24.796c-1.907-1.873-4.473-2.922-7.147-2.922h-21.845c-3.514,0-7.038,0.234-10.54,0.649c-7.684-5.074-16.151-8.52-25.191-10.222c-4.21-0.794-8.517-1.195-12.801-1.195h-12.37c-2.705,0-5.299,1.075-7.212,2.987l-20.825,20.826l-20.825-20.826c-1.912-1.912-4.507-2.987-7.212-2.987H72.171c-4.284,0-8.591,0.402-12.801,1.195c-27.894,5.252-50.036,27.559-55.099,55.509l-4.107,22.673c-0.539,2.975,0.269,6.035,2.208,8.356c1.938,2.32,4.805,3.662,7.828,3.662H112.38l-4.2,23.189c-0.539,2.975,0.27,6.035,2.208,8.355s4.805,3.661,7.828,3.661h275.237c3.023,0,5.89-1.341,7.829-3.661c1.937-2.32,2.746-5.381,2.207-8.355l-4.201-23.188H501.8c3.023,0,5.89-1.341,7.829-3.661C511.566,364.897,512.374,361.836,511.836,358.861z"/>
                 <path d="M152.082,145.082c-6.995-7.466-16.874-11.748-27.104-11.748h-24.801c-10.23,0-20.109,4.282-27.103,11.747c-6.995,7.466-10.625,17.603-9.96,27.812l1.103,16.902l2.573,39.47c1.025,15.716,9.876,29.629,23.674,37.219c6.923,3.807,14.518,5.712,22.113,5.712c7.595,0,15.19-1.904,22.113-5.712c13.799-7.59,22.65-21.504,23.674-37.219l2.941-45.103l0.735-11.269C162.707,162.685,159.077,152.548,152.082,145.082z"/>
                 <path d="M306.374,120.599c-8.741-9.329-21.087-14.681-33.872-14.681h-33.339c-12.785,0-25.131,5.352-33.872,14.681c-8.741,9.329-13.277,21.998-12.445,34.755l1.481,22.72l3.461,53.056c1.299,19.922,12.519,37.561,30.012,47.182c8.777,4.827,18.402,7.24,28.032,7.24c9.626,0,19.257-2.414,28.032-7.24c17.494-9.622,28.713-27.26,30.012-47.182l3.954-60.627v-0.001l0.987-15.148C319.65,142.597,315.115,129.929,306.374,120.599z"/>
               </svg>
-              Effectif ({players.length}/{tournament.max_players})
+              <span className="theme-accent-text">Effectif ({players.length}/{tournament.max_players})</span>
             </h2>
 
             <div className="space-y-3">
@@ -684,10 +687,10 @@ function EchauffementPageContent() {
                     className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2"
                   >
                     <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
-                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="dark-fill-white">
+                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className={player.user_id === currentUserId ? 'fill-accent' : 'dark-fill-white'}>
                         <path d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
                       </svg>
-                      <span className="absolute text-white dark:text-[#ff9900] font-bold text-xs">{index + 1}</span>
+                      <span className={`absolute font-bold text-xs ${player.user_id === currentUserId ? 'text-[#ff9900]' : 'text-white'}`}>{index + 1}</span>
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold flex items-center gap-2">
@@ -731,34 +734,34 @@ function EchauffementPageContent() {
 
               {/* Info prochaine journée (visible pour tous) */}
               {timeRemaining && (
-                <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-600 rounded-lg">
-                  <h3 className="font-bold text-orange-900 dark:text-orange-400 mb-3 flex items-center gap-2">
-                    <span className="text-xl">⏰</span>
+                <div className="mt-4 p-4 next-matchday-card border-2 rounded-lg">
+                  <h3 className="font-bold next-matchday-title mb-3 flex items-center gap-2">
+                    <img src="/images/icons/chrono.svg" alt="Chrono" className="w-5 h-5 icon-orange" />
                     Prochaine journée
                   </h3>
-                  <div className="mb-3 p-3 bg-white dark:bg-[#0f172a] rounded-lg border-2 border-orange-200 dark:border-orange-700">
+                  <div className="mb-3 p-3 next-matchday-timer rounded-lg border-2">
                     <p className="text-xs theme-text-secondary mb-2 text-center">Prochaine journée dans :</p>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.days}</div>
+                        <div className="text-2xl font-bold next-matchday-number">{timeRemaining.days}</div>
                         <div className="text-xs theme-text-secondary">jours</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.hours}</div>
+                        <div className="text-2xl font-bold next-matchday-number">{timeRemaining.hours}</div>
                         <div className="text-xs theme-text-secondary">heures</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.minutes}</div>
+                        <div className="text-2xl font-bold next-matchday-number">{timeRemaining.minutes}</div>
                         <div className="text-xs theme-text-secondary">min</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{timeRemaining.seconds}</div>
+                        <div className="text-2xl font-bold next-matchday-number">{timeRemaining.seconds}</div>
                         <div className="text-xs theme-text-secondary">sec</div>
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 dark:border-red-600 rounded">
-                    <p className="text-xs text-red-800 dark:text-red-400 font-semibold">
+                  <div className="p-3 next-matchday-warning border-l-4 rounded">
+                    <p className="text-xs next-matchday-text font-semibold">
                       ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
                     </p>
                   </div>
@@ -797,9 +800,9 @@ function EchauffementPageContent() {
           {/* Code d'invitation */}
           <div className="space-y-6">
             <div className="theme-card">
-              <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
-                <img src="/images/icons/code.svg" alt="Code" className="w-6 h-6" />
-                Code d'invitation
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <img src="/images/icons/code.svg" alt="Code" className="w-6 h-6 icon-orange" />
+                <span className="theme-accent-text">Code d'invitation</span>
               </h2>
 
               <div
@@ -817,21 +820,22 @@ function EchauffementPageContent() {
                 </div>
                 <button
                   onClick={copyInviteCode}
-                  className="w-full px-4 py-2 rounded-lg transition font-semibold btn-copy-code"
+                  className="w-full px-4 py-2 rounded-lg transition font-semibold btn-copy-code flex items-center justify-center gap-2"
                 >
-                  {copySuccess ? '✓ Copié !' : '📋 Copier le code'}
+                  <img src="/images/icons/copy.svg" alt="Copy" className="w-4 h-4 icon-dark" />
+                  {copySuccess ? 'Copié !' : 'Copier le code'}
                 </button>
               </div>
             </div>
 
             {/* QR Code */}
             <div className="theme-card">
-              <h2 className="text-xl font-bold theme-text mb-4 flex items-center gap-2">
-                <img src="/images/icons/qr.svg" alt="QR" className="w-6 h-6" />
-                QR Code
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <img src="/images/icons/qr.svg" alt="QR" className="w-6 h-6 icon-orange" />
+                <span className="theme-accent-text">QR Code</span>
               </h2>
 
-              <div className="bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
+              <div className="qr-container border-2 rounded-lg p-6 text-center">
                 <div className="bg-white inline-block p-4 rounded-lg">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
@@ -844,9 +848,10 @@ function EchauffementPageContent() {
                 <p className="text-sm theme-text-secondary mt-4">Scannez pour rejoindre le tournoi</p>
                 <button
                   onClick={shareUrl}
-                  className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold btn-share"
+                  className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold btn-share flex items-center justify-center gap-2"
                 >
-                  📤 Partager le lien
+                  <img src="/images/icons/share.svg" alt="Share" className="w-4 h-4 icon-dark" />
+                  Partager le lien
                 </button>
               </div>
             </div>

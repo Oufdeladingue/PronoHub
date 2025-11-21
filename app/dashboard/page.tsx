@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AdminNav from '@/components/AdminNav'
+import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
@@ -182,16 +182,21 @@ export default async function DashboardPage() {
   })
 
   return (
-    <DashboardClient
-      username={profile?.username || 'utilisateur'}
-      avatar={profile?.avatar || 'avatar1'}
-      isSuper={isSuper}
-      hasReachedLimit={hasReachedLimit}
-      currentTournamentCount={currentTournamentCount}
-      maxTournaments={maxTournaments}
-      tournaments={tournaments}
-    >
-      {isSuper && <AdminNav />}
-    </DashboardClient>
+    <>
+      <Navigation
+        username={profile?.username || 'utilisateur'}
+        userAvatar={profile?.avatar || 'avatar1'}
+        context="app"
+      />
+      <DashboardClient
+        username={profile?.username || 'utilisateur'}
+        avatar={profile?.avatar || 'avatar1'}
+        isSuper={isSuper}
+        hasReachedLimit={hasReachedLimit}
+        currentTournamentCount={currentTournamentCount}
+        maxTournaments={maxTournaments}
+        tournaments={tournaments}
+      />
+    </>
   )
 }

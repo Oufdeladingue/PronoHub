@@ -285,6 +285,14 @@ input:-moz-autofill:focus {
   fill: #ffffff !important;
 }
 
+.fill-accent {
+  fill: #16a34a;
+}
+
+:root[data-theme="dark"] .fill-accent {
+  fill: #ff9900 !important;
+}
+
 /* ========================================
    CLASSES UTILITAIRES THÈME SOMBRE
    Couleurs principales : #ff9900, #1e293b, #0f172a, #94a3b8
@@ -403,7 +411,7 @@ input:-moz-autofill:focus {
 
 :root[data-theme="dark"] .btn-copy-code {
   background-color: #ff9900 !important;
-  color: #6b7280 !important;
+  color: #0f172a !important;
 }
 
 .btn-copy-code:hover {
@@ -430,6 +438,91 @@ input:-moz-autofill:focus {
 
 :root[data-theme="dark"] .btn-share:hover {
   background-color: #e68a00 !important;
+}
+
+/* Classe pour icônes SVG orange en mode sombre */
+.icon-orange {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-orange {
+  filter: invert(57%) sepia(85%) saturate(2175%) hue-rotate(2deg) brightness(103%) contrast(104%);
+}
+
+/* Classe pour icônes SVG dark (#0f172a) en mode sombre */
+.icon-dark {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-dark {
+  filter: invert(8%) sepia(13%) saturate(3207%) hue-rotate(183deg) brightness(95%) contrast(95%);
+}
+
+/* Classes pour le cadre "Prochaine journée" */
+.next-matchday-card {
+  background-color: #fff7ed;
+  border-color: #fdba74;
+}
+
+:root[data-theme="dark"] .next-matchday-card {
+  background-color: #0f172a !important;
+  border-color: #f97316 !important;
+}
+
+.next-matchday-timer {
+  background-color: #ffffff;
+  border-color: #fed7aa;
+}
+
+:root[data-theme="dark"] .next-matchday-timer {
+  background-color: #111827 !important;
+  border-color: #f97316 !important;
+}
+
+.next-matchday-warning {
+  background-color: #fee2e2;
+  border-color: #ef4444;
+}
+
+:root[data-theme="dark"] .next-matchday-warning {
+  background-color: #334155 !important;
+  border-color: #ff9900 !important;
+}
+
+/* Texte orange pour le cadre "Prochaine journée" */
+.next-matchday-title {
+  color: #c2410c;
+}
+
+:root[data-theme="dark"] .next-matchday-title {
+  color: #ff9900 !important;
+}
+
+.next-matchday-number {
+  color: #c2410c;
+}
+
+:root[data-theme="dark"] .next-matchday-number {
+  color: #ff9900 !important;
+}
+
+.next-matchday-text {
+  color: #7f1d1d;
+}
+
+:root[data-theme="dark"] .next-matchday-text {
+  color: #ff9900 !important;
+}
+
+/* Classe pour QR Code container */
+.qr-container {
+  background-color: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+:root[data-theme="dark"] .qr-container {
+  background-color: #0f172a !important;
+  border-color: #374151 !important;
 }
 
 /* Filtres SVG pour icônes */
@@ -515,4 +608,36 @@ input:-moz-autofill:focus {
 
 :root[data-theme="dark"] .btn-emoji-picker:hover {
   background-color: #1e293b !important;
+}
+
+/* Animation rebond pour badge "En attente" */
+.badge-pending-animated {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  color: #ff9900;
+}
+
+.badge-pending-animated svg {
+  stroke: #ff9900;
+  animation: bounce-icon 1.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes bounce-icon {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  10% {
+    transform: translateY(-3px) scale(1.05);
+  }
+  20% {
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    transform: translateY(-2px) scale(1.03);
+  }
+  40% {
+    transform: translateY(0) scale(1);
+  }
 }

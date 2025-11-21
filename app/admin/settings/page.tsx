@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminNav from '@/components/AdminNav'
+import AdminLayout from '@/components/AdminLayout'
 import { msToMinutes, minutesToMs, formatTimeUntilRefresh } from '@/lib/auto-refresh-utils'
 
 interface Settings {
@@ -99,20 +99,21 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <AdminNav />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center py-12 text-gray-500">
-            Chargement des paramètres...
-          </div>
-        </main>
-      </div>
+      <AdminLayout currentPage="settings">
+        <div className="min-h-screen bg-gray-50">
+          <main className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center py-12 text-gray-500">
+              Chargement des paramètres...
+            </div>
+          </main>
+        </div>
+      </AdminLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
+    <AdminLayout currentPage="settings">
+      <div className="min-h-screen bg-gray-50">
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Réglages</h1>
@@ -399,6 +400,7 @@ export default function AdminSettingsPage() {
           </button>
         </div>
       </main>
-    </div>
+      </div>
+    </AdminLayout>
   )
 }

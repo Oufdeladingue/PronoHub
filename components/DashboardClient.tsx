@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import ThemeToggle from './ThemeToggle'
-import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
-import { getAvatarUrl } from '@/lib/avatars'
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
 function formatMatchDate(dateString: string) {
@@ -28,7 +24,6 @@ interface DashboardClientProps {
   currentTournamentCount: number
   maxTournaments: number
   tournaments: any[]
-  children?: React.ReactNode
 }
 
 function DashboardContent({
@@ -38,33 +33,13 @@ function DashboardContent({
   hasReachedLimit,
   currentTournamentCount,
   maxTournaments,
-  tournaments,
-  children
+  tournaments
 }: DashboardClientProps) {
-  const { theme } = useTheme()
   const router = useRouter()
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [hasNewTrophies, setHasNewTrophies] = useState(false)
-
-  useEffect(() => {
-    // Charger l'état des trophées
-    const loadTrophiesStatus = async () => {
-      try {
-        const response = await fetch('/api/user/trophies')
-        const data = await response.json()
-        if (data.success) {
-          setHasNewTrophies(data.hasNewTrophies)
-        }
-      } catch (error) {
-        console.error('Error loading trophies status:', error)
-      }
-    }
-    loadTrophiesStatus()
-  }, [])
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
@@ -105,131 +80,6 @@ function DashboardContent({
 
   return (
     <div className="min-h-screen theme-bg">
-      {children}
-
-      {/* Navigation principale */}
-      <nav className="theme-nav">
-        <div className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-6">
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2 md:gap-4 items-center">
-
-            {/* COLONNE GAUCHE - Theme Toggle sur mobile, Logo + Theme Toggle sur desktop */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
-              <img src="/images/logo.svg" alt="PronoHub" className="hidden md:block w-14 h-14" />
-              <ThemeToggle />
-            </div>
-
-            {/* COLONNE CENTRALE - Logo centré sur mobile, vide sur desktop */}
-            <div className="flex md:hidden justify-center">
-              <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
-            </div>
-
-            {/* COLONNE DROITE - Avatar + Menu */}
-            <div className="flex flex-row md:flex-row items-center gap-1 md:gap-3">
-              {/* Avatar */}
-              <Link href="/profile" className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0 cursor-pointer hover:opacity-80 transition">
-                <Image
-                  src={getAvatarUrl(avatar || 'avatar1')}
-                  alt={username}
-                  fill
-                  className="object-cover"
-                  sizes="40px"
-                />
-                {/* Pastille de notification pour nouveaux trophées */}
-                {hasNewTrophies && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-white"></div>
-                )}
-              </Link>
-
-              {/* Hamburger menu sur mobile, menu complet sur desktop */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden flex flex-col gap-1 p-1 cursor-pointer"
-                aria-label="Menu"
-              >
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-              </button>
-
-              {/* Menu desktop (caché sur mobile) */}
-              <div className="hidden md:flex items-center gap-3">
-                <span className="theme-text text-sm">Bonjour, {username} !</span>
-
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Lien Carrière avec icône */}
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
-                >
-                  <img
-                    src="/images/icons/profil.svg"
-                    alt="Carrière"
-                    className="w-5 h-5 icon-filter-orange"
-                  />
-                  Carrière
-                </Link>
-
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Bouton Déconnexion avec icône */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-5 h-5 icon-filter-orange"
-                    />
-                    Quitter le terrain
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-
-          {/* Menu mobile dropdown */}
-          {mobileMenuOpen && (
-            <div className="md:hidden mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
-              <div className="theme-text text-sm text-center mb-2">
-                Bonjour, {username} !
-              </div>
-
-              <Link
-                href="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <img
-                  src="/images/icons/profil.svg"
-                  alt="Carrière"
-                  className="w-5 h-5 icon-filter-orange"
-                />
-                Carrière
-              </Link>
-
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-5 h-5 icon-filter-orange"
-                  />
-                  Quitter le terrain
-                </button>
-              </form>
-            </div>
-          )}
-        </div>
-      </nav>
-
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Message d'alerte si limite atteinte */}
         {hasReachedLimit && (
@@ -284,7 +134,7 @@ function DashboardContent({
                     <div className="md:hidden w-full flex flex-col gap-2 relative z-10">
                       {/* Première ligne: Nom du tournoi (gauche) + Nb joueurs (droite) */}
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold theme-text text-base flex-1">
+                        <h3 className="font-semibold theme-text text-base flex-1 transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
                             <span className="text-yellow-600 font-normal text-sm"> (capitaine)</span>
@@ -326,15 +176,24 @@ function DashboardContent({
                         </div>
 
                         {/* Badge statut à droite */}
-                        <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap flex-shrink-0 ${
-                          tournament.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : tournament.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {tournament.status === 'pending' && 'En attente'}
-                          {tournament.status === 'active' && 'En cours'}
+                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900]`}>
+                          {tournament.status === 'pending' && (
+                            <span className="badge-pending-animated">
+                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" strokeWidth="3">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                              </svg>
+                              En attente
+                            </span>
+                          )}
+                          {tournament.status === 'active' && (
+                            <>
+                              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <polyline points="9 18 15 12 9 6"/>
+                              </svg>
+                              En cours
+                            </>
+                          )}
                           {tournament.status === 'finished' && 'Terminé'}
                         </span>
                       </div>
@@ -377,7 +236,7 @@ function DashboardContent({
 
                       {/* Informations du tournoi */}
                       <div className="flex-1">
-                        <h3 className="font-semibold theme-text">
+                        <h3 className="font-semibold theme-text transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
                             <span className="text-yellow-600 font-normal"> (capitaine)</span>
@@ -388,15 +247,24 @@ function DashboardContent({
 
                       {/* Statut et informations */}
                       <div className="text-right">
-                        <span className={`px-3 py-1 rounded-full text-sm ${
-                          tournament.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : tournament.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {tournament.status === 'pending' && 'En attente'}
-                          {tournament.status === 'active' && 'En cours'}
+                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900]`}>
+                          {tournament.status === 'pending' && (
+                            <span className="badge-pending-animated">
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" strokeWidth="3">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                              </svg>
+                              En attente
+                            </span>
+                          )}
+                          {tournament.status === 'active' && (
+                            <>
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <polyline points="9 18 15 12 9 6"/>
+                              </svg>
+                              En cours
+                            </>
+                          )}
                           {tournament.status === 'finished' && 'Terminé'}
                         </span>
                         <p className="text-xs theme-text-secondary mt-1">
@@ -511,9 +379,5 @@ function DashboardContent({
 }
 
 export default function DashboardClient(props: DashboardClientProps) {
-  return (
-    <ThemeProvider>
-      <DashboardContent {...props} />
-    </ThemeProvider>
-  )
+  return <DashboardContent {...props} />
 }

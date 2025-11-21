@@ -125,18 +125,38 @@ export async function GET(
 
       console.log(`[Rankings API] ${username}: ${predictions?.length || 0} predictions found`, predError)
 
+      // Créer une Map des pronostics existants pour un accès rapide
+      const predictionsMap = new Map(predictions?.map(p => [p.match_id, p]) || [])
+
+      // Créer des pronostics par défaut 0-0 pour les matchs où l'utilisateur n'a pas pronostiqué
+      const allPredictions = (finishedMatches || []).map(match => {
+        const existingPred = predictionsMap.get(match.id)
+        if (existingPred) {
+          return existingPred
+        }
+        // Créer un pronostic par défaut 0-0 pour ce match
+        return {
+          match_id: match.id,
+          predicted_home_score: 0,
+          predicted_away_score: 0,
+          is_default_prediction: true,
+          user_id: userId,
+          tournament_id: tournamentId
+        }
+      })
+
       let totalPoints = 0
       let exactScores = 0
       let correctResults = 0
       let matchesPlayed = 0
 
-      // Calculer les points pour chaque pronostic
-      if (predictions && finishedMatches) {
-        for (const prediction of predictions) {
+      // Calculer les points pour chaque pronostic (y compris les par défaut)
+      if (allPredictions && finishedMatches) {
+        for (const prediction of allPredictions) {
           const match = finishedMatches.find(m => m.id === prediction.match_id)
           if (!match || match.home_score === null || match.away_score === null) continue
 
-          // Vérifier si c'est un pronostic valide (pas le 0-0 par défaut non sauvegardé)
+          // Vérifier si c'est un pronostic valide
           const isValidPrediction = prediction.predicted_home_score !== null &&
                                    prediction.predicted_away_score !== null
 

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
-import AdminNav from '@/components/AdminNav'
+import Navigation from '@/components/Navigation'
 import Link from 'next/link'
 
 export default async function AdminPage() {
@@ -34,7 +34,12 @@ export default async function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminNav />
+      <Navigation
+        username={profile?.username || 'Admin'}
+        userAvatar={profile?.avatar || 'avatar1'}
+        context="admin"
+        adminContext={{ currentPage: 'general' }}
+      />
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Général</h1>

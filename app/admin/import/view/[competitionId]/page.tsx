@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import AdminNav from '@/components/AdminNav'
+import AdminLayout from '@/components/AdminLayout'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
 
 interface Match {
@@ -116,22 +116,23 @@ export default function ViewCompetitionPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <AdminNav />
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <div className="text-gray-500">Chargement des données...</div>
-          </div>
-        </main>
-      </div>
+      <AdminLayout currentPage="import">
+        <div className="min-h-screen bg-gray-50">
+          <main className="max-w-7xl mx-auto px-4 py-8">
+            <div className="text-center py-12">
+              <div className="text-gray-500">Chargement des données...</div>
+            </div>
+          </main>
+        </div>
+      </AdminLayout>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <AdminNav />
-        <main className="max-w-7xl mx-auto px-4 py-8">
+      <AdminLayout currentPage="import">
+        <div className="min-h-screen bg-gray-50">
+          <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
             <strong>Erreur :</strong> {error || 'Données non disponibles'}
           </div>
@@ -142,15 +143,16 @@ export default function ViewCompetitionPage() {
             Retour
           </button>
         </main>
-      </div>
+        </div>
+      </AdminLayout>
     )
   }
 
   const currentMatches = selectedMatchday ? data.matchesByMatchday[selectedMatchday] || [] : []
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNav />
+    <AdminLayout currentPage="import">
+      <div className="min-h-screen bg-gray-50">
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* En-tête */}
@@ -378,6 +380,7 @@ export default function ViewCompetitionPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </AdminLayout>
   )
 }

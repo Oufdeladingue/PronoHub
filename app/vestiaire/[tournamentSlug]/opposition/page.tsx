@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import TournamentNav from '@/components/TournamentNav'
+import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -687,7 +687,7 @@ export default function OppositionPage() {
             isCorrect
           }
         })
-        .sort((a: any, b: any) => b.points - a.points) // Trier par points décroissants
+        // Pas de tri ici : on garde l'ordre d'inscription retourné par l'API
 
       setAllPlayersPredictions(prev => ({
         ...prev,
@@ -1016,13 +1016,16 @@ export default function OppositionPage() {
     <ThemeProvider>
       <div className="min-h-screen theme-bg">
         {/* Header */}
-        <TournamentNav
-          tournamentName={tournament.name}
-          competitionName={tournament.competition_name}
-          competitionLogo={competitionLogo}
-          status="active"
+        <Navigation
           username={username}
           userAvatar={userAvatar}
+          context="tournament"
+          tournamentContext={{
+            tournamentName: tournament.name,
+            competitionName: tournament.competition_name,
+            competitionLogo: competitionLogo,
+            status: "active"
+          }}
         />
 
         {/* Navigation par onglets */}
@@ -1304,8 +1307,17 @@ export default function OppositionPage() {
                                         {matchTime}
                                       </div>
 
-                                      {/* Vrai score si match en cours ou fini */}
-                                      {match.home_score !== null && match.away_score !== null && isMatchInProgress ? (
+                                      {/* Badge REPORTÉ si match postponed */}
+                                      {match.status === 'POSTPONED' ? (
+                                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-600 dark:text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                          </svg>
+                                          <span className="text-[9px] font-bold text-orange-700 dark:text-orange-400 uppercase">
+                                            Reporté
+                                          </span>
+                                        </div>
+                                      ) : match.home_score !== null && match.away_score !== null && isMatchInProgress ? (
                                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${
                                           isMatchFinished(match)
                                             ? 'bg-green-100 dark:bg-green-900/30'
@@ -1532,23 +1544,11 @@ export default function OppositionPage() {
                                   </div>
                                 </div>
 
-                                {/* Affichage DESKTOP (inchangé) */}
+                                {/* Affichage DESKTOP */}
                                 <div className="hidden md:block relative">
-                                  {/* Badge "Prono par défaut" en haut à droite du cadre */}
-                                  {prediction.is_default_prediction && (
-                                    <div className="absolute -top-2 right-2 flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[10px] z-10">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                      </svg>
-                                      <span className="font-medium text-yellow-700 dark:text-yellow-500">
-                                        Prono par défaut
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  <div className="grid grid-cols-[20%_60%_20%]">
-                                    {/* COLONNE GAUCHE - Horaire et badge bonus */}
-                                    <div className="flex flex-col items-start gap-1 justify-center">
+                                  <div className="flex items-center gap-3 w-full">
+                                    {/* COLONNE GAUCHE 15% - Horaire et badge bonus (alignés à gauche) */}
+                                    <div className="flex flex-col items-start gap-1 w-[15%] flex-shrink-0 overflow-hidden">
                                       <div className="text-sm theme-text-secondary font-semibold whitespace-nowrap">
                                         {matchTime}
                                       </div>
@@ -1562,11 +1562,61 @@ export default function OppositionPage() {
                                       )}
                                     </div>
 
-                                    {/* COLONNE CENTRALE - Match et scores */}
-                                    <div className="flex flex-col gap-3">
-                                      <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-3 items-center">
-                                        {/* Équipe domicile */}
-                                        <div className="flex items-center gap-3 justify-end">
+                                    {/* COLONNE CENTRALE 70% - Match et scores (organisation avec axe central) */}
+                                    <div className="flex flex-col gap-2 flex-1 overflow-hidden">
+                                      {/* Badges en haut (verrouillé, score final ou reporté) */}
+                                      <div className="flex items-center justify-center min-h-[28px]">
+                                        {/* Badge REPORTÉ si le match est postponed */}
+                                        {match.status === 'POSTPONED' && (
+                                          <div className="flex items-center gap-2 px-3 py-1 rounded bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-orange-600 dark:text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="text-xs font-bold text-orange-700 dark:text-orange-400 uppercase">
+                                              Match reporté
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* Badge VERROUILLÉ */}
+                                        {match.status !== 'POSTPONED' && isClosed && !isMatchInProgress && !isMatchFinished(match) && (
+                                          <div className="flex items-center gap-2 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                              Verrouillé
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* Badge SCORE FINAL ou EN DIRECT */}
+                                        {match.status !== 'POSTPONED' && match.home_score !== null && match.away_score !== null && isMatchInProgress && (
+                                          <div className={`flex items-center gap-2 px-3 py-1 rounded ${
+                                            isMatchFinished(match)
+                                              ? 'bg-green-100 dark:bg-green-900/30'
+                                              : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
+                                          }`}>
+                                            <span className={`text-xs font-semibold ${
+                                              isMatchFinished(match)
+                                                ? 'text-green-700 dark:text-green-400'
+                                                : 'text-orange-700 dark:text-orange-400'
+                                            }`}>
+                                              {isMatchFinished(match) ? 'Score final :' : 'En direct :'}
+                                            </span>
+                                            <span className={`text-sm font-bold ${
+                                              isMatchFinished(match)
+                                                ? 'text-green-700 dark:text-green-400'
+                                                : 'text-orange-700 dark:text-orange-400'
+                                            }`}>
+                                              {match.home_score} - {match.away_score}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Affichage du match avec axe de centrage sur les scores */}
+                                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                        {/* Partie gauche: Équipe domicile + Logo */}
+                                        <div className="flex items-center gap-2 justify-end">
                                           <span className="theme-text font-medium text-right truncate">
                                             {match.home_team_name}
                                           </span>
@@ -1579,49 +1629,11 @@ export default function OppositionPage() {
                                           )}
                                         </div>
 
-                                        {/* Zone centrale avec badges et scores */}
-                                        <div className="flex flex-col items-center gap-2 justify-center">
-                                        {/* Badge Verrouillé - affiché 1h avant le match */}
-                                        {isClosed && !isMatchInProgress && !isMatchFinished(match) && (
-                                          <div className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 rounded bg-gray-200 dark:bg-gray-700">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 text-gray-600 dark:text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                            </svg>
-                                            <span className="text-[10px] md:text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                              Verrouillé
-                                            </span>
-                                          </div>
-                                        )}
-
-                                        {/* Vrai score - affiché seulement si le match a commencé ET qu'il y a un score */}
-                                        {match.home_score !== null && match.away_score !== null && isMatchInProgress && (
-                                          <div className={`flex items-center gap-1 md:gap-2 px-2 py-1 md:px-3 rounded ${
-                                            isMatchFinished(match)
-                                              ? 'bg-green-100 dark:bg-green-900/30'
-                                              : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
-                                          }`}>
-                                            <span className={`text-[10px] md:text-xs font-semibold ${
-                                              isMatchFinished(match)
-                                                ? 'text-green-700 dark:text-green-400'
-                                                : 'text-orange-700 dark:text-orange-400'
-                                            }`}>
-                                              {isMatchFinished(match) ? 'Score final :' : 'En direct :'}
-                                            </span>
-                                            <span className={`text-xs md:text-sm font-bold ${
-                                              isMatchFinished(match)
-                                                ? 'text-green-700 dark:text-green-400'
-                                                : 'text-orange-700 dark:text-orange-400'
-                                            }`}>
-                                              {match.home_score} - {match.away_score}
-                                            </span>
-                                          </div>
-                                        )}
-
-                                        {/* Ligne de pronostic */}
-                                        <div className="flex items-center gap-1 md:gap-2 justify-center">
+                                        {/* Axe central: Scores pronostiqués (centré et fixe) */}
+                                        <div className="flex items-center gap-2">
                                           {/* Score domicile */}
-                                          <div className="flex items-center gap-0.5 md:gap-1">
-                                            {!isClosed && (
+                                          <div className="flex items-center gap-1">
+                                            {!isClosed && match.status !== 'POSTPONED' && (
                                               <div className="flex flex-col gap-0.5">
                                                 <button
                                                   onClick={() => {
@@ -1629,7 +1641,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'home', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                   +
                                                 </button>
@@ -1639,7 +1651,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'home', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                   −
                                                 </button>
@@ -1656,16 +1668,16 @@ export default function OppositionPage() {
                                                   handleScoreChange(match.id, 'home', val)
                                                 }
                                               }}
-                                              disabled={isClosed || isLocked}
-                                              className="w-10 h-9 md:w-12 md:h-10 text-center text-base md:text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                              disabled={isClosed || isLocked || match.status === 'POSTPONED'}
+                                              className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                           </div>
 
                                           {/* Séparateur */}
-                                          <span className="theme-text-secondary font-bold text-lg md:text-xl">−</span>
+                                          <span className="theme-text-secondary font-bold text-xl">−</span>
 
                                           {/* Score extérieur */}
-                                          <div className="flex items-center gap-0.5 md:gap-1">
+                                          <div className="flex items-center gap-1">
                                             <input
                                               type="number"
                                               min="0"
@@ -1677,10 +1689,10 @@ export default function OppositionPage() {
                                                   handleScoreChange(match.id, 'away', val)
                                                 }
                                               }}
-                                              disabled={isClosed || isLocked}
-                                              className="w-10 h-9 md:w-12 md:h-10 text-center text-base md:text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                              disabled={isClosed || isLocked || match.status === 'POSTPONED'}
+                                              className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
-                                            {!isClosed && (
+                                            {!isClosed && match.status !== 'POSTPONED' && (
                                               <div className="flex flex-col gap-0.5">
                                                 <button
                                                   onClick={() => {
@@ -1688,7 +1700,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'away', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                   +
                                                 </button>
@@ -1698,7 +1710,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'away', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-5 h-4 md:w-6 md:h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs md:text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                   −
                                                 </button>
@@ -1706,10 +1718,9 @@ export default function OppositionPage() {
                                             )}
                                           </div>
                                         </div>
-                                      </div>
 
-                                        {/* Équipe extérieure */}
-                                        <div className="flex items-center gap-3 justify-start">
+                                        {/* Partie droite: Logo + Équipe extérieure */}
+                                        <div className="flex items-center gap-2 justify-start">
                                           {match.away_team_crest && (
                                             <img
                                               src={match.away_team_crest}
@@ -1721,80 +1732,88 @@ export default function OppositionPage() {
                                             {match.away_team_name}
                                           </span>
                                         </div>
-
-                                        {/* Points gagnés sur le match */}
-                                        <div className="flex items-center justify-end">
-                                          {isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
-                                            <div
-                                              className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-bold text-xs md:text-sm whitespace-nowrap"
-                                              style={getPointsColorStyle(matchPoints[match.id])}
-                                            >
-                                              {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                            </div>
-                                          )}
-                                        </div>
                                       </div>
                                     </div>
 
-                                    {/* COLONNE DROITE - Indicateurs, badges et boutons d'état */}
-                                    <div className="flex items-center justify-end gap-2">
-                                    {isClosed ? (
-                                      // Afficher "Clôturé" seulement entre la clôture et le début du premier match (si pas encore de points)
-                                      !(hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
-                                        <div className="flex items-center gap-1 md:gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                          </svg>
-                                          <span className="text-xs md:text-sm font-medium">Clôturé</span>
-                                        </div>
-                                      )
-                                    ) : isSaved && !isModified && isLocked ? (
-                                      <div className="flex items-center gap-1 md:gap-2">
-                                        <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400 flex-shrink-0">
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                          </svg>
-                                        </div>
-                                        <button
-                                          onClick={() => unlockPrediction(match.id)}
-                                          className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
-                                          title="Modifier le pronostic"
+                                    {/* COLONNE DROITE 15% - Points et badge défaut (alignés à droite) */}
+                                    <div className="flex flex-col items-end gap-2 w-[15%] flex-shrink-0 overflow-hidden">
+                                      {/* Points gagnés */}
+                                      {isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
+                                        <div
+                                          className="px-2 py-1 rounded-lg font-bold text-xs"
+                                          style={getPointsColorStyle(matchPoints[match.id])}
                                         >
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                        </div>
+                                      )}
+
+                                      {/* Badge défaut */}
+                                      {prediction.is_default_prediction && (
+                                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px]">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                           </svg>
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        onClick={() => savePrediction(match.id)}
-                                        disabled={savingPrediction === match.id}
-                                        className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition font-semibold flex items-center gap-1 md:gap-2 whitespace-nowrap text-xs md:text-sm ${
-                                          isModified
-                                            ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
-                                            : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
-                                        } disabled:bg-gray-400 disabled:cursor-not-allowed`}
-                                      >
-                                        {savingPrediction === match.id ? (
-                                          <>
-                                            <svg className="animate-spin h-3 w-3 md:h-4 md:w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                        </div>
+                                      )}
+
+                                      {/* Boutons d'action */}
+                                      {isClosed ? (
+                                        !(hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
+                                          <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="hidden sm:inline">Envoi...</span>
-                                          </>
-                                        ) : isModified ? (
-                                          <>
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <span className="text-[10px] font-medium">Clôturé</span>
+                                          </div>
+                                        )
+                                      ) : isSaved && !isModified && isLocked ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400 flex-shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                          </div>
+                                          <button
+                                            onClick={() => unlockPrediction(match.id)}
+                                            className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
+                                            title="Modifier le pronostic"
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                             </svg>
-                                            <span className="hidden sm:inline">Modifier</span>
-                                          </>
-                                        ) : (
-                                          <span className="hidden sm:inline">Enregistrer</span>
-                                        )}
-                                      </button>
-                                    )}
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => savePrediction(match.id)}
+                                          disabled={savingPrediction === match.id}
+                                          className={`px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs ${
+                                            isModified
+                                              ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
+                                              : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
+                                          } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                        >
+                                          {savingPrediction === match.id ? (
+                                            <>
+                                              <svg className="animate-spin h-3.5 w-3.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                              </svg>
+                                              <span className="hidden xl:inline">Envoi...</span>
+                                            </>
+                                          ) : isModified ? (
+                                            <>
+                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                              </svg>
+                                              <span className="hidden xl:inline">Modifier</span>
+                                            </>
+                                          ) : (
+                                            <span className="hidden xl:inline">Enregistrer</span>
+                                          )}
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
