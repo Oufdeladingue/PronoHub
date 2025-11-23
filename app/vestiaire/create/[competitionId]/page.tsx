@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Crown, Sparkles } from 'lucide-react'
+import { TournamentTypeResult } from '@/types/monetization'
+import { TournamentTypeIndicator } from '@/components/UpgradeBanner'
 
 interface Competition {
   id: number
@@ -221,6 +224,8 @@ export default function TableauNoirPage() {
 
         {/* Formulaire de configuration */}
         <div className="bg-white rounded-lg shadow-lg p-8">
+          {/* Indicateur du type de tournoi */}
+          <TournamentTypeIndicator />
           {/* Nom du tournoi */}
           <div className="mb-8">
             <label className="block text-lg font-semibold text-gray-900 mb-2">

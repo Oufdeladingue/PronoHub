@@ -641,3 +641,13 @@ input:-moz-autofill:focus {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Masquer la scrollbar tout en gardant le scroll fonctionnel */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}

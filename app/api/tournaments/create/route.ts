@@ -1,5 +1,82 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { TournamentType, ACCOUNT_LIMITS } from '@/types/monetization'
+
+// Déterminer le type de tournoi selon les quotas utilisateur
+async function determineTournamentType(supabase: any, userId: string): Promise<{
+  tournamentType: TournamentType | null;
+  maxPlayers: number;
+  reason: string;
+}> {
+  // Vérifier abonnement actif
+  const { data: subscription } = await supabase
+    .from('user_subscriptions')
+    .select('status')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .single()
+
+  // Compter tournois premium actifs
+  const { count: premiumCount } = await supabase
+    .from('tournaments')
+    .select('*', { count: 'exact', head: true })
+    .eq('creator_id', userId)
+    .eq('tournament_type', 'premium')
+    .neq('status', 'completed')
+
+  // Priorité 1: Abonnement premium (max 5, 20 joueurs)
+  if (subscription && (premiumCount || 0) < 5) {
+    return { tournamentType: 'premium', maxPlayers: 20, reason: 'Slot premium' }
+  }
+
+  // Compter slots one-shot disponibles
+  const { count: oneshotAvailable } = await supabase
+    .from('user_oneshot_purchases')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'available')
+
+  // Priorité 2: One-shot (20 joueurs)
+  if ((oneshotAvailable || 0) > 0) {
+    return { tournamentType: 'oneshot', maxPlayers: 20, reason: 'Slot one-shot' }
+  }
+
+  // Compter tournois gratuits actifs
+  const { count: freeCount } = await supabase
+    .from('tournaments')
+    .select('*', { count: 'exact', head: true })
+    .eq('creator_id', userId)
+    .eq('tournament_type', 'free')
+    .neq('status', 'completed')
+
+  // Priorité 3: Gratuit (max 3, 8 joueurs)
+  if ((freeCount || 0) < 3) {
+    return { tournamentType: 'free', maxPlayers: 8, reason: 'Slot gratuit' }
+  }
+
+  return { tournamentType: null, maxPlayers: 0, reason: 'Quota atteint - upgrade requis' }
+}
+
+// Utiliser un slot one-shot
+async function useOneshotSlot(supabase: any, userId: string, tournamentId: string): Promise<boolean> {
+  const { data: slot } = await supabase
+    .from('user_oneshot_purchases')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'available')
+    .order('purchased_at', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (!slot) return false
+
+  await supabase
+    .from('user_oneshot_purchases')
+    .update({ status: 'in_use', tournament_id: tournamentId, used_at: new Date().toISOString() })
+    .eq('id', slot.id)
+
+  return true
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,26 +92,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Vérifier le nombre de tournois de l'utilisateur
-    const { data: userTournaments } = await supabase
-      .from('tournament_participants')
-      .select('id')
-      .eq('user_id', user.id)
+    // Déterminer le type de tournoi selon les quotas
+    const { tournamentType, maxPlayers: allowedMaxPlayers, reason } = await determineTournamentType(supabase, user.id)
 
-    // Récupérer la limite depuis les paramètres admin
-    const { data: maxTournamentsSettings } = await supabase
-      .from('admin_settings')
-      .select('setting_value')
-      .eq('setting_key', 'max_tournaments_per_user')
-      .single()
-
-    const maxTournaments = parseInt(maxTournamentsSettings?.setting_value || '3')
-    const currentTournamentCount = userTournaments?.length || 0
-
-    if (currentTournamentCount >= maxTournaments) {
+    if (!tournamentType) {
       return NextResponse.json(
-        { success: false, error: `Vous ne pouvez pas participer à plus de ${maxTournaments} tournois simultanément` },
-        { status: 400 }
+        { success: false, error: reason, needsUpgrade: true, quotaExceeded: true },
+        { status: 403 }
       )
     }
 
@@ -74,28 +138,32 @@ export async function POST(request: Request) {
       )
     }
 
-    // Créer le tournoi
+    // Limiter maxPlayers selon le type de compte
+    const effectiveMaxPlayers = Math.min(maxPlayers || allowedMaxPlayers, allowedMaxPlayers)
+
+    // Créer le tournoi avec le type déterminé
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .insert({
         name,
         slug,
-        invite_code: slug, // Pour compatibilité avec ancienne structure
+        invite_code: slug,
         competition_id: parseInt(competitionId),
         competition_name: competitionName,
-        max_players: maxPlayers,
-        max_participants: maxPlayers, // Pour compatibilité avec ancienne structure
+        max_players: effectiveMaxPlayers,
+        max_participants: effectiveMaxPlayers,
         num_matchdays: numMatchdays,
-        matchdays_count: numMatchdays, // Pour compatibilité avec ancienne structure
+        matchdays_count: numMatchdays,
         all_matchdays: allMatchdays,
         bonus_match_enabled: bonusMatchEnabled,
         creator_id: user.id,
         status: 'pending',
-        current_participants: 1, // Le créateur
-        scoring_exact_score: 3, // Valeurs par défaut
+        current_participants: 1,
+        scoring_exact_score: 3,
         scoring_correct_winner: 1,
         scoring_correct_goal_difference: 2,
-        scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1
+        scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1,
+        tournament_type: tournamentType
       })
       .select()
       .single()
@@ -106,6 +174,11 @@ export async function POST(request: Request) {
         { success: false, error: 'Erreur lors de la création du tournoi' },
         { status: 500 }
       )
+    }
+
+    // Si c'est un one-shot, utiliser le slot
+    if (tournamentType === 'oneshot') {
+      await useOneshotSlot(supabase, user.id, tournament.id)
     }
 
     // Vérifier si l'utilisateur a un profil

@@ -152,17 +152,26 @@ export default function NavBarMobile({
   // Rendu pour le contexte App ou Admin (version mobile simplifiée)
   return (
     <nav className="theme-nav md:hidden">
-      <div className="max-w-7xl mx-auto px-2 py-3">
-        <div className="flex justify-between items-center">
-          {/* Gauche - Logo + Theme Toggle */}
-          <div className="flex flex-col items-start gap-2">
-            <Link href="/dashboard">
-              <img src="/images/logo.svg" alt="PronoHub" className="w-10 h-10 cursor-pointer hover:opacity-80 transition" />
-            </Link>
+      <div className="max-w-7xl mx-auto px-2 py-1">
+        {/* Navigation layout - 3 colonnes sur mobile */}
+        <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+          {/* COLONNE GAUCHE - Theme Toggle */}
+          <div className="flex flex-col items-start">
             <ThemeToggle />
           </div>
 
-          {/* Droite - Avatar + Menu hamburger */}
+          {/* COLONNE CENTRALE - Logo centré et agrandi */}
+          <div className="flex justify-center">
+            <Link href="/dashboard">
+              <img
+                src="/images/logo.svg"
+                alt="PronoHub"
+                className="w-24 h-24 cursor-pointer hover:opacity-80 transition"
+              />
+            </Link>
+          </div>
+
+          {/* COLONNE DROITE - Avatar + Menu hamburger */}
           <div className="flex flex-col items-center gap-1">
             <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 theme-accent-border">
               <Image

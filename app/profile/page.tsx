@@ -9,6 +9,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import Image from 'next/image'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
+import UserQuotasCard from '@/components/UserQuotasCard'
 
 function ProfileContent() {
   const [activeTab, setActiveTab] = useState('profil')
@@ -450,10 +451,10 @@ function ProfileContent() {
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* Onglets de navigation */}
-        <div className="flex justify-between md:justify-start md:gap-2 border-b theme-border mb-6">
+        <div className="flex justify-between md:justify-start md:gap-1 border-b theme-border mb-6">
             <button
               onClick={() => setActiveTab('profil')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-4 md:py-2 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'profil'
                   ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
@@ -473,7 +474,7 @@ function ProfileContent() {
 
             <button
               onClick={() => setActiveTab('stats')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-4 md:py-2 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'stats'
                   ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
@@ -498,7 +499,7 @@ function ProfileContent() {
                   markTrophiesAsSeen()
                 }
               }}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-4 md:py-2 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'trophees'
                   ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
@@ -524,7 +525,7 @@ function ProfileContent() {
 
             <button
               onClick={() => setActiveTab('securite')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`flex-1 md:flex-none px-3 py-2 md:px-4 md:py-2 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'securite'
                   ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
@@ -540,6 +541,26 @@ function ProfileContent() {
                 }`}
               />
               <span className="hidden md:inline">Sécurité</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('abonnement')}
+              className={`flex-1 md:flex-none px-3 py-2 md:px-4 md:py-2 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+                activeTab === 'abonnement'
+                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  : 'theme-slate-text hover:theme-text'
+              }`}
+            >
+              <img
+                src="/images/icons/premium.svg"
+                alt="Abonnement"
+                className={`w-7 h-7 md:w-5 md:h-5 ${
+                  activeTab === 'abonnement'
+                    ? 'icon-filter-orange'
+                    : 'icon-filter-slate'
+                }`}
+              />
+              <span className="hidden md:inline">Abonnement</span>
             </button>
           </div>
 
@@ -1090,6 +1111,19 @@ function ProfileContent() {
                     {changingPassword ? 'Modification en cours...' : 'Modifier le mot de passe'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Contenu de l'onglet Abonnement */}
+          {activeTab === 'abonnement' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold theme-text mb-4">Mon abonnement</h3>
+              <UserQuotasCard />
+              <div className="mt-6 p-4 theme-card-secondary rounded-lg">
+                <p className="text-sm theme-text-secondary">
+                  Gerez votre abonnement, consultez vos quotas et passez a Premium pour debloquer plus de fonctionnalites.
+                </p>
               </div>
             </div>
           )}

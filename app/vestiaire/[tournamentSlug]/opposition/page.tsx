@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -24,6 +24,7 @@ interface Tournament {
   starting_matchday?: number
   ending_matchday?: number
   scoring_default_prediction_max?: number
+  start_date?: string // Date de lancement du tournoi (passage en status 'active')
 }
 
 interface Match {
@@ -104,6 +105,11 @@ export default function OppositionPage() {
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
 
+  // Ref et états pour la navigation des journées avec flèches
+  const matchdaysContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
 
@@ -123,11 +129,17 @@ export default function OppositionPage() {
   useEffect(() => {
     if (tournament?.competition_id) {
       fetchCompetitionLogo()
-      fetchAvailableMatchdays()
-      fetchAllMatches()
+      fetchAllMatches() // Charger d'abord tous les matchs
       fetchBonusMatches()
     }
   }, [tournament?.competition_id])
+
+  // Recalculer les journées disponibles une fois que allMatches est chargé
+  useEffect(() => {
+    if (tournament && allMatches.length > 0) {
+      fetchAvailableMatchdays()
+    }
+  }, [tournament, allMatches.length])
 
   useEffect(() => {
     if (selectedMatchday !== null && tournament) {
@@ -340,9 +352,30 @@ export default function OppositionPage() {
         return
       }
 
-      const matchdays: number[] = []
+      // Construire la liste des journées potentielles
+      let matchdays: number[] = []
       for (let i = startMatchday; i <= endMatchday; i++) {
         matchdays.push(i)
+      }
+
+      // Si le tournoi a une date de lancement et que nous avons tous les matchs,
+      // filtrer pour ne garder que les journées jouables
+      if (tournament.start_date && allMatches.length > 0) {
+        const tournamentStartDate = new Date(tournament.start_date)
+
+        matchdays = matchdays.filter(matchday => {
+          // Récupérer les matchs de cette journée
+          const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
+          if (matchdayMatches.length === 0) return true // Garder si pas de matchs trouvés (sécurité)
+
+          // Vérifier si au moins un match n'était pas encore clôturé à la date de lancement
+          // Un match est clôturé 1h avant son coup d'envoi
+          return matchdayMatches.some(match => {
+            const matchDate = new Date(match.utc_date)
+            const closingTime = new Date(matchDate.getTime() - 60 * 60 * 1000) // 1h avant le match
+            return closingTime > tournamentStartDate // Le match n'était pas encore clôturé
+          })
+        })
       }
 
       setAvailableMatchdays(matchdays)
@@ -855,6 +888,33 @@ export default function OppositionPage() {
     return 'À venir'
   }
 
+  // Fonctions pour la navigation des journées avec flèches
+  const checkScrollButtons = useCallback(() => {
+    const container = matchdaysContainerRef.current
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0)
+      setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 1)
+    }
+  }, [])
+
+  const scrollMatchdays = useCallback((direction: 'left' | 'right') => {
+    const container = matchdaysContainerRef.current
+    if (container) {
+      const scrollAmount = 200 // Pixels à scroller
+      const newScrollLeft = direction === 'left'
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount
+      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' })
+    }
+  }, [])
+
+  // Vérifier les boutons de scroll au chargement et au resize
+  useEffect(() => {
+    checkScrollButtons()
+    window.addEventListener('resize', checkScrollButtons)
+    return () => window.removeEventListener('resize', checkScrollButtons)
+  }, [checkScrollButtons, availableMatchdays])
+
   // Grouper les matchs par date
   const groupMatchesByDate = (matches: Match[]) => {
     const groups: Record<string, Match[]> = {}
@@ -1132,32 +1192,74 @@ export default function OppositionPage() {
             <div className="theme-card">
               {/* Menu de navigation des journées */}
               {availableMatchdays.length > 0 && (
-                <div className="mb-6 pb-6 border-b theme-border overflow-x-auto">
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {availableMatchdays.map(matchday => {
-                      const matchdayStatus = getMatchdayStatus(matchday)
-                      const isFinished = matchdayStatus === 'Terminée'
-                      return (
-                        <button
-                          key={matchday}
-                          onClick={() => setSelectedMatchday(matchday)}
-                          className={`px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] ${
-                            selectedMatchday === matchday
-                              ? 'bg-[#ff9900] text-[#0f172a]'
-                              : isFinished
-                                ? 'bg-slate-700 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-600 dark:hover:bg-slate-700'
-                                : 'bg-slate-600 dark:bg-slate-700 text-slate-200 dark:text-slate-300 hover:bg-slate-500 dark:hover:bg-slate-600'
-                          }`}
-                        >
-                          <span className="text-lg md:text-xl">J{matchday}</span>
-                          <span className={`text-[10px] md:text-xs mt-1 font-medium ${
-                            selectedMatchday === matchday ? 'text-[#0f172a]' : isFinished ? 'text-slate-400 dark:text-slate-500' : 'text-slate-300 dark:text-slate-400'
-                          }`}>
-                            {matchdayStatus}
-                          </span>
-                        </button>
-                      )
-                    })}
+                <div className="mb-6 pb-6 border-b theme-border">
+                  <div className="relative flex items-center">
+                    {/* Flèche gauche */}
+                    {canScrollLeft && (
+                      <button
+                        onClick={() => scrollMatchdays('left')}
+                        className="absolute left-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-r from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
+                        aria-label="Journées précédentes"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Container des journées */}
+                    <div
+                      ref={matchdaysContainerRef}
+                      onScroll={checkScrollButtons}
+                      className="flex gap-2 overflow-x-auto scrollbar-hide px-1"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {availableMatchdays.map(matchday => {
+                        const matchdayStatus = getMatchdayStatus(matchday)
+                        const isFinished = matchdayStatus === 'Terminée'
+                        const isInProgress = matchdayStatus === 'En cours'
+                        const isActive = selectedMatchday === matchday
+                        return (
+                          <button
+                            key={matchday}
+                            onClick={() => setSelectedMatchday(matchday)}
+                            className={`px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] flex-shrink-0 ${
+                              isActive
+                                ? 'bg-[#ff9900] text-[#0f172a]'
+                                : isFinished
+                                  ? 'bg-slate-700 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-600 dark:hover:bg-slate-700'
+                                  : 'bg-slate-600 dark:bg-slate-700 text-slate-200 dark:text-slate-300 hover:bg-slate-500 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            <span className="text-lg md:text-xl">J{matchday}</span>
+                            <span className={`text-[10px] md:text-xs mt-1 font-medium ${
+                              isActive
+                                ? 'text-[#0f172a]'
+                                : isFinished
+                                  ? 'text-slate-400 dark:text-slate-500'
+                                  : isInProgress
+                                    ? 'text-[#ff9900]'
+                                    : 'text-slate-300 dark:text-slate-400'
+                            }`}>
+                              {matchdayStatus}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Flèche droite */}
+                    {canScrollRight && (
+                      <button
+                        onClick={() => scrollMatchdays('right')}
+                        className="absolute right-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-l from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
+                        aria-label="Journées suivantes"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1187,19 +1289,37 @@ export default function OppositionPage() {
                           <span className="font-semibold text-xs md:text-base">
                             {timeRemaining === 'Pronostics clôturés' ? (
                               <>
-                                <span className="hidden md:inline">
-                                  {hasFirstMatchStarted() && !hasLastMatchEnded()
-                                    ? `Pronostics clôturés pour cette journée : vous avez marqué pour le moment ${matchdayTotalPoints} pts (matchs en cours)`
-                                    : `Pronostics clôturés pour cette journée : vous avez marqué ${matchdayTotalPoints} pts`
-                                  }
-                                </span>
-                                <span className="md:hidden">
-                                  {hasFirstMatchStarted() && !hasLastMatchEnded() ? (
-                                    <>Pronostics clôturés pour cette journée :<br />vous avez marqué pour le moment {matchdayTotalPoints} pts (matchs en cours)</>
-                                  ) : (
-                                    <>Pronostics clôturés pour cette journée :<br />vous avez marqué {matchdayTotalPoints} pts</>
-                                  )}
-                                </span>
+                                {hasLastMatchEnded() ? (
+                                  /* Journée terminée */
+                                  <>
+                                    <span className="hidden md:inline">
+                                      Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
+                                    </span>
+                                    <span className="md:hidden">
+                                      Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
+                                    </span>
+                                  </>
+                                ) : hasFirstMatchStarted() ? (
+                                  /* Matchs en cours */
+                                  <>
+                                    <span className="hidden md:inline">
+                                      Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
+                                    </span>
+                                    <span className="md:hidden">
+                                      Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
+                                    </span>
+                                  </>
+                                ) : (
+                                  /* Pronostics clôturés mais aucun match commencé (1h avant) */
+                                  <>
+                                    <span className="hidden md:inline">
+                                      Pronostics clôturés : les matchs commencent bientôt
+                                    </span>
+                                    <span className="md:hidden">
+                                      Pronostics clôturés :<br />les matchs commencent bientôt
+                                    </span>
+                                  </>
+                                )}
                               </>
                             ) : (
                               <>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -46,6 +46,11 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
+  // Ref et états pour la navigation des vues avec flèches
+  const viewsContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
   // Fonction pour vérifier si une journée a déjà commencé
   const hasMatchdayStarted = (matchday: number): boolean => {
     if (!allMatches) return true // Par défaut, considérer comme commencé si pas de données
@@ -58,6 +63,33 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
     return now >= firstMatchTime
   }
+
+  // Fonctions pour la navigation des vues avec flèches
+  const checkScrollButtons = useCallback(() => {
+    const container = viewsContainerRef.current
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0)
+      setCanScrollRight(container.scrollLeft < container.scrollWidth - container.clientWidth - 1)
+    }
+  }, [])
+
+  const scrollViews = useCallback((direction: 'left' | 'right') => {
+    const container = viewsContainerRef.current
+    if (container) {
+      const scrollAmount = 200
+      const newScrollLeft = direction === 'left'
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount
+      container.scrollTo({ left: newScrollLeft, behavior: 'smooth' })
+    }
+  }, [])
+
+  // Vérifier les boutons de scroll au chargement et au resize
+  useEffect(() => {
+    checkScrollButtons()
+    window.addEventListener('resize', checkScrollButtons)
+    return () => window.removeEventListener('resize', checkScrollButtons)
+  }, [checkScrollButtons, availableMatchdays])
 
   useEffect(() => {
     fetchCurrentUser()
@@ -145,36 +177,70 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       <h2 className="text-xl md:text-2xl font-bold theme-text mb-4 md:mb-6">Classement</h2>
 
       {/* Navigation des vues */}
-      <div className="mb-4 md:mb-6 pb-3 md:pb-4 border-b theme-border overflow-x-auto">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setSelectedView('general')}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap ${
-              selectedView === 'general'
-                ? 'bg-[#ff9900] text-[#111]'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
-            }`}
+      <div className="mb-4 md:mb-6 pb-3 md:pb-4 border-b theme-border">
+        <div className="relative flex items-center">
+          {/* Flèche gauche */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollViews('left')}
+              className="absolute left-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-r from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
+              aria-label="Vues précédentes"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Container des vues */}
+          <div
+            ref={viewsContainerRef}
+            onScroll={checkScrollButtons}
+            className="flex gap-2 overflow-x-auto scrollbar-hide px-1"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            Général
-          </button>
-          {availableMatchdays.map(matchday => {
-            const hasStarted = hasMatchdayStarted(matchday)
-            return (
-              <button
-                key={matchday}
-                onClick={() => setSelectedView(matchday)}
-                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap ${
-                  selectedView === matchday
-                    ? 'bg-[#ff9900] text-[#111]'
-                    : hasStarted
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
-                      : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700'
-                }`}
-              >
-                J{matchday}
-              </button>
-            )
-          })}
+            <button
+              onClick={() => setSelectedView('general')}
+              className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                selectedView === 'general'
+                  ? 'bg-[#ff9900] text-[#111]'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+              }`}
+            >
+              Général
+            </button>
+            {availableMatchdays.map(matchday => {
+              const hasStarted = hasMatchdayStarted(matchday)
+              return (
+                <button
+                  key={matchday}
+                  onClick={() => setSelectedView(matchday)}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                    selectedView === matchday
+                      ? 'bg-[#ff9900] text-[#111]'
+                      : hasStarted
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  J{matchday}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Flèche droite */}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollViews('right')}
+              className="absolute right-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-l from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
+              aria-label="Vues suivantes"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

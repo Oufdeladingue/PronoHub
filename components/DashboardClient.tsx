@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { UpgradeBanner } from '@/components/UpgradeBanner'
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
 function formatMatchDate(dateString: string) {
@@ -81,24 +82,8 @@ function DashboardContent({
   return (
     <div className="min-h-screen theme-bg">
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Message d'alerte si limite atteinte */}
-        {hasReachedLimit && (
-          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 text-orange-600 text-2xl">⚠️</div>
-              <div>
-                <h3 className="font-semibold text-orange-900 mb-1">
-                  Limite de tournois atteinte
-                </h3>
-                <p className="text-sm text-orange-800">
-                  Vous participez actuellement à {currentTournamentCount} tournoi{currentTournamentCount > 1 ? 's' : ''}
-                  (limite : {maxTournaments} en version gratuite).
-                  Pour créer ou rejoindre un nouveau tournoi, vous devez d'abord quitter l'un de vos tournois existants ou passer à la version payante.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Banniere Upgrade */}
+        <UpgradeBanner />
 
         {/* Section Mes tournois en premier */}
         <div className="theme-card mb-8">
