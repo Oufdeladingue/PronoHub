@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Footer from '@/components/Footer'
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('')
@@ -51,15 +52,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{
-        backgroundImage: "url('/images/room-bg.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
+    <div className="min-h-screen flex flex-col">
+      <div
+        className="flex-1 flex items-center justify-center relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/images/room-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      >
       {/* Radial gradient overlay */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -105,7 +107,7 @@ export default function LoginPage() {
               onChange={(e) => setIdentifier(e.target.value)}
               required
               className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 mb-4 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
-              placeholder="test@test.fr ou username"
+              placeholder="adresse email ou pseudo"
             />
           </div>
 
@@ -146,6 +148,8 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+      </div>
+      <Footer variant="minimal" />
     </div>
   )
 }

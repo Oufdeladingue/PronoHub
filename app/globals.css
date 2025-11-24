@@ -651,3 +651,152 @@ input:-moz-autofill:focus {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Animation scintillement crystal pour bouton Premium */
+.premium-btn-shimmer {
+  position: relative;
+  background: transparent !important;
+  isolation: isolate;
+}
+
+.premium-btn-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    #ff9900,
+    #ffcc00,
+    #ffffff,
+    #ffcc00,
+    #ff9900,
+    #ff6600,
+    #ff9900
+  );
+  background-size: 300% 100%;
+  border-radius: 0.5rem;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: shimmer-border 5s linear infinite;
+}
+
+.premium-btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: rgba(255, 153, 0, 0.15);
+  border-radius: calc(0.5rem - 2px);
+  z-index: -1;
+}
+
+@keyframes shimmer-border {
+  0% {
+    background-position: 300% 0;
+  }
+  100% {
+    background-position: -300% 0;
+  }
+}
+
+/* ========================================
+   CLASSES POUR STATISTIQUES / BADGES
+   ======================================== */
+
+/* Card de statistique avec fond adaptatif */
+.stat-card {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+  background-color: var(--info-bg);
+}
+
+:root[data-theme="dark"] .stat-card {
+  background-color: #0f172a !important;
+}
+
+/* Chiffre principal dans les stats */
+.stat-number {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 2.25rem;
+}
+
+:root[data-theme="dark"] .stat-number {
+  color: #ff9900 !important;
+}
+
+/* Card de trophée déverrouillé */
+.trophy-card {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 2px solid #ff9900;
+  transition: all 0.2s;
+}
+
+:root[data-theme="dark"] .trophy-card {
+  background-color: #0f172a !important;
+}
+
+/* Card de trophée verrouillé */
+.trophy-card-locked {
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border: 2px dashed var(--border-color);
+  opacity: 0.5;
+}
+
+:root[data-theme="dark"] .trophy-card-locked {
+  background-color: #0f172a !important;
+}
+
+/* Titre de trophée */
+.trophy-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #ff9900;
+  margin-bottom: 0.25rem;
+}
+
+/* Bouton primaire avec texte dark */
+.btn-primary-dark-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #ff9900;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0f172a;
+  transition: all 0.2s;
+}
+
+.btn-primary-dark-text:hover {
+  background-color: #e68a00;
+}
+
+.btn-primary-dark-text:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinner pour boutons avec texte dark */
+.spinner-dark {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #0f172a;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

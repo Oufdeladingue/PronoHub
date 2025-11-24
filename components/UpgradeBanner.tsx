@@ -123,27 +123,28 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
   // Banniere d'upsell pour les utilisateurs gratuits
   if (currentType === 'free') {
     return (
-      <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border border-orange-500/20 rounded-xl p-5 mb-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-orange-400" />
+      <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+        <div className="flex flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
+              <img src="/images/icons/futebol.svg" alt="Tournois" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
             </div>
             <div>
-              <p className="font-medium text-white">
+              <p className="font-medium text-white text-sm md:text-base">
                 Tournois gratuits: {quotas.free_tournaments_active}/{quotas.free_tournaments_max}
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-xs md:text-sm text-gray-400">
                 Max {ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi
               </p>
             </div>
           </div>
           <button
             onClick={() => router.push('/pricing')}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all"
+            className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
+            title="Passer Pro"
           >
-            <Crown className="w-4 h-4" />
-            Passer a Premium
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <span className="hidden md:inline">Passer Pro</span>
           </button>
         </div>
       </div>

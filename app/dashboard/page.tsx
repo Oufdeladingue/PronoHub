@@ -182,7 +182,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navigation
         username={profile?.username || 'utilisateur'}
         userAvatar={profile?.avatar || 'avatar1'}
@@ -197,6 +197,6 @@ export default async function DashboardPage() {
         maxTournaments={maxTournaments}
         tournaments={tournaments}
       />
-    </>
+    </div>
   )
 }

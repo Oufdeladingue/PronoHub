@@ -34,7 +34,9 @@ function ProfileContent() {
   const [statsLoaded, setStatsLoaded] = useState(false) // Tracker si les stats ont été chargées au moins une fois
   const [trophies, setTrophies] = useState<any[]>([])
   const [loadingTrophies, setLoadingTrophies] = useState(false)
+  const [recalculatingTrophies, setRecalculatingTrophies] = useState(false)
   const [hasNewTrophies, setHasNewTrophies] = useState(false)
+  const [lastRefreshMessage, setLastRefreshMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -241,6 +243,30 @@ function ProfileContent() {
       console.error('Error loading trophies:', error)
     } finally {
       setLoadingTrophies(false)
+    }
+  }
+
+  const recalculateTrophies = async () => {
+    setRecalculatingTrophies(true)
+    setLastRefreshMessage('')
+    try {
+      const response = await fetch('/api/user/trophies', { method: 'PUT' })
+      const data = await response.json()
+
+      if (data.success) {
+        setTrophies(data.trophies)
+        setHasNewTrophies(data.hasNewTrophies)
+        if (data.newTrophiesUnlocked > 0) {
+          setLastRefreshMessage(`${data.newTrophiesUnlocked} nouveau(x) trophée(s) débloqué(s) !`)
+        } else {
+          setLastRefreshMessage('Aucun nouveau trophée')
+        }
+      }
+    } catch (error) {
+      console.error('Error recalculating trophies:', error)
+      setLastRefreshMessage('Erreur lors de l\'actualisation')
+    } finally {
+      setRecalculatingTrophies(false)
     }
   }
 
@@ -575,32 +601,8 @@ function ProfileContent() {
           {activeTab === 'profil' && (
             <div className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium theme-text mb-2">
-                Nom d'utilisateur
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isUsernameSet}
-                className={`theme-input ${isUsernameSet ? 'opacity-60 cursor-not-allowed' : ''}`}
-                placeholder="Votre nom d'utilisateur"
-              />
-              {isUsernameSet && (
-                <p className="text-sm theme-text-secondary mt-1">
-                  Le nom d'utilisateur ne peut pas être modifié une fois défini
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium theme-text mb-3">
-                Avatar
-              </label>
-
               {/* Prévisualisation de l'avatar sélectionné */}
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-4">
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#ff9900] shadow-lg">
                   <Image
                     src={getAvatarUrl(selectedAvatar)}
@@ -611,6 +613,28 @@ function ProfileContent() {
                   />
                 </div>
               </div>
+
+              {/* Nom d'utilisateur sous l'avatar */}
+              <div className="text-center mb-6">
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isUsernameSet}
+                  maxLength={14}
+                  className={`theme-input max-w-[200px] mx-auto text-center ${isUsernameSet ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  placeholder="Votre pseudo"
+                />
+                {isUsernameSet && (
+                  <p className="text-sm theme-text-secondary mt-1">
+                    Le nom d'utilisateur ne peut pas être modifié une fois défini
+                  </p>
+                )}
+              </div>
+
+              {/* Séparateur */}
+              <div className="border-t-2 border-[#ff9900] mb-6"></div>
 
               <p className="text-sm theme-text-secondary text-center mb-4">
                 Choisissez votre avatar :
@@ -691,57 +715,43 @@ function ProfileContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium theme-text mb-2">
+              <label className="block text-sm font-medium theme-text mb-2 text-center">
                 Thème par défaut
               </label>
-              <div className="flex gap-4">
+              <div className="flex items-center justify-center gap-4">
+                {/* Icône soleil */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className={`w-5 h-5 transition-colors ${theme === 'light' ? 'text-[#ff9900]' : 'theme-text-secondary'}`}
+                >
+                  <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" />
+                </svg>
+
+                {/* Toggle Switch */}
                 <button
-                  onClick={() => handleThemeChange('light')}
-                  className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                    theme === 'light'
-                      ? 'border-[#ff9900] bg-[#ff9900]/10'
-                      : 'theme-border'
+                  onClick={() => handleThemeChange(theme === 'light' ? 'dark' : 'light')}
+                  className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
+                    theme === 'dark' ? 'bg-[#ff9900]' : 'bg-gray-300'
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z"
-                      />
-                    </svg>
-                    <span className="theme-text font-medium">Clair</span>
-                  </div>
+                  <span
+                    className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                      theme === 'dark' ? 'translate-x-7' : 'translate-x-0'
+                    }`}
+                  />
                 </button>
 
-                <button
-                  onClick={() => handleThemeChange('dark')}
-                  className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                    theme === 'dark'
-                      ? 'border-[#ff9900] bg-[#ff9900]/10'
-                      : 'theme-border'
-                  }`}
+                {/* Icône lune */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className={`w-5 h-5 transition-colors ${theme === 'dark' ? 'text-[#ff9900]' : 'theme-text-secondary'}`}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="theme-text font-medium">Sombre</span>
-                  </div>
-                </button>
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
 
@@ -780,24 +790,24 @@ function ProfileContent() {
                   <div>
                     <h3 className="text-lg font-semibold theme-text mb-4">Mes tournois</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 border border-blue-200 dark:border-blue-700">
-                        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      <div className="stat-card border-blue-200">
+                        <div className="stat-number text-blue-600">
                           {stats.totalTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
                           Tournois total
                         </div>
                       </div>
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border border-green-200 dark:border-green-700">
-                        <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                      <div className="stat-card border-green-200">
+                        <div className="stat-number text-green-600">
                           {stats.activeTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
                           En cours
                         </div>
                       </div>
-                      <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700">
-                        <div className="text-3xl font-bold text-gray-600 dark:text-gray-400">
+                      <div className="stat-card border-gray-200">
+                        <div className="stat-number text-gray-600">
                           {stats.finishedTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
@@ -815,8 +825,8 @@ function ProfileContent() {
                     <h3 className="text-lg font-semibold theme-text mb-4">Mes pronostics</h3>
                     {stats.totalFinishedMatches > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border border-orange-200 dark:border-orange-700">
-                          <div className="text-3xl font-bold theme-accent-text-always">
+                        <div className="stat-card border-orange-200 bg-orange-50">
+                          <div className="stat-number text-orange-600">
                             {stats.correctResultsPercentage}%
                           </div>
                           <div className="text-sm theme-text-secondary mt-1">
@@ -826,8 +836,8 @@ function ProfileContent() {
                             Sur {stats.totalFinishedMatches} matchs terminés
                           </div>
                         </div>
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 border border-yellow-200 dark:border-yellow-700">
-                          <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                        <div className="stat-card border-yellow-200 bg-yellow-50">
+                          <div className="stat-number text-yellow-600">
                             {stats.exactScoresPercentage}%
                           </div>
                           <div className="text-sm theme-text-secondary mt-1">
@@ -853,11 +863,11 @@ function ProfileContent() {
                     <h3 className="text-lg font-semibold theme-text mb-4">Mes performances</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {stats.finishedTournaments > 0 ? (
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/30 dark:to-amber-800/30 border-2 border-yellow-400 dark:border-yellow-600">
-                          <div className="flex items-center gap-3">
+                        <div className="stat-card border-2 border-yellow-400 bg-yellow-50">
+                          <div className="flex flex-col items-center gap-2">
                             <div className="text-4xl">🏆</div>
                             <div>
-                              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                              <div className="stat-number text-yellow-600">
                                 {stats.firstPlacesFinal}
                               </div>
                               <div className="text-sm theme-text-secondary mt-1">
@@ -867,7 +877,7 @@ function ProfileContent() {
                           </div>
                         </div>
                       ) : (
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700">
+                        <div className="stat-card border-gray-200 bg-gray-50">
                           <div className="text-center py-4 theme-text-secondary text-sm">
                             Aucun tournoi terminé
                           </div>
@@ -875,11 +885,11 @@ function ProfileContent() {
                       )}
 
                       {stats.firstPlacesProvisional > 0 ? (
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 border border-purple-200 dark:border-purple-700">
-                          <div className="flex items-center gap-3">
+                        <div className="stat-card border-purple-200 bg-purple-50">
+                          <div className="flex flex-col items-center gap-2">
                             <div className="text-4xl">⭐</div>
                             <div>
-                              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                              <div className="stat-number text-purple-600">
                                 {stats.firstPlacesProvisional}
                               </div>
                               <div className="text-sm theme-text-secondary mt-1">
@@ -889,7 +899,7 @@ function ProfileContent() {
                           </div>
                         </div>
                       ) : (
-                        <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/30 border border-gray-200 dark:border-gray-700">
+                        <div className="stat-card border-gray-200 bg-gray-50">
                           <div className="text-center py-4 theme-text-secondary text-sm">
                             Aucune première place provisoire
                           </div>
@@ -906,6 +916,45 @@ function ProfileContent() {
           {/* Contenu de l'onglet Trophées */}
           {activeTab === 'trophees' && (
             <div className="space-y-6">
+              {/* Bouton Actualiser */}
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <p className="text-sm theme-text-secondary">
+                  Cliquez sur "Actualiser" pour vérifier vos nouveaux trophées
+                </p>
+                <button
+                  onClick={recalculateTrophies}
+                  disabled={recalculatingTrophies}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#ff9900] hover:bg-[#e68a00] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-[#0f172a] transition-all"
+                >
+                  {recalculatingTrophies ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[#0f172a] border-t-transparent rounded-full animate-spin"></div>
+                      Actualisation...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Actualiser
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Message de résultat */}
+              {lastRefreshMessage && (
+                <div className={`p-3 rounded-lg text-sm text-center ${
+                  lastRefreshMessage.includes('débloqué')
+                    ? 'bg-green-100 text-green-800'
+                    : lastRefreshMessage.includes('Erreur')
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {lastRefreshMessage}
+                </div>
+              )}
+
               {loadingTrophies ? (
                 <div className="text-center py-12">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#ff9900] border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] mb-4"></div>
@@ -928,16 +977,7 @@ function ProfileContent() {
                       return (
                         <div
                           key={trophy.id}
-                          style={{
-                            background: theme === 'dark' ? '#0f172a' : trophy.is_new
-                              ? 'linear-gradient(to bottom right, rgb(254, 252, 232), rgb(254, 243, 199))'
-                              : 'linear-gradient(to bottom right, rgb(249, 250, 251), rgb(243, 244, 246))'
-                          }}
-                          className={`relative p-6 rounded-lg border-2 transition-all ${
-                            trophy.is_new
-                              ? 'border-yellow-400 dark:border-yellow-600 shadow-lg'
-                              : 'border-gray-200 dark:border-gray-700'
-                          }`}
+                          className={`trophy-card relative ${trophy.is_new ? 'shadow-lg bg-gradient-to-br from-yellow-50 to-amber-100' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}
                         >
                           {/* Badge "NOUVEAU" */}
                           {trophy.is_new && (
@@ -958,7 +998,7 @@ function ProfileContent() {
 
                             {/* Informations du trophée */}
                             <div className="flex-1">
-                              <h4 className="text-lg font-bold theme-text mb-1">
+                              <h4 className="trophy-title">
                                 {trophyInfo.name}
                               </h4>
                               <p className="text-sm theme-text-secondary mb-2">
@@ -989,10 +1029,7 @@ function ProfileContent() {
                           return (
                             <div
                               key={trophyType}
-                              style={{
-                                background: theme === 'dark' ? '#0f172a' : undefined
-                              }}
-                              className="relative p-6 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 opacity-50"
+                              className="trophy-card-locked bg-gray-50"
                             >
                               <div className="flex items-center gap-4">
                                 {/* Image du trophée en noir et blanc */}

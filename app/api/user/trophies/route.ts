@@ -1,12 +1,49 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-// Force recompilation - Fixed trophy logic v2.0
+// GET - Lecture simple des trophées depuis la BDD (rapide)
 export async function GET(request: Request) {
   try {
     const supabase = await createClient()
 
-    // Vérifier l'authentification
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Non authentifié' },
+        { status: 401 }
+      )
+    }
+
+    // Récupérer simplement les trophées stockés en BDD
+    const { data: userTrophies } = await supabase
+      .from('user_trophies')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('unlocked_at', { ascending: false })
+
+    const hasNewTrophies = userTrophies?.some(t => t.is_new) || false
+
+    return NextResponse.json({
+      success: true,
+      trophies: userTrophies || [],
+      hasNewTrophies
+    })
+
+  } catch (error: any) {
+    console.error('Error fetching user trophies:', error)
+    return NextResponse.json(
+      { success: false, error: 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Recalcul complet des trophées (à la demande)
+export async function PUT(request: Request) {
+  try {
+    const supabase = await createClient()
+
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -103,13 +140,6 @@ export async function GET(request: Request) {
             if (userPoints[user.id] === maxPoints) {
               // Vérifier qu'il est SEUL en tête (pas d'égalité)
               const usersWithMaxPoints = Object.values(userPoints).filter(pts => pts === maxPoints).length
-
-              console.log('[KING OF DAY CHECK]', {
-                userId: user.id,
-                maxPoints,
-                usersWithMaxPoints,
-                shouldAward: maxPoints > 0 || usersWithMaxPoints === 1
-              })
 
               // Délivrer le trophée UNIQUEMENT si:
               // - maxPoints > 0 OU
@@ -481,18 +511,26 @@ export async function GET(request: Request) {
       }
     }
 
+    let newTrophiesCount = 0
     for (const trophy of Object.values(uniqueTrophies)) {
-      await supabase
+      const { data: existing } = await supabase
         .from('user_trophies')
-        .upsert({
-          user_id: user.id,
-          trophy_type: trophy.type,
-          unlocked_at: trophy.unlocked_at,
-          is_new: true
-        }, {
-          onConflict: 'user_id,trophy_type',
-          ignoreDuplicates: true
-        })
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('trophy_type', trophy.type)
+        .single()
+
+      if (!existing) {
+        await supabase
+          .from('user_trophies')
+          .insert({
+            user_id: user.id,
+            trophy_type: trophy.type,
+            unlocked_at: trophy.unlocked_at,
+            is_new: true
+          })
+        newTrophiesCount++
+      }
     }
 
     // Récupérer tous les trophées de l'utilisateur
@@ -507,11 +545,12 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       trophies: userTrophies || [],
-      hasNewTrophies
+      hasNewTrophies,
+      newTrophiesUnlocked: newTrophiesCount
     })
 
   } catch (error: any) {
-    console.error('Error fetching user trophies:', error)
+    console.error('Error recalculating user trophies:', error)
     return NextResponse.json(
       { success: false, error: 'Erreur serveur' },
       { status: 500 }
@@ -519,7 +558,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Marquer les trophées comme vus
+// POST - Marquer les trophées comme vus
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()

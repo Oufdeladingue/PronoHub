@@ -1,11 +1,13 @@
-import { loadStripe, Stripe } from '@stripe/stripe-js'
+// Stripe est désactivé temporairement - à réactiver quand Stripe sera configuré
+// import { loadStripe, Stripe } from '@stripe/stripe-js'
 
-let stripePromise: Promise<Stripe | null>
+// let stripePromise: Promise<Stripe | null>
 
-// Instance Stripe pour le client (navigateur)
+// Instance Stripe pour le client (navigateur) - désactivé temporairement
 export const getStripe = () => {
-  if (!stripePromise) {
-    stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
-  }
-  return stripePromise
+  // if (!stripePromise) {
+  //   stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+  // }
+  // return stripePromise
+  return Promise.resolve(null)
 }

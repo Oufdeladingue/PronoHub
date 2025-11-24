@@ -83,8 +83,8 @@ export default function NavBarMobile({
               </div>
             </div>
 
-            {/* COLONNE DROITE - Avatar + Menu */}
-            <div className="flex flex-col items-center gap-1">
+            {/* COLONNE DROITE - Avatar + Menu (côte à côte) */}
+            <div className="flex flex-row items-center gap-2">
               {/* Avatar */}
               <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
                 <Image
@@ -152,27 +152,27 @@ export default function NavBarMobile({
   // Rendu pour le contexte App ou Admin (version mobile simplifiée)
   return (
     <nav className="theme-nav md:hidden">
-      <div className="max-w-7xl mx-auto px-2 py-1">
-        {/* Navigation layout - 3 colonnes sur mobile */}
-        <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-          {/* COLONNE GAUCHE - Theme Toggle */}
-          <div className="flex flex-col items-start">
+      <div className="max-w-7xl mx-auto px-2">
+        {/* Navigation layout avec logo centré absolument */}
+        <div className="relative flex items-center justify-between min-h-[80px]">
+          {/* GAUCHE - Theme Toggle */}
+          <div className="flex items-center z-10">
             <ThemeToggle />
           </div>
 
-          {/* COLONNE CENTRALE - Logo centré et agrandi */}
-          <div className="flex justify-center">
+          {/* CENTRE - Logo centré absolument sur l'écran */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link href="/dashboard">
               <img
                 src="/images/logo.svg"
                 alt="PronoHub"
-                className="w-24 h-24 cursor-pointer hover:opacity-80 transition"
+                className="w-20 h-20 cursor-pointer hover:opacity-80 transition"
               />
             </Link>
           </div>
 
-          {/* COLONNE DROITE - Avatar + Menu hamburger */}
-          <div className="flex flex-col items-center gap-1">
+          {/* DROITE - Avatar + Menu hamburger (côte à côte) */}
+          <div className="flex flex-row items-center gap-2 z-10">
             <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 theme-accent-border">
               <Image
                 src={getAvatarUrl(userAvatar)}

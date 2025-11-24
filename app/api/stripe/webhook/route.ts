@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe, isStripeEnabled } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
-import Stripe from 'stripe'
+// import Stripe from 'stripe' // Désactivé temporairement - à réactiver quand Stripe sera configuré
 
 // Client Supabase avec service role pour les webhooks
 const supabaseAdmin = createClient(
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     )
   }
 
-  let event: Stripe.Event
+  let event: any // Stripe.Event - type désactivé temporairement
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -49,20 +49,20 @@ export async function POST(request: Request) {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)
+        await handleCheckoutCompleted(event.data.object)
         break
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdate(event.data.object as Stripe.Subscription)
+        await handleSubscriptionUpdate(event.data.object)
         break
 
       case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription)
+        await handleSubscriptionDeleted(event.data.object)
         break
 
       case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object as Stripe.Invoice)
+        await handlePaymentFailed(event.data.object)
         break
 
       default:
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 }
 
 // Handler: Checkout session completed
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+async function handleCheckoutCompleted(session: any) {
   const userId = session.metadata?.user_id
   const type = session.metadata?.type
 
@@ -122,11 +122,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 // Handler: Subscription created or updated
-async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdate(subscription: any) {
   const customerId = subscription.customer as string
 
   // Récupérer le customer pour avoir l'user_id
-  const customer = await stripe!.customers.retrieve(customerId) as Stripe.Customer
+  const customer = await stripe!.customers.retrieve(customerId) as any
   const userId = customer.metadata?.supabase_user_id
 
   if (!userId) {
@@ -157,7 +157,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 }
 
 // Handler: Subscription deleted/cancelled
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+async function handleSubscriptionDeleted(subscription: any) {
   await supabaseAdmin
     .from('user_subscriptions')
     .update({
@@ -171,7 +171,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 // Handler: Payment failed
-async function handlePaymentFailed(invoice: Stripe.Invoice) {
+async function handlePaymentFailed(invoice: any) {
   const subscriptionId = (invoice as any).subscription as string
 
   if (subscriptionId) {

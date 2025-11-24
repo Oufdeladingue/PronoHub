@@ -1,15 +1,20 @@
-import Stripe from 'stripe'
+// Stripe est désactivé en développement
+// Décommenter l'import quand Stripe sera configuré
+// import Stripe from 'stripe'
 
 // Vérifier que la clé secrète est définie
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
-// Instance Stripe pour le serveur (null si pas de clé)
-export const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, {
-      apiVersion: '2025-11-17.clover',
-      typescript: true,
-    })
-  : null
+// Instance Stripe pour le serveur (null si pas de clé ou si Stripe désactivé)
+// Pour activer Stripe : npm install stripe, décommenter l'import ci-dessus,
+// et remplacer null par l'instance Stripe
+export const stripe: any = null
+// export const stripe = stripeSecretKey
+//   ? new Stripe(stripeSecretKey, {
+//       apiVersion: '2025-11-17.clover',
+//       typescript: true,
+//     })
+//   : null
 
 // Helper pour vérifier si Stripe est configuré
 export const isStripeEnabled = () => !!stripe

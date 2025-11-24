@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Building2, Send, Check, Loader2 } from 'lucide-react'
+import Footer from '@/components/Footer'
 
 function ContactForm() {
   const searchParams = useSearchParams()
@@ -39,45 +40,49 @@ function ContactForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-10 h-10 text-green-500" />
+      <div className="min-h-screen flex flex-col">
+        <div className="flex-1 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-500" />
+            </div>
+            <h1 className="text-2xl font-bold mb-4">Message envoyé !</h1>
+            <p className="text-gray-400 mb-8">
+              Merci pour votre message. Notre équipe vous recontactera dans les plus brefs délais.
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="px-6 py-3 bg-orange-500 hover:bg-orange-400 rounded-lg font-medium transition-colors"
+            >
+              Retour à l'accueil
+            </button>
           </div>
-          <h1 className="text-2xl font-bold mb-4">Message envoye !</h1>
-          <p className="text-gray-400 mb-8">
-            Merci pour votre message. Notre equipe vous recontactera dans les plus brefs delais.
-          </p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-6 py-3 bg-orange-500 hover:bg-orange-400 rounded-lg font-medium transition-colors"
-          >
-            Retour a l'accueil
-          </button>
         </div>
+        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white py-16 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          {type === 'enterprise' && (
-            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-8 h-8 text-purple-500" />
-            </div>
-          )}
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            {type === 'enterprise' ? 'Offre Entreprise' : 'Contactez-nous'}
-          </h1>
-          <p className="text-gray-400 max-w-xl mx-auto">
-            {type === 'enterprise'
-              ? 'Organisez un tournoi a grande echelle avec votre branding personnalise. Remplissez le formulaire et notre equipe vous contactera.'
-              : 'Une question, une suggestion ? N\'hesitez pas a nous contacter.'}
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1 bg-gradient-to-b from-gray-900 to-gray-800 text-white py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            {type === 'enterprise' && (
+              <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-purple-500" />
+              </div>
+            )}
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              {type === 'enterprise' ? 'Offre Entreprise' : 'Contactez-nous'}
+            </h1>
+            <p className="text-gray-400 max-w-xl mx-auto">
+              {type === 'enterprise'
+                ? 'Organisez un tournoi à grande échelle avec votre branding personnalisé. Remplissez le formulaire et notre équipe vous contactera.'
+                : 'Une question, une suggestion ? N\'hésitez pas à nous contacter.'}
+            </p>
+          </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -121,7 +126,7 @@ function ContactForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Nombre de participants estime</label>
+                <label className="block text-sm font-medium mb-2">Nombre de participants estimé</label>
                 <select
                   value={formData.participants}
                   onChange={(e) => setFormData({ ...formData, participants: e.target.value })}
@@ -146,7 +151,7 @@ function ContactForm() {
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition resize-none"
               placeholder={type === 'enterprise'
-                ? 'Decrivez votre projet : competition visee, periode, besoins specifiques...'
+                ? 'Décrivez votre projet : compétition visée, période, besoins spécifiques...'
                 : 'Votre message...'}
             />
           </div>
@@ -173,25 +178,27 @@ function ContactForm() {
             <h2 className="text-xl font-bold mb-6 text-center">L'offre Entreprise inclut</h2>
             <div className="grid md:grid-cols-2 gap-6">
               <FeatureItem
-                title="Jusqu'a 300 participants"
-                description="Gerez un grand nombre de collegues ou clients"
+                title="Jusqu'à 300 participants"
+                description="Gérez un grand nombre de collègues ou clients"
               />
               <FeatureItem
-                title="Branding personnalise"
+                title="Branding personnalisé"
                 description="Votre logo et vos couleurs sur le tournoi"
               />
               <FeatureItem
-                title="Competition dediee"
-                description="Choisissez votre competition (Ligue 1, Euro, etc.)"
+                title="Compétition dédiée"
+                description="Choisissez votre compétition (Ligue 1, Euro, etc.)"
               />
               <FeatureItem
                 title="Support prioritaire"
-                description="Une equipe dediee pour vous accompagner"
+                description="Une équipe dédiée pour vous accompagner"
               />
             </div>
           </div>
         )}
+        </div>
       </div>
+      <Footer />
     </div>
   )
 }

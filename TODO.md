@@ -136,7 +136,41 @@ Liste des fonctionnalités et améliorations à développer pour PronoHub.
 
 ---
 
+## 💳 Paiement (Stripe)
+
+- [ ] **Configurer Stripe pour la mise en ligne**
+  - Actuellement Stripe est désactivé pour le développement local
+  - Étapes pour activer Stripe :
+    1. Créer un compte Stripe et récupérer les clés API
+    2. Installer les dépendances : `npm install stripe @stripe/stripe-js`
+    3. Configurer les variables d'environnement :
+       - `STRIPE_SECRET_KEY`
+       - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+       - `STRIPE_WEBHOOK_SECRET`
+       - `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_ONESHOT`, `STRIPE_PRICE_ENTERPRISE`
+    4. Réactiver les imports dans les fichiers :
+       - `lib/stripe.ts` : décommenter l'import Stripe et l'instance
+       - `lib/stripe-client.ts` : décommenter loadStripe
+       - `app/api/stripe/webhook/route.ts` : décommenter l'import Stripe et restaurer les types
+    5. Créer les produits et prix dans le dashboard Stripe
+    6. Configurer le webhook Stripe pour pointer vers `/api/stripe/webhook`
+
+---
+
 ## 🔐 Sécurité & Performance
+
+- [ ] **Webhook automatique pour les trophées**
+  - Actuellement le recalcul des trophées se fait à la demande (bouton "Actualiser")
+  - Créer un webhook/trigger Supabase qui recalcule automatiquement après chaque fin de match
+  - Implémentation suggérée :
+    1. Créer une Supabase Edge Function pour le recalcul des trophées
+    2. Créer un trigger PostgreSQL sur `imported_matches` (UPDATE sur status = 'FINISHED')
+    3. Le trigger appelle la Edge Function qui recalcule pour tous les participants concernés
+  - Cela permettrait aux utilisateurs de voir leurs trophées sans action manuelle
+
+- [ ] **Cache des statistiques utilisateur**
+  - Même approche que les trophées : stocker en BDD plutôt que recalculer
+  - Recalculer automatiquement après chaque fin de match via webhook
 
 - [ ] **Optimisation appel API football-data**
   - Cache des résultats (Redis ou Supabase)

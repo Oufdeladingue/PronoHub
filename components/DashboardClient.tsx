@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
+import Footer from '@/components/Footer'
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
 function formatMatchDate(dateString: string) {
@@ -80,15 +81,15 @@ function DashboardContent({
   }
 
   return (
-    <div className="min-h-screen theme-bg">
-      <main className="max-w-7xl mx-auto px-4 py-8">
+    <div className="theme-bg flex flex-col flex-1">
+      <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
         {/* Banniere Upgrade */}
         <UpgradeBanner />
 
         {/* Section Mes tournois en premier */}
         <div className="theme-card mb-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap">Mes tournois</h2>
+            <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">Mes tournois</h2>
             <p className="text-sm theme-text-secondary mt-1">
               Participez jusqu'à {maxTournaments} tournois en version gratuite
             </p>
@@ -282,7 +283,7 @@ function DashboardContent({
         {/* Actions : Créer et Rejoindre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
-            <h2 className="text-xl font-bold mb-4 theme-accent-text">Créer un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Créer un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Lancez votre propre tournoi de pronostics et invitez vos amis à participer.
             </p>
@@ -301,7 +302,7 @@ function DashboardContent({
           </div>
 
           <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
-            <h2 className="text-xl font-bold mb-4 theme-accent-text">Rejoindre un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Rejoindre un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Vous avez reçu un code d'invitation ? Rejoignez un tournoi existant.
             </p>
@@ -359,6 +360,7 @@ function DashboardContent({
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

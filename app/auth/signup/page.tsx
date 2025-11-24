@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import Footer from '@/components/Footer'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
@@ -148,15 +149,16 @@ export default function SignUpPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center relative overflow-hidden"
-      style={{
-        backgroundImage: "url('/images/room-bg.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
-      }}
-    >
+    <div className="min-h-screen flex flex-col">
+      <div
+        className="flex-1 flex items-center justify-center relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/images/room-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      >
       {/* Radial gradient overlay */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -352,6 +354,8 @@ export default function SignUpPage() {
           </Link>
         </p>
       </div>
+      </div>
+      <Footer variant="minimal" />
     </div>
   )
 }
