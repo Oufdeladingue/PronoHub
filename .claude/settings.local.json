@@ -24,7 +24,8 @@
       "Bash(C:Userskochrscoopshimssupabase.exe --version)",
       "Bash(timeout:*)",
       "Bash(git grep:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

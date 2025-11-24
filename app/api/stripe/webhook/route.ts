@@ -164,7 +164,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 // Handler: Payment failed
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string
+  const subscriptionId = (invoice as any).subscription as string
 
   if (subscriptionId) {
     await supabaseAdmin
