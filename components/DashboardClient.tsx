@@ -201,34 +201,34 @@ function DashboardContent({
                       </div>
                     </div>
 
-                    {/* Version desktop - Layout horizontal (inchangé) */}
-                    <div className="hidden md:flex md:items-center md:gap-4 md:w-full relative z-10">
+                    {/* Version desktop - Layout horizontal */}
+                    <div className="hidden md:flex md:items-center md:gap-6 md:w-full relative z-10">
                       {/* Logo de la compétition */}
                       <div>
                         {tournament.emblem ? (
-                          <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
+                          <div className="w-20 h-20 rounded-xl flex items-center justify-center bg-white border-2 theme-accent-border">
                             <img
                               src={tournament.emblem}
                               alt={tournament.competition_name}
-                              className="w-10 h-10 object-contain"
+                              className="w-16 h-16 object-contain"
                             />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">N/A</span>
+                          <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center">
+                            <span className="text-gray-400 text-sm">N/A</span>
                           </div>
                         )}
                       </div>
 
                       {/* Informations du tournoi */}
                       <div className="flex-1">
-                        <h3 className="font-semibold theme-text transition-colors group-hover:!text-[#ff9900]">
+                        <h3 className="font-semibold theme-text text-xl transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
-                            <span className="text-yellow-600 font-normal"> (capitaine)</span>
+                            <span className="text-yellow-600 font-normal text-base"> (capitaine)</span>
                           )}
                         </h3>
-                        <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>
+                        <p className="text-base theme-text-secondary">{tournament.competition_name}</p>
                       </div>
 
                       {/* Statut et informations */}

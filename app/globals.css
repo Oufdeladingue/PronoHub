@@ -800,3 +800,21 @@ input:-moz-autofill:focus {
     transform: rotate(360deg);
   }
 }
+
+/* Filtre pour les icônes du footer qui s'adaptent au thème */
+.theme-icon {
+  filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%);
+  transition: filter 0.2s ease;
+}
+
+:root[data-theme="dark"] .theme-icon {
+  filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%) !important;
+}
+
+.theme-icon:hover {
+  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%);
+}
+
+:root[data-theme="dark"] .theme-icon:hover {
+  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+}

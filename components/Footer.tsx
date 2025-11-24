@@ -52,30 +52,54 @@ export default function Footer({ variant = 'full' }: FooterProps) {
           </div>
 
           {/* Liens */}
-          <nav className="flex items-center gap-4 text-xs">
+          <nav className="flex items-center gap-4 md:gap-4 gap-3 text-xs">
             <Link
               href="/about"
-              className="text-gray-400 hover:text-[#ff9900] transition"
+              className="text-gray-400 hover:text-[#ff9900] transition flex items-center"
+              title="À propos"
             >
-              À propos
+              <span className="hidden md:inline">À propos</span>
+              <img
+                src="/images/icons/propos.svg"
+                alt="À propos"
+                className="w-5 h-5 md:hidden theme-icon"
+              />
             </Link>
             <Link
               href="/cgv"
-              className="text-gray-400 hover:text-[#ff9900] transition"
+              className="text-gray-400 hover:text-[#ff9900] transition flex items-center"
+              title="CGU"
             >
-              CGU
+              <span className="hidden md:inline">CGU</span>
+              <img
+                src="/images/icons/cgu.svg"
+                alt="CGU"
+                className="w-5 h-5 md:hidden theme-icon"
+              />
             </Link>
             <Link
               href="/privacy"
-              className="text-gray-400 hover:text-[#ff9900] transition"
+              className="text-gray-400 hover:text-[#ff9900] transition flex items-center"
+              title="Confidentialité"
             >
-              Confidentialité
+              <span className="hidden md:inline">Confidentialité</span>
+              <img
+                src="/images/icons/conf.svg"
+                alt="Confidentialité"
+                className="w-5 h-5 md:hidden theme-icon"
+              />
             </Link>
             <Link
               href="/contact"
-              className="text-gray-400 hover:text-[#ff9900] transition"
+              className="text-gray-400 hover:text-[#ff9900] transition flex items-center"
+              title="Contact"
             >
-              Contact
+              <span className="hidden md:inline">Contact</span>
+              <img
+                src="/images/icons/contact.svg"
+                alt="Contact"
+                className="w-5 h-5 md:hidden theme-icon"
+              />
             </Link>
           </nav>
         </div>
