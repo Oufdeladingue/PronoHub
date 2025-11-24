@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
@@ -7,8 +7,12 @@ import Link from 'next/link'
 import { getAdminUrl } from '@/lib/admin-path'
 
 export default async function AdminPage() {
+  // Client normal pour l'authentification
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Client admin pour les requêtes avec bypass RLS
+  const adminClient = createAdminClient()
 
   if (!user) redirect('/auth/login')
 
@@ -23,44 +27,45 @@ export default async function AdminPage() {
   }
 
   // Récupérer le nombre total d'utilisateurs (excluant les super admins)
-  const { count: totalUsers } = await supabase
+  const { count: totalUsers } = await adminClient
     .from('profiles')
     .select('*', { count: 'exact', head: true })
     .neq('role', 'super_admin')
 
   // Récupérer le nombre total de tournois créés
-  const { count: totalTournaments } = await supabase
+  const { count: totalTournaments } = await adminClient
     .from('tournaments')
     .select('*', { count: 'exact', head: true })
 
-  // Récupérer le nombre total de pronostics effectués (incluant les pronostics par défaut)
-  const { count: totalPredictions, error: predictionsError } = await supabase
+  // Récupérer le nombre total de pronostics effectués (UNIQUEMENT les pronostics saisis, pas les par défaut)
+  const { count: totalPredictions, error: predictionsError } = await adminClient
     .from('predictions')
     .select('*', { count: 'exact', head: true })
+    .eq('is_default_prediction', false)
 
   // Debug log pour vérifier
   if (predictionsError) {
     console.error('[ADMIN] Erreur comptage pronostics:', predictionsError)
   }
-  console.log('[ADMIN] Nombre total de pronostics:', totalPredictions)
+  console.log('[ADMIN] Nombre de pronostics saisis (hors défaut):', totalPredictions)
 
   // Récupérer les statistiques des 7 derniers jours
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  const { count: newUsersThisWeek } = await supabase
+  const { count: newUsersThisWeek } = await adminClient
     .from('profiles')
     .select('*', { count: 'exact', head: true })
     .gte('created_at', sevenDaysAgo.toISOString())
     .neq('role', 'super_admin')
 
-  const { count: newTournamentsThisWeek } = await supabase
+  const { count: newTournamentsThisWeek } = await adminClient
     .from('tournaments')
     .select('*', { count: 'exact', head: true })
     .gte('created_at', sevenDaysAgo.toISOString())
 
   // Récupérer les tournois actifs
-  const { count: activeTournaments } = await supabase
+  const { count: activeTournaments } = await adminClient
     .from('tournaments')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'active')

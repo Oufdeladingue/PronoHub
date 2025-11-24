@@ -1,13 +1,19 @@
--- Migration pour ajouter la colonne is_default_prediction
--- Cette colonne permet de différencier les pronostics réels des pronostics par défaut (0-0)
+-- Ajouter la colonne is_default_prediction à la table predictions
+-- Cette colonne permet de distinguer les pronostics saisis par l'utilisateur
+-- des pronostics créés automatiquement avec le score 0-0
 
--- 1. Ajouter la colonne is_default_prediction à la table predictions
-ALTER TABLE predictions
-ADD COLUMN IF NOT EXISTS is_default_prediction BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.predictions
+ADD COLUMN IF NOT EXISTS is_default_prediction BOOLEAN DEFAULT false;
 
--- 2. Créer un index pour améliorer les performances des requêtes
+-- Mettre à jour les pronostics existants avec 0-0 comme étant des pronostics par défaut
+UPDATE public.predictions
+SET is_default_prediction = true
+WHERE predicted_home_score = 0 AND predicted_away_score = 0;
+
+-- Créer un index pour améliorer les performances des requêtes
 CREATE INDEX IF NOT EXISTS idx_predictions_is_default
-ON predictions(is_default_prediction);
+ON public.predictions(is_default_prediction);
 
--- 3. Ajouter un commentaire pour la documentation
-COMMENT ON COLUMN predictions.is_default_prediction IS 'Indique si ce pronostic est un pronostic par défaut (0-0) non saisi par l''utilisateur. Les pronostics par défaut ne rapportent qu''1 point maximum en cas de match nul.';
+-- Commentaire pour documentation
+COMMENT ON COLUMN public.predictions.is_default_prediction IS
+'Indique si le pronostic a été créé automatiquement (true) ou saisi manuellement par l''utilisateur (false)';
