@@ -322,7 +322,7 @@ function ProfileContent() {
     }
   }
 
-  const isUsernameSet = initialUsername && initialUsername.trim().length > 0
+  const isUsernameSet = Boolean(initialUsername && initialUsername.trim().length > 0)
 
   if (loading) {
     return (
