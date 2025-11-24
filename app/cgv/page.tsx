@@ -70,7 +70,7 @@ export default function CGVPage() {
               PronoHub propose plusieurs formules :
             </p>
             <ul className="list-disc list-inside text-gray-300 mt-2 space-y-1">
-              <li><strong className="text-white">Gratuit :</strong> Accès limité avec 2 tournois maximum et 10 joueurs par tournoi</li>
+              <li><strong className="text-white">Gratuit :</strong> Accès limité avec 3 tournois maximum et 10 joueurs par tournoi</li>
               <li><strong className="text-white">One-Shot :</strong> Paiement unique pour un tournoi premium</li>
               <li><strong className="text-white">Joueur-clé :</strong> Abonnement mensuel ou annuel avec fonctionnalités étendues</li>
               <li><strong className="text-white">Entreprise :</strong> Solution sur mesure pour les grandes organisations</li>
