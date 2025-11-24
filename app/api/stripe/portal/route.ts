@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe, getBaseUrl } from '@/lib/stripe'
+import { stripe, getBaseUrl, isStripeEnabled } from '@/lib/stripe'
 
 // GET /api/stripe/portal
 // Redirige vers le portail client Stripe pour gérer l'abonnement
 export async function GET() {
   try {
+    // Vérifier si Stripe est configuré
+    if (!isStripeEnabled() || !stripe) {
+      return NextResponse.json(
+        { success: false, error: 'Stripe n\'est pas configuré' },
+        { status: 503 }
+      )
+    }
+
     const supabase = await createClient()
 
     // Vérifier l'authentification

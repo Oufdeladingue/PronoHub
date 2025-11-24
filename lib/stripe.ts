@@ -1,15 +1,18 @@
 import Stripe from 'stripe'
 
 // Vérifier que la clé secrète est définie
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn('Warning: STRIPE_SECRET_KEY is not defined')
-}
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY
 
-// Instance Stripe pour le serveur
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-11-17.clover',
-  typescript: true,
-})
+// Instance Stripe pour le serveur (null si pas de clé)
+export const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-11-17.clover',
+      typescript: true,
+    })
+  : null
+
+// Helper pour vérifier si Stripe est configuré
+export const isStripeEnabled = () => !!stripe
 
 // IDs des produits Stripe (à configurer dans le dashboard Stripe)
 export const STRIPE_PRICES = {

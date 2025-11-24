@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe, STRIPE_PRICES, getBaseUrl } from '@/lib/stripe'
+import { stripe, STRIPE_PRICES, getBaseUrl, isStripeEnabled } from '@/lib/stripe'
 import { SubscriptionType } from '@/types/monetization'
 
 type CheckoutType = 'subscription' | 'oneshot' | 'enterprise'
@@ -17,6 +17,14 @@ interface CheckoutRequest {
 
 export async function POST(request: Request) {
   try {
+    // Vérifier si Stripe est configuré
+    if (!isStripeEnabled() || !stripe) {
+      return NextResponse.json(
+        { success: false, error: 'Stripe n\'est pas configuré' },
+        { status: 503 }
+      )
+    }
+
     const supabase = await createClient()
 
     // Vérifier l'authentification

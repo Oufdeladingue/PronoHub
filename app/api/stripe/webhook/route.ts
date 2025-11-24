@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe } from '@/lib/stripe'
+import { stripe, isStripeEnabled } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
@@ -11,6 +11,14 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(request: Request) {
+  // Vérifier si Stripe est configuré
+  if (!isStripeEnabled() || !stripe) {
+    return NextResponse.json(
+      { error: 'Stripe n\'est pas configuré' },
+      { status: 503 }
+    )
+  }
+
   const body = await request.text()
   const headersList = await headers()
   const signature = headersList.get('stripe-signature')
@@ -118,7 +126,7 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
 
   // Récupérer le customer pour avoir l'user_id
-  const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer
+  const customer = await stripe!.customers.retrieve(customerId) as Stripe.Customer
   const userId = customer.metadata?.supabase_user_id
 
   if (!userId) {
