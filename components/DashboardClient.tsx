@@ -26,6 +26,7 @@ interface DashboardClientProps {
   currentTournamentCount: number
   maxTournaments: number
   tournaments: any[]
+  adminPath?: string
 }
 
 function DashboardContent({
@@ -35,7 +36,8 @@ function DashboardContent({
   hasReachedLimit,
   currentTournamentCount,
   maxTournaments,
-  tournaments
+  tournaments,
+  adminPath = 'admin'
 }: DashboardClientProps) {
   const router = useRouter()
   const [showJoinInput, setShowJoinInput] = useState(false)
@@ -87,7 +89,7 @@ function DashboardContent({
         {isSuper && (
           <div className="mb-6">
             <Link
-              href="/admin"
+              href={`/${adminPath}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg shadow-lg hover:shadow-xl hover:from-purple-700 hover:to-purple-800 transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

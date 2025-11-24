@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
+import { getAdminPath } from '@/lib/admin-path'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -196,6 +197,7 @@ export default async function DashboardPage() {
         currentTournamentCount={currentTournamentCount}
         maxTournaments={maxTournaments}
         tournaments={tournaments}
+        adminPath={getAdminPath()}
       />
     </div>
   )
