@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Building2, Send, Check, Loader2 } from 'lucide-react'
 
-export default function ContactPage() {
+function ContactForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const type = searchParams.get('type')
@@ -207,5 +207,21 @@ function FeatureItem({ title, description }: { title: string; description: strin
         <p className="text-sm text-gray-400">{description}</p>
       </div>
     </div>
+  )
+}
+
+function ContactLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+    </div>
+  )
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense fallback={<ContactLoading />}>
+      <ContactForm />
+    </Suspense>
   )
 }
