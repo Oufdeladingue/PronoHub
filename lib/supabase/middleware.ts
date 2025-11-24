@@ -34,7 +34,22 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Refresh session if expired - required for Server Components
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Redirection automatique pour les super admins
+  if (user && request.nextUrl.pathname === '/dashboard') {
+    // Récupérer le rôle de l'utilisateur
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    // Si super admin, rediriger vers /admin
+    if (profile?.role === 'super_admin') {
+      return NextResponse.redirect(new URL('/admin', request.url))
+    }
+  }
 
   return supabaseResponse
 }
