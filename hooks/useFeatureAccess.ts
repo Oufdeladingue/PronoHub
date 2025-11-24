@@ -49,9 +49,9 @@ export function useFeatureAccess(): FeatureAccessState {
   const hasFeature = useCallback((feature: Feature): boolean => {
     if (!tournamentType) {
       // Par defaut, verifier avec le type gratuit
-      return ACCOUNT_LIMITS.free.features.includes(feature)
+      return (ACCOUNT_LIMITS.free.features as readonly Feature[]).includes(feature)
     }
-    return ACCOUNT_LIMITS[tournamentType].features.includes(feature)
+    return (ACCOUNT_LIMITS[tournamentType].features as readonly Feature[]).includes(feature)
   }, [tournamentType])
 
   const getMaxPlayers = useCallback((): number => {
@@ -76,7 +76,7 @@ export function useFeatureAccess(): FeatureAccessState {
 export function useTournamentFeatures(tournamentType: TournamentType | null) {
   const hasFeature = useCallback((feature: Feature): boolean => {
     if (!tournamentType) return false
-    return ACCOUNT_LIMITS[tournamentType].features.includes(feature)
+    return (ACCOUNT_LIMITS[tournamentType].features as readonly Feature[]).includes(feature)
   }, [tournamentType])
 
   const getMaxPlayers = useCallback((): number => {

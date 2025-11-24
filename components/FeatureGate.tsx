@@ -24,7 +24,7 @@ export function FeatureGate({
   const router = useRouter()
 
   const hasAccess = tournamentType
-    ? ACCOUNT_LIMITS[tournamentType].features.includes(feature)
+    ? (ACCOUNT_LIMITS[tournamentType].features as readonly Feature[]).includes(feature)
     : false
 
   if (hasAccess) {

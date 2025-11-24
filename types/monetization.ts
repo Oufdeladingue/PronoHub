@@ -204,7 +204,7 @@ export function hasFeature(
   tournamentType: TournamentType,
   feature: Feature
 ): boolean {
-  return ACCOUNT_LIMITS[tournamentType].features.includes(feature);
+  return (ACCOUNT_LIMITS[tournamentType].features as readonly Feature[]).includes(feature);
 }
 
 export function getMaxPlayers(tournamentType: TournamentType): number {

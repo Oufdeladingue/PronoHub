@@ -430,7 +430,7 @@ export default function OppositionPage() {
 
       const data = await response.json()
       if (data.bonusMatches) {
-        const bonusIds = new Set(data.bonusMatches.map((bm: any) => bm.match_id))
+        const bonusIds = new Set<number>(data.bonusMatches.map((bm: any) => bm.match_id))
         setBonusMatchIds(bonusIds)
       }
     } catch (err) {
@@ -677,20 +677,22 @@ export default function OppositionPage() {
           let isExact = false
           let isCorrect = false
 
-          if (match.home_score !== null && match.away_score !== null) {
+          if (match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined) {
+            const homeScore = match.home_score
+            const awayScore = match.away_score
             // Gérer les pronostics par défaut
             if (prediction.is_default_prediction) {
               // Pronostic par défaut : seulement 1 point si match nul
-              const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+              const realOutcome = homeScore > awayScore ? 'H' : (homeScore < awayScore ? 'A' : 'D')
               if (realOutcome === 'D') {
                 points = 1
                 isCorrect = true
               }
             } else {
               // Pronostic normal
-              isExact = prediction.predicted_home_score === match.home_score && prediction.predicted_away_score === match.away_score
+              isExact = prediction.predicted_home_score === homeScore && prediction.predicted_away_score === awayScore
               const predOutcome = prediction.predicted_home_score > prediction.predicted_away_score ? 'H' : (prediction.predicted_home_score < prediction.predicted_away_score ? 'A' : 'D')
-              const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+              const realOutcome = homeScore > awayScore ? 'H' : (homeScore < awayScore ? 'A' : 'D')
               isCorrect = predOutcome === realOutcome
 
               if (isExact) {
