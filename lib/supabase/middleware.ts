@@ -37,7 +37,8 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Redirection automatique pour les super admins
-  if (user && request.nextUrl.pathname === '/dashboard') {
+  // Exception: Si le paramètre ?as=user est présent, permettre l'accès au dashboard
+  if (user && request.nextUrl.pathname === '/dashboard' && !request.nextUrl.searchParams.has('as')) {
     // Récupérer le rôle de l'utilisateur
     const { data: profile } = await supabase
       .from('profiles')
