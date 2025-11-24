@@ -33,10 +33,16 @@ export default async function AdminPage() {
     .from('tournaments')
     .select('*', { count: 'exact', head: true })
 
-  // Récupérer le nombre total de pronostics effectués
-  const { count: totalPredictions } = await supabase
+  // Récupérer le nombre total de pronostics effectués (incluant les pronostics par défaut)
+  const { count: totalPredictions, error: predictionsError } = await supabase
     .from('predictions')
     .select('*', { count: 'exact', head: true })
+
+  // Debug log pour vérifier
+  if (predictionsError) {
+    console.error('[ADMIN] Erreur comptage pronostics:', predictionsError)
+  }
+  console.log('[ADMIN] Nombre total de pronostics:', totalPredictions)
 
   // Récupérer les statistiques des 7 derniers jours
   const sevenDaysAgo = new Date()

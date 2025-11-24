@@ -40,11 +40,11 @@ export async function POST(
       return NextResponse.json({ error: 'Tournoi non trouvé' }, { status: 404 })
     }
 
-    // 2. Récupérer tous les matchs de la journée
+    // 2. Récupérer tous les matchs de la journée du tournoi
     const { data: matches, error: matchesError } = await supabase
-      .from('imported_matches')
+      .from('matches')
       .select('id')
-      .eq('competition_id', tournament.competition_id)
+      .eq('tournament_id', tournamentId)
       .eq('matchday', matchday)
 
     if (matchesError || !matches) {
@@ -73,8 +73,7 @@ export async function POST(
         user_id: userId,
         match_id: m.id,
         predicted_home_score: 0,
-        predicted_away_score: 0,
-        is_default_prediction: true
+        predicted_away_score: 0
       }))
 
     if (defaultPredictions.length === 0) {
