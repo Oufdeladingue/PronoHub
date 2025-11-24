@@ -23,7 +23,7 @@ export async function GET() {
 
     if (error) throw error
 
-    // Pour chaque compétition, compter les journées restantes
+    // Pour chaque compétition, compter les journées restantes et la popularité
     const competitionsWithStats = await Promise.all(
       (competitions || []).map(async (comp) => {
         // Utiliser total_matchdays de la base de données (qui inclut les matchs à élimination)
@@ -65,13 +65,28 @@ export async function GET() {
           .eq('competition_id', comp.id)
           .gte('matchday', currentMatchday)
 
+        // Compter le nombre de tournois utilisant cette compétition
+        const { count: tournamentsCount } = await supabase
+          .from('tournaments')
+          .select('*', { count: 'exact', head: true })
+          .eq('competition_id', comp.id)
+
         return {
           ...comp,
           remaining_matchdays: remainingMatchdays,
-          remaining_matches: count || 0
+          remaining_matches: count || 0,
+          tournaments_count: tournamentsCount || 0
         }
       })
     )
+
+    // Trier par popularité (nombre de tournois) décroissant
+    competitionsWithStats.sort((a, b) => b.tournaments_count - a.tournaments_count)
+
+    // Marquer la plus populaire
+    if (competitionsWithStats.length > 0 && competitionsWithStats[0].tournaments_count > 0) {
+      competitionsWithStats[0].is_most_popular = true
+    }
 
     return NextResponse.json({
       success: true,
