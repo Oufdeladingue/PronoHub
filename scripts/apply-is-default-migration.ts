@@ -4,10 +4,10 @@ import * as fs from 'fs'
 
 dotenv.config({ path: '.env.local' })
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL\!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY\!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-if (\!supabaseUrl || \!supabaseKey) {
+if (!supabaseUrl || !supabaseKey) {
   console.error('❌ NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définis')
   process.exit(1)
 }
@@ -46,9 +46,9 @@ async function applyMigration() {
       
       console.log('✅ Pronostics 0-0 marqués comme par défaut')
       
-      console.log('\n✅ Migration appliquée avec succès\!')
+      console.log('\n✅ Migration appliquée avec succès!')
     } else {
-      console.log('✅ Migration appliquée avec succès\!')
+      console.log('✅ Migration appliquée avec succès!')
     }
     
     // Vérifier le résultat
