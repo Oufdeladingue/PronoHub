@@ -138,8 +138,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     stripe_customer_id: customerId,
     stripe_subscription_id: subscription.id,
     stripe_price_id: subscription.items.data[0]?.price?.id,
-    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }, {
     onConflict: 'stripe_subscription_id',
