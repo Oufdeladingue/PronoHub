@@ -90,31 +90,29 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
   // Banniere complete pour le dashboard
   if (!canCreate) {
     return (
-      <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-xl p-6 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-6 h-6 text-red-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-white mb-1">Quota de tournois atteint</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Vous avez atteint la limite de {quotas.free_tournaments_max} tournois gratuits actifs.
-              Passez a Premium pour creer jusqu'a 5 tournois avec 20 joueurs chacun.
-            </p>
-            <div className="flex items-center gap-4 flex-wrap">
-              <button
-                onClick={() => router.push('/pricing')}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 rounded-lg font-medium text-white transition-all"
-              >
-                <Crown className="w-5 h-5" />
-                Voir les offres Premium
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <div className="text-sm text-gray-500">
-                A partir de 4,99 EUR
-              </div>
+      <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+        <div className="flex flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
+              <img src="/images/icons/hat.svg" alt="Quota atteint" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
+            </div>
+            <div>
+              <p className="font-medium text-white text-sm md:text-base">
+                Superbe coup du chapeau !
+              </p>
+              <p className="text-xs md:text-sm text-gray-400">
+                Limite de 3 tournois actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...
+              </p>
             </div>
           </div>
+          <button
+            onClick={() => router.push('/pricing')}
+            className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
+            title="Passer Pro"
+          >
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <span className="hidden md:inline">Passer Pro</span>
+          </button>
         </div>
       </div>
     )

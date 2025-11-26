@@ -52,17 +52,21 @@ export default async function DashboardPage() {
   // Récupérer les IDs de compétitions
   const competitionIds = userTournaments?.map((t: any) => t.competition_id).filter(Boolean) || []
 
-  // Récupérer les emblèmes des compétitions
-  let competitionsMap: Record<number, string> = {}
+  // Récupérer les emblèmes des compétitions (y compris logos personnalisés)
+  let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
   if (competitionIds.length > 0) {
     const { data: competitions } = await supabase
       .from('competitions')
-      .select('id, emblem')
+      .select('id, emblem, custom_emblem_white, custom_emblem_color')
       .in('id', competitionIds)
 
     if (competitions) {
       competitionsMap = competitions.reduce((acc: any, comp: any) => {
-        acc[comp.id] = comp.emblem
+        acc[comp.id] = {
+          emblem: comp.emblem,
+          custom_emblem_white: comp.custom_emblem_white,
+          custom_emblem_color: comp.custom_emblem_color
+        }
         return acc
       }, {})
     }
@@ -156,6 +160,8 @@ export default async function DashboardPage() {
     // Créer le slug complet : nom-du-tournoi_CODE
     const tournamentSlug = `${t.name.toLowerCase().replace(/\s+/g, '-')}_${t.slug || t.invite_code}`
 
+    const competitionData = competitionsMap[t.competition_id] || { emblem: null, custom_emblem_white: null, custom_emblem_color: null }
+
     const tournamentData = {
       id: t.id,
       name: t.name,
@@ -167,7 +173,9 @@ export default async function DashboardPage() {
       status: t.status,
       current_participants: participantCounts[t.id] || 0,
       max_players: t.max_players || t.max_participants || 8,
-      emblem: competitionsMap[t.competition_id],
+      emblem: competitionData.emblem,
+      custom_emblem_white: competitionData.custom_emblem_white,
+      custom_emblem_color: competitionData.custom_emblem_color,
       isCaptain: t.creator_id === user.id,
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null

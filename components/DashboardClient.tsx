@@ -133,6 +133,9 @@ function DashboardContent({
                     href={tournamentUrl}
                     className="glossy-card group relative flex flex-col md:flex-row items-center md:gap-4 p-2 md:p-4 border theme-border rounded-lg overflow-hidden"
                   >
+                    {/* Fond orange qui arrive de la gauche au survol */}
+                    <div className="absolute left-0 top-0 bottom-0 w-0 group-hover:w-16 md:group-hover:w-28 bg-[#ff9900] transition-all duration-500 ease-out pointer-events-none"></div>
+
                     {/* Version mobile - Layout compact */}
                     <div className="md:hidden w-full flex flex-col gap-2 relative z-10">
                       {/* Première ligne: Nom du tournoi (gauche) + Nb joueurs (droite) */}
@@ -157,13 +160,22 @@ function DashboardContent({
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {/* Logo de la compétition */}
                           <div className="flex-shrink-0">
-                            {tournament.emblem ? (
-                              <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-white border-2 theme-accent-border">
+                            {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
+                              <div className="w-12 h-12 flex items-center justify-center relative">
+                                {/* Logo blanc par défaut */}
                                 <img
-                                  src={tournament.emblem}
+                                  src={tournament.custom_emblem_white || tournament.emblem || ''}
                                   alt={tournament.competition_name}
-                                  className="w-10 h-10 object-contain"
+                                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 group-hover:opacity-0"
                                 />
+                                {/* Logo couleur au survol */}
+                                {tournament.custom_emblem_color && (
+                                  <img
+                                    src={tournament.custom_emblem_color}
+                                    alt={tournament.competition_name}
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                                  />
+                                )}
                               </div>
                             ) : (
                               <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -222,13 +234,22 @@ function DashboardContent({
                     <div className="hidden md:flex md:items-center md:gap-6 md:w-full relative z-10">
                       {/* Logo de la compétition */}
                       <div>
-                        {tournament.emblem ? (
-                          <div className="w-20 h-20 rounded-xl flex items-center justify-center bg-white border-2 theme-accent-border">
+                        {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
+                          <div className="w-20 h-20 flex items-center justify-center relative">
+                            {/* Logo blanc par défaut */}
                             <img
-                              src={tournament.emblem}
+                              src={tournament.custom_emblem_white || tournament.emblem || ''}
                               alt={tournament.competition_name}
-                              className="w-16 h-16 object-contain"
+                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 group-hover:opacity-0"
                             />
+                            {/* Logo couleur au survol */}
+                            {tournament.custom_emblem_color && (
+                              <img
+                                src={tournament.custom_emblem_color}
+                                alt={tournament.competition_name}
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                              />
+                            )}
                           </div>
                         ) : (
                           <div className="w-20 h-20 bg-gray-200 rounded-xl flex items-center justify-center">
@@ -299,14 +320,14 @@ function DashboardContent({
 
         {/* Actions : Créer et Rejoindre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
+          <div className="theme-card">
             <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Créer un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Lancez votre propre tournoi de pronostics et invitez vos amis à participer.
             </p>
             {hasReachedLimit ? (
-              <div className="w-full py-2 px-4 bg-gray-400 text-white rounded-md text-center cursor-not-allowed">
-                Limite atteinte
+              <div className="w-full py-2 px-4 border-2 border-[#ff9900] bg-transparent text-[#ff9900] rounded-md text-center cursor-not-allowed opacity-50 font-semibold">
+                Quota atteint ({currentTournamentCount}/{maxTournaments})
               </div>
             ) : (
               <a href="/vestiaire" className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold">
@@ -318,14 +339,14 @@ function DashboardContent({
             )}
           </div>
 
-          <div className={`theme-card ${hasReachedLimit ? 'opacity-60' : ''}`}>
+          <div className="theme-card">
             <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Rejoindre un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Vous avez reçu un code d'invitation ? Rejoignez un tournoi existant.
             </p>
             {hasReachedLimit ? (
-              <div className="w-full py-2 px-4 bg-gray-400 text-white rounded-md text-center cursor-not-allowed">
-                Limite atteinte
+              <div className="w-full py-2 px-4 border-2 border-[#ff9900] bg-transparent text-[#ff9900] rounded-md text-center cursor-not-allowed opacity-50 font-semibold">
+                Quota atteint ({currentTournamentCount}/{maxTournaments})
               </div>
             ) : !showJoinInput ? (
               <button
