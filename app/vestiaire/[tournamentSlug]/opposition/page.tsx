@@ -26,6 +26,7 @@ interface Tournament {
   ending_matchday?: number
   scoring_default_prediction_max?: number
   start_date?: string // Date de lancement du tournoi (passage en status 'active')
+  bonus_match?: boolean
 }
 
 interface Match {
