@@ -150,8 +150,8 @@ export default function TableauNoirPage() {
       <div className="min-h-screen">
         <Navigation
           context="app"
-          username={username}
-          userAvatar={userAvatar}
+          username={username || 'Utilisateur'}
+          userAvatar={userAvatar || 'avatar1'}
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
@@ -168,8 +168,8 @@ export default function TableauNoirPage() {
       <div className="min-h-screen">
         <Navigation
           context="app"
-          username={username}
-          userAvatar={userAvatar}
+          username={username || 'Utilisateur'}
+          userAvatar={userAvatar || 'avatar1'}
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="theme-secondary-bg border theme-border rounded-lg p-4 theme-text mb-6">
@@ -191,8 +191,8 @@ export default function TableauNoirPage() {
     <div className="min-h-screen">
       <Navigation
         context="creation"
-        username={username}
-        userAvatar={userAvatar}
+        username={username || 'Utilisateur'}
+        userAvatar={userAvatar || 'avatar1'}
         creationContext={{
           competitionName: competition.name,
           competitionLogo: competition.emblem,
