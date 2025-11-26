@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AgeGate from "@/components/AgeGate";
+import { UserProvider } from "@/contexts/UserContext";
 
 export const metadata: Metadata = {
   title: "PronoHub - Tournois de Pronostics Football",
@@ -30,8 +31,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <AgeGate />
-        {children}
+        <UserProvider>
+          <AgeGate />
+          {children}
+        </UserProvider>
       </body>
     </html>
   );

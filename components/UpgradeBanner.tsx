@@ -206,57 +206,49 @@ export function TournamentTypeIndicator() {
 
   const typeConfig = {
     free: {
-      icon: Sparkles,
-      color: 'gray',
+      icon: '/images/icons/futebol.svg',
       label: 'Tournoi Gratuit',
-      bgClass: 'bg-gray-500/10 border-gray-500/30',
-      iconClass: 'text-gray-400',
     },
     oneshot: {
-      icon: Sparkles,
-      color: 'blue',
+      icon: '/images/icons/futebol.svg',
       label: 'Tournoi One-Shot',
-      bgClass: 'bg-blue-500/10 border-blue-500/30',
-      iconClass: 'text-blue-400',
     },
     premium: {
-      icon: Crown,
-      color: 'orange',
+      icon: '/images/icons/futebol.svg',
       label: 'Tournoi Premium',
-      bgClass: 'bg-orange-500/10 border-orange-500/30',
-      iconClass: 'text-orange-400',
     },
     enterprise: {
-      icon: Crown,
-      color: 'purple',
+      icon: '/images/icons/futebol.svg',
       label: 'Tournoi Entreprise',
-      bgClass: 'bg-purple-500/10 border-purple-500/30',
-      iconClass: 'text-purple-400',
     },
   }
 
   const config = typeConfig[tournamentType.tournament_type]
-  const Icon = config.icon
 
   return (
-    <div className={`${config.bgClass} border rounded-lg p-4 mb-6`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Icon className={`w-5 h-5 ${config.iconClass}`} />
+    <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+      <div className="flex flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
+            <img src={config.icon} alt="Tournois" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
+          </div>
           <div>
-            <p className="font-medium text-white">{config.label}</p>
-            <p className="text-sm text-gray-400">
-              Maximum {tournamentType.max_players} joueurs
+            <p className="font-medium text-white text-sm md:text-base">
+              {config.label}
+            </p>
+            <p className="text-xs md:text-sm text-gray-400">
+              Max {tournamentType.max_players} joueurs
             </p>
           </div>
         </div>
         {tournamentType.tournament_type === 'free' && (
           <button
             onClick={() => router.push('/pricing')}
-            className="text-sm text-orange-400 hover:text-orange-300 flex items-center gap-1"
+            className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
+            title="Passer Pro"
           >
-            <Crown className="w-4 h-4" />
-            Upgrade
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <span className="hidden md:inline">Passer Pro</span>
           </button>
         )}
       </div>

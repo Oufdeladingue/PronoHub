@@ -177,6 +177,7 @@ export interface InternalMatch {
   football_data_match_id: number  // On garde ce nom pour compatibilité
   competition_id: number
   matchday: number
+  stage: string | null  // Phase de compétition (ex: LEAGUE_STAGE, QUARTER_FINALS)
   utc_date: string
   status: string
   home_team_id: number
@@ -269,6 +270,7 @@ export function transformFixtureToMatch(
     football_data_match_id: apiFixture.fixture.id,
     competition_id: competitionId,
     matchday: parseMatchdayFromRound(apiFixture.league.round),
+    stage: null, // API-Football n'utilise pas le champ "stage" de la même manière
     utc_date: apiFixture.fixture.date,
     status: transformStatus(apiFixture.fixture.status.short),
     home_team_id: apiFixture.teams.home.id,

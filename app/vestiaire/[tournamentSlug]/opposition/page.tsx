@@ -10,6 +10,7 @@ import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
+import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
 
 interface Tournament {
   id: string
@@ -30,6 +31,7 @@ interface Tournament {
 interface Match {
   id: number
   matchday: number
+  stage?: StageType | null
   utc_date: string
   home_team_name: string
   away_team_name: string
@@ -73,6 +75,7 @@ export default function OppositionPage() {
 
   // États pour les pronostics
   const [availableMatchdays, setAvailableMatchdays] = useState<number[]>([])
+  const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>({}) // Stocker le stage de chaque journée
   const [selectedMatchday, setSelectedMatchday] = useState<number | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
   const [allMatches, setAllMatches] = useState<Match[]>([]) // Tous les matchs du tournoi pour calculer les statuts
@@ -415,7 +418,17 @@ export default function OppositionPage() {
 
       if (error) throw error
 
-      setAllMatches(allMatchesData || [])
+      const matchesData = allMatchesData || []
+      setAllMatches(matchesData)
+
+      // Extraire les stages par journée depuis les matchs chargés
+      const stagesByMatchday: Record<number, StageType | null> = {}
+      matchesData.forEach((match: any) => {
+        if (match.matchday && !stagesByMatchday[match.matchday]) {
+          stagesByMatchday[match.matchday] = match.stage || null
+        }
+      })
+      setMatchdayStages(stagesByMatchday)
     } catch (err) {
       console.error('Erreur lors du chargement de tous les matchs:', err)
     }
@@ -1221,6 +1234,8 @@ export default function OppositionPage() {
                         const isFinished = matchdayStatus === 'Terminée'
                         const isInProgress = matchdayStatus === 'En cours'
                         const isActive = selectedMatchday === matchday
+                        const stage = matchdayStages[matchday]
+                        const matchdayLabel = getStageShortLabel(stage, matchday)
                         return (
                           <button
                             key={matchday}
@@ -1233,7 +1248,7 @@ export default function OppositionPage() {
                                   : 'bg-slate-600 dark:bg-slate-700 text-slate-200 dark:text-slate-300 hover:bg-slate-500 dark:hover:bg-slate-600'
                             }`}
                           >
-                            <span className="text-lg md:text-xl">J{matchday}</span>
+                            <span className="text-lg md:text-xl">{matchdayLabel}</span>
                             <span className={`text-[10px] md:text-xs mt-1 font-medium ${
                               isActive
                                 ? 'text-[#0f172a]'
@@ -2122,6 +2137,32 @@ export default function OppositionPage() {
                     <li>Mauvais pronostic : {pointsSettings.incorrectResult} point</li>
                   </ul>
                 </div>
+
+                {tournament?.bonus_match && (
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+                    <div className="flex items-start gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <div>
+                        <h3 className="font-semibold theme-text mb-2">Match Bonus activé</h3>
+                        <p className="text-sm">
+                          Un <span className="font-semibold theme-text">match bonus</span> est désigné à chaque journée.
+                          Les points gagnés sur ce match sont <span className="font-semibold theme-text">doublés</span> !
+                          Le match bonus est identifié par un badge {' '}
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[9px] font-bold text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            BONUS
+                          </span>
+                          .
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Configuration du tournoi</h3>
                   <p>

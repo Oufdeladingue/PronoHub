@@ -10,8 +10,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
 import UserQuotasCard from '@/components/UserQuotasCard'
+import { useUser } from '@/contexts/UserContext'
 
 function ProfileContent() {
+  const { refreshUserData } = useUser()
   const [activeTab, setActiveTab] = useState('profil')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [username, setUsername] = useState('')
@@ -126,6 +128,8 @@ function ProfileContent() {
     } else {
       setMessage('Profil mis à jour avec succès')
       setInitialUsername(username)
+      // Rafraîchir les données utilisateur dans le context global
+      await refreshUserData()
     }
 
     setSaving(false)

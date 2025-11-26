@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
+import { getAvatarUrl } from '@/lib/avatars'
 
 interface Tournament {
   id: string
@@ -35,6 +37,7 @@ interface Player {
   joined_at: string
   profiles?: {
     username: string
+    avatar?: string
   }
 }
 
@@ -56,6 +59,7 @@ function EchauffementPageContent() {
   const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
   const [cancelConfirmation, setCancelConfirmation] = useState<boolean>(false)
   const [startConfirmation, setStartConfirmation] = useState<boolean>(false)
+  const [leaveWarning, setLeaveWarning] = useState<boolean>(false)
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [matchdayWarning, setMatchdayWarning] = useState<{
@@ -65,6 +69,7 @@ function EchauffementPageContent() {
     currentMatchday: number
     totalMatchdays: number
   } | null>(null)
+  const [remainingMatchdaysToPredict, setRemainingMatchdaysToPredict] = useState<number | null>(null)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -82,6 +87,7 @@ function EchauffementPageContent() {
     fetchPlayers()
     fetchCompetitionLogo()
     fetchNextMatchDate()
+    fetchRemainingMatchdays()
 
     // Actualiser l'effectif toutes les 5 secondes
     const interval = setInterval(fetchPlayers, 5000)
@@ -182,7 +188,7 @@ function EchauffementPageContent() {
 
       const { data: playersData, error: playersError } = await supabase
         .from('tournament_participants')
-        .select('*, profiles(username)')
+        .select('*, profiles(username, avatar)')
         .eq('tournament_id', tournament?.id)
         .order('joined_at', { ascending: true })
 
@@ -234,6 +240,34 @@ function EchauffementPageContent() {
       }
     } catch (err) {
       console.error('Error fetching next match date:', err)
+    }
+  }
+
+  const fetchRemainingMatchdays = async () => {
+    if (!tournament?.competition_id) return
+
+    try {
+      const supabase = createClient()
+      const { data: competition } = await supabase
+        .from('competitions')
+        .select('current_matchday, total_matchdays')
+        .eq('id', tournament.competition_id)
+        .single()
+
+      if (competition?.total_matchdays) {
+        const currentMatchday = competition.current_matchday || 0
+        const remaining = competition.total_matchdays - currentMatchday
+
+        // Si le tournoi est configuré pour "toutes les journées", on affiche le nombre restant
+        // Sinon, on prend le minimum entre le nombre configuré et le nombre restant
+        const matchdaysToPredict = tournament.all_matchdays
+          ? remaining
+          : Math.min(tournament.num_matchdays, remaining)
+
+        setRemainingMatchdaysToPredict(matchdaysToPredict)
+      }
+    } catch (err) {
+      console.error('Error fetching remaining matchdays:', err)
     }
   }
 
@@ -436,7 +470,7 @@ function EchauffementPageContent() {
     if (!tournament || !currentUserId) return
 
     // Il y a d'autres participants, demander de transférer le capitanat
-    alert('Vous devez d\'abord transférer le rôle de capitaine à un autre participant avant de quitter')
+    setLeaveWarning(true)
   }
 
   const copyInviteCode = () => {
@@ -522,20 +556,20 @@ function EchauffementPageContent() {
 
       {/* Popup de confirmation d'annulation */}
       {cancelConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              <h3 className="text-2xl font-bold theme-text mb-2">
                 Annuler le tournoi
               </h3>
-              <p className="text-gray-600">
-                Le tournoi <span className="font-bold text-red-600">{tournament.name}</span> sera supprimé définitivement.
+              <p className="theme-text-secondary">
+                Le tournoi <span className="font-bold text-red-500">{tournament.name}</span> sera supprimé définitivement.
               </p>
             </div>
 
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
-              <p className="text-sm text-red-800">
+            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+              <p className="text-sm text-red-500">
                 <strong>Attention :</strong> Cette action est irréversible. Le tournoi sera supprimé pour vous et tous les autres participants. Il n'apparaîtra plus dans "Mes tournois".
               </p>
             </div>
@@ -543,7 +577,7 @@ function EchauffementPageContent() {
             <div className="flex gap-3">
               <button
                 onClick={hideCancelConfirmation}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+                className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
               >
                 Annuler
               </button>
@@ -560,21 +594,21 @@ function EchauffementPageContent() {
 
       {/* Popup de confirmation de transfert */}
       {transferConfirmation.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 animate-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              <h3 className="text-2xl font-bold theme-text mb-2">
                 Confirmer le transfert
               </h3>
-              <p className="text-gray-600">
+              <p className="theme-text-secondary">
                 Êtes-vous sûr de vouloir transférer le rôle de capitaine à{' '}
-                <span className="font-bold text-blue-600">{transferConfirmation.playerName}</span> ?
+                <span className="font-bold" style={{ color: '#ff9900' }}>{transferConfirmation.playerName}</span> ?
               </p>
             </div>
 
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+              <p className="text-sm text-yellow-500">
                 <strong>Important :</strong> Vous perdrez tous les privilèges de capitaine. Cette action est irréversible.
               </p>
             </div>
@@ -582,15 +616,47 @@ function EchauffementPageContent() {
             <div className="flex gap-3">
               <button
                 onClick={cancelTransfer}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+                className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
               >
                 Annuler
               </button>
               <button
                 onClick={handleTransferCaptaincy}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                className="flex-1 px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
               >
                 Confirmer le transfert
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Popup d'avertissement pour quitter le tournoi en tant que capitaine */}
+      {leaveWarning && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">🔒</div>
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Transfert obligatoire
+              </h3>
+              <p className="theme-text-secondary">
+                En tant que capitaine, vous devez d'abord transférer le rôle à un autre participant avant de pouvoir quitter le tournoi.
+              </p>
+            </div>
+
+            <div className="bg-[#ff9900]/10 border-l-4 border-[#ff9900] p-4 mb-6 rounded">
+              <p className="text-sm" style={{ color: '#ff9900' }}>
+                <strong>Important :</strong> Utilisez le bouton "Transférer" à côté du nom d'un participant dans la liste ci-dessous pour lui donner le capitanat.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                onClick={() => setLeaveWarning(false)}
+                className="px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
+              >
+                J'ai compris
               </button>
             </div>
           </div>
@@ -614,47 +680,127 @@ function EchauffementPageContent() {
         {/* Contrôles du capitaine */}
         {currentUserId === tournament?.creator_id && (
           <div className="mb-6 theme-card border-2 border-yellow-400">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold theme-text flex items-center gap-2">
-                <img
-                  src="/images/icons/cap.svg"
-                  alt="Capitaine"
-                  className="w-6 h-6 icon-filter-white"
-                />
-                Les privilèges du capitaine
-              </h2>
-              <p className="text-sm theme-text-secondary mt-1 italic">Le brassard implique de grandes responsabilités</p>
+            <div className="flex flex-col md:flex-row md:items-start gap-4">
+              {/* Section gauche avec logo et infos en desktop */}
+              <div className="md:flex-1">
+                <h2 className="text-base md:text-xl font-bold theme-text flex items-center gap-2 justify-center md:justify-start">
+                  <img
+                    src="/images/icons/cap.svg"
+                    alt="Capitaine"
+                    className="w-6 h-6 icon-filter-white"
+                  />
+                  Les privilèges du capitaine
+                </h2>
+                <p className="text-sm mt-1 italic text-center md:text-left" style={{ color: '#ff9900' }}>Le brassard implique de grandes responsabilités</p>
+
+                {/* Logo de la compétition + infos tournoi - visible uniquement en desktop */}
+                {competitionLogo && tournament && (
+                  <div className="mt-4 hidden md:flex items-center gap-4 px-4">
+                    <img
+                      src={competitionLogo}
+                      alt={tournament.competition_name}
+                      className="w-14 h-14 object-contain icon-filter-white flex-shrink-0"
+                    />
+                    <div className="flex flex-col gap-0.5">
+                      <h3 className="text-lg font-bold theme-text">{tournament.name}</h3>
+                      <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>
+                      <p className="text-sm theme-text-secondary">
+                        {remainingMatchdaysToPredict !== null && (
+                          <>Encore {remainingMatchdaysToPredict} journée{remainingMatchdaysToPredict > 1 ? 's' : ''} à pronostiquer</>
+                        )}
+                        {remainingMatchdaysToPredict === null && tournament.all_matchdays && (
+                          <>Toutes les journées</>
+                        )}
+                        {remainingMatchdaysToPredict === null && !tournament.all_matchdays && (
+                          <>{tournament.num_matchdays} journée{tournament.num_matchdays > 1 ? 's' : ''} à pronostiquer</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info pour le transfert - sous le texte en mobile */}
+                {players.length > 1 && (
+                  <div className="mt-4 p-3 rounded-lg md:hidden" style={{ backgroundColor: '#0f172a' }}>
+                    <p className="text-sm text-center" style={{ color: '#94a3b8' }}>
+                      💡 Pour transférer le capitanat, cliquez sur le bouton "Transférer" à côté d'un participant ci-dessous.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Boutons à droite en desktop (30% de largeur) */}
+              <div className="space-y-2 w-full md:w-[30%]">
+                <button
+                  onClick={showStartConfirmation}
+                  disabled={players.length < 2}
+                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:hover:text-[#111] transition font-semibold flex items-center justify-center gap-2"
+                >
+                  <img
+                    src="/images/icons/start-referee.svg"
+                    alt=""
+                    className="w-5 h-5 brightness-0 transition group-disabled:brightness-0"
+                    style={{
+                      filter: 'brightness(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.closest('button')?.disabled) {
+                        e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.filter = 'brightness(0)'
+                    }}
+                  />
+                  Démarrer le tournoi
+                </button>
+                <button
+                  onClick={showCancelConfirmation}
+                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] transition font-semibold flex items-center justify-center gap-2"
+                >
+                  <img
+                    src="/images/icons/poubelle.svg"
+                    alt=""
+                    className="w-5 h-5 transition"
+                    style={{
+                      filter: 'brightness(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.filter = 'brightness(0)'
+                    }}
+                  />
+                  Annuler le tournoi
+                </button>
+                <button
+                  onClick={handleLeaveTournament}
+                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] transition font-semibold flex items-center justify-center gap-2"
+                >
+                  <img
+                    src="/images/icons/dehors.svg"
+                    alt=""
+                    className="w-5 h-5 transition"
+                    style={{
+                      filter: 'brightness(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.filter = 'brightness(0)'
+                    }}
+                  />
+                  Quitter le tournoi
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <button
-                onClick={showStartConfirmation}
-                disabled={players.length < 2}
-                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-green-600 hover:text-white disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 transition font-semibold flex items-center justify-center gap-2"
-              >
-                <img src="/images/icons/start-referee.svg" alt="" className="w-5 h-5" />
-                Démarrer le tournoi {tournament.name}
-              </button>
-              <button
-                onClick={showCancelConfirmation}
-                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-red-600 hover:text-white transition font-semibold flex items-center justify-center gap-2"
-              >
-                <img src="/images/icons/poubelle.svg" alt="" className="w-5 h-5" />
-                Annuler le tournoi
-              </button>
-              <button
-                onClick={handleLeaveTournament}
-                className="w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-orange-600 hover:text-white transition flex items-center justify-center gap-2"
-              >
-                <img src="/images/icons/dehors.svg" alt="" className="w-5 h-5" />
-                Quitter le tournoi
-              </button>
-            </div>
-
-            {/* Info pour le transfert */}
+            {/* Info pour le transfert - en bas en desktop */}
             {players.length > 1 && (
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="mt-4 p-3 rounded-lg hidden md:block" style={{ backgroundColor: '#0f172a' }}>
+                <p className="text-sm text-center" style={{ color: '#94a3b8' }}>
                   💡 Pour transférer le capitanat, cliquez sur le bouton "Transférer" à côté d'un participant ci-dessous.
                 </p>
               </div>
@@ -686,12 +832,24 @@ function EchauffementPageContent() {
                     key={player.id}
                     className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
-                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className={player.user_id === currentUserId ? 'fill-accent' : 'dark-fill-white'}>
-                        <path d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
-                      </svg>
-                      <span className={`absolute font-bold text-xs ${player.user_id === currentUserId ? 'text-[#ff9900]' : 'text-white'}`}>{index + 1}</span>
+                    {/* Avatar avec numéro superposé */}
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-[#ff9900]">
+                        <Image
+                          src={getAvatarUrl(player.user_id === currentUserId ? userAvatar : (player.profiles?.avatar || 'avatar1'))}
+                          alt={player.profiles?.username || 'Joueur'}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      </div>
+                      {/* Numéro en badge */}
+                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${player.user_id === currentUserId ? 'bg-[#ff9900] text-[#111]' : 'bg-gray-700 text-white'}`}>
+                        {index + 1}
+                      </div>
                     </div>
+
+                    {/* Nom + Capitaine */}
                     <div className="flex-1">
                       <p className="font-semibold flex items-center gap-2">
                         <span className={player.user_id === currentUserId ? 'text-[#ff9900]' : 'theme-text'}>
@@ -702,10 +860,13 @@ function EchauffementPageContent() {
                         )}
                       </p>
                     </div>
+
+                    {/* Bouton Transférer */}
                     {canTransfer && (
                       <button
                         onClick={() => showTransferConfirmation(player.user_id, player.profiles?.username || 'Joueur')}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition"
+                        className="px-3 py-1 text-sm rounded-lg transition"
+                        style={{ backgroundColor: '#1e293b', color: '#ff9900' }}
                       >
                         Transférer
                       </button>
@@ -731,6 +892,33 @@ function EchauffementPageContent() {
                   </div>
                 </div>
               ))}
+
+              {/* Boutons gestion des places (visible uniquement pour le capitaine) */}
+              {currentUserId === tournament?.creator_id && (
+                <div className="space-y-2 mt-4">
+                  {/* Bouton Ajouter une place */}
+                  {tournament.max_players < maxParticipantsLimit && (
+                    <button
+                      onClick={handleIncreaseMaxPlayers}
+                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
+                    >
+                      <span className="text-xl dark-text-accent">+</span>
+                      <span className="dark-text-accent">Ajouter une place (max {maxParticipantsLimit} en mode gratuit)</span>
+                    </button>
+                  )}
+
+                  {/* Bouton Supprimer une place */}
+                  {tournament.max_players > 2 && tournament.max_players > players.length && (
+                    <button
+                      onClick={handleDecreaseMaxPlayers}
+                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
+                    >
+                      <span className="text-xl dark-text-accent">−</span>
+                      <span className="dark-text-accent">Supprimer une place</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Info prochaine journée (visible pour tous) */}
               {timeRemaining && (
@@ -765,33 +953,6 @@ function EchauffementPageContent() {
                       ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
                     </p>
                   </div>
-                </div>
-              )}
-
-              {/* Boutons gestion des places (visible uniquement pour le capitaine) */}
-              {currentUserId === tournament?.creator_id && (
-                <div className="space-y-2 mt-4">
-                  {/* Bouton Ajouter une place */}
-                  {tournament.max_players < maxParticipantsLimit && (
-                    <button
-                      onClick={handleIncreaseMaxPlayers}
-                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
-                    >
-                      <span className="text-xl dark-text-accent">+</span>
-                      <span className="dark-text-accent">Ajouter une place (max {maxParticipantsLimit} en mode gratuit)</span>
-                    </button>
-                  )}
-
-                  {/* Bouton Supprimer une place */}
-                  {tournament.max_players > 2 && tournament.max_players > players.length && (
-                    <button
-                      onClick={handleDecreaseMaxPlayers}
-                      className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
-                    >
-                      <span className="text-xl dark-text-accent">−</span>
-                      <span className="dark-text-accent">Supprimer une place</span>
-                    </button>
-                  )}
                 </div>
               )}
             </div>

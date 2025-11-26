@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
+import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
 
 interface PlayerStats {
   playerId: string
@@ -45,6 +46,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>({})
 
   // Ref et états pour la navigation des vues avec flèches
   const viewsContainerRef = useRef<HTMLDivElement>(null)
@@ -53,15 +55,24 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
   // Fonction pour vérifier si une journée a déjà commencé
   const hasMatchdayStarted = (matchday: number): boolean => {
-    if (!allMatches) return true // Par défaut, considérer comme commencé si pas de données
+    if (!allMatches) {
+      console.log(`[Classement] J${matchday}: pas de données allMatches`)
+      return false // Par défaut, considérer comme NON commencé si pas de données
+    }
 
     const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
-    if (matchesForDay.length === 0) return true
+    if (matchesForDay.length === 0) {
+      console.log(`[Classement] J${matchday}: aucun match trouvé`)
+      return false // Pas de matchs = pas encore commencé
+    }
 
     const now = new Date()
     const firstMatchTime = new Date(Math.min(...matchesForDay.map((m: any) => new Date(m.utc_date).getTime())))
+    const hasStarted = now >= firstMatchTime
 
-    return now >= firstMatchTime
+    console.log(`[Classement] J${matchday}: ${matchesForDay.length} matchs, premier match: ${firstMatchTime.toISOString()}, a commencé: ${hasStarted}`)
+
+    return hasStarted
   }
 
   // Fonctions pour la navigation des vues avec flèches
@@ -83,6 +94,19 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       container.scrollTo({ left: newScrollLeft, behavior: 'smooth' })
     }
   }, [])
+
+  // Extraire les stages des matchs
+  useEffect(() => {
+    if (allMatches && allMatches.length > 0) {
+      const stagesByMatchday: Record<number, StageType | null> = {}
+      allMatches.forEach((match: any) => {
+        if (match.matchday && !stagesByMatchday[match.matchday]) {
+          stagesByMatchday[match.matchday] = match.stage || null
+        }
+      })
+      setMatchdayStages(stagesByMatchday)
+    }
+  }, [allMatches])
 
   // Vérifier les boutons de scroll au chargement et au resize
   useEffect(() => {
@@ -209,24 +233,25 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             >
               Général
             </button>
-            {availableMatchdays.map(matchday => {
-              const hasStarted = hasMatchdayStarted(matchday)
-              return (
-                <button
-                  key={matchday}
-                  onClick={() => setSelectedView(matchday)}
-                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 ${
-                    selectedView === matchday
-                      ? 'bg-[#ff9900] text-[#111]'
-                      : hasStarted
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-300 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  J{matchday}
-                </button>
-              )
-            })}
+            {availableMatchdays
+              .filter(matchday => hasMatchdayStarted(matchday))
+              .map(matchday => {
+                const stage = matchdayStages[matchday]
+                const matchdayLabel = getStageShortLabel(stage, matchday)
+                return (
+                  <button
+                    key={matchday}
+                    onClick={() => setSelectedView(matchday)}
+                    className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 ${
+                      selectedView === matchday
+                        ? 'bg-[#ff9900] text-[#111]'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                    }`}
+                  >
+                    {matchdayLabel}
+                  </button>
+                )
+              })}
           </div>
 
           {/* Flèche droite */}

@@ -15,7 +15,8 @@ export default function NavBar({
   context = 'app',
   appContext,
   tournamentContext,
-  adminContext
+  adminContext,
+  creationContext
 }: NavBarProps) {
   const { theme } = useTheme()
   const pathname = usePathname()
@@ -41,10 +42,13 @@ export default function NavBar({
 
   // Rendu pour le contexte Admin
   if (context === 'admin') {
+    const adminPath = process.env.NEXT_PUBLIC_ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
     const navItems = [
-      { name: 'Général', href: '/admin', icon: 'home' },
-      { name: 'Import', href: '/admin/import', icon: 'import' },
-      { name: 'Réglages', href: '/admin/settings', icon: 'settings' },
+      { name: 'Général', href: `/${adminPath}`, icon: 'home' },
+      { name: 'Import', href: `/${adminPath}/import`, icon: 'import' },
+      { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
+      { name: 'Tournois', href: `/${adminPath}/tournaments`, icon: 'trophy' },
+      { name: 'Réglages', href: `/${adminPath}/settings`, icon: 'settings' },
     ]
 
     return (
@@ -86,6 +90,16 @@ export default function NavBar({
                       <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   )}
+                  {item.icon === 'image' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  {item.icon === 'trophy' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                  )}
                   {item.icon === 'settings' && (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
@@ -96,6 +110,100 @@ export default function NavBar({
               )
             })}
           </nav>
+        </div>
+      </div>
+    )
+  }
+
+  // Rendu pour le contexte Creation (page de création de tournoi)
+  if (context === 'creation' && creationContext) {
+    return (
+      <div className="theme-nav hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          {/* Navigation layout - 3 colonnes sur desktop */}
+          <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
+            {/* COLONNE GAUCHE - Logo + Theme Toggle */}
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <img
+                  src="/images/logo.svg"
+                  alt="PronoHub"
+                  className="w-14 h-14 cursor-pointer hover:opacity-80 transition"
+                />
+              </Link>
+              <ThemeToggle />
+            </div>
+
+            {/* COLONNE CENTRALE - Infos compétition */}
+            <div className="flex items-center justify-center gap-4">
+              {creationContext.competitionLogo && (
+                <img
+                  src={creationContext.competitionLogo}
+                  alt={creationContext.competitionName}
+                  className="w-16 h-16 object-contain icon-filter-white"
+                />
+              )}
+              <div className="text-left">
+                <h2 className="text-2xl font-bold theme-text">{creationContext.competitionName}</h2>
+                <p className="text-sm theme-text-secondary">
+                  {creationContext.remainingMatchdays} journée{creationContext.remainingMatchdays > 1 ? 's' : ''} restante{creationContext.remainingMatchdays > 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* COLONNE DROITE - Avatar + Menu */}
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+                <Image
+                  src={getAvatarUrl(userAvatar)}
+                  alt={username}
+                  fill
+                  className="object-cover"
+                  sizes="40px"
+                />
+              </div>
+
+              {/* Menu desktop */}
+              <div className="flex items-center gap-3">
+                <span className="theme-text text-sm">Bonjour, {username} !</span>
+
+                {/* Séparateur */}
+                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+                {/* Lien Carrière avec icône */}
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                >
+                  <img
+                    src="/images/icons/profil.svg"
+                    alt="Carrière"
+                    className="w-5 h-5 icon-filter-orange"
+                  />
+                  Carrière
+                </Link>
+
+                {/* Séparateur */}
+                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+
+                {/* Bouton Déconnexion avec icône */}
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  >
+                    <img
+                      src="/images/icons/logout.svg"
+                      alt="Quitter"
+                      className="w-5 h-5 icon-filter-orange"
+                    />
+                    Quitter le terrain
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -148,11 +256,11 @@ export default function NavBar({
             {/* COLONNE CENTRALE - Infos compétition et tournoi */}
             <div className="flex items-center justify-center gap-4">
               {tournamentContext.competitionLogo && (
-                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center p-2 shadow-sm flex-shrink-0">
+                <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
                   <img
                     src={tournamentContext.competitionLogo}
                     alt={tournamentContext.competitionName}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain dark:brightness-0 dark:invert"
                   />
                 </div>
               )}
@@ -163,9 +271,6 @@ export default function NavBar({
                 <p className="theme-text-secondary text-base mt-1">
                   {tournamentContext.competitionName}
                 </p>
-                <div className="mt-1 flex justify-start">
-                  {getStatusBadge()}
-                </div>
               </div>
             </div>
 
@@ -244,7 +349,9 @@ export default function NavBar({
                 />
               </Link>
             ) : (
-              <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
+              <Link href="/dashboard">
+                <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14 cursor-pointer hover:opacity-80 transition" />
+              </Link>
             )}
             <ThemeToggle />
           </div>
@@ -257,8 +364,8 @@ export default function NavBar({
             {/* Avatar */}
             <Link href="/profile" className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
               <Image
-                src={getAvatarUrl(userAvatar)}
-                alt={username}
+                src={getAvatarUrl(userAvatar || 'avatar1')}
+                alt={username || 'Avatar utilisateur'}
                 fill
                 className="object-cover"
                 sizes="40px"

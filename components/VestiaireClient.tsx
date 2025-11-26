@@ -18,6 +18,8 @@ interface Competition {
   remaining_matches?: number
   tournaments_count?: number
   is_most_popular?: boolean
+  custom_emblem_white?: string | null
+  custom_emblem_color?: string | null
 }
 
 // Traduction des noms de pays en français
@@ -199,50 +201,61 @@ export default function VestiaireClient() {
                 </div>
 
                 {/* Contenu de la tuile */}
-                <div className="relative z-10 w-full text-center">
-                  {/* Logo */}
-                  <div className="w-[140px] h-[140px] mx-auto mb-4 flex items-center justify-center">
-                    {comp.emblem ? (
-                      <img
-                        src={comp.emblem}
-                        alt={comp.name}
-                        className="competition-logo max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="w-[100px] h-[100px] bg-gray-800 rounded-full flex items-center justify-center text-gray-500 font-bold text-2xl">
-                        {comp.code}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Nom de la compétition */}
-                  <h3 className="text-base font-bold text-[#0f172a] mb-0 min-h-[2rem] line-clamp-2">
-                    {comp.name}
-                  </h3>
-
-                  {/* Saison */}
-                  <p className="text-xs text-gray-400 mb-0.5">
-                    Saison {formatSeason(comp.current_season_start_date, comp.current_season_end_date)}
-                  </p>
-
-                  {/* Pays/Zone */}
-                  <p className="text-xs text-gray-400 mb-1">
-                    {translateCountryName(comp.area_name)}
-                  </p>
-
-                  {/* Journées restantes */}
-                  {comp.remaining_matchdays !== undefined && (
-                    <div className="mt-2 pt-2 border-t border-gray-800">
-                      <p className="text-xs font-medium text-[#ff9900]">
-                        {comp.remaining_matchdays === 0
-                          ? 'Aucune journée restante'
-                          : comp.remaining_matchdays === 1
+                <div className="relative z-10 w-full">
+                  {/* Journées restantes - Badge en haut à gauche */}
+                  {comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
+                    <div className="text-left mb-2">
+                      <span className="inline-block bg-[#ff9900]/90 text-[#0f172a] text-xs font-semibold px-3 py-1 rounded-full">
+                        {comp.remaining_matchdays === 1
                           ? '1 journée restante'
                           : `${comp.remaining_matchdays} journées restantes`
                         }
-                      </p>
+                      </span>
                     </div>
                   )}
+
+                  <div className="text-center">
+                    {/* Logo */}
+                    <div className="w-full h-[160px] mx-auto mb-1 flex items-center justify-center relative">
+                      {comp.custom_emblem_white || comp.custom_emblem_color || comp.emblem ? (
+                        <>
+                          {/* Logo blanc par défaut */}
+                          <img
+                            src={comp.custom_emblem_white || comp.emblem || ''}
+                            alt={comp.name}
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300 group-hover:opacity-0 group-hover:scale-110"
+                          />
+                          {/* Logo couleur au survol */}
+                          {comp.custom_emblem_color && (
+                            <img
+                              src={comp.custom_emblem_color}
+                              alt={comp.name}
+                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-110"
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-[140px] h-[140px] bg-gray-800 rounded-full flex items-center justify-center text-gray-500 font-bold text-3xl">
+                          {comp.code}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nom de la compétition */}
+                    <h3 className="text-base font-bold text-[#ff9900] group-hover:text-[#0f172a] mb-0 min-h-[2rem] line-clamp-2 transition-colors duration-300">
+                      {comp.name}
+                    </h3>
+
+                    {/* Saison */}
+                    <p className="text-xs text-gray-400 group-hover:text-[#0f172a] mb-0.5 transition-colors duration-300">
+                      Saison {formatSeason(comp.current_season_start_date, comp.current_season_end_date)}
+                    </p>
+
+                    {/* Pays/Zone */}
+                    <p className="text-xs text-gray-400 group-hover:text-[#0f172a] mb-1 transition-colors duration-300">
+                      {translateCountryName(comp.area_name)}
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

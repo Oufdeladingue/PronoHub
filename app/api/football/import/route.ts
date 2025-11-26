@@ -283,8 +283,17 @@ async function importFromFootballData(competitionId: number) {
     }
   )
 
+  // Log des informations de rate limit
+  console.log('=== FOOTBALL-DATA API RATE LIMIT INFO ===')
+  console.log('Status:', matchesResponse.status, matchesResponse.statusText)
+  console.log('X-Requests-Available-Minute:', matchesResponse.headers.get('X-Requests-Available-Minute'))
+  console.log('X-Requests-Available-Day:', matchesResponse.headers.get('X-Requests-Available-Day'))
+  console.log('X-RequestCounter-Reset:', matchesResponse.headers.get('X-RequestCounter-Reset'))
+  console.log('=========================================')
+
   if (!matchesResponse.ok) {
-    throw new Error(`Failed to fetch matches: ${matchesResponse.statusText}`)
+    const errorText = await matchesResponse.text()
+    throw new Error(`Failed to fetch matches: ${matchesResponse.status} ${matchesResponse.statusText} - ${errorText}`)
   }
 
   const matchesData = await matchesResponse.json()
@@ -323,6 +332,7 @@ async function importFromFootballData(competitionId: number) {
       football_data_match_id: match.id,
       competition_id: competitionId,
       matchday: match.matchday,
+      stage: match.stage || null, // Phase de compétition (LEAGUE_STAGE, PLAYOFFS, QUARTER_FINALS, etc.)
       utc_date: match.utcDate,
       status: match.status,
       home_team_id: match.homeTeam.id,

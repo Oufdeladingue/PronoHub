@@ -136,6 +136,11 @@ input:disabled,
   box-shadow: 0 0 0 3px rgba(255, 153, 0, 0.1);
 }
 
+/* Pour les inputs number dans les contrôles compacts, ne pas forcer width: 100% */
+input[type="number"].theme-input {
+  width: auto;
+}
+
 .theme-btn-primary {
   padding: 0.75rem 1.5rem;
   background-color: #ff9900;
@@ -550,6 +555,14 @@ input:-moz-autofill:focus {
   filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
 }
 
+.icon-filter-orange {
+  filter: none;
+}
+
+:root[data-theme="dark"] .icon-filter-orange {
+  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+}
+
 /* Filtre pour #94a3b8 (gris-bleu slate) */
 .icon-filter-slate {
   filter: none;
@@ -650,6 +663,18 @@ input:-moz-autofill:focus {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Masquer les flèches des inputs number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;
 }
 
 /* Animation scintillement crystal pour bouton Premium */
@@ -829,19 +854,20 @@ input:-moz-autofill:focus {
   height: 280px;
   border: 2px solid #ff9900;
   border-radius: 1rem;
-  padding: 1.25rem;
+  padding: 0.75rem;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at center, #94a3b8 -20%, #1e293b 80%);
+  background: #1e293b;
 }
 
 .competition-badge:hover {
   box-shadow: 0 25px 50px -12px rgba(255, 153, 0, 0.1);
+  background: #94a3b8;
 }
 
-/* Logo de compétition avec ombre */
+/* Logo de compétition - Ombre portée uniquement (les filtres de couleur sont maintenant gérés par les logos custom) */
 .competition-logo {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }

@@ -1,6 +1,6 @@
 // Types pour le système de navigation unifié
 
-export type NavContext = 'app' | 'tournament' | 'admin'
+export type NavContext = 'app' | 'tournament' | 'admin' | 'creation'
 
 export interface BaseNavProps {
   username: string
@@ -24,7 +24,14 @@ export interface TournamentNavContext {
 
 // Props spécifiques au contexte "admin"
 export interface AdminNavContext {
-  currentPage?: 'general' | 'import' | 'settings'
+  currentPage?: 'general' | 'import' | 'settings' | 'logos' | 'tournaments'
+}
+
+// Props spécifiques au contexte "creation" (page de création de tournoi)
+export interface CreationNavContext {
+  competitionName: string
+  competitionLogo?: string | null
+  remainingMatchdays: number
 }
 
 // Props du composant NavBar unifié
@@ -32,4 +39,5 @@ export interface NavBarProps extends BaseNavProps {
   appContext?: AppNavContext
   tournamentContext?: TournamentNavContext
   adminContext?: AdminNavContext
+  creationContext?: CreationNavContext
 }
