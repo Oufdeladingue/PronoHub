@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
 
@@ -15,6 +16,7 @@ export default function NavBarMobile({
   creationContext,
 }: NavBarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { theme } = useTheme()
 
   // Rendu pour le contexte Creation (page de création de tournoi)
   if (context === 'creation' && creationContext) {
@@ -166,13 +168,22 @@ export default function NavBarMobile({
 
             {/* COLONNE CENTRALE - Infos compétition et tournoi */}
             <div className="flex flex-col items-center justify-center gap-2">
-              {tournamentContext.competitionLogo && (
+              {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-                  <img
-                    src={tournamentContext.competitionLogo}
-                    alt={tournamentContext.competitionName}
-                    className="w-full h-full object-contain dark:brightness-0 dark:invert"
-                  />
+                  {/* Logo blanc en thème sombre, logo normal en thème clair */}
+                  {theme === 'dark' && tournamentContext.competitionLogoWhite ? (
+                    <img
+                      src={tournamentContext.competitionLogoWhite}
+                      alt={tournamentContext.competitionName}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={tournamentContext.competitionLogo || ''}
+                      alt={tournamentContext.competitionName}
+                      className="w-full h-full object-contain dark:brightness-0 dark:invert"
+                    />
+                  )}
                 </div>
               )}
               <div className="text-center">

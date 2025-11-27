@@ -32,7 +32,10 @@ export default function TableauNoirPage() {
   const [competition, setCompetition] = useState<Competition | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [freeTierMaxPlayers, setFreeTierMaxPlayers] = useState(10)
+
+  // Type de tournoi qui sera créé (basé sur les quotas utilisateur)
+  const [tournamentTypeInfo, setTournamentTypeInfo] = useState<TournamentTypeResult | null>(null)
+  const [maxPlayersLimit, setMaxPlayersLimit] = useState(8) // Limite par défaut
 
   // Réglages du tournoi
   const [tournamentName, setTournamentName] = useState('')
@@ -51,7 +54,7 @@ export default function TableauNoirPage() {
 
   useEffect(() => {
     fetchCompetitionDetails()
-    fetchPublicSettings()
+    fetchTournamentTypeInfo()
   }, [competitionId])
 
   const fetchCompetitionDetails = async () => {
@@ -76,18 +79,22 @@ export default function TableauNoirPage() {
     }
   }
 
-  const fetchPublicSettings = async () => {
+  // Récupérer le type de tournoi et la limite de joueurs basée sur les quotas utilisateur
+  const fetchTournamentTypeInfo = async () => {
     try {
-      const response = await fetch('/api/settings/public')
-      if (!response.ok) return // Utiliser la valeur par défaut si erreur
+      const response = await fetch('/api/user/quotas', { method: 'POST' })
+      if (!response.ok) return
 
       const data = await response.json()
-      if (data.success && data.settings.free_tier_max_players) {
-        setFreeTierMaxPlayers(parseInt(data.settings.free_tier_max_players))
+      if (data.success && data.result) {
+        setTournamentTypeInfo(data.result)
+        // Définir la limite max de joueurs selon le type de tournoi
+        if (data.result.max_players) {
+          setMaxPlayersLimit(data.result.max_players)
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching public settings:', err)
-      // Utiliser la valeur par défaut en cas d'erreur
+      console.error('Error fetching tournament type info:', err)
     }
   }
 
@@ -235,7 +242,11 @@ export default function TableauNoirPage() {
                 Nombre de joueurs
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center">
-                Version gratuite : max {freeTierMaxPlayers}
+                {tournamentTypeInfo?.tournament_type === 'premium' && 'Tournoi Premium : '}
+                {tournamentTypeInfo?.tournament_type === 'oneshot' && 'Tournoi One-Shot : '}
+                {tournamentTypeInfo?.tournament_type === 'free' && 'Version gratuite : '}
+                {!tournamentTypeInfo?.tournament_type && 'Version gratuite : '}
+                max {maxPlayersLimit}
               </p>
               <div className="flex items-start justify-center gap-3">
                 <button
@@ -249,11 +260,11 @@ export default function TableauNoirPage() {
                   <input
                     type="number"
                     min="2"
-                    max={freeTierMaxPlayers}
+                    max={maxPlayersLimit}
                     value={maxPlayers}
                     onChange={(e) => {
                       const val = parseInt(e.target.value)
-                      if (!isNaN(val) && val >= 2 && val <= freeTierMaxPlayers) {
+                      if (!isNaN(val) && val >= 2 && val <= maxPlayersLimit) {
                         setMaxPlayers(val)
                       }
                     }}
@@ -262,15 +273,15 @@ export default function TableauNoirPage() {
                   <span className="text-xs theme-text-secondary mt-1">participants</span>
                 </div>
                 <button
-                  onClick={() => setMaxPlayers(Math.min(freeTierMaxPlayers, maxPlayers + 1))}
-                  disabled={maxPlayers >= freeTierMaxPlayers}
+                  onClick={() => setMaxPlayers(Math.min(maxPlayersLimit, maxPlayers + 1))}
+                  disabled={maxPlayers >= maxPlayersLimit}
                   className="btn-counter"
                 >
                   +
                 </button>
               </div>
               <p className="text-center text-sm theme-text-secondary mt-2">
-                Min: 2 | Max: {freeTierMaxPlayers}
+                Min: 2 | Max: {maxPlayersLimit}
               </p>
             </div>
 

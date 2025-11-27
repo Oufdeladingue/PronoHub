@@ -19,6 +19,7 @@ export interface TournamentNavContext {
   tournamentName: string
   competitionName: string
   competitionLogo?: string | null
+  competitionLogoWhite?: string | null
   status: 'pending' | 'active' | 'finished'
 }
 

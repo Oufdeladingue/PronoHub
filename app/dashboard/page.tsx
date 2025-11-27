@@ -24,33 +24,99 @@ export default async function DashboardPage() {
 
   const isSuper = isSuperAdmin(profile?.role as UserRole)
 
-  // Récupérer la limite de tournois depuis les paramètres admin
-  const { data: maxTournamentsSettings } = await supabase
-    .from('admin_settings')
-    .select('setting_value')
-    .eq('setting_key', 'max_tournaments_per_user')
+  // Récupérer les quotas utilisateur depuis le système de monétisation
+  // Vérifier abonnement actif
+  const { data: subscription } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
     .single()
 
-  const maxTournaments = parseInt(maxTournamentsSettings?.setting_value || '3')
+  const hasSubscription = subscription?.status === 'active'
 
-  // Récupérer les IDs des tournois auxquels l'utilisateur participe
+  // Récupérer les IDs des tournois auxquels l'utilisateur participe (pour l'affichage)
   const { data: participations } = await supabase
     .from('tournament_participants')
     .select('tournament_id')
     .eq('user_id', user.id)
 
   const tournamentIds = participations?.map(p => p.tournament_id) || []
-  const currentTournamentCount = tournamentIds.length
-  const hasReachedLimit = currentTournamentCount >= maxTournaments
 
-  // Récupérer les détails des tournois
+  // QUOTAS GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
+  // Pour les tournois gratuits, c'est le nombre de participations qui compte (pas la création)
+  const { data: participatedTournaments } = await supabase
+    .from('tournaments')
+    .select('id, tournament_type')
+    .in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000'])
+    .neq('status', 'completed')
+
+  const freeTournamentsParticipating = participatedTournaments?.filter(t => t.tournament_type === 'free').length || 0
+
+  // QUOTAS PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur
+  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
+  // Cela empêche un utilisateur de créer des tournois à l'infini en transférant le capitanat
+
+  // Récupérer les tournois premium où original_creator_id = user.id
+  const { data: premiumWithOriginalCreator } = await supabase
+    .from('tournaments')
+    .select('id, tournament_type')
+    .eq('original_creator_id', user.id)
+    .eq('tournament_type', 'premium')
+    .neq('status', 'completed')
+
+  // Récupérer les tournois premium où creator_id = user.id ET original_creator_id est NULL (anciens tournois)
+  const { data: premiumWithCreatorFallback } = await supabase
+    .from('tournaments')
+    .select('id, tournament_type')
+    .eq('creator_id', user.id)
+    .eq('tournament_type', 'premium')
+    .is('original_creator_id', null)
+    .neq('status', 'completed')
+
+  // Combiner les deux listes (en évitant les doublons par ID)
+  const allPremiumCreated = [
+    ...(premiumWithOriginalCreator || []),
+    ...(premiumWithCreatorFallback || [])
+  ]
+  const uniquePremiumCreated = allPremiumCreated.filter(
+    (t, index, self) => index === self.findIndex(other => other.id === t.id)
+  )
+  const premiumTournamentsCreated = uniquePremiumCreated.length
+
+  // Compter les slots one-shot disponibles
+  const { count: oneshotSlotsAvailable } = await supabase
+    .from('user_oneshot_purchases')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'available')
+
+  // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
+  // GRATUIT: basé sur les PARTICIPATIONS (max 3)
+  // PREMIUM: basé sur les CRÉATIONS (max 5)
+  const canCreateFree = freeTournamentsParticipating < 3
+  const canCreatePremium = hasSubscription && premiumTournamentsCreated < 5
+  const canCreateOneshot = (oneshotSlotsAvailable || 0) > 0
+  const canCreateTournament = canCreateFree || canCreatePremium || canCreateOneshot
+
+  // Récupérer les détails des tournois où l'utilisateur participe
   const { data: userTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday')
+    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
     .in('id', tournamentIds)
 
-  // Récupérer les IDs de compétitions
-  const competitionIds = userTournaments?.map((t: any) => t.competition_id).filter(Boolean) || []
+  // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté (n'est plus participant)
+  // Ces tournois occupent toujours un slot mais l'utilisateur n'y a plus accès
+  const { data: leftTournaments } = await supabase
+    .from('tournaments')
+    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
+    .eq('original_creator_id', user.id)
+    .neq('status', 'completed')
+    .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
+
+  // Récupérer les IDs de compétitions (inclure les tournois quittés aussi)
+  const allTournamentsForCompetitions = [...(userTournaments || []), ...(leftTournaments || [])]
+  const competitionIds = allTournamentsForCompetitions.map((t: any) => t.competition_id).filter(Boolean) || []
 
   // Récupérer les emblèmes des compétitions (y compris logos personnalisés)
   let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
@@ -178,7 +244,8 @@ export default async function DashboardPage() {
       custom_emblem_color: competitionData.custom_emblem_color,
       isCaptain: t.creator_id === user.id,
       journeyInfo: journeyInfo[t.id] || null,
-      nextMatchDate: nextMatchDates[t.id] || null
+      nextMatchDate: nextMatchDates[t.id] || null,
+      tournament_type: t.tournament_type || 'free'
     }
 
     console.log(`[DASHBOARD] Tournament ${t.name}:`, {
@@ -188,6 +255,24 @@ export default async function DashboardPage() {
     })
 
     return tournamentData
+  })
+
+  // Formater les tournois quittés (créateur original mais plus participant)
+  const leftTournamentsList = (leftTournaments || []).map((t: any) => {
+    const competitionData = competitionsMap[t.competition_id] || { emblem: null, custom_emblem_white: null, custom_emblem_color: null }
+
+    return {
+      id: t.id,
+      name: t.name,
+      competition_id: t.competition_id,
+      competition_name: t.competition_name,
+      emblem: competitionData.emblem,
+      custom_emblem_white: competitionData.custom_emblem_white,
+      custom_emblem_color: competitionData.custom_emblem_color,
+      tournament_type: t.tournament_type || 'free',
+      status: t.status,
+      hasLeft: true // Marqueur pour indiquer que l'utilisateur a quitté ce tournoi
+    }
   })
 
   return (
@@ -201,10 +286,20 @@ export default async function DashboardPage() {
         username={profile?.username || 'utilisateur'}
         avatar={profile?.avatar || 'avatar1'}
         isSuper={isSuper}
-        hasReachedLimit={hasReachedLimit}
-        currentTournamentCount={currentTournamentCount}
-        maxTournaments={maxTournaments}
+        canCreateTournament={canCreateTournament}
+        hasSubscription={hasSubscription}
+        quotas={{
+          freeTournaments: freeTournamentsParticipating,
+          freeTournamentsMax: 3,
+          premiumTournaments: premiumTournamentsCreated,
+          premiumTournamentsMax: hasSubscription ? 5 : 0,
+          oneshotSlotsAvailable: oneshotSlotsAvailable || 0,
+          canCreateFree,
+          canCreatePremium,
+          canCreateOneshot,
+        }}
         tournaments={tournaments}
+        leftTournaments={leftTournamentsList}
         adminPath={getAdminPath()}
       />
     </div>

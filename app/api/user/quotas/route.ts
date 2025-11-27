@@ -50,6 +50,8 @@ export async function GET() {
 }
 
 // Calcul manuel des quotas (fallback si la vue n'existe pas)
+// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
+// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
 async function calculateQuotasManually(supabase: any, userId: string): Promise<UserQuotas> {
   // Récupérer le profil
   const { data: profile } = await supabase
@@ -66,13 +68,25 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     .eq('status', 'active')
     .single()
 
-  // Compter les tournois gratuits actifs auxquels l'utilisateur PARTICIPE (pas seulement créés)
-  const { count: freeCount } = await supabase
+  // GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
+  const { data: participations } = await supabase
     .from('tournament_participants')
-    .select('*, tournaments!inner(*)', { count: 'exact', head: true })
+    .select('tournament_id')
     .eq('user_id', userId)
-    .eq('tournaments.tournament_type', 'free')
-    .neq('tournaments.status', 'completed')
+
+  const tournamentIds = participations?.map((p: any) => p.tournament_id) || []
+
+  let freeParticipationCount = 0
+  if (tournamentIds.length > 0) {
+    const { count } = await supabase
+      .from('tournaments')
+      .select('*', { count: 'exact', head: true })
+      .in('id', tournamentIds)
+      .eq('tournament_type', 'free')
+      .neq('status', 'completed')
+
+    freeParticipationCount = count || 0
+  }
 
   // Compter les tournois one-shot actifs
   const { count: oneshotActiveCount } = await supabase
@@ -88,13 +102,13 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     .eq('user_id', userId)
     .eq('status', 'available')
 
-  // Compter les tournois premium actifs auxquels l'utilisateur PARTICIPE
+  // PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur (original_creator_id)
   const { count: premiumCount } = await supabase
-    .from('tournament_participants')
-    .select('*, tournaments!inner(*)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('tournaments.tournament_type', 'premium')
-    .neq('tournaments.status', 'completed')
+    .from('tournaments')
+    .select('*', { count: 'exact', head: true })
+    .eq('original_creator_id', userId)
+    .eq('tournament_type', 'premium')
+    .neq('status', 'completed')
 
   // Compter les comptes entreprise actifs
   const { count: enterpriseCount } = await supabase
@@ -106,11 +120,13 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
   const hasSubscription = subscription?.status === 'active'
   const premiumMax = hasSubscription ? 5 : 0
 
-  // Déterminer si l'utilisateur peut créer un tournoi
+  // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
+  // GRATUIT: basé sur les PARTICIPATIONS (max 3)
+  // PREMIUM: basé sur les CRÉATIONS (max 5)
   const canCreate =
     (hasSubscription && (premiumCount || 0) < 5) ||
     (oneshotAvailableCount || 0) > 0 ||
-    (freeCount || 0) < 3
+    freeParticipationCount < 3
 
   return {
     user_id: userId,
@@ -118,7 +134,7 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     subscription_status: subscription?.status || 'none',
     subscription_type: subscription?.subscription_type || null,
     subscription_expires_at: subscription?.current_period_end || null,
-    free_tournaments_active: freeCount || 0,
+    free_tournaments_active: freeParticipationCount,
     free_tournaments_max: 3,
     oneshot_tournaments_active: oneshotActiveCount || 0,
     oneshot_tournaments_max: 2,
@@ -181,6 +197,8 @@ export async function POST() {
 }
 
 // Calcul manuel du type de tournoi
+// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
+// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
 async function determineTournamentTypeManually(
   supabase: any,
   userId: string
@@ -195,13 +213,13 @@ async function determineTournamentTypeManually(
 
   const hasSubscription = !!subscription
 
-  // Compter tournois premium actifs auxquels l'utilisateur PARTICIPE
+  // PREMIUM: Compter tournois premium CRÉÉS par l'utilisateur (original_creator_id)
   const { count: premiumCount } = await supabase
-    .from('tournament_participants')
-    .select('*, tournaments!inner(*)', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('tournaments.tournament_type', 'premium')
-    .neq('tournaments.status', 'completed')
+    .from('tournaments')
+    .select('*', { count: 'exact', head: true })
+    .eq('original_creator_id', userId)
+    .eq('tournament_type', 'premium')
+    .neq('status', 'completed')
 
   // Priorité 1: Abonnement premium
   if (hasSubscription && (premiumCount || 0) < 5) {
@@ -228,16 +246,28 @@ async function determineTournamentTypeManually(
     }
   }
 
-  // Compter tournois gratuits actifs auxquels l'utilisateur PARTICIPE
-  const { count: freeCount } = await supabase
+  // GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
+  const { data: participations } = await supabase
     .from('tournament_participants')
-    .select('*, tournaments!inner(*)', { count: 'exact', head: true })
+    .select('tournament_id')
     .eq('user_id', userId)
-    .eq('tournaments.tournament_type', 'free')
-    .neq('tournaments.status', 'completed')
 
-  // Priorité 3: Gratuit
-  if ((freeCount || 0) < 3) {
+  const tournamentIds = participations?.map((p: any) => p.tournament_id) || []
+
+  let freeParticipationCount = 0
+  if (tournamentIds.length > 0) {
+    const { count } = await supabase
+      .from('tournaments')
+      .select('*', { count: 'exact', head: true })
+      .in('id', tournamentIds)
+      .eq('tournament_type', 'free')
+      .neq('status', 'completed')
+
+    freeParticipationCount = count || 0
+  }
+
+  // Priorité 3: Gratuit (max 3 participations)
+  if (freeParticipationCount < 3) {
     return {
       tournament_type: 'free',
       max_players: ACCOUNT_LIMITS.free.maxPlayersPerTournament,

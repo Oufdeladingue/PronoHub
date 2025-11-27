@@ -255,13 +255,22 @@ export default function NavBar({
 
             {/* COLONNE CENTRALE - Infos compétition et tournoi */}
             <div className="flex items-center justify-center gap-4">
-              {tournamentContext.competitionLogo && (
+              {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
-                  <img
-                    src={tournamentContext.competitionLogo}
-                    alt={tournamentContext.competitionName}
-                    className="w-full h-full object-contain dark:brightness-0 dark:invert"
-                  />
+                  {/* Logo blanc en thème sombre, logo normal en thème clair */}
+                  {theme === 'dark' && tournamentContext.competitionLogoWhite ? (
+                    <img
+                      src={tournamentContext.competitionLogoWhite}
+                      alt={tournamentContext.competitionName}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={tournamentContext.competitionLogo || ''}
+                      alt={tournamentContext.competitionName}
+                      className="w-full h-full object-contain dark:brightness-0 dark:invert"
+                    />
+                  )}
                 </div>
               )}
               <div className="text-left">

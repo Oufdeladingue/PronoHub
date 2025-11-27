@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { TournamentType } from '@/types/monetization'
 
 interface JoinTournamentRequest {
   inviteCode: string
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Chercher le tournoi avec ce code d'invitation
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, invite_code, status, max_players, creator_id')
+      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type')
       .or(`invite_code.eq.${inviteCode.toUpperCase()},slug.eq.${inviteCode.toUpperCase()}`)
       .single()
 
@@ -71,6 +72,39 @@ export async function POST(request: NextRequest) {
         }
       })
     }
+
+    // Vérifier les quotas de l'utilisateur selon le type de tournoi à rejoindre
+    const tournamentType = (tournament.tournament_type || 'free') as TournamentType
+
+    if (tournamentType === 'free') {
+      // Compter les tournois gratuits actifs de l'utilisateur
+      const { data: userParticipations } = await supabase
+        .from('tournament_participants')
+        .select('tournament_id')
+        .eq('user_id', user.id)
+
+      const userTournamentIds = userParticipations?.map(p => p.tournament_id) || []
+
+      if (userTournamentIds.length > 0) {
+        const { data: userFreeTournaments } = await supabase
+          .from('tournaments')
+          .select('id')
+          .in('id', userTournamentIds)
+          .eq('tournament_type', 'free')
+          .neq('status', 'completed')
+
+        const freeCount = userFreeTournaments?.length || 0
+
+        if (freeCount >= 3) {
+          return NextResponse.json(
+            { error: 'Vous avez atteint votre quota de 3 tournois gratuits actifs. Ce tournoi est un tournoi gratuit.' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+    // Les tournois premium et oneshot n'ont pas de restriction de quota pour rejoindre
+    // (la restriction s'applique à la création, pas à l'invitation)
 
     // Vérifier le nombre de participants
     const { count: participantCount } = await supabase

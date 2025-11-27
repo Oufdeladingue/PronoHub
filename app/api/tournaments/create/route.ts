@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { TournamentType, ACCOUNT_LIMITS } from '@/types/monetization'
 
 // Déterminer le type de tournoi selon les quotas utilisateur
+// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
+// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
 async function determineTournamentType(supabase: any, userId: string): Promise<{
   tournamentType: TournamentType | null;
   maxPlayers: number;
@@ -16,11 +18,12 @@ async function determineTournamentType(supabase: any, userId: string): Promise<{
     .eq('status', 'active')
     .single()
 
-  // Compter tournois premium actifs
+  // Compter tournois premium actifs CRÉÉS par cet utilisateur (original_creator_id)
+  // On utilise original_creator_id car même après transfert de capitanat, le slot reste occupé
   const { count: premiumCount } = await supabase
     .from('tournaments')
     .select('*', { count: 'exact', head: true })
-    .eq('creator_id', userId)
+    .eq('original_creator_id', userId)
     .eq('tournament_type', 'premium')
     .neq('status', 'completed')
 
@@ -41,16 +44,30 @@ async function determineTournamentType(supabase: any, userId: string): Promise<{
     return { tournamentType: 'oneshot', maxPlayers: 20, reason: 'Slot one-shot' }
   }
 
-  // Compter tournois gratuits actifs
-  const { count: freeCount } = await supabase
-    .from('tournaments')
-    .select('*', { count: 'exact', head: true })
-    .eq('creator_id', userId)
-    .eq('tournament_type', 'free')
-    .neq('status', 'completed')
+  // GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
+  // Récupérer d'abord les IDs des tournois où l'utilisateur participe
+  const { data: participations } = await supabase
+    .from('tournament_participants')
+    .select('tournament_id')
+    .eq('user_id', userId)
 
-  // Priorité 3: Gratuit (max 3, 8 joueurs)
-  if ((freeCount || 0) < 3) {
+  const tournamentIds = participations?.map((p: any) => p.tournament_id) || []
+
+  // Compter combien de ces tournois sont gratuits et actifs
+  let freeParticipationCount = 0
+  if (tournamentIds.length > 0) {
+    const { count } = await supabase
+      .from('tournaments')
+      .select('*', { count: 'exact', head: true })
+      .in('id', tournamentIds)
+      .eq('tournament_type', 'free')
+      .neq('status', 'completed')
+
+    freeParticipationCount = count || 0
+  }
+
+  // Priorité 3: Gratuit (max 3 participations, 8 joueurs)
+  if (freeParticipationCount < 3) {
     return { tournamentType: 'free', maxPlayers: 8, reason: 'Slot gratuit' }
   }
 
@@ -142,6 +159,8 @@ export async function POST(request: Request) {
     const effectiveMaxPlayers = Math.min(maxPlayers || allowedMaxPlayers, allowedMaxPlayers)
 
     // Créer le tournoi avec le type déterminé
+    // original_creator_id garde en mémoire qui a créé le tournoi (pour le quota)
+    // creator_id est le capitaine actuel (peut changer avec le transfert)
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .insert({
@@ -157,6 +176,7 @@ export async function POST(request: Request) {
         all_matchdays: allMatchdays,
         bonus_match_enabled: bonusMatchEnabled,
         creator_id: user.id,
+        original_creator_id: user.id, // Garde en mémoire le créateur original pour les quotas
         status: 'pending',
         current_participants: 1,
         scoring_exact_score: 3,

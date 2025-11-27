@@ -101,7 +101,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
                 Superbe coup du chapeau !
               </p>
               <p className="text-xs md:text-sm text-gray-400">
-                Limite de 3 tournois actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...
+                Limite de 3 tournois gratuits actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...
               </p>
             </div>
           </div>

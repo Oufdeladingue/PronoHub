@@ -23,6 +23,7 @@ interface Tournament {
   creator_id: string
   status: string
   created_at: string
+  tournament_type?: 'free' | 'premium' | 'oneshot' | 'enterprise'
 }
 
 interface Competition {
@@ -54,12 +55,15 @@ function EchauffementPageContent() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(10)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
+  const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
   const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
   const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
   const [cancelConfirmation, setCancelConfirmation] = useState<boolean>(false)
   const [startConfirmation, setStartConfirmation] = useState<boolean>(false)
   const [leaveWarning, setLeaveWarning] = useState<boolean>(false)
+  const [transferSuccess, setTransferSuccess] = useState<{ show: boolean, playerName: string }>({ show: false, playerName: '' })
+  const [leaveConfirmation, setLeaveConfirmation] = useState<boolean>(false)
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [matchdayWarning, setMatchdayWarning] = useState<{
@@ -175,11 +179,28 @@ function EchauffementPageContent() {
       const response = await fetch('/api/settings/public')
       const data = await response.json()
       if (data.success && data.settings?.free_tier_max_players) {
+        // La limite par défaut est celle des comptes gratuits
+        // Elle sera ajustée selon le type de tournoi une fois le tournoi chargé
         setMaxParticipantsLimit(parseInt(data.settings.free_tier_max_players, 10))
       }
     } catch (err) {
       console.error('Error fetching max participants limit:', err)
     }
+  }
+
+  // Calculer la limite maximale de participants selon le type de tournoi
+  const getMaxPlayersLimit = () => {
+    if (!tournament) return maxParticipantsLimit
+
+    // Tournois premium, oneshot et enterprise peuvent avoir jusqu'à 20 joueurs
+    if (tournament.tournament_type === 'premium' ||
+        tournament.tournament_type === 'oneshot' ||
+        tournament.tournament_type === 'enterprise') {
+      return 20
+    }
+
+    // Tournois gratuits utilisent la limite définie dans les settings
+    return maxParticipantsLimit
   }
 
   const fetchPlayers = async () => {
@@ -207,12 +228,15 @@ function EchauffementPageContent() {
       const supabase = createClient()
       const { data: competition } = await supabase
         .from('competitions')
-        .select('emblem')
+        .select('emblem, custom_emblem_white')
         .eq('id', tournament.competition_id)
         .single()
 
       if (competition?.emblem) {
         setCompetitionLogo(competition.emblem)
+      }
+      if (competition?.custom_emblem_white) {
+        setCompetitionLogoWhite(competition.custom_emblem_white)
       }
     } catch (err) {
       console.error('Error fetching competition logo:', err)
@@ -272,8 +296,10 @@ function EchauffementPageContent() {
   }
 
   const handleIncreaseMaxPlayers = async () => {
-    if (!tournament || tournament.max_players >= maxParticipantsLimit) {
-      alert(`Limite maximale de ${maxParticipantsLimit} participants atteinte pour un compte gratuit`)
+    const limit = getMaxPlayersLimit()
+    if (!tournament || tournament.max_players >= limit) {
+      const typeLabel = tournament?.tournament_type === 'free' ? ' pour un compte gratuit' : ''
+      alert(`Limite maximale de ${limit} participants atteinte${typeLabel}`)
       return
     }
 
@@ -422,18 +448,23 @@ function EchauffementPageContent() {
     if (!tournament) return
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('tournaments')
-        .delete()
-        .eq('id', tournament.id)
+      const response = await fetch('/api/tournaments/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournamentId: tournament.id })
+      })
 
-      if (error) throw error
+      const data = await response.json()
 
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'annulation')
+      }
+
+      // Rediriger vers le dashboard après succès
       window.location.href = '/dashboard'
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error cancelling tournament:', err)
-      alert('Erreur lors de l\'annulation du tournoi')
+      alert(err.message || 'Erreur lors de l\'annulation du tournoi')
     }
   }
 
@@ -449,28 +480,71 @@ function EchauffementPageContent() {
     if (!tournament) return
 
     try {
-      const supabase = createClient()
-      const { error } = await supabase
-        .from('tournaments')
-        .update({ creator_id: transferConfirmation.playerId })
-        .eq('id', tournament.id)
+      const response = await fetch('/api/tournaments/transfer-captain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          newCaptainId: transferConfirmation.playerId
+        })
+      })
 
-      if (error) throw error
+      const data = await response.json()
 
-      alert('Capitaine transféré avec succès')
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du transfert')
+      }
+
       setTransferConfirmation({ show: false, playerId: '', playerName: '' })
-      fetchTournamentData()
-    } catch (err) {
+      setTransferSuccess({ show: true, playerName: transferConfirmation.playerName })
+      // Rediriger vers le dashboard après 2 secondes
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 2000)
+    } catch (err: any) {
       console.error('Error transferring captaincy:', err)
-      alert('Erreur lors du transfert')
+      setTransferConfirmation({ show: false, playerId: '', playerName: '' })
+      // Afficher l'erreur dans une modal simple (on pourrait aussi créer un état pour ça)
+      setTransferSuccess({ show: false, playerName: '' })
     }
   }
 
   const handleLeaveTournament = async () => {
     if (!tournament || !currentUserId) return
 
-    // Il y a d'autres participants, demander de transférer le capitanat
-    setLeaveWarning(true)
+    // Si c'est le capitaine, afficher l'avertissement de transfert obligatoire
+    if (currentUserId === tournament.creator_id) {
+      setLeaveWarning(true)
+      return
+    }
+
+    // Sinon, afficher la confirmation de départ
+    setLeaveConfirmation(true)
+  }
+
+  const confirmLeaveTournament = async () => {
+    if (!tournament) return
+
+    try {
+      const response = await fetch('/api/tournaments/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournamentId: tournament.id })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du départ')
+      }
+
+      // Rediriger vers le dashboard
+      window.location.href = '/dashboard'
+    } catch (err: any) {
+      console.error('Error leaving tournament:', err)
+      alert(err.message || 'Erreur lors du départ du tournoi')
+      setLeaveConfirmation(false)
+    }
   }
 
   const copyInviteCode = () => {
@@ -518,8 +592,8 @@ function EchauffementPageContent() {
     <div className="min-h-screen theme-bg">
       {/* Popup de confirmation de démarrage */}
       {startConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="theme-card shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
             <div className="text-center mb-6">
               <img src="/images/icons/start-tour.svg" alt="Démarrer" className="w-16 h-16 mx-auto mb-3" />
               <h3 className="text-2xl font-bold theme-text mb-2">
@@ -631,6 +705,29 @@ function EchauffementPageContent() {
         </div>
       )}
 
+      {/* Popup de succès après transfert de capitanat */}
+      {transferSuccess.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
+            <div className="text-center">
+              <div className="text-5xl mb-3">✅</div>
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Transfert réussi !
+              </h3>
+              <p className="theme-text-secondary mb-4">
+                Le capitanat a été transféré à <span className="font-bold text-green-500">{transferSuccess.playerName}</span>.
+              </p>
+              <p className="text-sm theme-text-secondary">
+                Un email lui a été envoyé pour l'informer de ses nouvelles responsabilités.
+              </p>
+              <p className="text-xs theme-text-secondary mt-4 opacity-60">
+                Redirection vers le dashboard...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popup d'avertissement pour quitter le tournoi en tant que capitaine */}
       {leaveWarning && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -663,6 +760,44 @@ function EchauffementPageContent() {
         </div>
       )}
 
+      {/* Popup de confirmation pour quitter le tournoi (non-capitaines) */}
+      {leaveConfirmation && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">🚪</div>
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Quitter le tournoi ?
+              </h3>
+              <p className="theme-text-secondary">
+                Êtes-vous sûr de vouloir quitter le tournoi <span className="font-bold text-red-500">{tournament?.name}</span> ?
+              </p>
+            </div>
+
+            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+              <p className="text-sm text-red-400">
+                <strong>Attention :</strong> Cette action est irréversible. Vous ne pourrez plus rejoindre ce tournoi et tous vos pronostics seront supprimés.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLeaveConfirmation(false)}
+                className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmLeaveTournament}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+              >
+                Confirmer le départ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <Navigation
         username={username}
@@ -672,6 +807,7 @@ function EchauffementPageContent() {
           tournamentName: tournament.name,
           competitionName: tournament.competition_name,
           competitionLogo: competitionLogo,
+          competitionLogoWhite: competitionLogoWhite,
           status: "pending"
         }}
       />
@@ -867,13 +1003,15 @@ function EchauffementPageContent() {
               {currentUserId === tournament?.creator_id && (
                 <div className="space-y-2 mt-4">
                   {/* Bouton Ajouter une place */}
-                  {tournament.max_players < maxParticipantsLimit && (
+                  {tournament.max_players < getMaxPlayersLimit() && (
                     <button
                       onClick={handleIncreaseMaxPlayers}
                       className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
                     >
                       <span className="text-xl dark-text-accent">+</span>
-                      <span className="dark-text-accent">Ajouter une place (max {maxParticipantsLimit} en mode gratuit)</span>
+                      <span className="dark-text-accent">
+                        Ajouter une place (max {getMaxPlayersLimit()}{tournament.tournament_type === 'free' ? ' en mode gratuit' : ''})
+                      </span>
                     </button>
                   )}
 
@@ -979,6 +1117,27 @@ function EchauffementPageContent() {
                   Partager le lien
                 </button>
               </div>
+            </div>
+
+            {/* Bouton Quitter le tournoi - pour tous les participants */}
+            <div className="theme-card mt-6">
+              <button
+                onClick={handleLeaveTournament}
+                className="w-full px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold flex items-center justify-center gap-2"
+              >
+                <img
+                  src="/images/icons/dehors.svg"
+                  alt=""
+                  className="w-5 h-5"
+                />
+                Quitter le tournoi
+              </button>
+              <p className="text-xs theme-text-secondary text-center mt-2">
+                {currentUserId === tournament?.creator_id
+                  ? "En tant que capitaine, vous devez d'abord transférer le rôle"
+                  : "Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté"
+                }
+              </p>
             </div>
           </div>
         </div>

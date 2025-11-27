@@ -114,6 +114,9 @@ export default function ChooseUsernamePage() {
 
       if (profileError) throw profileError
 
+      // Envoyer l'email de bienvenue (en arrière-plan, on n'attend pas la réponse)
+      fetch('/api/email/welcome', { method: 'POST' }).catch(console.error)
+
       // Rediriger vers le dashboard
       router.push('/dashboard')
     } catch (err: any) {

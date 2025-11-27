@@ -230,6 +230,82 @@ input:-moz-autofill:focus {
   border-color: #fd9a28;
 }
 
+/* Tournament type badge hover - change color on card hover */
+.glossy-card .tournament-badge-hover svg,
+.glossy-card .tournament-badge-hover svg path,
+.glossy-card .tournament-badge-hover svg polygon {
+  transition: fill 0.3s ease;
+}
+
+.glossy-card:hover .tournament-badge-hover svg,
+.glossy-card:hover .tournament-badge-hover svg path,
+.glossy-card:hover .tournament-badge-hover svg polygon {
+  fill: #1e293b !important;
+}
+
+/* Quota warning box - Abonnement tab */
+.quota-warning-box {
+  background-color: #fef9c3;
+  border: 1px solid #facc15;
+}
+
+:root[data-theme="dark"] .quota-warning-box {
+  background-color: #0f1729 !important;
+  border-color: #ff9900 !important;
+}
+
+.quota-warning-icon {
+  color: #ca8a04;
+}
+
+:root[data-theme="dark"] .quota-warning-icon {
+  color: #ff9900 !important;
+}
+
+.quota-warning-title {
+  color: #a16207;
+}
+
+:root[data-theme="dark"] .quota-warning-title {
+  color: #ff9900 !important;
+}
+
+/* Premium advantages box - Abonnement tab */
+.premium-advantages-box {
+  background-color: rgba(255, 153, 0, 0.1);
+  border: 1px solid rgba(255, 153, 0, 0.3);
+}
+
+:root[data-theme="dark"] .premium-advantages-box {
+  background-color: #0f172a !important;
+  border-color: rgba(255, 153, 0, 0.3) !important;
+}
+
+.premium-advantages-title {
+  color: #92400e;
+}
+
+:root[data-theme="dark"] .premium-advantages-title {
+  color: #ff9900 !important;
+}
+
+.premium-advantages-star {
+  color: #ff9900;
+}
+
+:root[data-theme="dark"] .premium-advantages-star {
+  color: #99a7c4 !important;
+}
+
+/* Upgrade section title */
+.upgrade-section-title {
+  color: #92400e;
+}
+
+:root[data-theme="dark"] .upgrade-section-title {
+  color: #ff9900 !important;
+}
+
 /* Dark mode specific background colors */
 .dark-bg-primary {
   background-color: #f9fafb;
@@ -765,6 +841,24 @@ input[type="number"] {
 
 :root[data-theme="dark"] .trophy-card {
   background-color: #0f172a !important;
+}
+
+/* Card de trophée débloqué */
+.trophy-card-unlocked {
+  background: linear-gradient(to bottom right, #f9fafb, #f3f4f6);
+}
+
+:root[data-theme="dark"] .trophy-card-unlocked {
+  background: #0f172a !important;
+}
+
+/* Card de trophée nouveau */
+.trophy-card-new {
+  background: linear-gradient(to bottom right, #fefce8, #fef3c7);
+}
+
+:root[data-theme="dark"] .trophy-card-new {
+  background: #0f172a !important;
 }
 
 /* Card de trophée verrouillé */

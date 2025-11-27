@@ -39,6 +39,16 @@ function ProfileContent() {
   const [recalculatingTrophies, setRecalculatingTrophies] = useState(false)
   const [hasNewTrophies, setHasNewTrophies] = useState(false)
   const [lastRefreshMessage, setLastRefreshMessage] = useState('')
+  // Préférences de notifications
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    email_reminder: false,           // Rappel si prono non renseigné (4h avant)
+    email_tournament_started: true,  // Confirmation lancement tournoi par capitaine
+    email_day_recap: false,          // Récap à l'issue d'une journée
+    email_tournament_end: false,     // Récap fin de tournoi
+    email_invite: true,              // Invitation à un tournoi
+    email_player_joined: true,       // Quand un joueur rejoint (si capitaine)
+  })
+  const [savingNotifications, setSavingNotifications] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -54,6 +64,7 @@ function ProfileContent() {
 
       setEmail(user.email || '')
 
+      // Requête de base pour le profil
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('username, theme_preference, avatar')
@@ -70,6 +81,25 @@ function ProfileContent() {
         setUsername(profile.username || '')
         setInitialUsername(profile.username || '')
         setSelectedAvatar(profile.avatar || 'avatar1')
+      }
+
+      // Charger les préférences de notifications séparément (colonne optionnelle)
+      try {
+        const { data: prefsData } = await supabase
+          .from('profiles')
+          .select('notification_preferences')
+          .eq('id', user.id)
+          .single()
+
+        if (prefsData?.notification_preferences) {
+          setNotificationPrefs(prev => ({
+            ...prev,
+            ...prefsData.notification_preferences
+          }))
+        }
+      } catch (e) {
+        // La colonne notification_preferences n'existe peut-être pas encore
+        console.log('Notification preferences not available')
       }
 
       setLoading(false)
@@ -137,6 +167,37 @@ function ProfileContent() {
 
   const handleThemeChange = (newTheme: 'light' | 'dark') => {
     setTheme(newTheme)
+  }
+
+  const handleNotificationToggle = async (key: keyof typeof notificationPrefs) => {
+    const newPrefs = {
+      ...notificationPrefs,
+      [key]: !notificationPrefs[key]
+    }
+    setNotificationPrefs(newPrefs)
+
+    // Sauvegarder automatiquement
+    setSavingNotifications(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ notification_preferences: newPrefs })
+        .eq('id', user.id)
+
+      if (error) {
+        console.error('Error saving notification preferences:', error)
+        // Reverter en cas d'erreur
+        setNotificationPrefs(notificationPrefs)
+      }
+    } catch (error) {
+      console.error('Error saving notification preferences:', error)
+      setNotificationPrefs(notificationPrefs)
+    } finally {
+      setSavingNotifications(false)
+    }
   }
 
   const handlePasswordChange = async () => {
@@ -981,7 +1042,7 @@ function ProfileContent() {
                       return (
                         <div
                           key={trophy.id}
-                          className={`trophy-card relative ${trophy.is_new ? 'shadow-lg bg-gradient-to-br from-yellow-50 to-amber-100' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}
+                          className={`trophy-card relative ${trophy.is_new ? 'shadow-lg trophy-card-new' : 'trophy-card-unlocked'}`}
                         >
                           {/* Badge "NOUVEAU" */}
                           {trophy.is_new && (
@@ -1097,6 +1158,127 @@ function ProfileContent() {
               {/* Séparateur */}
               <div className="border-t theme-border"></div>
 
+              {/* Section Notifications */}
+              <div>
+                <h3 className="text-lg font-semibold theme-text mb-4">Préférences de notifications</h3>
+                <p className="text-sm theme-text-secondary mb-4">
+                  Choisissez les emails que vous souhaitez recevoir
+                </p>
+
+                <div className="space-y-4">
+                  {/* Rappel pronostics */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Rappel de pronostics</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir un rappel 4h avant le début des matchs si vous n'avez pas pronostiqué
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_reminder')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_reminder ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Lancement tournoi */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Lancement de tournoi</p>
+                      <p className="text-xs theme-text-secondary">
+                        Confirmation quand le capitaine lance le tournoi
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_tournament_started')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_tournament_started ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Récap journée */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Récapitulatif de journée</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir un résumé à l'issue de chaque journée (classement, stats)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_day_recap')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_day_recap ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Récap fin tournoi */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Récapitulatif de fin de tournoi</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir un résumé à la fin du tournoi (classement final, statistiques)
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_tournament_end')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_tournament_end ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Invitation tournoi */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Invitation à un tournoi</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir un email quand quelqu'un vous invite à rejoindre un tournoi
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_invite')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_invite ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Joueur rejoint (capitaine) */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Nouveau joueur dans mon tournoi</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir un email quand un joueur rejoint un tournoi dont vous êtes capitaine
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_player_joined')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_player_joined ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+                </div>
+
+                {savingNotifications && (
+                  <p className="text-xs theme-text-secondary mt-3 text-center">
+                    Enregistrement...
+                  </p>
+                )}
+              </div>
+
+              {/* Séparateur */}
+              <div className="border-t theme-border"></div>
+
               {/* Section Changement de mot de passe */}
               <div>
                 <h3 className="text-lg font-semibold theme-text mb-4">Modifier le mot de passe</h3>
@@ -1159,13 +1341,7 @@ function ProfileContent() {
           {/* Contenu de l'onglet Abonnement */}
           {activeTab === 'abonnement' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold theme-text mb-4">Mon abonnement</h3>
               <UserQuotasCard />
-              <div className="mt-6 p-4 theme-card-secondary rounded-lg">
-                <p className="text-sm theme-text-secondary">
-                  Gerez votre abonnement, consultez vos quotas et passez a Premium pour debloquer plus de fonctionnalites.
-                </p>
-              </div>
             </div>
           )}
         </div>
