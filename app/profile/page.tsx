@@ -889,7 +889,7 @@ function ProfileContent() {
                   <div>
                     <h3 className="text-lg font-semibold theme-text mb-4">Mes pronostics</h3>
                     {stats.totalFinishedMatches > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="stat-card border-orange-200 bg-orange-50">
                           <div className="stat-number text-orange-600">
                             {stats.correctResultsPercentage}%
@@ -910,6 +910,17 @@ function ProfileContent() {
                           </div>
                           <div className="text-xs theme-text-secondary mt-2">
                             Sur {stats.totalFinishedMatches} matchs terminés
+                          </div>
+                        </div>
+                        <div className="stat-card border-red-200 bg-red-50">
+                          <div className="stat-number text-red-600">
+                            {stats.defaultPredictionsPercentage}%
+                          </div>
+                          <div className="text-sm theme-text-secondary mt-1">
+                            Non renseignés
+                          </div>
+                          <div className="text-xs theme-text-secondary mt-2">
+                            Pronos par défaut (0-0)
                           </div>
                         </div>
                       </div>

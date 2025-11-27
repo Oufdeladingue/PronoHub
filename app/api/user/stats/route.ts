@@ -40,6 +40,7 @@ export async function GET(request: Request) {
     let totalFinishedMatches = 0
     let correctResults = 0
     let exactScores = 0
+    let defaultPredictions = 0
 
     if (predictions && predictions.length > 0) {
       // Récupérer tous les IDs de matchs
@@ -79,6 +80,11 @@ export async function GET(request: Request) {
 
             totalFinishedMatches++
 
+            // Compter les pronostics par défaut
+            if (pred.is_default_prediction) {
+              defaultPredictions++
+            }
+
             const predHomeScore = pred.predicted_home_score
             const predAwayScore = pred.predicted_away_score
             const actualHomeScore = match.home_score
@@ -102,10 +108,11 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`Stats: ${totalFinishedMatches} finished matches, ${correctResults} correct results, ${exactScores} exact scores`)
+    console.log(`Stats: ${totalFinishedMatches} finished matches, ${correctResults} correct results, ${exactScores} exact scores, ${defaultPredictions} default predictions`)
 
     const correctResultsPercentage = totalFinishedMatches > 0 ? Math.round((correctResults / totalFinishedMatches) * 100) : 0
     const exactScoresPercentage = totalFinishedMatches > 0 ? Math.round((exactScores / totalFinishedMatches) * 100) : 0
+    const defaultPredictionsPercentage = totalFinishedMatches > 0 ? Math.round((defaultPredictions / totalFinishedMatches) * 100) : 0
 
     // 3. Nombre de premières places finales (classements de tournois terminés)
     let firstPlacesFinal = 0
@@ -224,6 +231,7 @@ export async function GET(request: Request) {
         totalFinishedMatches,
         correctResultsPercentage,
         exactScoresPercentage,
+        defaultPredictionsPercentage,
         firstPlacesFinal,
         firstPlacesProvisional
       }
