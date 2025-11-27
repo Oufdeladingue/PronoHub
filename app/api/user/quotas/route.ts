@@ -17,27 +17,13 @@ export async function GET() {
       )
     }
 
-    // Récupérer les quotas depuis la vue
-    const { data: quotas, error: quotasError } = await supabase
-      .from('user_quotas')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (quotasError) {
-      // Si la vue n'existe pas encore, calculer manuellement
-      const manualQuotas = await calculateQuotasManually(supabase, user.id)
-      return NextResponse.json({
-        success: true,
-        quotas: manualQuotas,
-        source: 'calculated'
-      })
-    }
-
+    // Toujours utiliser le calcul manuel (plus fiable que la vue SQL)
+    // La vue SQL compte les tournois premium par PARTICIPATION au lieu de CRÉATION
+    const manualQuotas = await calculateQuotasManually(supabase, user.id)
     return NextResponse.json({
       success: true,
-      quotas: quotas as UserQuotas,
-      source: 'view'
+      quotas: manualQuotas,
+      source: 'calculated'
     })
 
   } catch (error) {
@@ -102,13 +88,31 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     .eq('user_id', userId)
     .eq('status', 'available')
 
-  // PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur (original_creator_id)
-  const { count: premiumCount } = await supabase
+  // PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur
+  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
+  const { data: premiumWithOriginalCreator } = await supabase
     .from('tournaments')
-    .select('*', { count: 'exact', head: true })
+    .select('id')
     .eq('original_creator_id', userId)
     .eq('tournament_type', 'premium')
     .neq('status', 'completed')
+
+  // Fallback: tournois où creator_id = userId ET original_creator_id est NULL (anciens tournois)
+  const { data: premiumWithCreatorFallback } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('creator_id', userId)
+    .eq('tournament_type', 'premium')
+    .is('original_creator_id', null)
+    .neq('status', 'completed')
+
+  // Combiner les deux listes en évitant les doublons
+  const allPremiumCreated = [
+    ...(premiumWithOriginalCreator || []),
+    ...(premiumWithCreatorFallback || [])
+  ]
+  const uniquePremiumIds = new Set(allPremiumCreated.map(t => t.id))
+  const premiumCount = uniquePremiumIds.size
 
   // Compter les comptes entreprise actifs
   const { count: enterpriseCount } = await supabase
@@ -124,7 +128,7 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
   // GRATUIT: basé sur les PARTICIPATIONS (max 3)
   // PREMIUM: basé sur les CRÉATIONS (max 5)
   const canCreate =
-    (hasSubscription && (premiumCount || 0) < 5) ||
+    (hasSubscription && premiumCount < 5) ||
     (oneshotAvailableCount || 0) > 0 ||
     freeParticipationCount < 3
 
@@ -139,7 +143,7 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     oneshot_tournaments_active: oneshotActiveCount || 0,
     oneshot_tournaments_max: 2,
     oneshot_slots_available: oneshotAvailableCount || 0,
-    premium_tournaments_active: premiumCount || 0,
+    premium_tournaments_active: premiumCount,
     premium_tournaments_max: premiumMax,
     enterprise_accounts_active: enterpriseCount || 0,
     can_create_tournament: canCreate,
@@ -197,7 +201,7 @@ export async function POST() {
 }
 
 // Calcul manuel du type de tournoi
-// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
+// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id avec fallback creator_id)
 // GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
 async function determineTournamentTypeManually(
   supabase: any,
@@ -213,16 +217,32 @@ async function determineTournamentTypeManually(
 
   const hasSubscription = !!subscription
 
-  // PREMIUM: Compter tournois premium CRÉÉS par l'utilisateur (original_creator_id)
-  const { count: premiumCount } = await supabase
+  // PREMIUM: Compter tournois premium CRÉÉS par l'utilisateur
+  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
+  const { data: premiumWithOriginalCreator } = await supabase
     .from('tournaments')
-    .select('*', { count: 'exact', head: true })
+    .select('id')
     .eq('original_creator_id', userId)
     .eq('tournament_type', 'premium')
     .neq('status', 'completed')
 
+  const { data: premiumWithCreatorFallback } = await supabase
+    .from('tournaments')
+    .select('id')
+    .eq('creator_id', userId)
+    .eq('tournament_type', 'premium')
+    .is('original_creator_id', null)
+    .neq('status', 'completed')
+
+  const allPremiumCreated = [
+    ...(premiumWithOriginalCreator || []),
+    ...(premiumWithCreatorFallback || [])
+  ]
+  const uniquePremiumIds = new Set(allPremiumCreated.map(t => t.id))
+  const premiumCount = uniquePremiumIds.size
+
   // Priorité 1: Abonnement premium
-  if (hasSubscription && (premiumCount || 0) < 5) {
+  if (hasSubscription && premiumCount < 5) {
     return {
       tournament_type: 'premium',
       max_players: ACCOUNT_LIMITS.premium.maxPlayersPerTournament,

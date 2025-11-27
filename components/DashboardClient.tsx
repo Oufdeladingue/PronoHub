@@ -71,6 +71,12 @@ function DashboardContent({
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+
+  // Séparer les tournois actifs/en attente des tournois terminés
+  const activeTournaments = tournaments.filter(t => t.status !== 'finished')
+  const finishedTournaments = tournaments.filter(t => t.status === 'finished')
+  const hasArchivedTournaments = finishedTournaments.length > 0 || leftTournaments.length > 0
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
@@ -141,13 +147,13 @@ function DashboardContent({
               }
             </p>
           </div>
-          {tournaments.length === 0 ? (
+          {activeTournaments.length === 0 ? (
             <p className="theme-text-secondary text-center py-8">
               Vous n'avez actuellement aucun tournoi en cours
             </p>
           ) : (
             <div className="space-y-3">
-              {tournaments.map((tournament) => {
+              {activeTournaments.map((tournament) => {
                 // Redirection basée sur le statut du tournoi
                 let tournamentUrl = `/terrain/${tournament.slug}` // Par défaut
 
@@ -352,56 +358,133 @@ function DashboardContent({
             </div>
           )}
 
-          {/* Tournois quittés - occupent un slot mais sans accès */}
-          {leftTournaments.length > 0 && (
+          {/* Accordéon pour tournois terminés et quittés */}
+          {hasArchivedTournaments && (
             <div className="mt-6 pt-6 border-t border-gray-700">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3">Tournois quittés (slot occupé)</h3>
-              <div className="space-y-2">
-                {leftTournaments.map((tournament) => (
-                  <div
-                    key={tournament.id}
-                    className="relative flex items-center gap-4 p-3 border border-gray-700 rounded-lg bg-gray-800/30 opacity-60 cursor-not-allowed"
-                  >
-                    {/* Badge type de tournoi */}
-                    <div className="absolute top-1 left-1 z-20">
-                      <TournamentTypeBadge type={tournament.tournament_type || 'free'} size="sm" />
-                    </div>
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="w-full flex items-center justify-between text-sm font-semibold text-[#ff9900] hover:text-[#e68a00] transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <img
+                    src="/images/icons/plus.svg"
+                    alt=""
+                    className={`w-4 h-4 icon-filter-orange transition-transform duration-200 ${showArchived ? 'rotate-45' : ''}`}
+                  />
+                  Tournois terminés et quittés
+                </span>
+                <span className="text-xs bg-[#ff9900] text-[#0f172a] px-2 py-0.5 rounded font-bold">
+                  {finishedTournaments.length + leftTournaments.length}
+                </span>
+              </button>
 
-                    {/* Logo de la compétition */}
-                    <div className="flex-shrink-0 grayscale">
-                      {tournament.custom_emblem_white || tournament.emblem ? (
-                        <div className="w-10 h-10 flex items-center justify-center">
-                          <img
-                            src={tournament.custom_emblem_white || tournament.emblem || ''}
-                            alt={tournament.competition_name}
-                            className="w-8 h-8 object-contain opacity-50"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
-                          <span className="text-gray-500 text-xs">N/A</span>
-                        </div>
-                      )}
-                    </div>
+              {showArchived && (
+                <div className="mt-4 space-y-4 animate-fadeIn">
+                  {/* Tournois terminés */}
+                  {finishedTournaments.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Terminés</h4>
+                      <div className="space-y-2">
+                        {finishedTournaments.map((tournament) => (
+                          <a
+                            key={tournament.id}
+                            href={`/vestiaire/${tournament.slug}/opposition`}
+                            className="relative flex items-center gap-4 p-3 border border-gray-700 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                          >
+                            {/* Badge type de tournoi */}
+                            <div className="absolute top-1 left-1 z-20">
+                              <TournamentTypeBadge type={tournament.tournament_type || 'free'} size="sm" />
+                            </div>
 
-                    {/* Informations du tournoi */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-400 text-sm truncate">{tournament.name}</h4>
-                      <p className="text-xs text-gray-500">{tournament.competition_name}</p>
-                    </div>
+                            {/* Logo de la compétition */}
+                            <div className="flex-shrink-0">
+                              {tournament.custom_emblem_white || tournament.emblem ? (
+                                <div className="w-10 h-10 flex items-center justify-center">
+                                  <img
+                                    src={tournament.custom_emblem_white || tournament.emblem || ''}
+                                    alt={tournament.competition_name}
+                                    className="w-8 h-8 object-contain opacity-70"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
+                                  <span className="text-gray-500 text-xs">N/A</span>
+                                </div>
+                              )}
+                            </div>
 
-                    {/* Badge "Quitté" */}
-                    <div className="flex-shrink-0">
-                      <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-gray-700 text-gray-400 border border-gray-600">
-                        Quitté
-                      </span>
+                            {/* Informations du tournoi */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-300 text-sm truncate">{tournament.name}</h4>
+                              <p className="text-xs text-gray-500">{tournament.competition_name}</p>
+                            </div>
+
+                            {/* Badge "Terminé" */}
+                            <div className="flex-shrink-0">
+                              <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-900/30 text-green-400 border border-green-800">
+                                Terminé
+                              </span>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2 italic">
-                Ces tournois occupent un slot car vous les avez créés, même si vous n'y participez plus.
-              </p>
+                  )}
+
+                  {/* Tournois quittés */}
+                  {leftTournaments.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Quittés</h4>
+                      <div className="space-y-2">
+                        {leftTournaments.map((tournament) => (
+                          <div
+                            key={tournament.id}
+                            className="relative flex items-center gap-4 p-3 border border-gray-700 rounded-lg bg-gray-800/30 opacity-60 cursor-not-allowed"
+                          >
+                            {/* Badge type de tournoi */}
+                            <div className="absolute top-1 left-1 z-20">
+                              <TournamentTypeBadge type={tournament.tournament_type || 'free'} size="sm" />
+                            </div>
+
+                            {/* Logo de la compétition */}
+                            <div className="flex-shrink-0 grayscale">
+                              {tournament.custom_emblem_white || tournament.emblem ? (
+                                <div className="w-10 h-10 flex items-center justify-center">
+                                  <img
+                                    src={tournament.custom_emblem_white || tournament.emblem || ''}
+                                    alt={tournament.competition_name}
+                                    className="w-8 h-8 object-contain opacity-50"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
+                                  <span className="text-gray-500 text-xs">N/A</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Informations du tournoi */}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-400 text-sm truncate">{tournament.name}</h4>
+                              <p className="text-xs text-gray-500">{tournament.competition_name}</p>
+                            </div>
+
+                            {/* Badge "Quitté" */}
+                            <div className="flex-shrink-0">
+                              <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-gray-700 text-gray-400 border border-gray-600">
+                                Quitté
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 italic">
+                        Ces tournois occupent un slot car vous les avez créés, même si vous n'y participez plus.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

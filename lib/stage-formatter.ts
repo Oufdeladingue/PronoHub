@@ -3,6 +3,7 @@
  */
 
 export type StageType =
+  | 'REGULAR_SEASON'
   | 'LEAGUE_STAGE'
   | 'GROUP_STAGE'
   | 'PLAYOFFS'
@@ -69,8 +70,8 @@ const LEG_TRANSLATIONS: Record<number, string> = {
  * Retourne le nom français complet d'un stage
  */
 export function getStageLabel(stage: StageType, matchday?: number): string {
-  // Si pas de stage, c'est un championnat classique avec numéro de journée
-  if (!stage) {
+  // Si pas de stage ou REGULAR_SEASON, c'est un championnat classique avec numéro de journée
+  if (!stage || stage === 'REGULAR_SEASON') {
     return matchday ? `Journée ${matchday}` : 'Journée'
   }
 
@@ -102,8 +103,8 @@ export function getStageLabel(stage: StageType, matchday?: number): string {
  * Retourne le nom français court d'un stage (pour les onglets)
  */
 export function getStageShortLabel(stage: StageType, matchday?: number): string {
-  // Si pas de stage, c'est un championnat classique avec numéro de journée
-  if (!stage) {
+  // Si pas de stage ou REGULAR_SEASON, c'est un championnat classique avec numéro de journée
+  if (!stage || stage === 'REGULAR_SEASON') {
     return matchday ? `J${matchday}` : 'Journée'
   }
 

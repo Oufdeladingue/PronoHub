@@ -64,6 +64,7 @@ export default function OppositionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
+  const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'regles' | 'tchat'>('pronostics')
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
@@ -98,6 +99,9 @@ export default function OppositionPage() {
 
   // État pour les points gagnés par match
   const [matchPoints, setMatchPoints] = useState<Record<number, number>>({})
+
+  // État pour les pronostics par défaut (virtuels, non en base)
+  const [defaultPredictions, setDefaultPredictions] = useState<Record<number, boolean>>({})
 
   // État pour les points totaux de la journée
   const [matchdayTotalPoints, setMatchdayTotalPoints] = useState<number>(0)
@@ -298,13 +302,16 @@ export default function OppositionPage() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('competitions')
-        .select('emblem')
+        .select('emblem, custom_emblem_white')
         .eq('id', tournament?.competition_id)
         .single()
 
       if (error) throw error
       if (data?.emblem) {
         setCompetitionLogo(data.emblem)
+      }
+      if (data?.custom_emblem_white) {
+        setCompetitionLogoWhite(data.custom_emblem_white)
       }
     } catch (err: any) {
       console.error('Erreur lors du chargement du logo:', err)
@@ -573,7 +580,7 @@ export default function OppositionPage() {
       // Récupérer les matchs avec scores de cette journée (terminés ou en cours)
       const { data: matchesData } = await supabase
         .from('imported_matches')
-        .select('id, home_score, away_score, finished, status')
+        .select('id, home_score, away_score, finished, status, utc_date')
         .eq('competition_id', tournament.competition_id)
         .eq('matchday', selectedMatchday)
         .not('home_score', 'is', null)
@@ -590,16 +597,44 @@ export default function OppositionPage() {
         .eq('user_id', user.id)
         .in('match_id', matchIds)
 
-      if (!predictionsData) return
+      // Créer une map des pronostics existants
+      const predictionsMap = new Map(predictionsData?.map(p => [p.match_id, p]) || [])
 
       // Récupérer les matchs bonus
       const isBonusMatch = (matchId: number) => bonusMatchIds.has(matchId)
 
-      // Calculer les points pour chaque match
+      // Calculer les points pour chaque match (y compris les pronostics par défaut)
       const pointsMap: Record<number, number> = {}
-      for (const prediction of predictionsData) {
-        const match = matchesData.find(m => m.id === prediction.match_id)
-        if (!match || match.home_score === null || match.away_score === null) continue
+      const defaultMap: Record<number, boolean> = {}
+
+      for (const match of matchesData) {
+        if (match.home_score === null || match.away_score === null) continue
+
+        // Vérifier si le match a commencé (pour appliquer le pronostic par défaut)
+        const matchHasStarted = new Date(match.utc_date) <= new Date()
+        const matchIsFinished = match.status === 'FINISHED' || match.finished === true
+
+        // Récupérer le pronostic existant ou créer un pronostic par défaut virtuel
+        const existingPrediction = predictionsMap.get(match.id)
+        const hasPrediction = existingPrediction &&
+          existingPrediction.predicted_home_score !== null &&
+          existingPrediction.predicted_away_score !== null
+
+        // Si pas de pronostic et que le match a commencé/est terminé, appliquer le défaut 0-0
+        const shouldApplyDefault = !hasPrediction && (matchHasStarted || matchIsFinished)
+
+        const prediction = hasPrediction
+          ? existingPrediction
+          : shouldApplyDefault
+            ? {
+                match_id: match.id,
+                predicted_home_score: 0,
+                predicted_away_score: 0,
+                is_default_prediction: true
+              }
+            : null
+
+        if (!prediction) continue
 
         const pred_home = prediction.predicted_home_score
         const pred_away = prediction.predicted_away_score
@@ -613,11 +648,17 @@ export default function OppositionPage() {
         const isCorrect = predOutcome === realOutcome
 
         let points = 0
+        const isDefaultPrediction = prediction.is_default_prediction || shouldApplyDefault
+
+        // Tracker si c'est un pronostic par défaut
+        if (isDefaultPrediction) {
+          defaultMap[match.id] = true
+        }
 
         // Si c'est un pronostic par défaut (0-0) et que c'est un match nul, seulement 1 point
-        if (prediction.is_default_prediction && realOutcome === 'D') {
+        if (isDefaultPrediction && realOutcome === 'D') {
           points = 1
-        } else if (prediction.is_default_prediction) {
+        } else if (isDefaultPrediction) {
           // Si c'est un pronostic par défaut mais pas un match nul, 0 point
           points = 0
         } else {
@@ -631,15 +672,16 @@ export default function OppositionPage() {
           }
 
           // Doubler si match bonus (seulement pour les vrais pronostics)
-          if (isBonusMatch(prediction.match_id)) {
+          if (isBonusMatch(match.id)) {
             points *= 2
           }
         }
 
-        pointsMap[prediction.match_id] = points
+        pointsMap[match.id] = points
       }
 
       setMatchPoints(pointsMap)
+      setDefaultPredictions(defaultMap)
 
       // Calculer le total des points pour cette journée
       const totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
@@ -1100,6 +1142,7 @@ export default function OppositionPage() {
             tournamentName: tournament.name,
             competitionName: tournament.competition_name,
             competitionLogo: competitionLogo,
+            competitionLogoWhite: competitionLogoWhite,
             status: "active"
           }}
         />
@@ -1873,7 +1916,17 @@ export default function OppositionPage() {
                                     </div>
 
                                     {/* COLONNE DROITE 15% - Points et badge défaut (alignés à droite) */}
-                                    <div className="flex flex-col items-end gap-2 w-[15%] flex-shrink-0 overflow-hidden">
+                                    <div className="flex flex-col items-end gap-1 w-[15%] flex-shrink-0 overflow-hidden">
+                                      {/* Badge défaut - affiché au-dessus des points */}
+                                      {(prediction.is_default_prediction || defaultPredictions[match.id]) && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
+                                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px]">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                          </svg>
+                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                        </div>
+                                      )}
+
                                       {/* Points gagnés */}
                                       {isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
                                         <div
@@ -1881,16 +1934,6 @@ export default function OppositionPage() {
                                           style={getPointsColorStyle(matchPoints[match.id])}
                                         >
                                           {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                        </div>
-                                      )}
-
-                                      {/* Badge défaut */}
-                                      {prediction.is_default_prediction && (
-                                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px]">
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                          </svg>
-                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
                                         </div>
                                       )}
 

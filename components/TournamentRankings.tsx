@@ -75,6 +75,17 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     return hasStarted
   }
 
+  // Fonction pour vérifier si tous les matchs d'une journée sont terminés
+  const isMatchdayFinished = (matchday: number): boolean => {
+    if (!allMatches) return false
+
+    const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
+    if (matchesForDay.length === 0) return false
+
+    // Tous les matchs doivent être terminés (status === 'FINISHED' ou finished === true)
+    return matchesForDay.every((m: any) => m.status === 'FINISHED' || m.finished === true)
+  }
+
   // Fonctions pour la navigation des vues avec flèches
   const checkScrollButtons = useCallback(() => {
     const container = viewsContainerRef.current
@@ -237,6 +248,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               .map(matchday => {
                 const stage = matchdayStages[matchday]
                 const matchdayLabel = getStageShortLabel(stage, matchday)
+                const isFinished = isMatchdayFinished(matchday)
                 return (
                   <button
                     key={matchday}
@@ -244,7 +256,9 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                     className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 ${
                       selectedView === matchday
                         ? 'bg-[#ff9900] text-[#111]'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                        : isFinished
+                          ? 'bg-[#99a1b0] text-[#0f172a] hover:bg-[#ff9900] hover:text-[#111]'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
                     }`}
                   >
                     {matchdayLabel}

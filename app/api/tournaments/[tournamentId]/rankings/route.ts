@@ -58,7 +58,10 @@ export async function GET(
       : Array.from({ length: endMatchday - startMatchday + 1 }, (_, i) => startMatchday + i)
 
     // 4. Récupérer tous les matchs avec scores pour ces journées (terminés ou en cours)
-    const { data: finishedMatches, error: matchesError } = await supabase
+    // IMPORTANT: Filtrer les matchs qui ont eu lieu avant la date de démarrage du tournoi
+    const tournamentStartDate = tournament.start_date ? new Date(tournament.start_date) : null
+
+    const { data: finishedMatchesRaw, error: matchesError } = await supabase
       .from('imported_matches')
       .select('*')
       .eq('competition_id', tournament.competition_id)
@@ -70,21 +73,39 @@ export async function GET(
       return NextResponse.json({ error: 'Erreur lors de la récupération des matchs' }, { status: 500 })
     }
 
+    // Filtrer les matchs qui ont eu lieu AVANT la date de démarrage du tournoi
+    // Ces matchs ne doivent pas compter (les joueurs n'ont pas pu pronostiquer)
+    const finishedMatches = tournamentStartDate
+      ? finishedMatchesRaw?.filter(m => {
+          const matchDate = new Date(m.utc_date)
+          return matchDate >= tournamentStartDate
+        })
+      : finishedMatchesRaw
+
     // Détecter s'il y a des matchs en cours
     const hasInProgressMatches = finishedMatches?.some(m =>
       m.status === 'IN_PLAY' || m.status === 'PAUSED'
     ) || false
 
     // 5. Récupérer tous les matchs disponibles (pour calculer matchesAvailable)
-    const { data: allMatches, error: allMatchesError } = await supabase
+    // Filtrer aussi par date de démarrage du tournoi
+    const { data: allMatchesRaw, error: allMatchesError } = await supabase
       .from('imported_matches')
-      .select('id, matchday')
+      .select('id, matchday, utc_date')
       .eq('competition_id', tournament.competition_id)
       .in('matchday', matchdaysToCalculate)
 
     if (allMatchesError) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des matchs disponibles' }, { status: 500 })
     }
+
+    // Filtrer les matchs disponibles par date de démarrage du tournoi
+    const allMatches = tournamentStartDate
+      ? allMatchesRaw?.filter(m => {
+          const matchDate = new Date(m.utc_date)
+          return matchDate >= tournamentStartDate
+        })
+      : allMatchesRaw
 
     // 6. Récupérer les matchs bonus pour ce tournoi
     const { data: bonusMatches } = await supabase
