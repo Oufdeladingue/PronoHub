@@ -25,6 +25,136 @@ export interface ReminderEmailProps {
   defaultPredictionMaxPoints: number
 }
 
+// Interface pour le lancement de tournoi
+export interface TournamentStartedEmailProps {
+  username: string
+  tournamentName: string
+  tournamentSlug: string
+  competitionName: string
+  participants: Array<{
+    username: string
+    isCaptain: boolean
+  }>
+  matchdayRange: {
+    start: number
+    end: number
+    totalMatches: number
+  }
+  firstMatchDate: string // Format: "Samedi 30 novembre à 21h00"
+  rules: {
+    exactScore: number
+    correctResult: number
+    correctGoalDiff: number
+    bonusEnabled: boolean
+    bonusPoints?: number
+    defaultPredictionMaxPoints: number
+  }
+  userActiveTournaments: number
+}
+
+// Interface pour le récap de journée
+export interface MatchdayRecapEmailProps {
+  username: string
+  tournamentName: string
+  tournamentSlug: string
+  competitionName: string
+  matchdayNumber: number
+  userPointsGained: number
+  matchdayRanking: Array<{
+    rank: number
+    username: string
+    points: number
+    isCurrentUser: boolean
+  }>
+  generalRanking: Array<{
+    rank: number
+    username: string
+    totalPoints: number
+    isCurrentUser: boolean
+  }>
+  userStats: {
+    exactScores: number
+    correctResults: number
+    matchdayRank: number
+    generalRank: number
+    rankChange: number // +2, -1, 0
+  }
+  newTrophies?: Array<{
+    name: string
+    description: string
+  }>
+}
+
+// Interface pour le récap fin de tournoi
+export interface TournamentEndEmailProps {
+  username: string
+  tournamentName: string
+  tournamentSlug: string
+  competitionName: string
+  finalRanking: Array<{
+    rank: number
+    username: string
+    totalPoints: number
+    isCurrentUser: boolean
+  }>
+  userFinalStats: {
+    finalRank: number
+    totalPoints: number
+    exactScores: number
+    correctResults: number
+    perfectMatchdays: number
+  }
+  winner: {
+    username: string
+    totalPoints: number
+  }
+  newTrophies?: Array<{
+    name: string
+    description: string
+  }>
+}
+
+// Interface pour l'invitation tournoi détaillée
+export interface TournamentInviteDetailedEmailProps {
+  inviterUsername: string
+  tournamentName: string
+  tournamentSlug: string
+  inviteCode: string
+  competitionName: string
+  participants: Array<{
+    username: string
+    isCaptain: boolean
+  }>
+  matchdayRange: {
+    start: number
+    end: number
+    totalMatches: number
+  }
+  rules: {
+    exactScore: number
+    correctResult: number
+    correctGoalDiff: number
+    bonusEnabled: boolean
+    bonusPoints?: number
+  }
+}
+
+// Interface pour nouveau joueur (capitaine)
+export interface NewPlayerJoinedEmailProps {
+  captainUsername: string
+  tournamentName: string
+  tournamentSlug: string
+  competitionName: string
+  newPlayerUsername: string
+  currentParticipants: number
+  maxParticipants: number
+  participants: Array<{
+    username: string
+    isCaptain: boolean
+  }>
+  canLaunchTournament: boolean
+}
+
 // Template: Email de bienvenue après inscription
 export function getWelcomeEmailTemplate({ username }: EmailTemplateProps) {
   const html = `
@@ -643,5 +773,956 @@ Gérer mes notifications : https://www.pronohub.club/profile
     html,
     text,
     subject: `⏰ ${matches.length} match${matches.length > 1 ? 's' : ''} à pronostiquer dans ${tournamentName} !`
+  }
+}
+
+// Template: Lancement de tournoi
+export function getTournamentStartedTemplate(props: TournamentStartedEmailProps) {
+  const {
+    username,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    participants,
+    matchdayRange,
+    firstMatchDate,
+    rules,
+    userActiveTournaments
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+
+  // Liste des participants avec (cap.)
+  const participantsHtml = participants.map(p =>
+    `<span style="display: inline-block; background-color: #1e293b; padding: 4px 10px; border-radius: 16px; margin: 4px; font-size: 13px; color: #e0e0e0;">${p.username}${p.isCaptain ? ' <span style="color: #ff9900;">(cap.)</span>' : ''}</span>`
+  ).join('')
+
+  // Règles du tournoi
+  const rulesHtml = `
+    <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Score exact</td><td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">+${rules.exactScore} pts</td></tr>
+    <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bon résultat (1N2)</td><td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctResult} pts</td></tr>
+    <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonne différence de buts</td><td style="padding: 6px 0; color: #8b5cf6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctGoalDiff} pts</td></tr>
+    ${rules.bonusEnabled ? `<tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonus activé</td><td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">+${rules.bonusPoints || 0} pts</td></tr>` : ''}
+    <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Prono par défaut (max)</td><td style="padding: 6px 0; color: #ef4444; font-size: 13px; text-align: right; font-weight: 600;">${rules.defaultPredictionMaxPoints} pts max</td></tr>
+  `
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le tournoi ${tournamentName} est lancé !</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">🚀 C'est parti !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Le tournoi <strong style="color: #22c55e;">${tournamentName}</strong> vient d'être lancé ! Prépare-toi à devenir le roi du prono ! 👑
+              </p>
+
+              <!-- Infos tournoi -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📋 Infos du tournoi</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Compétition</td>
+                    <td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">${competitionName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Journées</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right;">J${matchdayRange.start} → J${matchdayRange.end}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Matchs à pronostiquer</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right; font-weight: 600;">${matchdayRange.totalMatches} matchs</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Premier match</td>
+                    <td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right;">${firstMatchDate}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Participants -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">👥 Participants (${participants.length})</h3>
+                <div style="line-height: 2;">
+                  ${participantsHtml}
+                </div>
+              </div>
+
+              <!-- Règles -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">📜 Règles de points</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${rulesHtml}
+                </table>
+              </div>
+
+              <!-- Boutons d'action -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${tournamentUrl}/opposition" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  🎯 Pronostiquer
+                </a>
+                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background-color: #1e293b; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  🏆 Classement
+                </a>
+              </div>
+
+              <!-- Liens rapides -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0;"><a href="${tournamentUrl}/tchat" style="color: #94a3b8; text-decoration: none; font-size: 13px;">💬 Tchat du tournoi</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0;"><a href="${baseUrl}/profile" style="color: #94a3b8; text-decoration: none; font-size: 13px;">⚙️ Gérer mes alertes</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0;"><a href="${baseUrl}/premium" style="color: #ff9900; text-decoration: none; font-size: 13px;">⭐ Passer Premium</a></td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; text-align: center;">
+                Tu participes actuellement à <strong>${userActiveTournaments}</strong> tournoi${userActiveTournaments > 1 ? 's' : ''} actif${userActiveTournaments > 1 ? 's' : ''}.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}`).join('\n')
+
+  const text = `
+🚀 C'est parti ! Le tournoi ${tournamentName} est lancé !
+
+Salut ${username} !
+
+Prépare-toi à devenir le roi du prono ! 👑
+
+📋 INFOS DU TOURNOI
+- Compétition : ${competitionName}
+- Journées : J${matchdayRange.start} → J${matchdayRange.end}
+- Matchs à pronostiquer : ${matchdayRange.totalMatches} matchs
+- Premier match : ${firstMatchDate}
+
+👥 PARTICIPANTS (${participants.length})
+${participantsText}
+
+📜 RÈGLES DE POINTS
+- Score exact : +${rules.exactScore} pts
+- Bon résultat (1N2) : +${rules.correctResult} pts
+- Bonne différence de buts : +${rules.correctGoalDiff} pts
+${rules.bonusEnabled ? `- Bonus : +${rules.bonusPoints || 0} pts` : ''}
+- Prono par défaut : ${rules.defaultPredictionMaxPoints} pts max
+
+🎯 Pronostiquer : ${tournamentUrl}/opposition
+🏆 Classement : ${tournamentUrl}/classement
+💬 Tchat : ${tournamentUrl}/tchat
+⚙️ Gérer mes alertes : ${baseUrl}/profile
+⭐ Passer Premium : ${baseUrl}/premium
+
+Tu participes à ${userActiveTournaments} tournoi${userActiveTournaments > 1 ? 's' : ''} actif${userActiveTournaments > 1 ? 's' : ''}.
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: `🚀 ${tournamentName} est lancé ! À toi de jouer !`
+  }
+}
+
+// Template: Récap de journée
+export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
+  const {
+    username,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    matchdayNumber,
+    userPointsGained,
+    matchdayRanking,
+    generalRanking,
+    userStats,
+    newTrophies
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+
+  // Classement de la journée HTML
+  const matchdayRankingHtml = matchdayRanking.slice(0, 10).map(p => `
+    <tr style="${p.isCurrentUser ? 'background-color: #1e3a5f;' : ''}">
+      <td style="padding: 8px 12px; color: ${p.rank <= 3 ? '#ff9900' : '#94a3b8'}; font-size: 13px; font-weight: ${p.rank <= 3 ? '600' : '400'};">${p.rank}</td>
+      <td style="padding: 8px 12px; color: ${p.isCurrentUser ? '#ff9900' : '#fff'}; font-size: 13px; font-weight: ${p.isCurrentUser ? '600' : '400'};">${p.username}${p.isCurrentUser ? ' (toi)' : ''}</td>
+      <td style="padding: 8px 12px; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">+${p.points}</td>
+    </tr>
+  `).join('')
+
+  // Classement général HTML
+  const generalRankingHtml = generalRanking.slice(0, 10).map(p => `
+    <tr style="${p.isCurrentUser ? 'background-color: #1e3a5f;' : ''}">
+      <td style="padding: 8px 12px; color: ${p.rank <= 3 ? '#ff9900' : '#94a3b8'}; font-size: 13px; font-weight: ${p.rank <= 3 ? '600' : '400'};">${p.rank}</td>
+      <td style="padding: 8px 12px; color: ${p.isCurrentUser ? '#ff9900' : '#fff'}; font-size: 13px; font-weight: ${p.isCurrentUser ? '600' : '400'};">${p.username}${p.isCurrentUser ? ' (toi)' : ''}</td>
+      <td style="padding: 8px 12px; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">${p.totalPoints} pts</td>
+    </tr>
+  `).join('')
+
+  // Progression
+  const rankChangeText = userStats.rankChange > 0 ? `+${userStats.rankChange}` : userStats.rankChange < 0 ? `${userStats.rankChange}` : '='
+  const rankChangeColor = userStats.rankChange > 0 ? '#22c55e' : userStats.rankChange < 0 ? '#ef4444' : '#94a3b8'
+  const rankChangeIcon = userStats.rankChange > 0 ? '📈' : userStats.rankChange < 0 ? '📉' : '➡️'
+
+  // Trophées HTML
+  const trophiesHtml = newTrophies && newTrophies.length > 0 ? `
+    <div style="background-color: #422006; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #f59e0b;">
+      <h3 style="margin: 0 0 12px; color: #fbbf24; font-size: 16px;">🏆 Nouveau${newTrophies.length > 1 ? 'x' : ''} trophée${newTrophies.length > 1 ? 's' : ''} débloqué${newTrophies.length > 1 ? 's' : ''} !</h3>
+      ${newTrophies.map(t => `
+        <div style="margin-bottom: 8px;">
+          <span style="color: #fbbf24; font-size: 14px; font-weight: 600;">${t.name}</span><br>
+          <span style="color: #fcd34d; font-size: 12px;">${t.description}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : ''
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journée ${matchdayNumber} terminée - ${tournamentName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 700;">📊 Journée ${matchdayNumber} terminée !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                La journée ${matchdayNumber} de <strong>${tournamentName}</strong> est terminée. Voici ton récap !
+              </p>
+
+              <!-- Points gagnés -->
+              <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 14px;">Tu as gagné</p>
+                <p style="margin: 0; color: #22c55e; font-size: 48px; font-weight: 700;">+${userPointsGained}</p>
+                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">points sur cette journée</p>
+              </div>
+
+              ${trophiesHtml}
+
+              <!-- Stats de la journée -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📈 Tes stats sur la journée</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Scores exacts</td>
+                    <td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">${userStats.exactScores}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bons résultats</td>
+                    <td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">${userStats.correctResults}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Classement journée</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right; font-weight: 600;">${userStats.matchdayRank}${userStats.matchdayRank === 1 ? 'er' : 'ème'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Classement général</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right;">
+                      <span style="font-weight: 600;">${userStats.generalRank}${userStats.generalRank === 1 ? 'er' : 'ème'}</span>
+                      <span style="color: ${rankChangeColor}; margin-left: 8px;">${rankChangeIcon} ${rankChangeText}</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Classement de la journée -->
+              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                  <h3 style="margin: 0; color: #3b82f6; font-size: 16px;">🏅 Classement de la journée</h3>
+                </div>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${matchdayRankingHtml}
+                </table>
+              </div>
+
+              <!-- Classement général -->
+              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                  <h3 style="margin: 0; color: #ff9900; font-size: 16px;">🏆 Classement général</h3>
+                </div>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${generalRankingHtml}
+                </table>
+              </div>
+
+              <!-- Boutons d'action -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px;">
+                  Voir le classement complet
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const matchdayRankingText = matchdayRanking.slice(0, 10).map(p => `  ${p.rank}. ${p.username}${p.isCurrentUser ? ' (toi)' : ''} - +${p.points} pts`).join('\n')
+  const generalRankingText = generalRanking.slice(0, 10).map(p => `  ${p.rank}. ${p.username}${p.isCurrentUser ? ' (toi)' : ''} - ${p.totalPoints} pts`).join('\n')
+  const trophiesText = newTrophies && newTrophies.length > 0 ? `\n🏆 NOUVEAU${newTrophies.length > 1 ? 'X' : ''} TROPHÉE${newTrophies.length > 1 ? 'S' : ''} !\n${newTrophies.map(t => `  • ${t.name} : ${t.description}`).join('\n')}\n` : ''
+
+  const text = `
+📊 Journée ${matchdayNumber} terminée - ${tournamentName}
+
+Salut ${username} !
+
+La journée ${matchdayNumber} de ${tournamentName} est terminée.
+
+💰 TU AS GAGNÉ : +${userPointsGained} points
+${trophiesText}
+📈 TES STATS
+- Scores exacts : ${userStats.exactScores}
+- Bons résultats : ${userStats.correctResults}
+- Classement journée : ${userStats.matchdayRank}${userStats.matchdayRank === 1 ? 'er' : 'ème'}
+- Classement général : ${userStats.generalRank}${userStats.generalRank === 1 ? 'er' : 'ème'} (${rankChangeText})
+
+🏅 CLASSEMENT DE LA JOURNÉE
+${matchdayRankingText}
+
+🏆 CLASSEMENT GÉNÉRAL
+${generalRankingText}
+
+👉 Voir le classement complet : ${tournamentUrl}/classement
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: `📊 J${matchdayNumber} terminée : +${userPointsGained} pts dans ${tournamentName}`
+  }
+}
+
+// Template: Récap fin de tournoi
+export function getTournamentEndTemplate(props: TournamentEndEmailProps) {
+  const {
+    username,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    finalRanking,
+    userFinalStats,
+    winner,
+    newTrophies
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+
+  const isWinner = winner.username === username
+  const headerGradient = isWinner ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' : 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
+  const headerTitle = isWinner ? '👑 Tu as gagné !' : '🏁 Tournoi terminé !'
+
+  // Classement final HTML
+  const finalRankingHtml = finalRanking.map(p => `
+    <tr style="${p.isCurrentUser ? 'background-color: #1e3a5f;' : ''}">
+      <td style="padding: 10px 12px; color: ${p.rank === 1 ? '#fbbf24' : p.rank <= 3 ? '#ff9900' : '#94a3b8'}; font-size: 14px; font-weight: ${p.rank <= 3 ? '700' : '400'};">
+        ${p.rank === 1 ? '👑' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : p.rank}
+      </td>
+      <td style="padding: 10px 12px; color: ${p.isCurrentUser ? '#ff9900' : '#fff'}; font-size: 14px; font-weight: ${p.isCurrentUser ? '600' : '400'};">${p.username}${p.isCurrentUser ? ' (toi)' : ''}</td>
+      <td style="padding: 10px 12px; color: #22c55e; font-size: 14px; text-align: right; font-weight: 600;">${p.totalPoints} pts</td>
+    </tr>
+  `).join('')
+
+  // Trophées HTML
+  const trophiesHtml = newTrophies && newTrophies.length > 0 ? `
+    <div style="background-color: #422006; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #f59e0b;">
+      <h3 style="margin: 0 0 12px; color: #fbbf24; font-size: 16px;">🏆 Nouveau${newTrophies.length > 1 ? 'x' : ''} trophée${newTrophies.length > 1 ? 's' : ''} débloqué${newTrophies.length > 1 ? 's' : ''} !</h3>
+      ${newTrophies.map(t => `
+        <div style="margin-bottom: 8px;">
+          <span style="color: #fbbf24; font-size: 14px; font-weight: 600;">${t.name}</span><br>
+          <span style="color: #fcd34d; font-size: 12px;">${t.description}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : ''
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${tournamentName} - Tournoi terminé !</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: ${headerGradient};">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: ${isWinner ? '#000' : '#fff'}; font-size: 24px; font-weight: 700;">${headerTitle}</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                ${isWinner ? 'Félicitations' : 'Salut'} <strong style="color: #ff9900;">${username}</strong> ! ${isWinner ? '🎉' : '👋'}
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Le tournoi <strong>${tournamentName}</strong> est terminé !
+                ${isWinner ? 'Tu es le champion incontesté ! 👑' : `Le vainqueur est <strong style="color: #fbbf24;">${winner.username}</strong> avec ${winner.totalPoints} points.`}
+              </p>
+
+              <!-- Classement final -->
+              <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 14px;">Ta place finale</p>
+                <p style="margin: 0; color: ${userFinalStats.finalRank === 1 ? '#fbbf24' : userFinalStats.finalRank <= 3 ? '#ff9900' : '#fff'}; font-size: 56px; font-weight: 700;">
+                  ${userFinalStats.finalRank === 1 ? '👑' : userFinalStats.finalRank}${userFinalStats.finalRank > 1 ? (userFinalStats.finalRank === 2 ? 'ème' : 'ème') : ''}
+                </p>
+                <p style="margin: 4px 0 0; color: #22c55e; font-size: 18px; font-weight: 600;">${userFinalStats.totalPoints} points</p>
+              </div>
+
+              ${trophiesHtml}
+
+              <!-- Stats finales -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📊 Tes stats sur le tournoi</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Total points</td>
+                    <td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">${userFinalStats.totalPoints} pts</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Scores exacts</td>
+                    <td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">${userFinalStats.exactScores}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bons résultats</td>
+                    <td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">${userFinalStats.correctResults}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Journées parfaites</td>
+                    <td style="padding: 6px 0; color: #fbbf24; font-size: 13px; text-align: right; font-weight: 600;">${userFinalStats.perfectMatchdays}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Classement complet -->
+              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                  <h3 style="margin: 0; color: #fbbf24; font-size: 16px;">🏆 Classement final</h3>
+                </div>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${finalRankingHtml}
+                </table>
+              </div>
+
+              <!-- Boutons d'action -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  Voir les détails
+                </a>
+                <a href="${baseUrl}/vestiaire/create" style="display: inline-block; padding: 14px 28px; background-color: #22c55e; color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  Créer un tournoi
+                </a>
+              </div>
+
+              <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; text-align: center;">
+                Merci d'avoir participé ! À bientôt pour de nouvelles compétitions ! 🎯
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const finalRankingText = finalRanking.map(p => `  ${p.rank}. ${p.username}${p.isCurrentUser ? ' (toi)' : ''} - ${p.totalPoints} pts`).join('\n')
+  const trophiesText = newTrophies && newTrophies.length > 0 ? `\n🏆 NOUVEAU${newTrophies.length > 1 ? 'X' : ''} TROPHÉE${newTrophies.length > 1 ? 'S' : ''} !\n${newTrophies.map(t => `  • ${t.name} : ${t.description}`).join('\n')}\n` : ''
+
+  const text = `
+${isWinner ? '👑 Tu as gagné !' : '🏁 Tournoi terminé !'} - ${tournamentName}
+
+${isWinner ? 'Félicitations' : 'Salut'} ${username} !
+
+Le tournoi ${tournamentName} est terminé !
+${isWinner ? 'Tu es le champion incontesté ! 👑' : `Le vainqueur est ${winner.username} avec ${winner.totalPoints} points.`}
+
+🏅 TA PLACE FINALE : ${userFinalStats.finalRank}${userFinalStats.finalRank === 1 ? 'er' : 'ème'} avec ${userFinalStats.totalPoints} points
+${trophiesText}
+📊 TES STATS SUR LE TOURNOI
+- Total points : ${userFinalStats.totalPoints} pts
+- Scores exacts : ${userFinalStats.exactScores}
+- Bons résultats : ${userFinalStats.correctResults}
+- Journées parfaites : ${userFinalStats.perfectMatchdays}
+
+🏆 CLASSEMENT FINAL
+${finalRankingText}
+
+👉 Voir les détails : ${tournamentUrl}/classement
+🎯 Créer un nouveau tournoi : ${baseUrl}/vestiaire/create
+
+Merci d'avoir participé ! À bientôt !
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: isWinner ? `👑 Tu as gagné ${tournamentName} !` : `🏁 ${tournamentName} terminé - Tu finis ${userFinalStats.finalRank}${userFinalStats.finalRank === 1 ? 'er' : 'ème'} !`
+  }
+}
+
+// Template: Invitation tournoi détaillée
+export function getTournamentInviteDetailedTemplate(props: TournamentInviteDetailedEmailProps) {
+  const {
+    inviterUsername,
+    tournamentName,
+    tournamentSlug,
+    inviteCode,
+    competitionName,
+    participants,
+    matchdayRange,
+    rules
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const joinUrl = `${baseUrl}/join?code=${inviteCode}`
+
+  // Liste des participants
+  const participantsHtml = participants.map(p =>
+    `<span style="display: inline-block; background-color: #1e293b; padding: 4px 10px; border-radius: 16px; margin: 4px; font-size: 13px; color: #e0e0e0;">${p.username}${p.isCaptain ? ' <span style="color: #ff9900;">(cap.)</span>' : ''}</span>`
+  ).join('')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation à rejoindre ${tournamentName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 22px; font-weight: 700;">🎯 Tu es invité !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                <strong style="color: #ff9900;">${inviterUsername}</strong> t'invite à rejoindre son tournoi de pronostics !
+              </p>
+
+              <!-- Code d'invitation -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 14px;">Code d'invitation</p>
+                <p style="margin: 0; color: #ff9900; font-size: 36px; font-weight: 700; letter-spacing: 6px;">${inviteCode}</p>
+              </div>
+
+              <!-- Infos tournoi -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📋 ${tournamentName}</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Compétition</td>
+                    <td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">${competitionName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Journées</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right;">J${matchdayRange.start} → J${matchdayRange.end}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Matchs à pronostiquer</td>
+                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right; font-weight: 600;">${matchdayRange.totalMatches} matchs</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Participants -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">👥 Déjà inscrits (${participants.length})</h3>
+                <div style="line-height: 2;">
+                  ${participantsHtml}
+                </div>
+              </div>
+
+              <!-- Règles -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">📜 Règles de points</h3>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Score exact</td><td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">+${rules.exactScore} pts</td></tr>
+                  <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bon résultat (1N2)</td><td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctResult} pts</td></tr>
+                  <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonne différence de buts</td><td style="padding: 6px 0; color: #8b5cf6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctGoalDiff} pts</td></tr>
+                  ${rules.bonusEnabled ? `<tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonus activé</td><td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">+${rules.bonusPoints || 0} pts</td></tr>` : ''}
+                </table>
+              </div>
+
+              <!-- Bouton d'action -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${joinUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                  Rejoindre le tournoi
+                </a>
+              </div>
+
+              <p style="margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; text-align: center;">
+                Lance-toi dans la compétition et prouve que tu es le meilleur pronostiqueur ! 🏆
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/privacy" style="color: #64748b; font-size: 12px; text-decoration: none; margin-left: 16px;">Confidentialité</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}`).join('\n')
+
+  const text = `
+🎯 Tu es invité à rejoindre un tournoi !
+
+${inviterUsername} t'invite à rejoindre son tournoi de pronostics !
+
+📋 CODE D'INVITATION : ${inviteCode}
+
+📋 ${tournamentName}
+- Compétition : ${competitionName}
+- Journées : J${matchdayRange.start} → J${matchdayRange.end}
+- Matchs : ${matchdayRange.totalMatches} matchs
+
+👥 DÉJÀ INSCRITS (${participants.length})
+${participantsText}
+
+📜 RÈGLES DE POINTS
+- Score exact : +${rules.exactScore} pts
+- Bon résultat (1N2) : +${rules.correctResult} pts
+- Bonne différence de buts : +${rules.correctGoalDiff} pts
+${rules.bonusEnabled ? `- Bonus : +${rules.bonusPoints || 0} pts` : ''}
+
+👉 Rejoindre le tournoi : ${joinUrl}
+
+Lance-toi dans la compétition et prouve que tu es le meilleur pronostiqueur ! 🏆
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: `🎯 ${inviterUsername} t'invite à rejoindre ${tournamentName} !`
+  }
+}
+
+// Template: Nouveau joueur inscrit (pour le capitaine)
+export function getNewPlayerJoinedTemplate(props: NewPlayerJoinedEmailProps) {
+  const {
+    captainUsername,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    newPlayerUsername,
+    currentParticipants,
+    maxParticipants,
+    participants,
+    canLaunchTournament
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+  const spotsLeft = maxParticipants - currentParticipants
+  const isFull = spotsLeft <= 0
+
+  // Liste des participants
+  const participantsHtml = participants.map(p =>
+    `<span style="display: inline-block; background-color: ${p.username === newPlayerUsername ? '#22543d' : '#1e293b'}; padding: 4px 10px; border-radius: 16px; margin: 4px; font-size: 13px; color: #e0e0e0;">${p.username}${p.isCaptain ? ' <span style="color: #ff9900;">(cap.)</span>' : ''}${p.username === newPlayerUsername ? ' <span style="color: #22c55e;">✨ nouveau</span>' : ''}</span>`
+  ).join('')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouveau joueur dans ${tournamentName}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 22px; font-weight: 700;">👋 Nouveau joueur !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${captainUsername}</strong> (capitaine) ! 👋
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                <strong style="color: #22c55e;">${newPlayerUsername}</strong> vient de rejoindre ton tournoi <strong>${tournamentName}</strong> ! 🎉
+              </p>
+
+              <!-- Stats -->
+              <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 14px;">Participants</p>
+                <p style="margin: 0; color: #fff; font-size: 36px; font-weight: 700;">${currentParticipants} <span style="color: #64748b; font-size: 20px;">/ ${maxParticipants}</span></p>
+                <p style="margin: 8px 0 0; color: ${isFull ? '#ef4444' : '#22c55e'}; font-size: 14px;">
+                  ${isFull ? '🔴 Tournoi complet !' : `🟢 ${spotsLeft} place${spotsLeft > 1 ? 's' : ''} restante${spotsLeft > 1 ? 's' : ''}`}
+                </p>
+              </div>
+
+              <!-- Participants -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">👥 Participants (${currentParticipants})</h3>
+                <div style="line-height: 2;">
+                  ${participantsHtml}
+                </div>
+              </div>
+
+              ${isFull ? `
+              <!-- Alerte complet -->
+              <div style="background-color: #422006; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; color: #fcd34d; font-size: 14px; line-height: 1.5;">
+                  <strong>🎯 Ton tournoi est complet !</strong><br>
+                  Tu peux maintenant le lancer quand tu veux.
+                </p>
+              </div>
+              ` : canLaunchTournament ? `
+              <!-- Option lancer avant -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                <p style="margin: 0; color: #94a3b8; font-size: 14px; line-height: 1.5;">
+                  💡 Tu peux aussi lancer le tournoi avant que toutes les places soient prises si tu veux commencer plus tôt !
+                </p>
+              </div>
+              ` : ''}
+
+              <!-- Boutons d'action -->
+              <div style="text-align: center; margin: 32px 0;">
+                ${isFull || canLaunchTournament ? `
+                <a href="${tournamentUrl}/settings" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  🚀 Lancer le tournoi
+                </a>
+                ` : ''}
+                <a href="${tournamentUrl}" style="display: inline-block; padding: 14px 28px; background-color: #1e293b; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                  Voir le tournoi
+                </a>
+              </div>
+
+              <!-- Premium -->
+              <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+                <p style="margin: 0 0 8px; color: #c4b5fd; font-size: 14px;">
+                  ⭐ Besoin de plus de places ?
+                </p>
+                <a href="${baseUrl}/premium" style="color: #fbbf24; font-size: 14px; font-weight: 600; text-decoration: none;">
+                  Passe Premium pour élargir ton tournoi →
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}${p.username === newPlayerUsername ? ' ✨ nouveau' : ''}`).join('\n')
+
+  const text = `
+👋 Nouveau joueur dans ${tournamentName} !
+
+Salut ${captainUsername} (capitaine) !
+
+${newPlayerUsername} vient de rejoindre ton tournoi ${tournamentName} ! 🎉
+
+📊 PARTICIPANTS : ${currentParticipants} / ${maxParticipants}
+${isFull ? '🔴 Tournoi complet !' : `🟢 ${spotsLeft} place${spotsLeft > 1 ? 's' : ''} restante${spotsLeft > 1 ? 's' : ''}`}
+
+👥 LISTE DES PARTICIPANTS
+${participantsText}
+
+${isFull ? '🎯 Ton tournoi est complet ! Tu peux maintenant le lancer.' : canLaunchTournament ? '💡 Tu peux lancer le tournoi avant que toutes les places soient prises.' : ''}
+
+${isFull || canLaunchTournament ? `🚀 Lancer le tournoi : ${tournamentUrl}/settings` : ''}
+👉 Voir le tournoi : ${tournamentUrl}
+⭐ Passer Premium : ${baseUrl}/premium
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: `👋 ${newPlayerUsername} a rejoint ${tournamentName} (${currentParticipants}/${maxParticipants})`
   }
 }

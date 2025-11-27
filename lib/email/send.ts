@@ -5,8 +5,18 @@ import {
   getMatchReminderTemplate,
   getResultsNotificationTemplate,
   getDetailedReminderTemplate,
+  getTournamentStartedTemplate,
+  getMatchdayRecapTemplate,
+  getTournamentEndTemplate,
+  getTournamentInviteDetailedTemplate,
+  getNewPlayerJoinedTemplate,
   EmailTemplateProps,
-  ReminderEmailProps
+  ReminderEmailProps,
+  TournamentStartedEmailProps,
+  MatchdayRecapEmailProps,
+  TournamentEndEmailProps,
+  TournamentInviteDetailedEmailProps,
+  NewPlayerJoinedEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -86,6 +96,51 @@ export async function sendDetailedReminderEmail(
   props: ReminderEmailProps
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getDetailedReminderTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email de lancement de tournoi
+export async function sendTournamentStartedEmail(
+  to: string,
+  props: TournamentStartedEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getTournamentStartedTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email de récap de journée
+export async function sendMatchdayRecapEmail(
+  to: string,
+  props: MatchdayRecapEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getMatchdayRecapTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email de récap fin de tournoi
+export async function sendTournamentEndEmail(
+  to: string,
+  props: TournamentEndEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getTournamentEndTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email d'invitation tournoi détaillée
+export async function sendTournamentInviteDetailedEmail(
+  to: string,
+  props: TournamentInviteDetailedEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getTournamentInviteDetailedTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email nouveau joueur dans le tournoi (pour le capitaine)
+export async function sendNewPlayerJoinedEmail(
+  to: string,
+  props: NewPlayerJoinedEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getNewPlayerJoinedTemplate(props)
   return sendEmail(to, subject, html, text)
 }
 
