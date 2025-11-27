@@ -873,6 +873,25 @@ input[type="number"] {
 }
 
 /* ========================================
+   COMPOSANTS PREFERENCES / SETTINGS
+   Items de paramètres avec toggle
+   ======================================== */
+
+/* Item de préférence (notification, paramètre) */
+.pref-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #f3f4f6;
+}
+
+:root[data-theme="dark"] .pref-item {
+  background-color: #0f172a !important;
+}
+
+/* ========================================
    COMPOSANTS TOGGLE SWITCH
    Interrupteurs on/off réutilisables
    ======================================== */
@@ -881,7 +900,7 @@ input[type="number"] {
 .toggle-switch {
   width: 44px;
   height: 24px;
-  background-color: #0f172a;
+  background-color: #1e293b;
   border-radius: 9999px;
   position: relative;
   transition: background-color 0.3s;
@@ -896,7 +915,7 @@ input[type="number"] {
 .toggle-switch-knob {
   width: 18px;
   height: 18px;
-  background-color: #283447;
+  background-color: #94a3b8;
   border-radius: 50%;
   position: absolute;
   top: 3px;
