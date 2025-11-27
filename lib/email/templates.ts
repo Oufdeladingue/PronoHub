@@ -43,9 +43,9 @@ export function getWelcomeEmailTemplate({ username }: EmailTemplateProps) {
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="display: inline-block; width: 90px; height: 90px; background-color: #0f1729; border-radius: 50%; padding: 12px; margin-bottom: 16px;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 66px; height: 66px;">
-              </div>
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
               <h1 style="margin: 0; color: #000; font-size: 28px; font-weight: 700;">Bienvenue sur PronoHub !</h1>
             </td>
           </tr>
@@ -152,9 +152,9 @@ export function getTournamentInviteTemplate({
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="display: inline-block; width: 90px; height: 90px; background-color: #0f1729; border-radius: 50%; padding: 12px; margin-bottom: 16px;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 66px; height: 66px;">
-              </div>
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
               <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">Tu es invité à rejoindre un tournoi !</h1>
             </td>
           </tr>
@@ -260,9 +260,9 @@ export function getMatchReminderTemplate({
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="display: inline-block; width: 90px; height: 90px; background-color: #0f1729; border-radius: 50%; padding: 12px; margin-bottom: 16px;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 66px; height: 66px;">
-              </div>
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
               <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">⏰ N'oublie pas tes pronostics !</h1>
             </td>
           </tr>
@@ -387,9 +387,9 @@ export function getResultsNotificationTemplate({
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="display: inline-block; width: 90px; height: 90px; background-color: #0f1729; border-radius: 50%; padding: 12px; margin-bottom: 16px;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 66px; height: 66px;">
-              </div>
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
               <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">🏆 Les résultats sont tombés !</h1>
             </td>
           </tr>
@@ -515,9 +515,9 @@ export function getDetailedReminderTemplate(props: ReminderEmailProps) {
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="display: inline-block; width: 90px; height: 90px; background-color: #0f1729; border-radius: 50%; padding: 12px; margin-bottom: 16px;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 66px; height: 66px;">
-              </div>
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
               <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">⏰ N'oublie pas tes pronostics !</h1>
             </td>
           </tr>
