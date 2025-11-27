@@ -241,8 +241,7 @@ export default function TableauNoirPage() {
                 <button
                   onClick={() => setMaxPlayers(Math.max(2, maxPlayers - 1))}
                   disabled={maxPlayers <= 2}
-                  style={{ backgroundColor: '#0f172a' }}
-                  className="w-10 h-10 flex items-center justify-center hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  className="btn-counter"
                 >
                   −
                 </button>
@@ -265,8 +264,7 @@ export default function TableauNoirPage() {
                 <button
                   onClick={() => setMaxPlayers(Math.min(freeTierMaxPlayers, maxPlayers + 1))}
                   disabled={maxPlayers >= freeTierMaxPlayers}
-                  style={{ backgroundColor: '#0f172a' }}
-                  className="w-10 h-10 flex items-center justify-center hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  className="btn-counter"
                 >
                   +
                 </button>
@@ -288,8 +286,7 @@ export default function TableauNoirPage() {
                 <button
                   onClick={() => setNumMatchdays(Math.max(1, numMatchdays - 1))}
                   disabled={numMatchdays <= 1 || allMatchdays}
-                  style={{ backgroundColor: '#0f172a' }}
-                  className="w-10 h-10 flex items-center justify-center hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  className="btn-counter"
                 >
                   −
                 </button>
@@ -313,8 +310,7 @@ export default function TableauNoirPage() {
                 <button
                   onClick={() => setNumMatchdays(Math.min(competition.remaining_matchdays, numMatchdays + 1))}
                   disabled={numMatchdays >= competition.remaining_matchdays || allMatchdays}
-                  style={{ backgroundColor: '#0f172a' }}
-                  className="w-10 h-10 flex items-center justify-center hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  className="btn-counter"
                 >
                   +
                 </button>
@@ -331,30 +327,9 @@ export default function TableauNoirPage() {
                       setNumMatchdays(competition.remaining_matchdays)
                     }
                   }}
-                  style={{
-                    width: '44px',
-                    height: '24px',
-                    backgroundColor: allMatchdays ? '#ff9900' : '#0f172a',
-                    borderRadius: '9999px',
-                    position: 'relative',
-                    transition: 'background-color 0.3s',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  className={`toggle-switch ${allMatchdays ? 'active' : ''}`}
                 >
-                  <span
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      backgroundColor: allMatchdays ? 'white' : '#283447',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '3px',
-                      left: allMatchdays ? '23px' : '3px',
-                      transition: 'left 0.3s, background-color 0.3s',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                    }}
-                  />
+                  <span className="toggle-switch-knob" />
                 </button>
               </div>
             </div>
@@ -374,30 +349,9 @@ export default function TableauNoirPage() {
                 <button
                   type="button"
                   onClick={() => setBonusMatchEnabled(!bonusMatchEnabled)}
-                  style={{
-                    width: '80px',
-                    height: '40px',
-                    backgroundColor: bonusMatchEnabled ? '#ff9900' : '#334155',
-                    borderRadius: '9999px',
-                    position: 'relative',
-                    transition: 'background-color 0.3s',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  className={`toggle-switch-lg ${bonusMatchEnabled ? 'active' : ''}`}
                 >
-                  <span
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: bonusMatchEnabled ? 'white' : '#283447',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '4px',
-                      left: bonusMatchEnabled ? '44px' : '4px',
-                      transition: 'left 0.3s, background-color 0.3s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
-                  />
+                  <span className="toggle-switch-knob-lg" />
                 </button>
               </div>
             </div>
@@ -414,30 +368,9 @@ export default function TableauNoirPage() {
                 <button
                   type="button"
                   onClick={() => setEarlyPredictionBonus(!earlyPredictionBonus)}
-                  style={{
-                    width: '80px',
-                    height: '40px',
-                    backgroundColor: earlyPredictionBonus ? '#ff9900' : '#334155',
-                    borderRadius: '9999px',
-                    position: 'relative',
-                    transition: 'background-color 0.3s',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  className={`toggle-switch-lg ${earlyPredictionBonus ? 'active' : ''}`}
                 >
-                  <span
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      backgroundColor: earlyPredictionBonus ? 'white' : '#283447',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      top: '4px',
-                      left: earlyPredictionBonus ? '44px' : '4px',
-                      transition: 'left 0.3s, background-color 0.3s',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}
-                  />
+                  <span className="toggle-switch-knob-lg" />
                 </button>
               </div>
             </div>
@@ -496,8 +429,7 @@ export default function TableauNoirPage() {
           <div className="flex gap-4">
             <Link
               href="/vestiaire"
-              style={{ backgroundColor: '#334155' }}
-              className="flex-1 px-6 py-3 theme-text rounded-lg hover:opacity-80 transition text-center font-semibold"
+              className="flex-1 px-6 py-3 btn-cancel text-center font-semibold"
             >
               Annuler
             </Link>

@@ -110,7 +110,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
             className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
             title="Passer Pro"
           >
-            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4 icon-filter-premium" />
             <span className="hidden md:inline">Passer Pro</span>
           </button>
         </div>
@@ -141,7 +141,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
             className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
             title="Passer Pro"
           >
-            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4 icon-filter-premium" />
             <span className="hidden md:inline">Passer Pro</span>
           </button>
         </div>
@@ -245,7 +245,7 @@ export function TournamentTypeIndicator() {
             className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
             title="Passer Pro"
           >
-            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4" style={{ filter: 'brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(1000%) hue-rotate(360deg) brightness(103%) contrast(101%)' }} />
+            <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4 icon-filter-premium" />
             <span className="hidden md:inline">Passer Pro</span>
           </button>
         )}

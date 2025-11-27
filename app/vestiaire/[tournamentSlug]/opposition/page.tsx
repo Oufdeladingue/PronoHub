@@ -1228,7 +1228,6 @@ export default function OppositionPage() {
                       ref={matchdaysContainerRef}
                       onScroll={checkScrollButtons}
                       className="flex gap-2 overflow-x-auto scrollbar-hide px-1"
-                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
                       {availableMatchdays.map(matchday => {
                         const matchdayStatus = getMatchdayStatus(matchday)

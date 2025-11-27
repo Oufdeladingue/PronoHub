@@ -221,7 +221,6 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             ref={viewsContainerRef}
             onScroll={checkScrollButtons}
             className="flex gap-2 overflow-x-auto scrollbar-hide px-1"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <button
               onClick={() => setSelectedView('general')}
@@ -294,7 +293,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       ) : (
         <div>
           {/* Informations sur le classement */}
-          <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg" style={{ backgroundColor: 'var(--info-bg)' }}>
+          <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg info-bg-container">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4">
               <p className="text-xs md:text-sm theme-text-secondary">
                 {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
@@ -437,7 +436,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           </div>
 
           {/* Légende pour mobile */}
-          <div className="mt-3 p-2 rounded-lg xl:hidden" style={{ backgroundColor: 'var(--info-bg)' }}>
+          <div className="mt-3 p-2 rounded-lg xl:hidden info-bg-container">
             <div className="space-y-1">
               <p className="text-xs theme-text-secondary flex items-center gap-1">
                 <span>* ✓ =</span>

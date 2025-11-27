@@ -192,56 +192,18 @@ export default function AdminImportPage() {
                   return a.name.localeCompare(b.name)
                 })
                 .map((comp) => (
-                <div key={comp.id} style={{
-                  position: 'relative',
-                  backgroundColor: 'white',
-                  borderRadius: '1rem',
-                  border: comp.isImported && comp.isActive ? '2px solid #22c55e' : '2px solid #e5e7eb',
-                  boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  transition: 'border-color 0.3s, box-shadow 0.2s'
-                }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 10px 15px -3px rgb(0 0 0 / 0.1)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px 0 rgb(0 0 0 / 0.1)'}>
+                <div key={comp.id} className={`admin-competition-card ${comp.isImported && comp.isActive ? 'active' : ''}`}>
 
                   {/* Bouton d'activation (toggle switch) - Coin supérieur droit */}
                   {comp.isImported && (
-                    <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+                    <div className="absolute top-3 right-3">
                       <button
                         onClick={() => toggleActive(comp.id, comp.isActive)}
                         disabled={toggling === comp.id}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-flex',
-                          height: '32px',
-                          width: '64px',
-                          alignItems: 'center',
-                          borderRadius: '9999px',
-                          border: 'none',
-                          cursor: toggling === comp.id ? 'not-allowed' : 'pointer',
-                          backgroundColor: comp.isActive ? '#22c55e' : '#ef4444',
-                          transition: 'background-color 0.3s',
-                          opacity: toggling === comp.id ? 0.5 : 1,
-                          padding: '4px'
-                        }}
+                        className={`admin-toggle-switch ${comp.isActive ? 'active' : 'inactive'}`}
                         title={comp.isActive ? 'Activé - Cliquez pour désactiver' : 'Désactivé - Cliquez pour activer'}
                       >
-                        <span style={{
-                          display: 'flex',
-                          height: '24px',
-                          width: '24px',
-                          borderRadius: '9999px',
-                          backgroundColor: 'white',
-                          transform: comp.isActive ? 'translateX(32px)' : 'translateX(0)',
-                          transition: 'transform 0.3s',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          color: comp.isActive ? '#22c55e' : '#ef4444'
-                        }}>
+                        <span className="admin-toggle-knob">
                           {comp.isActive ? '✓' : '✗'}
                         </span>
                       </button>
@@ -300,31 +262,11 @@ export default function AdminImportPage() {
                   )}
 
                   {/* Boutons d'action */}
-                  <div className="w-full mt-auto" style={{ display: 'flex', flexDirection: comp.isImported ? 'row' : 'column', gap: '0.75rem' }}>
+                  <div className={`w-full mt-auto flex gap-3 ${comp.isImported ? 'flex-row' : 'flex-col'}`}>
                     {comp.isImported && (
                       <button
                         onClick={() => window.open(`/admin/import/view/${comp.id}`, '_blank')}
-                        style={{
-                          flex: 1,
-                          padding: '12px 16px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontWeight: '500',
-                          fontSize: '14px',
-                          cursor: 'pointer',
-                          backgroundColor: '#3b82f6',
-                          color: 'white',
-                          boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.4)',
-                          transition: 'all 0.3s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.boxShadow = '0 8px 16px rgba(59, 130, 246, 0.3)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)'
-                          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(59, 130, 246, 0.4)'
-                        }}
+                        className="btn-admin-view"
                       >
                         Visualiser
                       </button>
@@ -332,36 +274,7 @@ export default function AdminImportPage() {
                     <button
                       onClick={() => importCompetition(comp.id)}
                       disabled={importing === comp.id}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontWeight: '500',
-                        fontSize: '14px',
-                        cursor: importing === comp.id ? 'not-allowed' : 'pointer',
-                        backgroundColor: comp.isImported ? '#fef3c7' : '#9333ea',
-                        color: comp.isImported ? '#92400e' : 'white',
-                        boxShadow: comp.isImported
-                          ? '0 0 0 0 rgba(251, 191, 36, 0.4)'
-                          : '0 0 0 0 rgba(147, 51, 234, 0.4)',
-                        transition: 'all 0.3s ease',
-                        opacity: importing === comp.id ? 0.6 : 1,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (importing !== comp.id) {
-                          e.currentTarget.style.transform = 'translateY(-2px)'
-                          e.currentTarget.style.boxShadow = comp.isImported
-                            ? '0 8px 16px rgba(251, 191, 36, 0.3)'
-                            : '0 8px 16px rgba(147, 51, 234, 0.3)'
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)'
-                        e.currentTarget.style.boxShadow = comp.isImported
-                          ? '0 0 0 0 rgba(251, 191, 36, 0.4)'
-                          : '0 0 0 0 rgba(147, 51, 234, 0.4)'
-                      }}
+                      className={comp.isImported ? 'btn-admin-refresh' : 'btn-admin-import'}
                     >
                       {importing === comp.id
                         ? 'Import...'

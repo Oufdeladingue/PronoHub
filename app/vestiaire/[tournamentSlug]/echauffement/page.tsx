@@ -603,7 +603,7 @@ function EchauffementPageContent() {
               </h3>
               <p className="theme-text-secondary">
                 Êtes-vous sûr de vouloir transférer le rôle de capitaine à{' '}
-                <span className="font-bold" style={{ color: '#ff9900' }}>{transferConfirmation.playerName}</span> ?
+                <span className="font-bold theme-accent-text-always">{transferConfirmation.playerName}</span> ?
               </p>
             </div>
 
@@ -646,7 +646,7 @@ function EchauffementPageContent() {
             </div>
 
             <div className="bg-[#ff9900]/10 border-l-4 border-[#ff9900] p-4 mb-6 rounded">
-              <p className="text-sm" style={{ color: '#ff9900' }}>
+              <p className="text-sm theme-accent-text-always">
                 <strong>Important :</strong> Utilisez le bouton "Transférer" à côté du nom d'un participant dans la liste ci-dessous pour lui donner le capitanat.
               </p>
             </div>
@@ -691,7 +691,7 @@ function EchauffementPageContent() {
                   />
                   Les privilèges du capitaine
                 </h2>
-                <p className="text-sm mt-1 italic text-center md:text-left" style={{ color: '#ff9900' }}>Le brassard implique de grandes responsabilités</p>
+                <p className="text-sm mt-1 italic text-center md:text-left theme-accent-text-always">Le brassard implique de grandes responsabilités</p>
 
                 {/* Logo de la compétition + infos tournoi - visible uniquement en desktop */}
                 {competitionLogo && tournament && (
@@ -721,8 +721,8 @@ function EchauffementPageContent() {
 
                 {/* Info pour le transfert - sous le texte en mobile */}
                 {players.length > 1 && (
-                  <div className="mt-4 p-3 rounded-lg md:hidden" style={{ backgroundColor: '#0f172a' }}>
-                    <p className="text-sm text-center" style={{ color: '#94a3b8' }}>
+                  <div className="mt-4 captain-info-box md:hidden">
+                    <p className="text-sm text-center text-slate-accent">
                       💡 Pour transférer le capitanat, cliquez sur le bouton "Transférer" à côté d'un participant ci-dessous.
                     </p>
                   </div>
@@ -734,63 +734,34 @@ function EchauffementPageContent() {
                 <button
                   onClick={showStartConfirmation}
                   disabled={players.length < 2}
-                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:hover:text-[#111] transition font-semibold flex items-center justify-center gap-2"
+                  className="btn-captain-action"
                 >
                   <img
                     src="/images/icons/start-referee.svg"
                     alt=""
-                    className="w-5 h-5 brightness-0 transition group-disabled:brightness-0"
-                    style={{
-                      filter: 'brightness(0)'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!e.currentTarget.closest('button')?.disabled) {
-                        e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'brightness(0)'
-                    }}
+                    className="btn-icon"
                   />
                   Démarrer le tournoi
                 </button>
                 <button
                   onClick={showCancelConfirmation}
-                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] transition font-semibold flex items-center justify-center gap-2"
+                  className="btn-captain-action"
                 >
                   <img
                     src="/images/icons/poubelle.svg"
                     alt=""
-                    className="w-5 h-5 transition"
-                    style={{
-                      filter: 'brightness(0)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'brightness(0)'
-                    }}
+                    className="btn-icon"
                   />
                   Annuler le tournoi
                 </button>
                 <button
                   onClick={handleLeaveTournament}
-                  className="group w-full px-4 py-2 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#0f172a] hover:text-[#94a3b8] transition font-semibold flex items-center justify-center gap-2"
+                  className="btn-captain-action"
                 >
                   <img
                     src="/images/icons/dehors.svg"
                     alt=""
-                    className="w-5 h-5 transition"
-                    style={{
-                      filter: 'brightness(0)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.filter = 'invert(63%) sepia(11%) saturate(437%) hue-rotate(180deg) brightness(93%) contrast(89%)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.filter = 'brightness(0)'
-                    }}
+                    className="btn-icon"
                   />
                   Quitter le tournoi
                 </button>
@@ -799,8 +770,8 @@ function EchauffementPageContent() {
 
             {/* Info pour le transfert - en bas en desktop */}
             {players.length > 1 && (
-              <div className="mt-4 p-3 rounded-lg hidden md:block" style={{ backgroundColor: '#0f172a' }}>
-                <p className="text-sm text-center" style={{ color: '#94a3b8' }}>
+              <div className="mt-4 captain-info-box hidden md:block">
+                <p className="text-sm text-center text-slate-accent">
                   💡 Pour transférer le capitanat, cliquez sur le bouton "Transférer" à côté d'un participant ci-dessous.
                 </p>
               </div>
@@ -865,8 +836,7 @@ function EchauffementPageContent() {
                     {canTransfer && (
                       <button
                         onClick={() => showTransferConfirmation(player.user_id, player.profiles?.username || 'Joueur')}
-                        className="px-3 py-1 text-sm rounded-lg transition"
-                        style={{ backgroundColor: '#1e293b', color: '#ff9900' }}
+                        className="btn-transfer"
                       >
                         Transférer
                       </button>
@@ -966,17 +936,11 @@ function EchauffementPageContent() {
                 <span className="theme-accent-text">Code d'invitation</span>
               </h2>
 
-              <div
-                className="border-2 rounded-lg p-6 text-center theme-dark-bg"
-                style={{
-                  backgroundImage: theme === 'dark' ? 'none' : 'linear-gradient(to right, #f3e8ff, #dbeafe)',
-                  borderColor: theme === 'dark' ? '#374151' : '#d8b4fe'
-                }}
-              >
+              <div className="invite-code-container">
                 <p className="text-sm mb-2 theme-text-secondary">
                   Partagez ce code avec vos amis :
                 </p>
-                <div className="text-5xl font-bold tracking-wider mb-4 font-mono theme-accent-text" style={{ color: theme === 'light' ? '#7e22ce' : undefined }}>
+                <div className="text-5xl font-bold tracking-wider mb-4 font-mono invite-code-light">
                   {tournamentCode}
                 </div>
                 <button

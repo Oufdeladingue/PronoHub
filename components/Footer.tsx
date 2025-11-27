@@ -36,7 +36,7 @@ export default function Footer({ variant = 'full' }: FooterProps) {
 
   // Version complète pour les autres pages
   return (
-    <footer className="border-t border-[var(--border-color)] mt-auto" style={{ background: 'var(--nav-bg)' }}>
+    <footer className="theme-nav border-t border-[var(--border-color)] mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo et copyright */}
