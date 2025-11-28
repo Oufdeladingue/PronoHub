@@ -310,16 +310,39 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg info-bg-container">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4">
               <p className="text-xs md:text-sm theme-text-secondary">
-                {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
-                {' / '}
-                {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
+                {selectedView === 'general' ? (
+                  // Vue générale du tournoi
+                  <>
+                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {' / '}
+                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
+                    {rankingsData.matchesFinished === rankingsData.matchesTotal && rankingsData.matchesTotal > 0 && ' : classement final'}
+                  </>
+                ) : rankingsData.matchesFinished === 0 ? (
+                  // Journée où aucun match n'a encore eu lieu
+                  <>Aucune rencontre n&apos;a encore eu lieu pour la journée {selectedView}</>
+                ) : rankingsData.matchesFinished === rankingsData.matchesTotal ? (
+                  // Journée terminée (tous les matchs terminés)
+                  <>
+                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {' / '}
+                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} sur la journée {selectedView} : classement final
+                  </>
+                ) : (
+                  // Journée en cours (au moins un match terminé mais pas tous)
+                  <>
+                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {' / '}
+                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} sur la journée {selectedView} : classement provisoire
+                  </>
+                )}
               </p>
               {rankingsData.hasInProgressMatches && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-orange-100 dark:bg-orange-900/30 rounded-lg animate-pulse">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-orange-700 dark:text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                <div className="flex items-center gap-2 px-3 py-1 quota-warning-box rounded-lg animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 quota-warning-icon" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+                  <span className="text-xs font-semibold quota-warning-title">
                     Classement provisoire - Matchs en cours
                   </span>
                 </div>

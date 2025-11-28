@@ -158,9 +158,11 @@ function DashboardContent({
                 let tournamentUrl = `/terrain/${tournament.slug}` // Par défaut
 
                 if (tournament.status === 'pending' || tournament.status === 'warmup') {
+                  // Tournoi en préparation = vestiaire (avant le match)
                   tournamentUrl = `/vestiaire/${tournament.slug}/echauffement`
                 } else if (tournament.status === 'active') {
-                  tournamentUrl = `/vestiaire/${tournament.slug}/opposition`
+                  // Tournoi actif = sur le terrain (plus de vestiaire dans l'URL)
+                  tournamentUrl = `/${tournament.slug}/opposition`
                 }
 
                 return (
@@ -169,13 +171,13 @@ function DashboardContent({
                     href={tournamentUrl}
                     className="glossy-card group relative flex flex-col md:flex-row items-center md:gap-4 p-2 md:p-4 border theme-border rounded-lg overflow-hidden"
                   >
-                    {/* Badge type de tournoi - coin supérieur gauche */}
-                    <div className="absolute top-1 left-1 z-20 tournament-badge-hover">
+                    {/* Badge type de tournoi - coin inférieur droit sur mobile, supérieur gauche sur desktop */}
+                    <div className="absolute bottom-1 right-1 md:top-1 md:left-1 md:bottom-auto md:right-auto z-20 tournament-badge-hover">
                       <TournamentTypeBadge type={tournament.tournament_type || 'free'} size="sm" />
                     </div>
 
-                    {/* Fond orange qui arrive de la gauche au survol */}
-                    <div className="absolute left-0 top-0 bottom-0 w-0 group-hover:w-16 md:group-hover:w-28 bg-[#ff9900] transition-all duration-500 ease-out pointer-events-none"></div>
+                    {/* Fond orange qui arrive de la gauche au survol - uniquement sur desktop */}
+                    <div className="absolute left-0 top-0 bottom-0 w-0 hidden md:block md:group-hover:w-28 bg-[#ff9900] transition-all duration-500 ease-out pointer-events-none"></div>
 
                     {/* Version mobile - Layout compact */}
                     <div className="md:hidden w-full flex flex-col gap-2 relative z-10">
@@ -184,7 +186,7 @@ function DashboardContent({
                         <h3 className="font-semibold theme-text text-base flex-1 transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
-                            <span className="text-yellow-600 font-normal text-sm"> (capitaine)</span>
+                            <span className="captain-label font-normal text-sm"> (capitaine)</span>
                           )}
                         </h3>
                         <p className="text-xs theme-text-secondary whitespace-nowrap">
@@ -203,18 +205,18 @@ function DashboardContent({
                           <div className="flex-shrink-0">
                             {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
                               <div className="w-12 h-12 flex items-center justify-center relative">
-                                {/* Logo blanc par défaut */}
+                                {/* Logo blanc par défaut - pas de hover sur mobile */}
                                 <img
                                   src={tournament.custom_emblem_white || tournament.emblem || ''}
                                   alt={tournament.competition_name}
-                                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 group-hover:opacity-0"
+                                  className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 md:group-hover:opacity-0"
                                 />
-                                {/* Logo couleur au survol */}
+                                {/* Logo couleur au survol - uniquement sur desktop */}
                                 {tournament.custom_emblem_color && (
                                   <img
                                     src={tournament.custom_emblem_color}
                                     alt={tournament.competition_name}
-                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                                    className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 opacity-0 md:group-hover:opacity-100"
                                   />
                                 )}
                               </div>
@@ -232,7 +234,7 @@ function DashboardContent({
                         </div>
 
                         {/* Badge statut à droite */}
-                        <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900]`}>
+                        <span className="status-badge px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900]">
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
                               <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" strokeWidth="3">
@@ -281,14 +283,14 @@ function DashboardContent({
                             <img
                               src={tournament.custom_emblem_white || tournament.emblem || ''}
                               alt={tournament.competition_name}
-                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 group-hover:opacity-0"
+                              className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 group-hover:opacity-0"
                             />
                             {/* Logo couleur au survol */}
                             {tournament.custom_emblem_color && (
                               <img
                                 src={tournament.custom_emblem_color}
                                 alt={tournament.competition_name}
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                                className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
                               />
                             )}
                           </div>
@@ -304,7 +306,7 @@ function DashboardContent({
                         <h3 className="font-semibold theme-text text-xl transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
-                            <span className="text-yellow-600 font-normal text-base"> (capitaine)</span>
+                            <span className="captain-label font-normal text-base"> (capitaine)</span>
                           )}
                         </h3>
                         <p className="text-base theme-text-secondary">{tournament.competition_name}</p>
@@ -312,7 +314,7 @@ function DashboardContent({
 
                       {/* Statut et informations */}
                       <div className="text-right">
-                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900]`}>
+                        <span className="status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900]">
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" strokeWidth="3">
@@ -360,10 +362,10 @@ function DashboardContent({
 
           {/* Accordéon pour tournois terminés et quittés */}
           {hasArchivedTournaments && (
-            <div className="mt-6 pt-6 border-t border-gray-700">
+            <div className="mt-6 pt-6 border-t theme-border">
               <button
                 onClick={() => setShowArchived(!showArchived)}
-                className="w-full flex items-center justify-between text-sm font-semibold text-[#ff9900] hover:text-[#e68a00] transition-colors"
+                className="w-full flex items-center justify-between text-sm font-semibold theme-accent-text hover:opacity-80 transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <img
@@ -383,13 +385,13 @@ function DashboardContent({
                   {/* Tournois terminés */}
                   {finishedTournaments.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Terminés</h4>
+                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">Terminés</h4>
                       <div className="space-y-2">
                         {finishedTournaments.map((tournament) => (
                           <a
                             key={tournament.id}
-                            href={`/vestiaire/${tournament.slug}/opposition`}
-                            className="relative flex items-center gap-4 p-3 border border-gray-700 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                            href={`/${tournament.slug}/opposition`}
+                            className="archived-card relative flex items-center gap-4 p-3 border theme-border rounded-lg transition-colors"
                           >
                             {/* Badge type de tournoi */}
                             <div className="absolute top-1 left-1 z-20">
@@ -403,7 +405,7 @@ function DashboardContent({
                                   <img
                                     src={tournament.custom_emblem_white || tournament.emblem || ''}
                                     alt={tournament.competition_name}
-                                    className="w-8 h-8 object-contain opacity-70"
+                                    className="logo-competition-white w-8 h-8 object-contain opacity-70"
                                   />
                                 </div>
                               ) : (
@@ -415,13 +417,13 @@ function DashboardContent({
 
                             {/* Informations du tournoi */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-gray-300 text-sm truncate">{tournament.name}</h4>
-                              <p className="text-xs text-gray-500">{tournament.competition_name}</p>
+                              <h4 className="font-medium theme-text text-sm truncate">{tournament.name}</h4>
+                              <p className="text-xs theme-text-secondary">{tournament.competition_name}</p>
                             </div>
 
                             {/* Badge "Terminé" */}
                             <div className="flex-shrink-0">
-                              <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-green-900/30 text-green-400 border border-green-800">
+                              <span className="badge-finished px-2 py-1 rounded text-[10px] font-bold uppercase">
                                 Terminé
                               </span>
                             </div>
@@ -434,12 +436,12 @@ function DashboardContent({
                   {/* Tournois quittés */}
                   {leftTournaments.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Quittés</h4>
+                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">Quittés</h4>
                       <div className="space-y-2">
                         {leftTournaments.map((tournament) => (
                           <div
                             key={tournament.id}
-                            className="relative flex items-center gap-4 p-3 border border-gray-700 rounded-lg bg-gray-800/30 opacity-60 cursor-not-allowed"
+                            className="archived-card-left relative flex items-center gap-4 p-3 border theme-border rounded-lg opacity-60 cursor-not-allowed"
                           >
                             {/* Badge type de tournoi */}
                             <div className="absolute top-1 left-1 z-20">
@@ -453,32 +455,32 @@ function DashboardContent({
                                   <img
                                     src={tournament.custom_emblem_white || tournament.emblem || ''}
                                     alt={tournament.competition_name}
-                                    className="w-8 h-8 object-contain opacity-50"
+                                    className="logo-competition-white w-8 h-8 object-contain opacity-50"
                                   />
                                 </div>
                               ) : (
-                                <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
-                                  <span className="text-gray-500 text-xs">N/A</span>
+                                <div className="w-10 h-10 placeholder-logo rounded-lg flex items-center justify-center">
+                                  <span className="theme-text-secondary text-xs">N/A</span>
                                 </div>
                               )}
                             </div>
 
                             {/* Informations du tournoi */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-gray-400 text-sm truncate">{tournament.name}</h4>
-                              <p className="text-xs text-gray-500">{tournament.competition_name}</p>
+                              <h4 className="font-medium theme-text-secondary text-sm truncate">{tournament.name}</h4>
+                              <p className="text-xs theme-text-secondary">{tournament.competition_name}</p>
                             </div>
 
                             {/* Badge "Quitté" */}
                             <div className="flex-shrink-0">
-                              <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-gray-700 text-gray-400 border border-gray-600">
+                              <span className="badge-left px-2 py-1 rounded text-[10px] font-bold uppercase">
                                 Quitté
                               </span>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs text-gray-500 mt-2 italic">
+                      <p className="text-xs theme-text-secondary mt-2 italic">
                         Ces tournois occupent un slot car vous les avez créés, même si vous n'y participez plus.
                       </p>
                     </div>

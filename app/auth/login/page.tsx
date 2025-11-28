@@ -52,7 +52,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col auth-page">
       <div
         className="flex-1 flex items-center justify-center relative overflow-hidden"
         style={{

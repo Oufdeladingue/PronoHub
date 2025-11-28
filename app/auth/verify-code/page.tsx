@@ -124,7 +124,7 @@ export default function VerifyCodePage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 auth-page">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border-2 border-gray-300">
         <div className="mb-6">
           <div className="flex justify-center mb-4">

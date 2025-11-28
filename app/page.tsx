@@ -8,7 +8,7 @@ import Footer from '@/components/Footer'
 // Landing page "Coming Soon" pour la production
 function ComingSoonPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
@@ -83,7 +83,7 @@ function NormalHomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
       <main className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">

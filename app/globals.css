@@ -1,16 +1,25 @@
 @import "tailwindcss";
 
 /* Theme variables */
+/* Palette thème clair - voir docs/THEME_CLAIR_COLORS.md
+   - Orange #FF9900 : Accent principal
+   - Bleu élite #0055FF : Accent secondaire fort
+   - Graphite bleu #243447 : Titres soft
+   - Gris glacier #F2F4F7 : Fond général
+   - Blanc #FFFFFF : Cartes, navigation
+*/
 :root[data-theme="light"] {
-  --background: #f8fafc;
-  --foreground: #1e293b;
-  --card-bg: #ffffff;
-  --nav-bg: #ffffff;
-  --border-color: #e2e8f0;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --input-bg: #ffffff;
-  --input-border: #cbd5e1;
+  --background: #F2F4F7;           /* Gris glacier - fond général */
+  --foreground: #243447;           /* Graphite bleu - texte principal */
+  --card-bg: #FFFFFF;              /* Blanc - fond des cartes */
+  --nav-bg: #FFFFFF;               /* Blanc - fond navigation */
+  --border-color: #6B7280;         /* Gray-500 - bordures */
+  --text-primary: #243447;         /* Graphite bleu - titres */
+  --text-secondary: #64748b;       /* Slate-500 - texte secondaire */
+  --input-bg: #FFFFFF;             /* Blanc - fond inputs */
+  --input-border: #cbd5e1;         /* Slate-300 - bordure inputs */
+  --accent-primary: #FF9900;       /* Orange - accent principal */
+  --accent-secondary: #0055FF;     /* Bleu élite - accent secondaire */
 }
 
 :root[data-theme="dark"] {
@@ -237,10 +246,22 @@ input:-moz-autofill:focus {
   transition: fill 0.3s ease;
 }
 
-.glossy-card:hover .tournament-badge-hover svg,
-.glossy-card:hover .tournament-badge-hover svg path,
-.glossy-card:hover .tournament-badge-hover svg polygon {
-  fill: #1e293b !important;
+/* Desktop: badge devient #1e293b au survol */
+@media (min-width: 768px) {
+  .glossy-card:hover .tournament-badge-hover svg,
+  .glossy-card:hover .tournament-badge-hover svg path,
+  .glossy-card:hover .tournament-badge-hover svg polygon {
+    fill: #1e293b !important;
+  }
+}
+
+/* Mobile thème sombre: badge devient #ff9900 au survol */
+@media (max-width: 767px) {
+  :root[data-theme="dark"] .glossy-card:hover .tournament-badge-hover svg,
+  :root[data-theme="dark"] .glossy-card:hover .tournament-badge-hover svg path,
+  :root[data-theme="dark"] .glossy-card:hover .tournament-badge-hover svg polygon {
+    fill: #ff9900 !important;
+  }
 }
 
 /* Quota warning box - Abonnement tab */
@@ -920,6 +941,22 @@ input[type="number"] {
   }
 }
 
+/* Animation de clignotement pour les icônes d'avertissement (opacité 0% <-> 100% en orange) */
+@keyframes blink-warning {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-blink-warning {
+  /* Filtre pour #ff9900 - orange */
+  filter: invert(52%) sepia(95%) saturate(1500%) hue-rotate(10deg) brightness(105%) contrast(104%);
+  animation: blink-warning 0.8s ease-in-out infinite;
+}
+
 /* Filtre pour les icônes du footer qui s'adaptent au thème */
 .theme-icon {
   filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%);
@@ -936,6 +973,41 @@ input[type="number"] {
 
 :root[data-theme="dark"] .theme-icon:hover {
   filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+}
+
+/* Boutons icône de navigation desktop */
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background-color: #0f172a;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.nav-icon-btn:hover {
+  background-color: #ff9900;
+  transform: scale(1.05);
+}
+
+.nav-icon-btn img {
+  /* Filtre pour #45556b */
+  filter: invert(35%) sepia(10%) saturate(800%) hue-rotate(180deg) brightness(90%) contrast(90%);
+  transition: filter 0.2s;
+}
+
+.nav-icon-btn:hover img {
+  /* Filtre pour #0f172a (très sombre) */
+  filter: invert(5%) sepia(15%) saturate(1500%) hue-rotate(190deg) brightness(10%) contrast(100%);
+}
+
+/* Texte "Bonjour [user]!" dans la nav */
+.nav-greeting {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 /* ========================================
@@ -1085,6 +1157,46 @@ input[type="number"] {
 .btn-counter:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* Bouton +/- pour scores de pronostics */
+.btn-score-adjust {
+  width: 2rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e5e7eb;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  transition: background-color 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+:root[data-theme="dark"] .btn-score-adjust {
+  background-color: #90959e !important;
+  color: #1e293b !important;
+}
+
+.btn-score-adjust:hover:not(:disabled) {
+  background-color: #d1d5db;
+}
+
+:root[data-theme="dark"] .btn-score-adjust:hover:not(:disabled) {
+  background-color: #a8acb4 !important;
+}
+
+.btn-score-adjust:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:root[data-theme="dark"] .btn-score-adjust:disabled {
+  background-color: #45556c !important;
+  color: #e5e7eb !important;
 }
 
 /* ========================================
@@ -1386,4 +1498,535 @@ input[type="number"] {
 .btn-admin-refresh:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ========================================
+   ========================================
+   THÈME CLAIR - STYLES SPÉCIFIQUES
+   ========================================
+   ========================================
+
+   Cette section contient tous les styles spécifiques au thème clair.
+   Les styles de base (thème sombre) sont définis plus haut dans le fichier.
+   Utilisez :root[data-theme="light"] pour cibler uniquement le thème clair.
+
+   Palette de couleurs thème clair (voir docs/THEME_CLAIR_COLORS.md) :
+   - ⚡ Accent principal : #FF9900 (Orange) - Boutons primaires, liens actifs
+   - 🔵 Accent secondaire : #0055FF (Bleu élite) - Badges, bordures accent
+   - ⚫ Titres soft : #243447 (Graphite bleu) - Titres, textes principaux
+   - 🌫️ Fond général : #F2F4F7 (Gris glacier) - Background page
+   - 🕊️ Fond principal : #FFFFFF (Blanc) - Cartes, navigation
+   - Bordures : #6B7280 (gray-500)
+   - Texte secondaire : #64748b (slate-500)
+*/
+
+/* ----------------------------------------
+   NAVIGATION - Thème clair
+   ---------------------------------------- */
+
+/* Boutons icônes de la navigation en thème clair */
+:root[data-theme="light"] .nav-icon-btn {
+  background-color: #e2e8f0;
+  border: 1px solid #6B7280;
+}
+
+:root[data-theme="light"] .nav-icon-btn:hover {
+  background-color: #0055FF;
+}
+
+:root[data-theme="light"] .nav-icon-btn img {
+  /* Filtre pour #475569 (slate-600) - plus visible sur fond clair */
+  filter: invert(30%) sepia(15%) saturate(500%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+:root[data-theme="light"] .nav-icon-btn:hover img {
+  /* Filtre pour #1e293b (très sombre) au survol */
+  filter: invert(10%) sepia(20%) saturate(1000%) hue-rotate(190deg) brightness(20%) contrast(100%);
+}
+
+/* Texte "Bonjour [user]!" en thème clair */
+:root[data-theme="light"] .nav-greeting {
+  color: #1e293b;
+}
+
+/* ----------------------------------------
+   BANNIÈRE UPGRADE - Styles de base et thème clair
+   ---------------------------------------- */
+
+/* Bannière upgrade - styles de base (thème sombre) */
+.upgrade-banner {
+  background: linear-gradient(to right, rgba(255, 153, 0, 0.05), rgba(147, 51, 234, 0.05));
+}
+
+.upgrade-banner-title {
+  color: #ffffff;
+}
+
+.upgrade-banner-subtitle {
+  color: #9ca3af;
+}
+
+/* Bannière upgrade - thème clair */
+:root[data-theme="light"] .upgrade-banner {
+  background: linear-gradient(to right, rgba(0, 85, 255, 0.12), rgba(147, 51, 234, 0.08));
+}
+
+:root[data-theme="light"] .upgrade-banner-title {
+  color: #1e293b;
+}
+
+:root[data-theme="light"] .upgrade-banner-subtitle {
+  color: #475569;
+}
+
+/* ----------------------------------------
+   CARTES DE TOURNOI (glossy-card) - Thème clair
+   ---------------------------------------- */
+
+/* Fond des cartes en thème clair */
+:root[data-theme="light"] .glossy-card {
+  background-color: #ffffff;
+  border-color: #6B7280;
+}
+
+:root[data-theme="light"] .glossy-card:hover {
+  border-color: #0055FF;
+  box-shadow: 0 4px 12px rgba(0, 85, 255, 0.15);
+}
+
+/* Logos de compétition en thème clair - inverser les logos blancs */
+:root[data-theme="light"] .glossy-card .logo-competition-white {
+  filter: invert(15%) sepia(30%) saturate(600%) hue-rotate(180deg) brightness(90%);
+}
+
+/* Au survol en thème clair, montrer le logo couleur (pas d'inversion) */
+:root[data-theme="light"] .glossy-card:hover .logo-competition-color {
+  filter: none;
+}
+
+/* Badge de statut - styles de base (thème sombre) */
+.status-badge {
+  background-color: #0f172a;
+  color: #ff9900;
+  border-color: #ff9900;
+}
+
+/* Badge de statut en thème clair - style bleu sur fond clair */
+:root[data-theme="light"] .status-badge {
+  background-color: #F5F7FA;
+  color: #0055FF;
+  border-color: #0055FF;
+}
+
+/* Label capitaine - styles de base (thème sombre) */
+.captain-label {
+  color: #ca8a04;
+}
+
+/* Label capitaine en thème clair */
+:root[data-theme="light"] .captain-label {
+  color: #2563eb;
+}
+
+/* Texte accent (dates, journées) - styles de base (thème sombre) */
+.theme-accent-text {
+  color: #ff9900;
+}
+
+/* Texte accent en thème clair */
+:root[data-theme="light"] .theme-accent-text {
+  color: #0055FF;
+}
+
+/* Logos de compétition - styles de base (thème sombre - pas de filtre) */
+.logo-competition-white {
+  /* Pas de filtre en thème sombre, le logo blanc est visible */
+}
+
+.logo-competition-color {
+  /* Pas de filtre en thème sombre */
+}
+
+/* ----------------------------------------
+   SECTIONS ET ACCORDÉONS - Thème clair
+   ---------------------------------------- */
+
+/* Cartes archivées (tournois terminés/quittés) - styles de base (thème sombre) */
+.archived-card {
+  background-color: rgba(31, 41, 55, 0.3);
+}
+
+.archived-card:hover {
+  background-color: rgba(31, 41, 55, 0.5);
+}
+
+/* Cartes archivées en thème clair */
+:root[data-theme="light"] .archived-card {
+  background-color: rgba(241, 245, 249, 0.5);
+}
+
+:root[data-theme="light"] .archived-card:hover {
+  background-color: rgba(226, 232, 240, 0.8);
+}
+
+/* Cartes tournois quittés - styles de base (thème sombre) */
+.archived-card-left {
+  background-color: rgba(31, 41, 55, 0.3);
+}
+
+/* Cartes tournois quittés en thème clair */
+:root[data-theme="light"] .archived-card-left {
+  background-color: rgba(241, 245, 249, 0.5);
+}
+
+/* Badge "Terminé" - styles de base (thème sombre) */
+.badge-finished {
+  background-color: rgba(21, 128, 61, 0.3);
+  color: #4ade80;
+  border: 1px solid #166534;
+}
+
+/* Badge "Terminé" en thème clair */
+:root[data-theme="light"] .badge-finished {
+  background-color: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+  border: 1px solid #6B7280;
+}
+
+/* Badge "Quitté" - styles de base (thème sombre) */
+.badge-left {
+  background-color: #374151;
+  color: #9ca3af;
+  border: 1px solid #4b5563;
+}
+
+/* Badge "Quitté" en thème clair */
+:root[data-theme="light"] .badge-left {
+  background-color: #e5e7eb;
+  color: #6b7280;
+  border: 1px solid #6B7280;
+}
+
+/* Placeholder logo (N/A) - styles de base (thème sombre) */
+.placeholder-logo {
+  background-color: #374151;
+}
+
+/* Placeholder logo en thème clair */
+:root[data-theme="light"] .placeholder-logo {
+  background-color: #e5e7eb;
+}
+
+/* ----------------------------------------
+   LOGOS DE COMPÉTITION - Thème clair
+   ---------------------------------------- */
+
+/* En thème clair, inverser les logos blancs pour les rendre visibles */
+:root[data-theme="light"] .logo-invert-light {
+  filter: invert(15%) sepia(20%) saturate(500%) hue-rotate(180deg) brightness(95%);
+}
+
+/* ----------------------------------------
+   ICÔNES ACCENT - Thème clair
+   ---------------------------------------- */
+
+/* Filtre bleu élite pour les icônes en thème clair (remplace orange) */
+:root[data-theme="light"] .icon-filter-orange {
+  /* Filtre pour #0055FF - Bleu élite */
+  filter: invert(20%) sepia(100%) saturate(3000%) hue-rotate(215deg) brightness(95%) contrast(105%);
+}
+
+/* ----------------------------------------
+   FOND BLEU AU SURVOL - Thème clair
+   ---------------------------------------- */
+
+/* Le fond bleu au survol des cartes en thème clair (orange en thème sombre) */
+:root[data-theme="light"] .glossy-card .hover-orange-bg {
+  background-color: #0055FF;
+}
+
+/* ----------------------------------------
+   OVERRIDES TAILWIND INLINE - Thème clair
+   Remplacer #ff9900 par #0055FF pour les classes inline
+   ---------------------------------------- */
+
+/* Texte orange -> bleu en thème clair */
+:root[data-theme="light"] .text-\[\#ff9900\] {
+  color: #0055FF !important;
+}
+
+/* Bordure orange -> bleu en thème clair */
+:root[data-theme="light"] .border-\[\#ff9900\] {
+  border-color: #0055FF !important;
+}
+
+/* Background orange -> bleu en thème clair */
+:root[data-theme="light"] .bg-\[\#ff9900\] {
+  background-color: #0055FF !important;
+}
+
+/* Hover texte orange -> bleu en thème clair */
+:root[data-theme="light"] .hover\:text-\[\#ff9900\]:hover {
+  color: #0055FF !important;
+}
+
+/* Group hover texte orange -> bleu en thème clair */
+:root[data-theme="light"] .group:hover .group-hover\:\!text-\[\#ff9900\] {
+  color: #0055FF !important;
+}
+
+/* Hover background orange -> bleu en thème clair */
+:root[data-theme="light"] .hover\:bg-\[\#ff9900\]:hover {
+  background-color: #0055FF !important;
+}
+
+/* Group hover background orange -> bleu en thème clair */
+:root[data-theme="light"] .group:hover .group-hover\:bg-\[\#ff9900\] {
+  background-color: #0055FF !important;
+}
+
+/* Hover bordure orange -> bleu en thème clair */
+:root[data-theme="light"] .hover\:border-\[\#ff9900\]:hover {
+  border-color: #0055FF !important;
+}
+
+/* ----------------------------------------
+   OVERRIDES TAILWIND ORANGE -> BLEU - Thème clair
+   ---------------------------------------- */
+
+/* Texte orange Tailwind -> bleu en thème clair */
+:root[data-theme="light"] .text-orange-400 {
+  color: #0055FF !important;
+}
+
+:root[data-theme="light"] .text-orange-500 {
+  color: #0055FF !important;
+}
+
+:root[data-theme="light"] .text-orange-600 {
+  color: #0044CC !important;
+}
+
+/* Background orange Tailwind -> bleu en thème clair */
+:root[data-theme="light"] .bg-orange-500 {
+  background-color: #0055FF !important;
+}
+
+:root[data-theme="light"] .bg-orange-500\/20 {
+  background-color: rgba(0, 85, 255, 0.2) !important;
+}
+
+:root[data-theme="light"] .bg-orange-500\/10 {
+  background-color: rgba(0, 85, 255, 0.1) !important;
+}
+
+:root[data-theme="light"] .hover\:bg-orange-500\/30:hover {
+  background-color: rgba(0, 85, 255, 0.3) !important;
+}
+
+:root[data-theme="light"] .hover\:bg-orange-400:hover {
+  background-color: #3366FF !important;
+}
+
+/* Bordure orange Tailwind -> bleu en thème clair */
+:root[data-theme="light"] .border-orange-500 {
+  border-color: #0055FF !important;
+}
+
+:root[data-theme="light"] .border-orange-500\/30 {
+  border-color: rgba(0, 85, 255, 0.3) !important;
+}
+
+/* Gradients orange -> bleu en thème clair */
+:root[data-theme="light"] .from-orange-500 {
+  --tw-gradient-from: #0055FF !important;
+}
+
+:root[data-theme="light"] .to-orange-600 {
+  --tw-gradient-to: #0044CC !important;
+}
+
+:root[data-theme="light"] .from-orange-500\/5 {
+  --tw-gradient-from: rgba(0, 85, 255, 0.05) !important;
+}
+
+:root[data-theme="light"] .to-orange-400\/5 {
+  --tw-gradient-to: rgba(61, 155, 224, 0.05) !important;
+}
+
+:root[data-theme="light"] .via-orange-500\/10 {
+  --tw-gradient-via: rgba(0, 85, 255, 0.1) !important;
+}
+
+:root[data-theme="light"] .from-orange-500\/10 {
+  --tw-gradient-from: rgba(0, 85, 255, 0.1) !important;
+}
+
+/* Hover gradients */
+:root[data-theme="light"] .hover\:from-orange-400:hover {
+  --tw-gradient-from: #3366FF !important;
+}
+
+:root[data-theme="light"] .hover\:to-orange-500:hover {
+  --tw-gradient-to: #0055FF !important;
+}
+
+/* ----------------------------------------
+   FILTRES D'ICÔNES - Thème clair
+   ---------------------------------------- */
+
+/* Filtre premium (orange -> bleu élite) en thème clair */
+:root[data-theme="light"] .icon-filter-premium {
+  /* Filtre pour #0055FF - Bleu élite */
+  filter: invert(20%) sepia(100%) saturate(3000%) hue-rotate(215deg) brightness(95%) contrast(105%);
+}
+
+/* ----------------------------------------
+   BORDURE AVATAR - Thème clair
+   ---------------------------------------- */
+
+/* Bordure avatar orange -> bleu en thème clair */
+:root[data-theme="light"] .border-\[\#ff9900\] {
+  border-color: #0055FF !important;
+}
+
+/* ----------------------------------------
+   BOUTONS PREMIUM - Thème clair
+   ---------------------------------------- */
+
+/* Shimmer effet pour les boutons premium en thème clair */
+:root[data-theme="light"] .premium-btn-shimmer {
+  background-color: rgba(0, 85, 255, 0.2) !important;
+  color: #0055FF !important;
+}
+
+:root[data-theme="light"] .premium-btn-shimmer:hover {
+  background-color: rgba(0, 85, 255, 0.3) !important;
+}
+
+/* ----------------------------------------
+   HOVER VARIATIONS ORANGE - Thème clair
+   ---------------------------------------- */
+
+/* Hover bg #e68a00 (orange foncé) -> bleu foncé en thème clair */
+:root[data-theme="light"] .hover\:bg-\[\#e68a00\]:hover {
+  background-color: #0044CC !important;
+}
+
+/* bg #ff9900/10 et /20 -> bleu en thème clair */
+:root[data-theme="light"] .bg-\[\#ff9900\]\/10 {
+  background-color: rgba(0, 85, 255, 0.1) !important;
+}
+
+:root[data-theme="light"] .bg-\[\#ff9900\]\/20 {
+  background-color: rgba(0, 85, 255, 0.2) !important;
+}
+
+/* border #ff9900/30 -> bleu en thème clair */
+:root[data-theme="light"] .border-\[\#ff9900\]\/30 {
+  border-color: rgba(0, 85, 255, 0.3) !important;
+}
+
+/* Focus ring orange -> bleu en thème clair */
+:root[data-theme="light"] .focus\:ring-\[\#ff9900\]:focus {
+  --tw-ring-color: #0055FF !important;
+}
+
+/* ----------------------------------------
+   REMPLACEMENT #0f172a -> #F5F7FA - Thème clair
+   ---------------------------------------- */
+
+/* Background #0f172a -> fond clair en thème clair */
+:root[data-theme="light"] .bg-\[\#0f172a\] {
+  background-color: #F5F7FA !important;
+}
+
+/* Texte #0f172a - garder sombre pour la lisibilité */
+:root[data-theme="light"] .text-\[\#0f172a\] {
+  color: #1e293b !important;
+}
+
+/* Texte #0f172a avec opacité */
+:root[data-theme="light"] .text-\[\#0f172a\]\/80 {
+  color: rgba(30, 41, 59, 0.8) !important;
+}
+
+/* Background slate-900 -> fond clair en thème clair */
+:root[data-theme="light"] .bg-slate-900 {
+  background-color: #F5F7FA !important;
+}
+
+/* Texte #111 (noir) - garder sombre pour lisibilité sur fond bleu */
+:root[data-theme="light"] .text-\[\#111\] {
+  color: #ffffff !important;
+}
+
+/* Hover vers #0f172a -> garder sombre pour le texte au survol */
+:root[data-theme="light"] .group-hover\:text-\[\#0f172a\] {
+  color: #1e293b !important;
+}
+
+/* ========================================
+   ========================================
+   PAGES D'AUTHENTIFICATION - TOUJOURS THÈME SOMBRE
+   ========================================
+   ========================================
+
+   Les pages d'authentification (login, signup, etc.) doivent toujours
+   rester en thème sombre avec les couleurs orange originales,
+   indépendamment du thème choisi par l'utilisateur.
+
+   Utiliser la classe .auth-page sur le conteneur principal de ces pages.
+*/
+
+/* Annuler tous les overrides du thème clair pour les pages auth */
+:root[data-theme="light"] .auth-page .bg-\[\#ff9900\],
+:root[data-theme="light"] .auth-page.bg-\[\#ff9900\] {
+  background-color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .text-\[\#ff9900\],
+:root[data-theme="light"] .auth-page.text-\[\#ff9900\] {
+  color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .border-\[\#ff9900\],
+:root[data-theme="light"] .auth-page.border-\[\#ff9900\] {
+  border-color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .hover\:bg-\[\#ff9900\]:hover {
+  background-color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .hover\:bg-\[\#e68a00\]:hover {
+  background-color: #e68a00 !important;
+}
+
+:root[data-theme="light"] .auth-page .hover\:text-\[\#ff9900\]:hover {
+  color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .focus\:border-\[\#ff9900\]:focus {
+  border-color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .text-\[\#ffb84d\] {
+  color: #ffb84d !important;
+}
+
+:root[data-theme="light"] .auth-page .hover\:text-\[\#ff9900\]:hover {
+  color: #ff9900 !important;
+}
+
+:root[data-theme="light"] .auth-page .text-\[\#111\] {
+  color: #111 !important;
+}
+
+/* Garder le fond sombre sur les pages auth */
+:root[data-theme="light"] .auth-page {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
 }

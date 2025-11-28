@@ -120,9 +120,9 @@ export default function NavBar({
     return (
       <div className="theme-nav hidden md:block">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Navigation layout - 3 colonnes sur desktop */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
-            {/* COLONNE GAUCHE - Logo + Theme Toggle */}
+          {/* Navigation layout - 3 colonnes égales (33% chacune) */}
+          <div className="grid grid-cols-3 gap-4 items-center">
+            {/* COLONNE GAUCHE (33%) - Logo + Theme Toggle */}
             <div className="flex items-center gap-4">
               <Link href="/dashboard">
                 <img
@@ -134,7 +134,7 @@ export default function NavBar({
               <ThemeToggle />
             </div>
 
-            {/* COLONNE CENTRALE - Infos compétition */}
+            {/* COLONNE CENTRALE (33%) - Infos compétition */}
             <div className="flex items-center justify-center gap-4">
               {creationContext.competitionLogo && (
                 <img
@@ -151,8 +151,8 @@ export default function NavBar({
               </div>
             </div>
 
-            {/* COLONNE DROITE - Avatar + Menu */}
-            <div className="flex items-center gap-3">
+            {/* COLONNE DROITE (33%) - Avatar + Menu */}
+            <div className="flex items-center justify-end gap-3">
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
                 <Image
@@ -166,39 +166,46 @@ export default function NavBar({
 
               {/* Menu desktop */}
               <div className="flex items-center gap-3">
-                <span className="theme-text text-sm">Bonjour, {username} !</span>
+                <span className="nav-greeting">Bonjour {username} !</span>
 
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+                {/* Lien Accueil avec icône et tooltip */}
+                <Link
+                  href="/dashboard"
+                  className="nav-icon-btn"
+                  title="Accueil"
+                >
+                  <img
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6"
+                  />
+                </Link>
 
-                {/* Lien Carrière avec icône */}
+                {/* Lien Carrière avec icône et tooltip */}
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  className="nav-icon-btn"
+                  title="Carrière"
                 >
                   <img
                     src="/images/icons/profil.svg"
                     alt="Carrière"
-                    className="w-5 h-5 icon-filter-orange"
+                    className="w-6 h-6"
                   />
-                  Carrière
                 </Link>
 
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Bouton Déconnexion avec icône */}
+                {/* Bouton Déconnexion avec icône et tooltip */}
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                    className="nav-icon-btn"
+                    title="Quitter le terrain"
                   >
                     <img
                       src="/images/icons/logout.svg"
                       alt="Quitter"
-                      className="w-5 h-5 icon-filter-orange"
+                      className="w-6 h-6"
                     />
-                    Quitter le terrain
                   </button>
                 </form>
               </div>
@@ -239,9 +246,9 @@ export default function NavBar({
     return (
       <div className="theme-nav hidden md:block">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Navigation layout - 3 colonnes sur desktop */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
-            {/* COLONNE GAUCHE - Logo + Theme Toggle */}
+          {/* Navigation layout - 3 colonnes égales (33% chacune) */}
+          <div className="grid grid-cols-3 gap-4 items-center">
+            {/* COLONNE GAUCHE (33%) - Logo + Theme Toggle */}
             <div className="flex items-center gap-4">
               <Link href="/dashboard">
                 <img
@@ -253,7 +260,7 @@ export default function NavBar({
               <ThemeToggle />
             </div>
 
-            {/* COLONNE CENTRALE - Infos compétition et tournoi */}
+            {/* COLONNE CENTRALE (33%) - Infos compétition et tournoi */}
             <div className="flex items-center justify-center gap-4">
               {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
@@ -283,8 +290,8 @@ export default function NavBar({
               </div>
             </div>
 
-            {/* COLONNE DROITE - Avatar + Menu */}
-            <div className="flex items-center gap-3">
+            {/* COLONNE DROITE (33%) - Avatar + Menu */}
+            <div className="flex items-center justify-end gap-3">
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
                 <Image
@@ -298,39 +305,46 @@ export default function NavBar({
 
               {/* Menu desktop */}
               <div className="flex items-center gap-3">
-                <span className="theme-text text-sm">Bonjour, {username} !</span>
+                <span className="nav-greeting">Bonjour {username} !</span>
 
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+                {/* Lien Accueil avec icône et tooltip */}
+                <Link
+                  href="/dashboard"
+                  className="nav-icon-btn"
+                  title="Accueil"
+                >
+                  <img
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6"
+                  />
+                </Link>
 
-                {/* Lien Carrière avec icône */}
+                {/* Lien Carrière avec icône et tooltip */}
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  className="nav-icon-btn"
+                  title="Carrière"
                 >
                   <img
                     src="/images/icons/profil.svg"
                     alt="Carrière"
-                    className="w-5 h-5 icon-filter-orange"
+                    className="w-6 h-6"
                   />
-                  Carrière
                 </Link>
 
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Bouton Déconnexion avec icône */}
+                {/* Bouton Déconnexion avec icône et tooltip */}
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                    className="nav-icon-btn"
+                    title="Quitter le terrain"
                   >
                     <img
                       src="/images/icons/logout.svg"
                       alt="Quitter"
-                      className="w-5 h-5 icon-filter-orange"
+                      className="w-6 h-6"
                     />
-                    Quitter le terrain
                   </button>
                 </form>
               </div>
@@ -341,35 +355,36 @@ export default function NavBar({
     )
   }
 
-  // Rendu pour le contexte App (par défaut)
+  // Rendu pour le contexte App (par défaut) - Dashboard
   return (
     <nav className="theme-nav hidden md:block">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Navigation layout - 3 colonnes sur desktop */}
-        <div className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
-          {/* COLONNE GAUCHE - Logo + Theme Toggle */}
+        {/* Navigation layout - 3 colonnes égales (33% chacune) */}
+        <div className="grid grid-cols-3 gap-4 items-center">
+          {/* COLONNE GAUCHE (33%) - Logo + Theme Toggle */}
           <div className="flex items-center gap-4">
-            {appContext?.showBackToDashboard ? (
-              <Link href="/dashboard">
-                <img
-                  src="/images/logo.svg"
-                  alt="PronoHub"
-                  className="w-14 h-14 cursor-pointer hover:opacity-80 transition"
-                />
-              </Link>
-            ) : (
-              <Link href="/dashboard">
-                <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14 cursor-pointer hover:opacity-80 transition" />
-              </Link>
-            )}
+            <Link href="/dashboard">
+              <img
+                src="/images/logo.svg"
+                alt="PronoHub"
+                className="w-14 h-14 cursor-pointer hover:opacity-80 transition"
+              />
+            </Link>
             <ThemeToggle />
           </div>
 
-          {/* COLONNE CENTRALE - Vide pour dashboard */}
-          <div></div>
+          {/* COLONNE CENTRALE (33%) - Titre */}
+          <div className="flex flex-col items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
+            <h1 className="text-2xl font-bold text-[#ff9900] text-center">
+              PronoHub
+            </h1>
+            <p className="text-sm text-[#ff9900] text-center">
+              Tournois de pronostics entre amis
+            </p>
+          </div>
 
-          {/* COLONNE DROITE - Avatar + Menu */}
-          <div className="flex items-center gap-3">
+          {/* COLONNE DROITE (33%) - Avatar + Menu */}
+          <div className="flex items-center justify-end gap-3">
             {/* Avatar */}
             <Link href="/profile" className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
               <Image
@@ -387,43 +402,33 @@ export default function NavBar({
 
             {/* Menu desktop */}
             <div className="flex items-center gap-3">
-              <span className="theme-text text-sm">Bonjour, {username} !</span>
+              <span className="nav-greeting">Bonjour {username} !</span>
 
-              {!appContext?.hideProfileLink && (
-                <>
-                  {/* Séparateur */}
-                  <div className="h-6 w-[2px] bg-[#e68a00]"></div>
+              {/* Lien Carrière avec icône et tooltip */}
+              <Link
+                href="/profile"
+                className="nav-icon-btn"
+                title="Carrière"
+              >
+                <img
+                  src="/images/icons/profil.svg"
+                  alt="Carrière"
+                  className="w-6 h-6"
+                />
+              </Link>
 
-                  {/* Lien Carrière avec icône */}
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
-                  >
-                    <img
-                      src="/images/icons/profil.svg"
-                      alt="Carrière"
-                      className="w-5 h-5 icon-filter-orange"
-                    />
-                    Carrière
-                  </Link>
-                </>
-              )}
-
-              {/* Séparateur */}
-              <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-              {/* Bouton Déconnexion avec icône */}
+              {/* Bouton Déconnexion avec icône et tooltip */}
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  className="nav-icon-btn"
+                  title="Quitter le terrain"
                 >
                   <img
                     src="/images/icons/logout.svg"
                     alt="Quitter"
-                    className="w-5 h-5 icon-filter-orange"
+                    className="w-6 h-6"
                   />
-                  Quitter le terrain
                 </button>
               </form>
             </div>

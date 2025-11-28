@@ -90,18 +90,19 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
   // Banniere complete pour le dashboard
   if (!canCreate) {
     return (
-      <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+      <div className="upgrade-banner border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
         <div className="flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
               <img src="/images/icons/hat.svg" alt="Quota atteint" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
             </div>
             <div>
-              <p className="font-medium text-white text-sm md:text-base">
+              <p className="font-medium upgrade-banner-title text-sm md:text-base">
                 Superbe coup du chapeau !
               </p>
-              <p className="text-xs md:text-sm text-gray-400">
-                Limite de 3 tournois gratuits actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...
+              <p className="text-xs md:text-sm upgrade-banner-subtitle">
+                <span className="md:hidden">Limite de 3 tournois gratuits atteinte !<br />Passe Pro pour créer un autre tournoi...</span>
+                <span className="hidden md:inline">Limite de 3 tournois gratuits actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...</span>
               </p>
             </div>
           </div>
@@ -121,17 +122,17 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
   // Banniere d'upsell pour les utilisateurs gratuits
   if (currentType === 'free') {
     return (
-      <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+      <div className="upgrade-banner border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
         <div className="flex flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
               <img src="/images/icons/futebol.svg" alt="Tournois" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
             </div>
             <div>
-              <p className="font-medium text-white text-sm md:text-base">
+              <p className="font-medium upgrade-banner-title text-sm md:text-base">
                 Tournois gratuits: {quotas.free_tournaments_active}/{quotas.free_tournaments_max}
               </p>
-              <p className="text-xs md:text-sm text-gray-400">
+              <p className="text-xs md:text-sm upgrade-banner-subtitle">
                 Max {ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi
               </p>
             </div>
@@ -224,17 +225,17 @@ export function TournamentTypeIndicator() {
   const config = typeConfig[tournamentType.tournament_type]
 
   return (
-    <div className="bg-gradient-to-r from-orange-500/5 to-purple-500/5 border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
+    <div className="upgrade-banner border-2 border-[#ff9900] rounded-xl p-3 md:p-5 mb-6">
       <div className="flex flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="w-8 h-8 md:w-10 md:h-10 bg-[#ff9900] rounded-full flex items-center justify-center flex-shrink-0">
             <img src={config.icon} alt="Tournois" className="w-4 h-4 md:w-5 md:h-5 brightness-0" />
           </div>
           <div>
-            <p className="font-medium text-white text-sm md:text-base">
+            <p className="font-medium upgrade-banner-title text-sm md:text-base">
               {config.label}
             </p>
-            <p className="text-xs md:text-sm text-gray-400">
+            <p className="text-xs md:text-sm upgrade-banner-subtitle">
               Max {tournamentType.max_players} joueurs
             </p>
           </div>

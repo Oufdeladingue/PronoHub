@@ -84,37 +84,56 @@ export default function NavBarMobile({
 
           {/* Menu mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
-              <div className="theme-text text-sm text-center mb-2">
-                Bonjour, {username} !
+            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
+              <div className="theme-text text-sm text-center font-bold">
+                Bonjour {username} !
               </div>
 
-              <Link
-                href="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <img
-                  src="/images/icons/profil.svg"
-                  alt="Carrière"
-                  className="w-5 h-5 icon-filter-orange"
-                />
-                Carrière
-              </Link>
-
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
+              {/* 3 icônes côte à côte */}
+              <div className="flex items-start justify-center gap-6">
+                {/* Accueil */}
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-5 h-5 icon-filter-orange"
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6 icon-filter-orange"
                   />
-                  Quitter le terrain
-                </button>
-              </form>
+                  <span className="text-xs theme-accent-text">Accueil</span>
+                </Link>
+
+                {/* Carrière */}
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <img
+                    src="/images/icons/profil.svg"
+                    alt="Carrière"
+                    className="w-6 h-6 icon-filter-orange"
+                  />
+                  <span className="text-xs theme-accent-text">Carrière</span>
+                </Link>
+
+                {/* Quitter le terrain */}
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <img
+                      src="/images/icons/logout.svg"
+                      alt="Quitter"
+                      className="w-6 h-6 icon-filter-orange"
+                    />
+                    <span className="text-xs theme-accent-text">Quitter</span>
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </div>
@@ -224,37 +243,56 @@ export default function NavBarMobile({
 
           {/* Menu mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
-              <div className="theme-text text-sm text-center mb-2">
-                Bonjour, {username} !
+            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
+              <div className="theme-text text-sm text-center font-bold">
+                Bonjour {username} !
               </div>
 
-              <Link
-                href="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <img
-                  src="/images/icons/profil.svg"
-                  alt="Carrière"
-                  className="w-5 h-5 icon-filter-orange"
-                />
-                Carrière
-              </Link>
-
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
+              {/* 3 icônes côte à côte */}
+              <div className="flex items-start justify-center gap-6">
+                {/* Accueil */}
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-5 h-5 icon-filter-orange"
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6 icon-filter-orange"
                   />
-                  Quitter le terrain
-                </button>
-              </form>
+                  <span className="text-xs theme-accent-text">Accueil</span>
+                </Link>
+
+                {/* Carrière */}
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <img
+                    src="/images/icons/profil.svg"
+                    alt="Carrière"
+                    className="w-6 h-6 icon-filter-orange"
+                  />
+                  <span className="text-xs theme-accent-text">Carrière</span>
+                </Link>
+
+                {/* Quitter le terrain */}
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <img
+                      src="/images/icons/logout.svg"
+                      alt="Quitter"
+                      className="w-6 h-6 icon-filter-orange"
+                    />
+                    <span className="text-xs theme-accent-text">Quitter</span>
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </div>
@@ -310,37 +348,56 @@ export default function NavBarMobile({
 
         {/* Menu mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
-            <div className="theme-text text-sm text-center mb-2">
-              Bonjour, {username} !
+          <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
+            <div className="theme-text text-sm text-center font-bold">
+              Bonjour {username} !
             </div>
 
-            <Link
-              href="/profile"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <img
-                src="/images/icons/profil.svg"
-                alt="Carrière"
-                className="w-5 h-5 icon-filter-theme"
-              />
-              Carrière
-            </Link>
-
-            <form action="/auth/signout" method="post">
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
+            {/* 3 icônes côte à côte */}
+            <div className="flex items-start justify-center gap-6">
+              {/* Accueil */}
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <img
-                  src="/images/icons/logout.svg"
-                  alt="Quitter"
-                  className="w-5 h-5 icon-filter-theme"
+                  src="/images/icons/home.svg"
+                  alt="Accueil"
+                  className="w-6 h-6 icon-filter-orange"
                 />
-                Quitter le terrain
-              </button>
-            </form>
+                <span className="text-xs theme-accent-text">Accueil</span>
+              </Link>
+
+              {/* Carrière */}
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <img
+                  src="/images/icons/profil.svg"
+                  alt="Carrière"
+                  className="w-6 h-6 icon-filter-orange"
+                />
+                <span className="text-xs theme-accent-text">Carrière</span>
+              </Link>
+
+              {/* Quitter le terrain */}
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6 icon-filter-orange"
+                  />
+                  <span className="text-xs theme-accent-text">Quitter</span>
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </div>
