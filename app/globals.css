@@ -9,9 +9,10 @@
    - Blanc #FFFFFF : Cartes, navigation
 */
 :root[data-theme="light"] {
-  --background: #F2F4F7;           /* Gris glacier - fond général */
+  --background: #D0D6DE;           /* Gris foncé - fond général pour contraste */
   --foreground: #243447;           /* Graphite bleu - texte principal */
-  --card-bg: #FFFFFF;              /* Blanc - fond des cartes */
+  --card-bg: #FFFFFF;              /* Blanc - fond des cartes tournoi */
+  --card-bg-secondary: #FFFFFF;    /* Blanc - fond sections (nav, mes tournois, actions) */
   --nav-bg: #FFFFFF;               /* Blanc - fond navigation */
   --border-color: #6B7280;         /* Gray-500 - bordures */
   --text-primary: #243447;         /* Graphite bleu - titres */
@@ -61,6 +62,15 @@ body {
 html, body {
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Footer fixé en bas de l'écran - toujours visible */
+.footer-fixed {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  z-index: 9999 !important;
 }
 
 /* Curseur pointer pour tous les éléments cliquables */
@@ -150,9 +160,25 @@ input[type="number"].theme-input {
   width: auto;
 }
 
+/* Input de création de tournoi - Thème clair */
+:root[data-theme="light"] .creation-input {
+  background-color: #0055FF !important;
+  color: #ffffff;
+  border-color: #0055FF;
+}
+
+:root[data-theme="light"] .creation-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+:root[data-theme="light"] .creation-input:focus {
+  border-color: #0044cc;
+  box-shadow: 0 0 0 3px rgba(0, 85, 255, 0.2);
+}
+
 .theme-btn-primary {
   padding: 0.75rem 1.5rem;
-  background-color: #ff9900;
+  background-color: #ff9900; /* Orange par défaut */
   color: #111;
   border: none;
   border-radius: 0.5rem;
@@ -169,6 +195,15 @@ input[type="number"].theme-input {
 .theme-btn-primary:disabled {
   background-color: #94a3b8;
   cursor: not-allowed;
+}
+
+:root[data-theme="light"] .theme-btn-primary {
+  background-color: #0055FF; /* Bleu élite en thème clair */
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .theme-btn-primary:hover {
+  background-color: #0044cc; /* Bleu plus foncé au hover */
 }
 
 .theme-btn-secondary {
@@ -329,7 +364,7 @@ input:-moz-autofill:focus {
 
 /* Dark mode specific background colors */
 .dark-bg-primary {
-  background-color: #f9fafb;
+  background-color: #d0d6de; /* Gris clair pour thème clair */
 }
 
 :root[data-theme="dark"] .dark-bg-primary {
@@ -371,16 +406,25 @@ input:-moz-autofill:focus {
 }
 
 .dark-text-white {
-  color: var(--text-primary);
+  color: #374151; /* Gris foncé en thème clair */
 }
 
 :root[data-theme="dark"] .dark-text-white {
   color: #ffffff !important;
 }
 
+/* Numéros de maillot - gris foncé en thème clair */
+.jersey-number {
+  color: #374151;
+}
+
+:root[data-theme="dark"] .jersey-number {
+  color: #ffffff !important;
+}
+
 /* Dark mode specific SVG fill colors */
 .dark-fill-white {
-  fill: #16a34a;
+  fill: #374151; /* Gris foncé en thème clair */
 }
 
 :root[data-theme="dark"] .dark-fill-white {
@@ -507,7 +551,7 @@ input:-moz-autofill:focus {
 
 /* Boutons avec styles thématiques */
 .btn-copy-code {
-  background-color: #9333ea;
+  background-color: #0055FF;
   color: #ffffff;
 }
 
@@ -517,7 +561,7 @@ input:-moz-autofill:focus {
 }
 
 .btn-copy-code:hover {
-  background-color: #7e22ce;
+  background-color: #0044cc;
 }
 
 :root[data-theme="dark"] .btn-copy-code:hover {
@@ -540,6 +584,17 @@ input:-moz-autofill:focus {
 
 :root[data-theme="dark"] .btn-share:hover {
   background-color: #e68a00 !important;
+}
+
+/* Boutons du capitaine - Échauffement */
+.btn-captain {
+  background-color: #0055FF;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .btn-captain {
+  background-color: #ff9900 !important;
+  color: #111111 !important;
 }
 
 /* Classe pour icônes SVG orange en mode sombre */
@@ -856,12 +911,13 @@ input[type="number"] {
 .trophy-card {
   padding: 1.5rem;
   border-radius: 0.5rem;
-  border: 2px solid #ff9900;
+  border: 2px solid #0055FF; /* Bleu élite en thème clair */
   transition: all 0.2s;
 }
 
 :root[data-theme="dark"] .trophy-card {
   background-color: #0f172a !important;
+  border-color: #ff9900; /* Orange en thème sombre */
 }
 
 /* Card de trophée débloqué */
@@ -898,8 +954,12 @@ input[type="number"] {
 .trophy-title {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #ff9900;
+  color: #0055FF; /* Bleu élite en thème clair */
   margin-bottom: 0.25rem;
+}
+
+:root[data-theme="dark"] .trophy-title {
+  color: #ff9900; /* Orange en thème sombre */
 }
 
 /* Bouton primaire avec texte dark */
@@ -1033,6 +1093,111 @@ input[type="number"] {
   background: #94a3b8;
 }
 
+/* Badge de compétition - Thème clair */
+:root[data-theme="light"] .competition-badge {
+  border: 2px solid #0055FF;
+  background: #ffffff;
+}
+
+:root[data-theme="light"] .competition-badge:hover {
+  background: #0055FF;
+  box-shadow: 0 25px 50px -12px rgba(0, 85, 255, 0.2);
+}
+
+/* Logos dans les badges - Thème clair : couleur par défaut, blanc au survol */
+/* Logo blanc (visible par défaut en dark, caché par défaut en light) */
+.competition-badge .logo-white {
+  opacity: 1;
+}
+.competition-badge:hover .logo-white {
+  opacity: 0;
+}
+:root[data-theme="light"] .competition-badge .logo-white {
+  opacity: 0;
+}
+:root[data-theme="light"] .competition-badge:hover .logo-white {
+  opacity: 1;
+}
+
+/* Logo couleur (caché par défaut en dark, visible par défaut en light) */
+.competition-badge .logo-color {
+  opacity: 0;
+}
+.competition-badge:hover .logo-color {
+  opacity: 1;
+}
+:root[data-theme="light"] .competition-badge .logo-color {
+  opacity: 1;
+}
+:root[data-theme="light"] .competition-badge:hover .logo-color {
+  opacity: 0;
+}
+
+/* Textes dans les badges - Thème clair */
+.competition-badge .badge-title {
+  color: #ff9900;
+}
+.competition-badge:hover .badge-title {
+  color: #0f172a;
+}
+:root[data-theme="light"] .competition-badge .badge-title {
+  color: #0055FF;
+}
+:root[data-theme="light"] .competition-badge:hover .badge-title {
+  color: #ffffff;
+}
+
+.competition-badge .badge-text {
+  color: #9ca3af; /* gray-400 */
+}
+.competition-badge:hover .badge-text {
+  color: #0f172a;
+}
+:root[data-theme="light"] .competition-badge .badge-text {
+  color: #64748b; /* slate-500 */
+}
+:root[data-theme="light"] .competition-badge:hover .badge-text {
+  color: #ffffff;
+}
+
+/* Badge journées restantes - Thème clair */
+.competition-badge .matchdays-badge {
+  background-color: rgba(255, 153, 0, 0.9);
+  color: #0f172a;
+}
+:root[data-theme="light"] .competition-badge .matchdays-badge {
+  background-color: #0055FF;
+  color: #ffffff;
+}
+:root[data-theme="light"] .competition-badge:hover .matchdays-badge {
+  background-color: #ffffff;
+  color: #0055FF;
+}
+
+/* Tooltip "Compétition la plus populaire" - Thème clair */
+.competition-badge .popular-tooltip {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+:root[data-theme="light"] .competition-badge .popular-tooltip {
+  background-color: #ffffff;
+  color: #0055FF;
+}
+
+/* Étoile "Compétition la plus populaire" - Thème clair au survol */
+.competition-badge .popular-star {
+  background-color: #ff9900;
+}
+.competition-badge .popular-star svg {
+  color: #0f172a;
+}
+:root[data-theme="light"] .competition-badge:hover .popular-star {
+  background-color: #ffffff;
+}
+:root[data-theme="light"] .competition-badge:hover .popular-star svg {
+  color: #0055FF;
+}
+
 /* Logo de compétition - Ombre portée uniquement (les filtres de couleur sont maintenant gérés par les logos custom) */
 .competition-logo {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
@@ -1075,7 +1240,11 @@ input[type="number"] {
 }
 
 .toggle-switch.active {
-  background-color: #ff9900;
+  background-color: #0055FF; /* Bleu élite en thème clair */
+}
+
+:root[data-theme="dark"] .toggle-switch.active {
+  background-color: #ff9900; /* Orange en thème sombre */
 }
 
 .toggle-switch-knob {
@@ -1128,6 +1297,11 @@ input[type="number"] {
   background-color: white;
 }
 
+/* Toggle Switch Large - Thème clair */
+:root[data-theme="light"] .toggle-switch-lg.active {
+  background-color: #0055FF;
+}
+
 /* ========================================
    BOUTONS COMPTEUR (+/-)
    Pour les sélecteurs de quantité
@@ -1159,6 +1333,12 @@ input[type="number"] {
   cursor: not-allowed;
 }
 
+/* Bouton compteur - Thème clair */
+:root[data-theme="light"] .btn-counter {
+  background-color: #0055FF;
+  color: #ffffff;
+}
+
 /* Bouton +/- pour scores de pronostics */
 .btn-score-adjust {
   width: 2rem;
@@ -1166,7 +1346,7 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e5e7eb;
+  background-color: #d0d6de;
   border-radius: 0.25rem;
   font-size: 1rem;
   font-weight: 700;
@@ -1182,7 +1362,7 @@ input[type="number"] {
 }
 
 .btn-score-adjust:hover:not(:disabled) {
-  background-color: #d1d5db;
+  background-color: #b8c0ca;
 }
 
 :root[data-theme="dark"] .btn-score-adjust:hover:not(:disabled) {
@@ -1197,6 +1377,77 @@ input[type="number"] {
 :root[data-theme="dark"] .btn-score-adjust:disabled {
   background-color: #45556c !important;
   color: #e5e7eb !important;
+}
+
+/* Badge prono validé */
+.badge-prono-validated {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background-color: #dbeafe; /* Bleu clair - blue-100 */
+  color: #0055FF; /* Bleu élite du thème */
+}
+
+:root[data-theme="dark"] .badge-prono-validated {
+  background-color: rgba(34, 197, 94, 0.2); /* green-900/30 */
+  color: #4ade80; /* green-400 */
+}
+
+/* Onglet de navigation (pages opposition) */
+.nav-tab {
+  position: relative;
+  border-bottom: 2px solid transparent;
+  transition: border-bottom-color 2s ease;
+}
+
+.nav-tab:hover:not(.nav-tab-active) {
+  border-bottom-color: #0055FF; /* Bleu élite en thème clair */
+}
+
+:root[data-theme="dark"] .nav-tab:hover:not(.nav-tab-active) {
+  border-bottom-color: #ff9900; /* Orange en thème sombre */
+}
+
+.nav-tab-active {
+  border-bottom-color: #ff9900 !important;
+}
+
+/* Barres du menu hamburger (mobile) */
+.hamburger-bar {
+  background-color: #ffffff; /* Blanc en thème clair (fond bleu) */
+}
+
+:root[data-theme="dark"] .hamburger-bar {
+  background-color: #ff9900; /* Orange en thème sombre */
+}
+
+/* Menu mobile dropdown - texte et icônes */
+.mobile-menu-text {
+  color: #ffffff; /* Blanc en thème clair */
+}
+
+:root[data-theme="dark"] .mobile-menu-text {
+  color: #ff9900; /* Orange en thème sombre */
+}
+
+.mobile-menu-icon {
+  filter: brightness(0) invert(1); /* Blanc en thème clair */
+}
+
+:root[data-theme="dark"] .mobile-menu-icon {
+  filter: invert(67%) sepia(89%) saturate(1568%) hue-rotate(360deg) brightness(103%) contrast(106%); /* Orange en thème sombre */
+}
+
+/* Bordure avatar en mobile - blanc en thème clair, orange en thème sombre */
+.mobile-avatar-border {
+  border-color: #ff9900; /* Orange par défaut (thème sombre) */
+}
+
+:root[data-theme="light"] .mobile-avatar-border {
+  border-color: #ffffff; /* Blanc en thème clair */
 }
 
 /* ========================================
@@ -1289,6 +1540,25 @@ input[type="number"] {
   filter: brightness(0);
 }
 
+/* Bouton capitaine - Thème clair */
+:root[data-theme="light"] .btn-captain-action {
+  background-color: #0055FF;
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .btn-captain-action:hover {
+  background-color: #0044cc;
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .btn-captain-action .btn-icon {
+  filter: brightness(0) invert(1); /* Icônes blanches */
+}
+
+:root[data-theme="light"] .btn-captain-action:hover .btn-icon {
+  filter: brightness(0) invert(1); /* Reste blanc au hover */
+}
+
 /* ========================================
    BOUTON TRANSFERT
    Pour la liste des participants
@@ -1305,6 +1575,49 @@ input[type="number"] {
 
 .btn-transfer:hover {
   opacity: 0.8;
+}
+
+/* ========================================
+   EFFECTIF - PARTICIPANTS
+   Pour la page échauffement
+   ======================================== */
+
+/* Badge numéro participant (non-utilisateur courant) */
+.participant-number-badge {
+  background-color: #374151; /* Gris foncé par défaut pour light */
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .participant-number-badge {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+/* Maillot SVG des places vides */
+.empty-jersey-svg {
+  fill: #374151; /* Gris foncé en thème clair */
+}
+
+:root[data-theme="dark"] .empty-jersey-svg {
+  fill: #4b5563 !important; /* Gris en thème sombre */
+}
+
+/* Numéro des places vides */
+.empty-jersey-number {
+  color: #374151; /* Gris foncé en thème clair */
+}
+
+:root[data-theme="dark"] .empty-jersey-number {
+  color: #9ca3af !important; /* Gris clair en thème sombre */
+}
+
+/* Texte "En attente..." des places vides */
+.empty-jersey-text {
+  color: #374151; /* Gris foncé en thème clair */
+}
+
+:root[data-theme="dark"] .empty-jersey-text {
+  color: #6b7280 !important; /* Gris en thème sombre */
 }
 
 /* ========================================
@@ -1521,32 +1834,102 @@ input[type="number"] {
 */
 
 /* ----------------------------------------
-   NAVIGATION - Thème clair
+   NAVIGATION ET FOOTER - Thème clair (fond bleu)
    ---------------------------------------- */
 
-/* Boutons icônes de la navigation en thème clair */
+/* Fond bleu pour la navigation et le footer en thème clair */
+:root[data-theme="light"] .theme-nav {
+  background-color: #0055FF !important;
+  border-color: #0044CC !important;
+}
+
+/* Logo PronoHub sans background supplémentaire (déjà sur fond bleu) */
+:root[data-theme="light"] .nav-logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Textes de la nav en blanc sur fond bleu */
+:root[data-theme="light"] .theme-nav h1,
+:root[data-theme="light"] .theme-nav p {
+  color: #ffffff !important;
+}
+
+/* Texte "Bonjour [user]!" en blanc sur fond bleu */
+:root[data-theme="light"] .nav-greeting {
+  color: #ffffff !important;
+}
+
+/* Copyright et liens du footer en blanc/gris clair */
+:root[data-theme="light"] .theme-nav .text-gray-400 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+:root[data-theme="light"] .theme-nav .text-gray-400:hover {
+  color: #ffffff !important;
+}
+
+/* Icônes du footer en blanc */
+:root[data-theme="light"] .theme-nav .theme-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* ----------------------------------------
+   SECTIONS ET CARTES SECONDAIRES - Thème clair
+   ---------------------------------------- */
+
+/* Fond des sections (Mes tournois, Créer/Rejoindre) en thème clair */
+:root[data-theme="light"] .theme-card {
+  background-color: #FFFFFF !important; /* Blanc pur */
+}
+
+/* Input code de rejointe en thème clair - fond gris */
+:root[data-theme="light"] input.theme-bg {
+  background-color: #D1D6DE !important;
+}
+
+/* Placeholder de l'input code en thème clair - texte visible */
+:root[data-theme="light"] input.theme-bg::placeholder {
+  color: #6B7280 !important;
+  opacity: 1;
+}
+
+/* Boutons icônes de la navigation en thème clair (sur fond bleu) */
 :root[data-theme="light"] .nav-icon-btn {
-  background-color: #e2e8f0;
-  border: 1px solid #6B7280;
+  background-color: transparent;
+  border: none;
 }
 
 :root[data-theme="light"] .nav-icon-btn:hover {
-  background-color: #0055FF;
+  background-color: #D0D6DE;
 }
 
 :root[data-theme="light"] .nav-icon-btn img {
-  /* Filtre pour #475569 (slate-600) - plus visible sur fond clair */
-  filter: invert(30%) sepia(15%) saturate(500%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  /* Icônes en bleu sur fond bleu (inversé pour contraste) */
+  filter: brightness(0) invert(1);
 }
 
 :root[data-theme="light"] .nav-icon-btn:hover img {
-  /* Filtre pour #1e293b (très sombre) au survol */
-  filter: invert(10%) sepia(20%) saturate(1000%) hue-rotate(190deg) brightness(20%) contrast(100%);
+  /* Icônes en gris foncé au survol (sur fond gris) */
+  filter: brightness(0) saturate(100%) invert(20%) sepia(10%) saturate(300%) hue-rotate(180deg) brightness(90%);
 }
 
-/* Texte "Bonjour [user]!" en thème clair */
-:root[data-theme="light"] .nav-greeting {
-  color: #1e293b;
+/* Bordure avatar en blanc dans la nav (thème clair) */
+:root[data-theme="light"] .theme-nav .border-\[\#ff9900\] {
+  border-color: #ffffff !important;
+}
+
+/* Bouton toggle thème en thème clair (fond gris comme le bg) */
+:root[data-theme="light"] .theme-nav .theme-toggle-btn {
+  background-color: #D0D6DE;
+  border-color: #D0D6DE;
+  color: #243447;
+}
+
+:root[data-theme="light"] .theme-nav .theme-toggle-btn:hover {
+  background-color: #C0C6CE;
+  border-color: #C0C6CE;
 }
 
 /* ----------------------------------------
@@ -1594,14 +1977,26 @@ input[type="number"] {
   box-shadow: 0 4px 12px rgba(0, 85, 255, 0.15);
 }
 
-/* Logos de compétition en thème clair - inverser les logos blancs */
+/* Logos de compétition en thème clair - Inverser la logique des logos */
+/* En thème clair : logo couleur par défaut, logo blanc au survol */
+
+/* Logo blanc : caché par défaut en thème clair, visible au survol */
 :root[data-theme="light"] .glossy-card .logo-competition-white {
-  filter: invert(15%) sepia(30%) saturate(600%) hue-rotate(180deg) brightness(90%);
+  opacity: 0 !important;
 }
 
-/* Au survol en thème clair, montrer le logo couleur (pas d'inversion) */
+:root[data-theme="light"] .glossy-card:hover .logo-competition-white {
+  opacity: 1 !important;
+  filter: none; /* Pas de filtre, le logo blanc reste blanc sur fond bleu */
+}
+
+/* Logo couleur : visible par défaut en thème clair, caché au survol */
+:root[data-theme="light"] .glossy-card .logo-competition-color {
+  opacity: 1 !important;
+}
+
 :root[data-theme="light"] .glossy-card:hover .logo-competition-color {
-  filter: none;
+  opacity: 0 !important;
 }
 
 /* Badge de statut - styles de base (thème sombre) */
@@ -1638,13 +2033,25 @@ input[type="number"] {
   color: #0055FF;
 }
 
-/* Logos de compétition - styles de base (thème sombre - pas de filtre) */
+/* Logos de compétition - styles de base (thème sombre) */
+/* En thème sombre : logo blanc par défaut, logo couleur au survol */
 .logo-competition-white {
   /* Pas de filtre en thème sombre, le logo blanc est visible */
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.glossy-card:hover .logo-competition-white {
+  opacity: 0;
 }
 
 .logo-competition-color {
-  /* Pas de filtre en thème sombre */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glossy-card:hover .logo-competition-color {
+  opacity: 1;
 }
 
 /* ----------------------------------------
@@ -1707,6 +2114,37 @@ input[type="number"] {
   border: 1px solid #6B7280;
 }
 
+/* Badge compteur tournois terminés/quittés - texte blanc en thème clair */
+:root[data-theme="light"] .text-\[\#0f172a\] {
+  color: #ffffff !important;
+}
+
+/* Badge compteur - sélecteur haute spécificité pour le texte blanc */
+:root[data-theme="light"] span.text-\[\#0f172a\],
+:root[data-theme="light"] .bg-\[\#ff9900\].text-\[\#0f172a\] {
+  color: #ffffff !important;
+}
+
+/* Logos archivés - styles de base (thème sombre) */
+/* Logo blanc visible, logo couleur caché */
+.archived-logo-white {
+  opacity: 0.7;
+}
+
+.archived-logo-color {
+  opacity: 0;
+}
+
+/* Logos archivés en thème clair - inverser la visibilité */
+/* Logo couleur visible, logo blanc caché */
+:root[data-theme="light"] .archived-logo-white {
+  opacity: 0 !important;
+}
+
+:root[data-theme="light"] .archived-logo-color {
+  opacity: 0.7 !important;
+}
+
 /* Placeholder logo (N/A) - styles de base (thème sombre) */
 .placeholder-logo {
   background-color: #374151;
@@ -1746,6 +2184,24 @@ input[type="number"] {
 }
 
 /* ----------------------------------------
+   BADGE TYPE TOURNOI - Thème clair
+   ---------------------------------------- */
+
+/* Badge type tournoi : bleu par défaut en thème clair */
+:root[data-theme="light"] .tournament-type-badge svg {
+  /* Filtre pour transformer en #0055FF - Bleu élite */
+  filter: brightness(0) saturate(100%) invert(20%) sepia(100%) saturate(3000%) hue-rotate(215deg) brightness(95%) contrast(105%);
+  transition: none;
+}
+
+/* Badge type tournoi : blanc au survol de la carte en thème clair */
+:root[data-theme="light"] .glossy-card:hover .tournament-type-badge svg {
+  /* Filtre pour transformer en blanc */
+  filter: brightness(0) saturate(100%) invert(100%);
+  transition: none;
+}
+
+/* ----------------------------------------
    OVERRIDES TAILWIND INLINE - Thème clair
    Remplacer #ff9900 par #0055FF pour les classes inline
    ---------------------------------------- */
@@ -1773,6 +2229,22 @@ input[type="number"] {
 /* Group hover texte orange -> bleu en thème clair */
 :root[data-theme="light"] .group:hover .group-hover\:\!text-\[\#ff9900\] {
   color: #0055FF !important;
+}
+
+/* Nom du tournoi au survol - bleu en thème clair (haute spécificité) */
+:root[data-theme="light"] .glossy-card.group:hover h3.group-hover\:\!text-\[\#ff9900\] {
+  color: #0055FF !important;
+}
+
+:root[data-theme="light"] .glossy-card:hover .theme-text {
+  color: #0055FF !important;
+}
+
+/* Override ultime pour le nom du tournoi - utilise @layer pour surcharger Tailwind */
+@layer utilities {
+  :root[data-theme="light"] .group:hover .group-hover\:\!text-\[\#ff9900\] {
+    color: #0055FF !important;
+  }
 }
 
 /* Hover background orange -> bleu en thème clair */
@@ -2029,4 +2501,70 @@ input[type="number"] {
   --foreground: #f1f5f9;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
+}
+
+/* ----------------------------------------
+   PAGE OPPOSITION - Thème clair
+   ---------------------------------------- */
+
+/* Onglet actif : texte bleu et bordure bleue */
+:root[data-theme="light"] .theme-accent-text-always {
+  color: #0055FF !important;
+}
+
+/* Boutons journée non-actifs : fond plus clair pour thème clair */
+:root[data-theme="light"] .bg-slate-600 {
+  background-color: #64748b !important;
+}
+
+:root[data-theme="light"] .bg-slate-700 {
+  background-color: #475569 !important;
+}
+
+:root[data-theme="light"] .hover\:bg-slate-500:hover {
+  background-color: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .hover\:bg-slate-600:hover {
+  background-color: #64748b !important;
+}
+
+/* Texte "En cours" sur les journées de matchs - blanc pour visibilité sur fond gris */
+:root[data-theme="light"] button .text-\[\#ff9900\] {
+  color: #ffffff !important;
+}
+
+/* Journée active : fond bleu, le texte du statut doit rester foncé */
+:root[data-theme="light"] button.bg-\[\#ff9900\] {
+  background-color: #0055FF !important;
+}
+
+:root[data-theme="light"] button.bg-\[\#ff9900\] .text-\[\#0f172a\] {
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] button.bg-\[\#ff9900\] span {
+  color: #ffffff !important;
+}
+
+/* Boutons +/- pour pronostiquer : utiliser couleur de fond comme bg */
+:root[data-theme="light"] .bg-gray-200 {
+  background-color: #D0D6DE !important;
+}
+
+:root[data-theme="light"] .hover\:bg-gray-300:hover {
+  background-color: #B8C0CC !important;
+}
+
+/* Flèches de navigation des journées - fond adapté au thème clair */
+:root[data-theme="light"] .from-slate-800 {
+  --tw-gradient-from: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .via-slate-800 {
+  --tw-gradient-via: #94a3b8 !important;
+}
+
+:root[data-theme="light"] .hover\:from-slate-700:hover {
+  --tw-gradient-from: #64748b !important;
 }

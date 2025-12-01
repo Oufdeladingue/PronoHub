@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
+import Footer from '@/components/Footer'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 import { getAvatarUrl } from '@/lib/avatars'
 
@@ -389,8 +390,8 @@ function EchauffementPageContent() {
         })
         setStartConfirmation(false)
       } else if (data.success) {
-        // Démarrage réussi, redirection
-        window.location.href = `/vestiaire/${tournamentSlug}/opposition`
+        // Démarrage réussi, redirection (plus de /vestiaire/ une fois le tournoi lancé)
+        window.location.href = `/${tournamentSlug}/opposition`
       } else {
         throw new Error(data.error || 'Failed to start tournament')
       }
@@ -418,9 +419,9 @@ function EchauffementPageContent() {
       const data = await response.json()
 
       if (data.success) {
-        // Fermer le modal et rediriger
+        // Fermer le modal et rediriger (plus de /vestiaire/ une fois le tournoi lancé)
         setMatchdayWarning(null)
-        window.location.href = `/vestiaire/${tournamentSlug}/opposition`
+        window.location.href = `/${tournamentSlug}/opposition`
       } else {
         throw new Error(data.error || 'Failed to start tournament')
       }
@@ -951,7 +952,7 @@ function EchauffementPageContent() {
                         />
                       </div>
                       {/* Numéro en badge */}
-                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${player.user_id === currentUserId ? 'bg-[#ff9900] text-[#111]' : 'bg-gray-700 text-white'}`}>
+                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${player.user_id === currentUserId ? 'bg-[#ff9900] text-[#111]' : 'participant-number-badge'}`}>
                         {index + 1}
                       </div>
                     </div>
@@ -988,13 +989,13 @@ function EchauffementPageContent() {
                   className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2 border-dashed opacity-50"
                 >
                   <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
-                    <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="fill-gray-400 dark:fill-gray-600">
+                    <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="empty-jersey-svg">
                       <path d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
                     </svg>
-                    <span className="absolute text-gray-500 dark:text-gray-400 font-bold text-xs">{players.length + index + 1}</span>
+                    <span className="absolute empty-jersey-number font-bold text-xs">{players.length + index + 1}</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-gray-400 dark:text-gray-500 italic">En attente...</p>
+                    <p className="empty-jersey-text italic">En attente...</p>
                   </div>
                 </div>
               ))}
@@ -1142,16 +1143,10 @@ function EchauffementPageContent() {
           </div>
         </div>
 
-        {/* Retour */}
-        <div className="mt-8 text-center">
-          <Link
-            href="/dashboard"
-            className="inline-block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-          >
-            ← Sortir du vestiaire
-          </Link>
-        </div>
       </main>
+
+      {/* Footer ninja-mode */}
+      <Footer variant="full" />
 
       {/* Modal d'avertissement de journées insuffisantes */}
       {matchdayWarning && (

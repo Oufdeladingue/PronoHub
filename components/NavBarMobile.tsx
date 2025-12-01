@@ -59,7 +59,7 @@ export default function NavBarMobile({
             {/* COLONNE DROITE - Avatar et menu sandwich en colonne */}
             <div className="flex flex-col items-center gap-2">
               {/* Avatar */}
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 mobile-avatar-border flex-shrink-0">
                 <Image
                   src={getAvatarUrl(userAvatar)}
                   alt={username}
@@ -75,17 +75,17 @@ export default function NavBarMobile({
                 className="flex flex-col gap-1 p-1 cursor-pointer"
                 aria-label="Menu"
               >
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
               </button>
             </div>
           </div>
 
           {/* Menu mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
-              <div className="theme-text text-sm text-center font-bold">
+            <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
+              <div className="mobile-menu-text text-sm text-center font-bold">
                 Bonjour {username} !
               </div>
 
@@ -95,42 +95,42 @@ export default function NavBarMobile({
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
                     src="/images/icons/home.svg"
                     alt="Accueil"
-                    className="w-6 h-6 icon-filter-orange"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs theme-accent-text">Accueil</span>
+                  <span className="text-xs mobile-menu-text">Accueil</span>
                 </Link>
 
                 {/* Carrière */}
                 <Link
                   href="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
                     src="/images/icons/profil.svg"
                     alt="Carrière"
-                    className="w-6 h-6 icon-filter-orange"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs theme-accent-text">Carrière</span>
+                  <span className="text-xs mobile-menu-text">Carrière</span>
                 </Link>
 
                 {/* Quitter le terrain */}
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
-                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                   >
                     <img
                       src="/images/icons/logout.svg"
                       alt="Quitter"
-                      className="w-6 h-6 icon-filter-orange"
+                      className="w-6 h-6 mobile-menu-icon"
                     />
-                    <span className="text-xs theme-accent-text">Quitter</span>
+                    <span className="text-xs mobile-menu-text">Quitter</span>
                   </button>
                 </form>
               </div>
@@ -189,8 +189,8 @@ export default function NavBarMobile({
             <div className="flex flex-col items-center justify-center gap-2">
               {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
-                  {/* Logo blanc en thème sombre, logo normal en thème clair */}
-                  {theme === 'dark' && tournamentContext.competitionLogoWhite ? (
+                  {/* Logo blanc toujours car nav bleue en light et sombre en dark */}
+                  {tournamentContext.competitionLogoWhite ? (
                     <img
                       src={tournamentContext.competitionLogoWhite}
                       alt={tournamentContext.competitionName}
@@ -200,7 +200,7 @@ export default function NavBarMobile({
                     <img
                       src={tournamentContext.competitionLogo || ''}
                       alt={tournamentContext.competitionName}
-                      className="w-full h-full object-contain dark:brightness-0 dark:invert"
+                      className="w-full h-full object-contain brightness-0 invert"
                     />
                   )}
                 </div>
@@ -218,7 +218,7 @@ export default function NavBarMobile({
             {/* COLONNE DROITE - Avatar et menu sandwich en colonne */}
             <div className="flex flex-col items-center gap-2">
               {/* Avatar */}
-              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 mobile-avatar-border flex-shrink-0">
                 <Image
                   src={getAvatarUrl(userAvatar)}
                   alt={username}
@@ -234,17 +234,17 @@ export default function NavBarMobile({
                 className="flex flex-col gap-1 p-1 cursor-pointer"
                 aria-label="Menu"
               >
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
               </button>
             </div>
           </div>
 
           {/* Menu mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
-              <div className="theme-text text-sm text-center font-bold">
+            <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
+              <div className="mobile-menu-text text-sm text-center font-bold">
                 Bonjour {username} !
               </div>
 
@@ -254,42 +254,42 @@ export default function NavBarMobile({
                 <Link
                   href="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
                     src="/images/icons/home.svg"
                     alt="Accueil"
-                    className="w-6 h-6 icon-filter-orange"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs theme-accent-text">Accueil</span>
+                  <span className="text-xs mobile-menu-text">Accueil</span>
                 </Link>
 
                 {/* Carrière */}
                 <Link
                   href="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
                     src="/images/icons/profil.svg"
                     alt="Carrière"
-                    className="w-6 h-6 icon-filter-orange"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs theme-accent-text">Carrière</span>
+                  <span className="text-xs mobile-menu-text">Carrière</span>
                 </Link>
 
                 {/* Quitter le terrain */}
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
-                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                   >
                     <img
                       src="/images/icons/logout.svg"
                       alt="Quitter"
-                      className="w-6 h-6 icon-filter-orange"
+                      className="w-6 h-6 mobile-menu-icon"
                     />
-                    <span className="text-xs theme-accent-text">Quitter</span>
+                    <span className="text-xs mobile-menu-text">Quitter</span>
                   </button>
                 </form>
               </div>
@@ -324,7 +324,7 @@ export default function NavBarMobile({
 
           {/* DROITE - Avatar et menu sandwich en colonne */}
           <div className="flex flex-col items-center gap-2 z-10">
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 theme-accent-border">
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 mobile-avatar-border">
               <Image
                 src={getAvatarUrl(userAvatar || 'avatar1')}
                 alt={username || 'Avatar utilisateur'}
@@ -339,17 +339,17 @@ export default function NavBarMobile({
               className="flex flex-col gap-1 p-1 cursor-pointer"
               aria-label="Menu"
             >
-              <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-              <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-              <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+              <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+              <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+              <span className="w-5 h-0.5 hamburger-bar rounded"></span>
             </button>
           </div>
         </div>
 
         {/* Menu mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-3">
-            <div className="theme-text text-sm text-center font-bold">
+          <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
+            <div className="mobile-menu-text text-sm text-center font-bold">
               Bonjour {username} !
             </div>
 
@@ -359,42 +359,42 @@ export default function NavBarMobile({
               <Link
                 href="/dashboard"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
               >
                 <img
                   src="/images/icons/home.svg"
                   alt="Accueil"
-                  className="w-6 h-6 icon-filter-orange"
+                  className="w-6 h-6 mobile-menu-icon"
                 />
-                <span className="text-xs theme-accent-text">Accueil</span>
+                <span className="text-xs mobile-menu-text">Accueil</span>
               </Link>
 
               {/* Carrière */}
               <Link
                 href="/profile"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
               >
                 <img
                   src="/images/icons/profil.svg"
                   alt="Carrière"
-                  className="w-6 h-6 icon-filter-orange"
+                  className="w-6 h-6 mobile-menu-icon"
                 />
-                <span className="text-xs theme-accent-text">Carrière</span>
+                <span className="text-xs mobile-menu-text">Carrière</span>
               </Link>
 
               {/* Quitter le terrain */}
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
                     src="/images/icons/logout.svg"
                     alt="Quitter"
-                    className="w-6 h-6 icon-filter-orange"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs theme-accent-text">Quitter</span>
+                  <span className="text-xs mobile-menu-text">Quitter</span>
                 </button>
               </form>
             </div>

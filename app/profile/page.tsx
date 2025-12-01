@@ -10,6 +10,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
 import UserQuotasCard from '@/components/UserQuotasCard'
+import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 
 function ProfileContent() {
@@ -446,7 +447,7 @@ function ProfileContent() {
             {/* COLONNE DROITE - Avatar + Menu */}
             <div className="flex flex-row md:flex-row items-center gap-1 md:gap-3">
               {/* Avatar */}
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border-2 mobile-avatar-border md:border-[#ff9900] flex-shrink-0">
                 <Image
                   src={getAvatarUrl(selectedAvatar || 'avatar1')}
                   alt={username}
@@ -466,9 +467,9 @@ function ProfileContent() {
                 className="md:hidden flex flex-col gap-1 p-1 cursor-pointer"
                 aria-label="Menu"
               >
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
-                <span className="w-5 h-0.5 bg-[#ff9900] rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
+                <span className="w-5 h-0.5 hamburger-bar rounded"></span>
               </button>
 
               {/* Menu desktop (caché sur mobile) */}
@@ -509,32 +510,42 @@ function ProfileContent() {
 
           {/* Menu mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="md:hidden mt-3 pt-3 border-t border-[#e68a00] flex flex-col gap-2">
-              <div className="theme-text text-sm text-center mb-2">
+            <div className="md:hidden mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
+              <div className="mobile-menu-text text-sm text-center font-bold">
                 Bonjour, {username} !
               </div>
 
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                Accueil
-              </Link>
-
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded transition-all theme-accent-text hover:bg-gray-100 dark:hover:bg-gray-800"
+              {/* 2 icônes côte à côte */}
+              <div className="flex items-start justify-center gap-6">
+                {/* Accueil */}
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
                 >
                   <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-5 h-5 icon-filter-orange"
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6 mobile-menu-icon"
                   />
-                  Quitter le terrain
-                </button>
-              </form>
+                  <span className="text-xs mobile-menu-text">Accueil</span>
+                </Link>
+
+                {/* Quitter le terrain */}
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
+                  >
+                    <img
+                      src="/images/icons/logout.svg"
+                      alt="Quitter"
+                      className="w-6 h-6 mobile-menu-icon"
+                    />
+                    <span className="text-xs mobile-menu-text">Quitter</span>
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </div>
@@ -1357,6 +1368,9 @@ function ProfileContent() {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }

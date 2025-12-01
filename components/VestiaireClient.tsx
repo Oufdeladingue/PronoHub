@@ -182,13 +182,13 @@ export default function VestiaireClient() {
                 {/* Badge "Plus populaire" */}
                 {comp.is_most_popular && (
                   <div
-                    className="absolute top-3 right-3 z-20 bg-[#ff9900] rounded-full p-2 shadow-lg group/star"
+                    className="popular-star absolute top-3 right-3 z-20 rounded-full p-2 shadow-lg group/star transition-colors duration-300"
                     title="Compétition la plus populaire"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0f172a]" viewBox="0 0 24 24" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-colors duration-300" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
-                    <span className="absolute -bottom-10 right-0 bg-[#0f172a] text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
+                    <span className="popular-tooltip absolute -bottom-10 right-0 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
                       Compétition la plus populaire
                     </span>
                   </div>
@@ -205,7 +205,7 @@ export default function VestiaireClient() {
                   {/* Journées restantes - Badge en haut à gauche */}
                   {comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                     <div className="text-left mb-2">
-                      <span className="inline-block bg-[#ff9900]/90 text-[#0f172a] text-xs font-semibold px-3 py-1 rounded-full">
+                      <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
                         {comp.remaining_matchdays === 1
                           ? '1 journée restante'
                           : `${comp.remaining_matchdays} journées restantes`
@@ -219,18 +219,18 @@ export default function VestiaireClient() {
                     <div className="w-full h-[160px] mx-auto mb-1 flex items-center justify-center relative">
                       {comp.custom_emblem_white || comp.custom_emblem_color || comp.emblem ? (
                         <>
-                          {/* Logo blanc par défaut */}
+                          {/* Logo blanc */}
                           <img
                             src={comp.custom_emblem_white || comp.emblem || ''}
                             alt={comp.name}
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300 group-hover:opacity-0 group-hover:scale-110"
+                            className="logo-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300"
                           />
-                          {/* Logo couleur au survol */}
+                          {/* Logo couleur */}
                           {comp.custom_emblem_color && (
                             <img
                               src={comp.custom_emblem_color}
                               alt={comp.name}
-                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300 opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-110"
+                              className="logo-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain transition-all duration-300"
                             />
                           )}
                         </>
@@ -242,17 +242,17 @@ export default function VestiaireClient() {
                     </div>
 
                     {/* Nom de la compétition */}
-                    <h3 className="text-base font-bold text-[#ff9900] group-hover:text-[#0f172a] mb-0 min-h-[2rem] line-clamp-2 transition-colors duration-300">
+                    <h3 className="badge-title text-base font-bold mb-0 min-h-[2rem] line-clamp-2 transition-colors duration-300">
                       {comp.name}
                     </h3>
 
                     {/* Saison */}
-                    <p className="text-xs text-gray-400 group-hover:text-[#0f172a] mb-0.5 transition-colors duration-300">
+                    <p className="badge-text text-xs mb-0.5 transition-colors duration-300">
                       Saison {formatSeason(comp.current_season_start_date, comp.current_season_end_date)}
                     </p>
 
                     {/* Pays/Zone */}
-                    <p className="text-xs text-gray-400 group-hover:text-[#0f172a] mb-1 transition-colors duration-300">
+                    <p className="badge-text text-xs mb-1 transition-colors duration-300">
                       {translateCountryName(comp.area_name)}
                     </p>
                   </div>

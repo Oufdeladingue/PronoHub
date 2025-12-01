@@ -230,7 +230,7 @@ export default function TableauNoirPage() {
               value={tournamentName}
               onChange={(e) => setTournamentName(e.target.value)}
               placeholder="Ex: Ligue des champions 2024"
-              className="theme-input theme-dark-bg border-2"
+              className="theme-input theme-dark-bg border-2 creation-input"
             />
           </div>
 
