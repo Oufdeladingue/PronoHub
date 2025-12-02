@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe } from '@/lib/stripe'
+import { stripe, isStripeEnabled } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { TOURNAMENT_RULES, TournamentType } from '@/types/monetization'
 
@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   // Vérifier si Stripe est configuré
-  if (!process.env.STRIPE_SECRET_KEY) {
+  if (!isStripeEnabled || !stripe) {
     return NextResponse.json(
       { error: 'Stripe n\'est pas configuré' },
       { status: 503 }
