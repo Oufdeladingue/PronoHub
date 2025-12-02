@@ -222,6 +222,12 @@ export type Feature =
   | 'team_play'
   | 'prize'
   | 'extended_stats'
+  | 'private_tournaments'
+  | 'advanced_history'
+  | 'advanced_management'
+  | 'custom_branding'
+  | 'admin_tools'
+  | 'team_management'
   | 'all';
 
 // Legacy constants (pour compatibilité avec le code existant)
