@@ -7,7 +7,7 @@ import { stripe, getBaseUrl, isStripeEnabled } from '@/lib/stripe'
 export async function GET() {
   try {
     // Vérifier si Stripe est configuré
-    if (!isStripeEnabled() || !stripe) {
+    if (!isStripeEnabled || !stripe) {
       return NextResponse.json(
         { success: false, error: 'Stripe n\'est pas configuré' },
         { status: 503 }
