@@ -114,6 +114,13 @@ export interface TournamentRules {
   freeInvites: number;
 }
 
+// Résultat de la détermination du type de tournoi
+export interface TournamentTypeResult {
+  tournament_type: TournamentType | null;
+  max_players: number;
+  reason: string;
+}
+
 export const TOURNAMENT_RULES: Record<TournamentType, TournamentRules> = {
   free: {
     maxPlayers: PRICES.FREE_MAX_PLAYERS,
