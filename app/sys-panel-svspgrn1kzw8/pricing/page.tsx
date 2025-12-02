@@ -263,7 +263,7 @@ export default function AdminPricingPage() {
                   {/* Liste des prix */}
                   <div className="p-6">
                     <div className="space-y-4">
-                      {items.map(item => renderPricingInput(item))}
+                      {items.map((item: PricingItem) => renderPricingInput(item))}
                     </div>
                   </div>
                 </div>
