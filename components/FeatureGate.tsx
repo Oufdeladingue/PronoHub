@@ -65,6 +65,18 @@ export function FeatureLockedCard({
       title: 'Pronostics simples',
       description: 'Faire des pronostics sur les matchs',
     },
+    trophies: {
+      title: 'Trophees',
+      description: 'Debloquez des trophees et recompenses',
+    },
+    team_play: {
+      title: 'Jeu en equipe',
+      description: 'Jouez en equipe avec vos amis',
+    },
+    prize: {
+      title: 'Prix a gagner',
+      description: 'Participez a des tournois avec des prix',
+    },
     extended_stats: {
       title: 'Statistiques etendues',
       description: 'Acces aux statistiques detaillees et graphiques avances',
@@ -92,6 +104,10 @@ export function FeatureLockedCard({
     team_management: {
       title: 'Gestion d\'equipes',
       description: 'Organisez les participants en equipes',
+    },
+    all: {
+      title: 'Toutes les fonctionnalites',
+      description: 'Acces a toutes les fonctionnalites de la plateforme',
     },
   }
 
