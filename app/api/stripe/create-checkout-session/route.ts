@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe, STRIPE_PRODUCTS, StripePurchaseType, getBaseUrl } from '@/lib/stripe'
+import { stripe, isStripeEnabled, STRIPE_PRODUCTS, StripePurchaseType, getBaseUrl } from '@/lib/stripe'
 
 interface CheckoutRequest {
   purchaseType: StripePurchaseType
@@ -33,6 +33,14 @@ const PRICE_CONFIG_MAPPING: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Vérifier si Stripe est configuré
+    if (!isStripeEnabled || !stripe) {
+      return NextResponse.json(
+        { error: 'Stripe n\'est pas configuré' },
+        { status: 503 }
+      )
+    }
+
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
