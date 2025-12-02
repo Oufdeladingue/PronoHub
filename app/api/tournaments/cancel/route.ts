@@ -54,6 +54,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Restaurer le crédit si le tournoi est annulé AVANT d'avoir commencé (status = pending ou warmup)
+    // et qu'il s'agit d'un tournoi payant
+    let creditRestored = false
+    if (['pending', 'warmup'].includes(tournament.status) && ['oneshot', 'elite', 'platinium'].includes(tournament.tournament_type)) {
+      // Trouver l'achat lié à ce tournoi
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('tournament_purchases')
+        .select('id, purchase_type, tournament_subtype')
+        .eq('used_for_tournament_id', tournamentId)
+        .eq('used', true)
+        .single()
+
+      if (!purchaseError && purchase) {
+        // Restaurer le crédit (marquer comme non utilisé)
+        const { error: restoreError } = await supabase
+          .from('tournament_purchases')
+          .update({
+            used: false,
+            used_at: null,
+            used_for_tournament_id: null,
+            tournament_id: null
+          })
+          .eq('id', purchase.id)
+
+        if (restoreError) {
+          console.error('Error restoring credit:', restoreError)
+        } else {
+          creditRestored = true
+          console.log(`[CREDIT RESTORED] Purchase ${purchase.id} (${purchase.purchase_type}/${purchase.tournament_subtype}) restored for user ${user.id}`)
+        }
+      }
+    }
+
     // 1. Supprimer d'abord tous les participants du tournoi
     const { error: participantsError } = await supabase
       .from('tournament_participants')
@@ -91,12 +124,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Log pour le suivi
-    console.log(`[TOURNAMENT CANCELLED] Tournament "${tournament.name}" (${tournamentId}) cancelled by user ${user.id}. Type: ${tournament.tournament_type}`)
+    console.log(`[TOURNAMENT CANCELLED] Tournament "${tournament.name}" (${tournamentId}) cancelled by user ${user.id}. Type: ${tournament.tournament_type}. Credit restored: ${creditRestored}`)
 
     return NextResponse.json({
       success: true,
-      message: 'Tournoi annulé avec succès',
-      tournamentType: tournament.tournament_type
+      message: creditRestored
+        ? 'Tournoi annulé avec succès. Votre crédit a été restauré.'
+        : 'Tournoi annulé avec succès',
+      tournamentType: tournament.tournament_type,
+      creditRestored
     })
 
   } catch (error: any) {

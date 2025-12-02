@@ -51,47 +51,36 @@ export default async function DashboardPage() {
     .in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000'])
     .neq('status', 'completed')
 
-  const freeTournamentsParticipating = participatedTournaments?.filter(t => t.tournament_type === 'free').length || 0
+  // Compter par type de tournoi parmi ceux auxquels l'utilisateur participe encore (non terminés)
+  const freeTournamentsParticipating = participatedTournaments?.filter(t => t.tournament_type === 'free' || !t.tournament_type).length || 0
+  const oneshotCreated = participatedTournaments?.filter(t => t.tournament_type === 'oneshot').length || 0
+  const eliteCreated = participatedTournaments?.filter(t => t.tournament_type === 'elite').length || 0
+  const platiniumCreated = participatedTournaments?.filter(t => t.tournament_type === 'platinium').length || 0
+  const premiumTournamentsCreated = participatedTournaments?.filter(t => t.tournament_type === 'premium').length || 0
 
-  // QUOTAS PAR TYPE: Compter les tournois CRÉÉS par l'utilisateur par type
-  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
-  // Cela empêche un utilisateur de créer des tournois à l'infini en transférant le capitanat
-
-  // Récupérer tous les tournois créés par l'utilisateur (original_creator_id ou creator_id fallback)
-  const { data: tournamentsWithOriginalCreator } = await supabase
-    .from('tournaments')
-    .select('id, tournament_type')
-    .eq('original_creator_id', user.id)
-    .neq('status', 'completed')
-
-  const { data: tournamentsWithCreatorFallback } = await supabase
-    .from('tournaments')
-    .select('id, tournament_type')
-    .eq('creator_id', user.id)
-    .is('original_creator_id', null)
-    .neq('status', 'completed')
-
-  // Combiner les deux listes (en évitant les doublons par ID)
-  const allTournamentsCreated = [
-    ...(tournamentsWithOriginalCreator || []),
-    ...(tournamentsWithCreatorFallback || [])
-  ]
-  const uniqueTournamentsCreated = allTournamentsCreated.filter(
-    (t, index, self) => index === self.findIndex(other => other.id === t.id)
-  )
-
-  // Compter par type de tournoi
-  const oneshotCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'oneshot').length
-  const eliteCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'elite').length
-  const platiniumCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'platinium').length
-  const premiumTournamentsCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'premium').length
-
-  // Compter les slots one-shot disponibles
+  // Compter les slots one-shot disponibles (legacy)
   const { count: oneshotSlotsAvailable } = await supabase
     .from('user_oneshot_purchases')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('status', 'available')
+
+  // Récupérer les crédits disponibles depuis la vue user_available_credits
+  const { data: userCredits } = await supabase
+    .from('user_available_credits')
+    .select('*')
+    .eq('user_id', user.id)
+    .single()
+
+  const credits = {
+    oneshot: userCredits?.oneshot_credits || 0,
+    elite: userCredits?.elite_credits || 0,
+    platinium_solo: userCredits?.platinium_solo_credits || 0,
+    platinium_group_slots: userCredits?.platinium_group_slots || 0,
+    slot_invite: userCredits?.slot_invite_credits || 0,
+    duration_extension: userCredits?.duration_extension_credits || 0,
+    player_extension: userCredits?.player_extension_credits || 0,
+  }
 
   // Récupérer la limite de tournois Free-Kick depuis pricing_config
   const { data: pricingConfig } = await supabase
@@ -341,6 +330,7 @@ export default async function DashboardPage() {
           canCreatePremium,
           canCreateOneshot,
         }}
+        credits={credits}
         tournaments={tournaments}
         leftTournaments={leftTournamentsList}
         adminPath={getAdminPath()}

@@ -200,7 +200,7 @@ function EchauffementPageContent() {
 
       const { data: playersData, error: playersError } = await supabase
         .from('tournament_participants')
-        .select('*, profiles(username, avatar), has_paid, paid_by_creator, invite_type')
+        .select('*, profiles(username, avatar)')
         .eq('tournament_id', tournament?.id)
         .order('joined_at', { ascending: true })
 

@@ -51,6 +51,16 @@ interface LeftTournament {
   hasLeft: boolean
 }
 
+interface UserCredits {
+  oneshot: number
+  elite: number
+  platinium_solo: number
+  platinium_group_slots: number
+  slot_invite: number
+  duration_extension: number
+  player_extension: number
+}
+
 interface DashboardClientProps {
   username: string
   avatar?: string
@@ -58,6 +68,7 @@ interface DashboardClientProps {
   canCreateTournament: boolean
   hasSubscription: boolean
   quotas: QuotasInfo
+  credits?: UserCredits
   tournaments: any[]
   leftTournaments?: LeftTournament[]
   adminPath?: string
@@ -70,6 +81,7 @@ function DashboardContent({
   canCreateTournament,
   hasSubscription,
   quotas,
+  credits,
   tournaments,
   leftTournaments = [],
   adminPath = 'admin'
@@ -176,7 +188,7 @@ function DashboardContent({
 
   return (
     <div className="theme-bg flex flex-col flex-1">
-      <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
+      <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1 pb-20 md:pb-24">
         {/* Bouton Panel Admin pour les super admins */}
         {isSuper && (
           <div className="mb-6">
@@ -618,14 +630,24 @@ function DashboardContent({
                     <p className="text-sm theme-text-secondary">+1 tournoi gratuit</p>
                     <p className="text-xs theme-text-secondary mt-0.5">5 joueurs · 10 journées max</p>
                   </div>
-                  <button
-                    onClick={() => handleCheckout('slot_invite')}
-                    disabled={isCheckoutLoading === 'slot_invite'}
-                    className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
-                  >
-                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
-                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
-                  </button>
+                  {credits && credits.slot_invite > 0 ? (
+                    <a
+                      href="/vestiaire?type=free"
+                      className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base">Créer</span>
+                      <span className="text-black text-[10px] font-medium">{credits.slot_invite} crédit{credits.slot_invite > 1 ? 's' : ''}</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => handleCheckout('slot_invite')}
+                      disabled={isCheckoutLoading === 'slot_invite'}
+                      className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                    >
+                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* One-Shot */}
@@ -638,14 +660,24 @@ function DashboardContent({
                     <p className="text-sm theme-text-secondary">Tournoi unique entre amis</p>
                     <p className="text-xs theme-text-secondary mt-0.5">10 joueurs · Saison complète · <span className="text-green-400">Stats+</span></p>
                   </div>
-                  <button
-                    onClick={() => handleCheckout('tournament_creation_oneshot')}
-                    disabled={isCheckoutLoading === 'tournament_creation_oneshot'}
-                    className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
-                  >
-                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_oneshot' ? '...' : '4,99€'}</span>
-                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
-                  </button>
+                  {credits && credits.oneshot > 0 ? (
+                    <a
+                      href="/vestiaire?type=oneshot"
+                      className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base">Créer</span>
+                      <span className="text-black text-[10px] font-medium">{credits.oneshot} crédit{credits.oneshot > 1 ? 's' : ''}</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => handleCheckout('tournament_creation_oneshot')}
+                      disabled={isCheckoutLoading === 'tournament_creation_oneshot'}
+                      className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                    >
+                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_oneshot' ? '...' : '4,99€'}</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Elite Team */}
@@ -661,14 +693,24 @@ function DashboardContent({
                     <p className="text-sm theme-text-secondary">Pour les groupes passionnés</p>
                     <p className="text-xs theme-text-secondary mt-0.5">20 joueurs · Saison complète · <span className="text-orange-400">Tous bonus</span></p>
                   </div>
-                  <button
-                    onClick={() => handleCheckout('tournament_creation_elite')}
-                    disabled={isCheckoutLoading === 'tournament_creation_elite'}
-                    className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
-                  >
-                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_elite' ? '...' : '9,99€'}</span>
-                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
-                  </button>
+                  {credits && credits.elite > 0 ? (
+                    <a
+                      href="/vestiaire?type=elite"
+                      className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base">Créer</span>
+                      <span className="text-black text-[10px] font-medium">{credits.elite} crédit{credits.elite > 1 ? 's' : ''}</span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => handleCheckout('tournament_creation_elite')}
+                      disabled={isCheckoutLoading === 'tournament_creation_elite'}
+                      className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                    >
+                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_elite' ? '...' : '9,99€'}</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Platinium */}
@@ -681,14 +723,26 @@ function DashboardContent({
                     <p className="text-sm theme-text-secondary">L'expérience ultime</p>
                     <p className="text-xs theme-text-secondary mt-0.5">De 11 à 30 joueurs · <span className="text-yellow-400">Lot à gagner</span></p>
                   </div>
-                  <button
-                    onClick={() => setShowPlatiniumChoice(true)}
-                    className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
-                  >
-                    <span className="text-black font-bold text-base leading-none">6,99€</span>
-                    <span className="text-black text-[9px] leading-none">/joueur</span>
-                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
-                  </button>
+                  {credits && (credits.platinium_solo > 0 || credits.platinium_group_slots > 0) ? (
+                    <a
+                      href="/vestiaire?type=platinium"
+                      className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base">Créer</span>
+                      <span className="text-black text-[10px] font-medium">
+                        {credits.platinium_solo + credits.platinium_group_slots} crédit{(credits.platinium_solo + credits.platinium_group_slots) > 1 ? 's' : ''}
+                      </span>
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => setShowPlatiniumChoice(true)}
+                      className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base leading-none">6,99€</span>
+                      <span className="text-black text-[9px] leading-none">/joueur</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

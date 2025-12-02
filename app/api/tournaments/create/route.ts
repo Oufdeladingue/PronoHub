@@ -270,22 +270,19 @@ export async function POST(request: Request) {
     }
 
     // Ajouter le créateur comme premier participant (capitaine)
-    const isPlatiniumGroup = usedPurchaseType === 'platinium_group'
+    // Note: On utilise uniquement les colonnes de base qui existent dans la table
+    const basicParticipantData = {
+      tournament_id: tournament.id,
+      user_id: user.id,
+      participant_role: 'captain',
+    }
+
     const { error: playerError } = await supabase
       .from('tournament_participants')
-      .insert({
-        tournament_id: tournament.id,
-        user_id: user.id,
-        participant_role: 'captain',
-        invite_type: isPlatiniumGroup ? 'prepaid_slot' : 'free', // Le créateur utilise une place du groupe si platinium_group
-        has_paid: ['oneshot', 'elite', 'platinium'].includes(tournamentType),
-        amount_paid: isPlatiniumGroup ? PRICES.PLATINIUM_PARTICIPATION : rules.creationPrice,
-        paid_by_creator: isPlatiniumGroup // Le createur a paye sa propre place via le groupe
-      })
+      .insert(basicParticipantData)
 
     if (playerError) {
       console.error('Error adding participant:', playerError)
-      // On continue quand même, le tournoi est créé
     }
 
     // Créer les journées du tournoi
