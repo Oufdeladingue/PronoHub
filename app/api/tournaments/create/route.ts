@@ -205,35 +205,43 @@ export async function POST(request: Request) {
     }
 
     // Créer le tournoi
+    // Note: prepaid_slots_remaining sera ajouté quand la migration sera appliquée
+    const tournamentData: Record<string, any> = {
+      name,
+      slug,
+      invite_code: slug,
+      competition_id: parseInt(competitionId),
+      competition_name: competitionName,
+      max_players: effectiveMaxPlayers,
+      max_participants: effectiveMaxPlayers,
+      num_matchdays: effectiveMatchdays,
+      matchdays_count: effectiveMatchdays,
+      max_matchdays: rules.maxMatchdays, // Limite de journées (null = illimité)
+      all_matchdays: allMatchdays,
+      bonus_match_enabled: bonusMatchEnabled,
+      creator_id: user.id,
+      original_creator_id: user.id,
+      status: 'pending',
+      current_participants: 1,
+      scoring_exact_score: 3,
+      scoring_correct_winner: 1,
+      scoring_correct_goal_difference: 2,
+      scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1,
+      tournament_type: tournamentType,
+      is_legacy: false, // Nouveau tournoi = pas legacy
+      duration_extended: false,
+      players_extended: 0,
+    }
+
+    // Ajouter prepaid_slots_remaining seulement si > 0 (pour compatibilité)
+    // La colonne sera ignorée si elle n'existe pas encore en BDD
+    if (prepaidSlotsToAdd > 0) {
+      tournamentData.prepaid_slots_remaining = prepaidSlotsToAdd
+    }
+
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .insert({
-        name,
-        slug,
-        invite_code: slug,
-        competition_id: parseInt(competitionId),
-        competition_name: competitionName,
-        max_players: effectiveMaxPlayers,
-        max_participants: effectiveMaxPlayers,
-        num_matchdays: effectiveMatchdays,
-        matchdays_count: effectiveMatchdays,
-        max_matchdays: rules.maxMatchdays, // Limite de journées (null = illimité)
-        all_matchdays: allMatchdays,
-        bonus_match_enabled: bonusMatchEnabled,
-        creator_id: user.id,
-        original_creator_id: user.id,
-        status: 'pending',
-        current_participants: 1,
-        scoring_exact_score: 3,
-        scoring_correct_winner: 1,
-        scoring_correct_goal_difference: 2,
-        scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1,
-        tournament_type: tournamentType,
-        is_legacy: false, // Nouveau tournoi = pas legacy
-        duration_extended: false,
-        players_extended: 0,
-        prepaid_slots_remaining: prepaidSlotsToAdd // Places prepayees pour les invites (platinium_group)
-      })
+      .insert(tournamentData)
       .select()
       .single()
 
