@@ -7,10 +7,13 @@ if (!process.env.STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY is not defined - Stripe payments will not work')
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-11-17.clover',
-  typescript: true,
-})
+// Créer l'instance Stripe seulement si la clé est disponible
+export const stripe: Stripe | null = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-11-17.clover',
+      typescript: true,
+    })
+  : null
 
 export type StripePurchaseType =
   | 'tournament_creation_oneshot'
