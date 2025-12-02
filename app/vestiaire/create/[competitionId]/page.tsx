@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Crown, Sparkles } from 'lucide-react'
+import { Crown, Sparkles, Trophy, Users, Award, Zap, Check, Lock } from 'lucide-react'
 import { TournamentTypeResult } from '@/types/monetization'
 import { TournamentTypeIndicator } from '@/components/UpgradeBanner'
 import Navigation from '@/components/Navigation'
@@ -22,22 +22,56 @@ interface Competition {
   remaining_matches: number
 }
 
+// Interface pour les limites de pricing
+interface PricingLimits {
+  freeMaxPlayers: number
+  freeMaxMatchdays: number
+  oneshotMaxPlayers: number
+  eliteMaxPlayers: number
+  platiniumMinPlayers: number
+  platiniumMaxPlayers: number
+}
+
 export default function TableauNoirPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const competitionId = params.competitionId as string
   const supabase = createClient()
   const { username, userAvatar } = useUser()
+
+  // Type de tournoi force depuis l'URL (apres paiement)
+  const forcedType = searchParams.get('type') as 'oneshot' | 'elite' | 'platinium' | null
 
   const [competition, setCompetition] = useState<Competition | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Type de tournoi qui sera créé (basé sur les quotas utilisateur)
-  const [tournamentTypeInfo, setTournamentTypeInfo] = useState<TournamentTypeResult | null>(null)
-  const [maxPlayersLimit, setMaxPlayersLimit] = useState(8) // Limite par défaut
+  // Limites dynamiques depuis pricing_config
+  const [pricingLimits, setPricingLimits] = useState<PricingLimits>({
+    freeMaxPlayers: 5,
+    freeMaxMatchdays: 10,
+    oneshotMaxPlayers: 10,
+    eliteMaxPlayers: 20,
+    platiniumMinPlayers: 11,
+    platiniumMaxPlayers: 30
+  })
 
-  // Réglages du tournoi
+  // Type de tournoi qui sera cree (base sur les quotas utilisateur)
+  const [tournamentTypeInfo, setTournamentTypeInfo] = useState<TournamentTypeResult | null>(null)
+  const [maxPlayersLimit, setMaxPlayersLimit] = useState(5) // Limite par defaut (free = 5)
+  const [minPlayersLimit, setMinPlayersLimit] = useState(2) // Minimum par defaut
+
+  // Credits disponibles
+  const [credits, setCredits] = useState({
+    oneshot_credits: 0,
+    elite_credits: 0,
+    platinium_solo_credits: 0,
+    platinium_group_slots: 0
+  })
+  const [selectedTournamentType, setSelectedTournamentType] = useState<'free' | 'oneshot' | 'elite' | 'platinium'>('free')
+
+  // Reglages du tournoi
   const [tournamentName, setTournamentName] = useState('')
   const [maxPlayers, setMaxPlayers] = useState(4)
   const [numMatchdays, setNumMatchdays] = useState(1)
@@ -55,7 +89,94 @@ export default function TableauNoirPage() {
   useEffect(() => {
     fetchCompetitionDetails()
     fetchTournamentTypeInfo()
+    fetchCredits()
+    fetchPricingLimits()
   }, [competitionId])
+
+  // Charger les limites de prix depuis l'API
+  const fetchPricingLimits = async () => {
+    try {
+      const response = await fetch('/api/pricing/config')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.prices) {
+          setPricingLimits({
+            freeMaxPlayers: data.prices.freeMaxPlayers || 5,
+            freeMaxMatchdays: data.prices.freeMaxMatchdays || 10,
+            oneshotMaxPlayers: data.prices.oneshotMaxPlayers || 10,
+            eliteMaxPlayers: data.prices.eliteMaxPlayers || 20,
+            platiniumMinPlayers: data.prices.platiniumMinPlayers || 11,
+            platiniumMaxPlayers: data.prices.platiniumMaxPlayers || 30
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching pricing limits:', err)
+    }
+  }
+
+  // Recuperer les credits disponibles
+  const fetchCredits = async () => {
+    try {
+      const response = await fetch('/api/user/credits')
+      if (response.ok) {
+        const data = await response.json()
+        setCredits(data)
+
+        // Si un type est force depuis l'URL (apres paiement), l'utiliser en priorite
+        if (forcedType) {
+          setSelectedTournamentType(forcedType)
+          return // Les limites seront mises a jour par le useEffect
+        }
+
+        // Sinon, si l'utilisateur a des credits, pre-selectionner le type correspondant
+        if (data.elite_credits > 0) {
+          setSelectedTournamentType('elite')
+        } else if (data.oneshot_credits > 0) {
+          setSelectedTournamentType('oneshot')
+        } else if (data.platinium_group_slots > 0 || data.platinium_solo_credits > 0) {
+          setSelectedTournamentType('platinium')
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching credits:', err)
+    }
+  }
+
+  // Mettre a jour les limites de joueurs selon le type selectionne (avec valeurs dynamiques)
+  useEffect(() => {
+    let newMaxLimit: number
+    let newMinLimit = 2 // Par defaut
+
+    switch (selectedTournamentType) {
+      case 'free':
+        newMaxLimit = pricingLimits.freeMaxPlayers
+        break
+      case 'oneshot':
+        newMaxLimit = pricingLimits.oneshotMaxPlayers
+        break
+      case 'elite':
+        newMaxLimit = pricingLimits.eliteMaxPlayers
+        break
+      case 'platinium':
+        newMaxLimit = pricingLimits.platiniumMaxPlayers
+        newMinLimit = pricingLimits.platiniumMinPlayers
+        break
+      default:
+        newMaxLimit = pricingLimits.freeMaxPlayers
+    }
+
+    setMaxPlayersLimit(newMaxLimit)
+    setMinPlayersLimit(newMinLimit)
+
+    // Ajuster maxPlayers si hors limites
+    if (maxPlayers > newMaxLimit) {
+      setMaxPlayers(newMaxLimit)
+    }
+    if (maxPlayers < newMinLimit) {
+      setMaxPlayers(newMinLimit)
+    }
+  }, [selectedTournamentType, pricingLimits])
 
   const fetchCompetitionDetails = async () => {
     setLoading(true)
@@ -107,6 +228,16 @@ export default function TableauNoirPage() {
     setTournamentSlug(slug)
   }
 
+  // Verifier si l'utilisateur a un credit pour le type selectionne
+  const hasCredit = (type: string) => {
+    switch (type) {
+      case 'oneshot': return credits.oneshot_credits > 0
+      case 'elite': return credits.elite_credits > 0
+      case 'platinium': return credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0
+      default: return true // free
+    }
+  }
+
   const handleCreateTournament = async () => {
     if (!tournamentName.trim()) {
       alert('Veuillez entrer un nom de tournoi')
@@ -114,7 +245,14 @@ export default function TableauNoirPage() {
     }
 
     if (!competition) {
-      alert('Compétition non trouvée')
+      alert('Competition non trouvee')
+      return
+    }
+
+    // Verifier les credits pour les tournois payants
+    if (selectedTournamentType !== 'free' && !hasCredit(selectedTournamentType)) {
+      alert(`Vous n'avez pas de credit ${selectedTournamentType}. Achetez-en un sur la page Pricing.`)
+      router.push('/pricing')
       return
     }
 
@@ -132,23 +270,30 @@ export default function TableauNoirPage() {
           allMatchdays,
           bonusMatchEnabled,
           earlyPredictionBonus,
-          drawWithDefaultPredictionPoints
+          drawWithDefaultPredictionPoints,
+          tournamentType: selectedTournamentType,
+          use_credit: selectedTournamentType !== 'free'
         })
       })
 
       const data = await response.json()
 
       if (!data.success) {
-        alert('Erreur: ' + (data.error || 'Erreur lors de la création du tournoi'))
+        if (data.requiresPayment) {
+          alert(`Ce type de tournoi necessite un credit. Achetez-en un sur la page Pricing.`)
+          router.push('/pricing')
+          return
+        }
+        alert('Erreur: ' + (data.error || 'Erreur lors de la creation du tournoi'))
         return
       }
 
-      // Rediriger vers la page d'échauffement
+      // Rediriger vers la page d'echauffement
       const slug = `${tournamentName.toLowerCase().replace(/\s+/g, '_')}_${tournamentSlug}`
       router.push(`/vestiaire/${slug}/echauffement`)
     } catch (error) {
       console.error('Error creating tournament:', error)
-      alert('Erreur lors de la création du tournoi')
+      alert('Erreur lors de la creation du tournoi')
     }
   }
 
@@ -218,8 +363,184 @@ export default function TableauNoirPage() {
 
         {/* Formulaire de configuration */}
         <div className="theme-card shadow-lg p-8">
-          {/* Indicateur du type de tournoi */}
-          <TournamentTypeIndicator />
+          {/* Selection du type de tournoi */}
+          <div className="mb-8">
+            <label className="block text-lg font-semibold theme-text mb-4 text-center">
+              Type de tournoi
+            </label>
+
+            {/* Message si type force depuis le paiement */}
+            {forcedType && (
+              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center justify-center gap-2">
+                <Check className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-green-400">
+                  Type de tournoi pre-selectionne suite a votre achat
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Free - toujours verrouille si un type payant est force */}
+              <button
+                type="button"
+                onClick={() => !forcedType && setSelectedTournamentType('free')}
+                disabled={!!forcedType}
+                className={`p-4 rounded-xl border-2 transition-all relative ${
+                  selectedTournamentType === 'free'
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : forcedType ? 'border-gray-700 opacity-40 cursor-not-allowed' : 'border-gray-600 hover:border-gray-500'
+                }`}
+              >
+                {forcedType && (
+                  <div className="absolute top-2 right-2">
+                    <Lock className="w-3 h-3 text-gray-500" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedTournamentType === 'free' ? 'bg-blue-500/20' : 'bg-gray-700'
+                  }`}>
+                    <Zap className={`w-5 h-5 ${selectedTournamentType === 'free' ? 'text-blue-500' : 'text-gray-400'}`} />
+                  </div>
+                  <span className={`font-medium ${selectedTournamentType === 'free' ? 'text-blue-400' : 'text-gray-300'}`}>
+                    Free-Kick
+                  </span>
+                  <span className="text-xs text-gray-500">Max {pricingLimits.freeMaxPlayers} joueurs</span>
+                  <span className="text-xs text-green-400">Gratuit</span>
+                </div>
+              </button>
+
+              {/* One-Shot */}
+              <button
+                type="button"
+                onClick={() => !forcedType && credits.oneshot_credits > 0 && setSelectedTournamentType('oneshot')}
+                disabled={(!!forcedType && forcedType !== 'oneshot') || (!forcedType && credits.oneshot_credits === 0)}
+                className={`p-4 rounded-xl border-2 transition-all relative ${
+                  selectedTournamentType === 'oneshot'
+                    ? 'border-green-500 bg-green-500/10'
+                    : forcedType && forcedType !== 'oneshot'
+                      ? 'border-gray-700 opacity-40 cursor-not-allowed'
+                      : credits.oneshot_credits > 0 || forcedType === 'oneshot'
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-700 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {forcedType && forcedType !== 'oneshot' && (
+                  <div className="absolute top-2 right-2">
+                    <Lock className="w-3 h-3 text-gray-500" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedTournamentType === 'oneshot' ? 'bg-green-500/20' : 'bg-gray-700'
+                  }`}>
+                    <Trophy className={`w-5 h-5 ${selectedTournamentType === 'oneshot' ? 'text-green-500' : 'text-gray-400'}`} />
+                  </div>
+                  <span className={`font-medium ${selectedTournamentType === 'oneshot' ? 'text-green-400' : 'text-gray-300'}`}>
+                    One-Shot
+                  </span>
+                  <span className="text-xs text-gray-500">Max {pricingLimits.oneshotMaxPlayers} joueurs</span>
+                  {credits.oneshot_credits > 0 || forcedType === 'oneshot' ? (
+                    <span className="text-xs text-green-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> {forcedType === 'oneshot' ? '1' : credits.oneshot_credits} credit(s)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Aucun credit</span>
+                  )}
+                </div>
+              </button>
+
+              {/* Elite */}
+              <button
+                type="button"
+                onClick={() => !forcedType && credits.elite_credits > 0 && setSelectedTournamentType('elite')}
+                disabled={(!!forcedType && forcedType !== 'elite') || (!forcedType && credits.elite_credits === 0)}
+                className={`p-4 rounded-xl border-2 transition-all relative ${
+                  selectedTournamentType === 'elite'
+                    ? 'border-orange-500 bg-orange-500/10'
+                    : forcedType && forcedType !== 'elite'
+                      ? 'border-gray-700 opacity-40 cursor-not-allowed'
+                      : credits.elite_credits > 0 || forcedType === 'elite'
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-700 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {forcedType && forcedType !== 'elite' && (
+                  <div className="absolute top-2 right-2">
+                    <Lock className="w-3 h-3 text-gray-500" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedTournamentType === 'elite' ? 'bg-orange-500/20' : 'bg-gray-700'
+                  }`}>
+                    <Users className={`w-5 h-5 ${selectedTournamentType === 'elite' ? 'text-orange-500' : 'text-gray-400'}`} />
+                  </div>
+                  <span className={`font-medium ${selectedTournamentType === 'elite' ? 'text-orange-400' : 'text-gray-300'}`}>
+                    Elite Team
+                  </span>
+                  <span className="text-xs text-gray-500">Max {pricingLimits.eliteMaxPlayers} joueurs</span>
+                  {credits.elite_credits > 0 || forcedType === 'elite' ? (
+                    <span className="text-xs text-green-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> {forcedType === 'elite' ? '1' : credits.elite_credits} credit(s)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Aucun credit</span>
+                  )}
+                </div>
+              </button>
+
+              {/* Platinium */}
+              <button
+                type="button"
+                onClick={() => !forcedType && (credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0) && setSelectedTournamentType('platinium')}
+                disabled={(!!forcedType && forcedType !== 'platinium') || (!forcedType && credits.platinium_solo_credits === 0 && credits.platinium_group_slots === 0)}
+                className={`p-4 rounded-xl border-2 transition-all relative ${
+                  selectedTournamentType === 'platinium'
+                    ? 'border-yellow-500 bg-yellow-500/10'
+                    : forcedType && forcedType !== 'platinium'
+                      ? 'border-gray-700 opacity-40 cursor-not-allowed'
+                      : (credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0) || forcedType === 'platinium'
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-700 opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {forcedType && forcedType !== 'platinium' && (
+                  <div className="absolute top-2 right-2">
+                    <Lock className="w-3 h-3 text-gray-500" />
+                  </div>
+                )}
+                <div className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedTournamentType === 'platinium' ? 'bg-yellow-500/20' : 'bg-gray-700'
+                  }`}>
+                    <Award className={`w-5 h-5 ${selectedTournamentType === 'platinium' ? 'text-yellow-500' : 'text-gray-400'}`} />
+                  </div>
+                  <span className={`font-medium ${selectedTournamentType === 'platinium' ? 'text-yellow-400' : 'text-gray-300'}`}>
+                    Platinium
+                  </span>
+                  <span className="text-xs text-gray-500">{pricingLimits.platiniumMinPlayers}-{pricingLimits.platiniumMaxPlayers} joueurs</span>
+                  {(credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0) || forcedType === 'platinium' ? (
+                    <span className="text-xs text-green-400 flex items-center gap-1">
+                      <Check className="w-3 h-3" /> {forcedType === 'platinium' ? '1+' : (credits.platinium_group_slots || credits.platinium_solo_credits)} place(s)
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Aucun credit</span>
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* Lien vers pricing si pas de credits et pas de type force */}
+            {!forcedType && (credits.oneshot_credits === 0 && credits.elite_credits === 0 && credits.platinium_solo_credits === 0 && credits.platinium_group_slots === 0) && (
+              <div className="mt-4 text-center">
+                <Link href="/pricing" className="text-sm text-orange-400 hover:text-orange-300 underline">
+                  Acheter des credits pour debloquer plus d'options
+                </Link>
+              </div>
+            )}
+          </div>
+
           {/* Nom du tournoi */}
           <div className="mb-8">
             <label className="block text-lg font-semibold theme-text mb-2">
@@ -242,16 +563,19 @@ export default function TableauNoirPage() {
                 Nombre de joueurs
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center">
-                {tournamentTypeInfo?.tournament_type === 'premium' && 'Tournoi Premium : '}
-                {tournamentTypeInfo?.tournament_type === 'oneshot' && 'Tournoi One-Shot : '}
-                {tournamentTypeInfo?.tournament_type === 'free' && 'Version gratuite : '}
-                {!tournamentTypeInfo?.tournament_type && 'Version gratuite : '}
-                max {maxPlayersLimit}
+                {selectedTournamentType === 'platinium' && 'Tournoi Platinium : '}
+                {selectedTournamentType === 'elite' && 'Tournoi Elite Team : '}
+                {selectedTournamentType === 'oneshot' && 'Tournoi One-Shot : '}
+                {selectedTournamentType === 'free' && 'Version Free-Kick : '}
+                {minPlayersLimit === maxPlayersLimit
+                  ? `${maxPlayersLimit} joueurs`
+                  : `${minPlayersLimit} - ${maxPlayersLimit} joueurs`
+                }
               </p>
               <div className="flex items-start justify-center gap-3">
                 <button
-                  onClick={() => setMaxPlayers(Math.max(2, maxPlayers - 1))}
-                  disabled={maxPlayers <= 2}
+                  onClick={() => setMaxPlayers(Math.max(minPlayersLimit, maxPlayers - 1))}
+                  disabled={maxPlayers <= minPlayersLimit}
                   className="btn-counter"
                 >
                   −
@@ -259,12 +583,12 @@ export default function TableauNoirPage() {
                 <div className="flex flex-col items-center">
                   <input
                     type="number"
-                    min="2"
+                    min={minPlayersLimit}
                     max={maxPlayersLimit}
                     value={maxPlayers}
                     onChange={(e) => {
                       const val = parseInt(e.target.value)
-                      if (!isNaN(val) && val >= 2 && val <= maxPlayersLimit) {
+                      if (!isNaN(val) && val >= minPlayersLimit && val <= maxPlayersLimit) {
                         setMaxPlayers(val)
                       }
                     }}
@@ -281,7 +605,7 @@ export default function TableauNoirPage() {
                 </button>
               </div>
               <p className="text-center text-sm theme-text-secondary mt-2">
-                Min: 2 | Max: {maxPlayersLimit}
+                Min: {minPlayersLimit} | Max: {maxPlayersLimit}
               </p>
             </div>
 

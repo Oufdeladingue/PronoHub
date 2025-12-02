@@ -53,36 +53,38 @@ export default async function DashboardPage() {
 
   const freeTournamentsParticipating = participatedTournaments?.filter(t => t.tournament_type === 'free').length || 0
 
-  // QUOTAS PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur
+  // QUOTAS PAR TYPE: Compter les tournois CRÉÉS par l'utilisateur par type
   // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
   // Cela empêche un utilisateur de créer des tournois à l'infini en transférant le capitanat
 
-  // Récupérer les tournois premium où original_creator_id = user.id
-  const { data: premiumWithOriginalCreator } = await supabase
+  // Récupérer tous les tournois créés par l'utilisateur (original_creator_id ou creator_id fallback)
+  const { data: tournamentsWithOriginalCreator } = await supabase
     .from('tournaments')
     .select('id, tournament_type')
     .eq('original_creator_id', user.id)
-    .eq('tournament_type', 'premium')
     .neq('status', 'completed')
 
-  // Récupérer les tournois premium où creator_id = user.id ET original_creator_id est NULL (anciens tournois)
-  const { data: premiumWithCreatorFallback } = await supabase
+  const { data: tournamentsWithCreatorFallback } = await supabase
     .from('tournaments')
     .select('id, tournament_type')
     .eq('creator_id', user.id)
-    .eq('tournament_type', 'premium')
     .is('original_creator_id', null)
     .neq('status', 'completed')
 
   // Combiner les deux listes (en évitant les doublons par ID)
-  const allPremiumCreated = [
-    ...(premiumWithOriginalCreator || []),
-    ...(premiumWithCreatorFallback || [])
+  const allTournamentsCreated = [
+    ...(tournamentsWithOriginalCreator || []),
+    ...(tournamentsWithCreatorFallback || [])
   ]
-  const uniquePremiumCreated = allPremiumCreated.filter(
+  const uniqueTournamentsCreated = allTournamentsCreated.filter(
     (t, index, self) => index === self.findIndex(other => other.id === t.id)
   )
-  const premiumTournamentsCreated = uniquePremiumCreated.length
+
+  // Compter par type de tournoi
+  const oneshotCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'oneshot').length
+  const eliteCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'elite').length
+  const platiniumCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'platinium').length
+  const premiumTournamentsCreated = uniqueTournamentsCreated.filter(t => t.tournament_type === 'premium').length
 
   // Compter les slots one-shot disponibles
   const { count: oneshotSlotsAvailable } = await supabase
@@ -91,10 +93,21 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .eq('status', 'available')
 
+  // Récupérer la limite de tournois Free-Kick depuis pricing_config
+  const { data: pricingConfig } = await supabase
+    .from('pricing_config')
+    .select('config_value')
+    .eq('config_key', 'free_max_tournaments')
+    .eq('is_active', true)
+    .single()
+
+  const FREE_KICK_MAX = pricingConfig?.config_value || 2
+
   // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
-  // GRATUIT: basé sur les PARTICIPATIONS (max 3)
+  // FREE-KICK (gratuit): basé sur les PARTICIPATIONS - même règle pour créer et rejoindre
   // PREMIUM: basé sur les CRÉATIONS (max 5)
-  const canCreateFree = freeTournamentsParticipating < 3
+  const canCreateFree = freeTournamentsParticipating < FREE_KICK_MAX
+  const canJoinFree = freeTournamentsParticipating < FREE_KICK_MAX // Même règle que canCreateFree
   const canCreatePremium = hasSubscription && premiumTournamentsCreated < 5
   const canCreateOneshot = (oneshotSlotsAvailable || 0) > 0
   const canCreateTournament = canCreateFree || canCreatePremium || canCreateOneshot
@@ -102,7 +115,7 @@ export default async function DashboardPage() {
   // Récupérer les détails des tournois où l'utilisateur participe
   const { data: userTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
+    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
     .in('id', tournamentIds)
 
   // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté (n'est plus participant)
@@ -164,33 +177,57 @@ export default async function DashboardPage() {
       continue
     }
 
-    // Calculer le nombre total de journées du tournoi
+    // Nombre total de journées du tournoi
+    // Le calcul starting/ending_matchday est le plus fiable car mis à jour au démarrage
     const totalJourneys = endMatchday - startMatchday + 1
 
-    // Compter combien de journées sont terminées en vérifiant les matchs réels
-    let completedJourneys = 0
-    for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
-      // Récupérer tous les matchs de cette journée
-      const { data: matches } = await supabase
-        .from('imported_matches')
-        .select('status, finished')
-        .eq('competition_id', tournament.competition_id)
-        .eq('matchday', matchday)
+    // Récupérer tous les matchs de la compétition dans la plage du tournoi
+    const { data: allMatches } = await supabase
+      .from('imported_matches')
+      .select('matchday, status, finished, utc_date')
+      .eq('competition_id', tournament.competition_id)
+      .gte('matchday', startMatchday)
+      .lte('matchday', endMatchday)
 
-      if (matches && matches.length > 0) {
-        // Une journée est terminée si tous ses matchs sont terminés
-        const allFinished = matches.every(m => m.status === 'FINISHED' || m.finished === true)
-        if (allFinished) {
-          completedJourneys++
-        } else {
-          // Dès qu'on trouve une journée non terminée, on s'arrête
-          break
-        }
+    // Regrouper les matchs par journée
+    const matchdayMap = new Map<number, Array<{ status: string, finished: boolean, utc_date: string }>>()
+    for (const match of allMatches || []) {
+      if (!matchdayMap.has(match.matchday)) {
+        matchdayMap.set(match.matchday, [])
       }
+      matchdayMap.get(match.matchday)!.push(match)
     }
 
-    // La journée actuelle est la suivante après les journées complétées
-    const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
+    // Calculer le statut des journées basé sur les matchs :
+    // - "pending" : aucun match n'a commencé (tous SCHEDULED/TIMED avec date future)
+    // - "active" : au moins un match a débuté mais pas tous terminés
+    // - "completed" : tous les matchs sont terminés (FINISHED)
+    const now = new Date()
+    let pendingJourneys = 0
+    let completedJourneys = 0
+
+    for (const [, matches] of matchdayMap) {
+      const allFinished = matches.every(m => m.status === 'FINISHED' || m.finished === true)
+      const allPending = matches.every(m => {
+        const matchDate = new Date(m.utc_date)
+        const isScheduled = m.status === 'SCHEDULED' || m.status === 'TIMED'
+        return isScheduled && matchDate > now
+      })
+
+      if (allFinished) {
+        completedJourneys++
+      } else if (allPending) {
+        pendingJourneys++
+      }
+      // Sinon c'est "active" (en cours) - on ne compte pas
+    }
+
+    // Journées non encore importées (pour compétitions à élimination directe)
+    // = total du tournoi - journées avec matchs importés
+    const notYetImportedJourneys = totalJourneys - matchdayMap.size
+
+    // La journée actuelle = total - journées à venir (pending + non importées)
+    const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
 
     journeyInfo[tournament.id] = {
       total: totalJourneys,
@@ -290,11 +327,17 @@ export default async function DashboardPage() {
         hasSubscription={hasSubscription}
         quotas={{
           freeTournaments: freeTournamentsParticipating,
-          freeTournamentsMax: 3,
+          freeTournamentsMax: FREE_KICK_MAX,
+          canCreateFree,
+          canJoinFree,
+          // Compteurs par type de tournoi créé
+          oneshotCreated,
+          eliteCreated,
+          platiniumCreated,
+          // Legacy (à garder pour compatibilité)
           premiumTournaments: premiumTournamentsCreated,
           premiumTournamentsMax: hasSubscription ? 5 : 0,
           oneshotSlotsAvailable: oneshotSlotsAvailable || 0,
-          canCreateFree,
           canCreatePremium,
           canCreateOneshot,
         }}

@@ -9,12 +9,12 @@ interface Tournament {
   name: string
   slug: string
   status: string
+  tournament_type: string
   competition_name: string
   competition_id: number
   created_at: string
   creator_username: string
   participants_count: number
-  predictions_count: number
 }
 
 export default function AdminTournamentsPage() {
@@ -91,6 +91,24 @@ export default function AdminTournamentsPage() {
     )
   }
 
+  const getTournamentTypeBadge = (type: string) => {
+    const typeConfig: Record<string, { bg: string; text: string; label: string }> = {
+      free: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Free' },
+      premium: { bg: 'bg-green-100', text: 'text-green-800', label: 'Premium' },
+      oneshot: { bg: 'bg-green-100', text: 'text-green-800', label: 'One-Shot' },
+      elite: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Elite' },
+      platinium: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Platinium' },
+      enterprise: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Entreprise' },
+    }
+
+    const config = typeConfig[type] || typeConfig.free
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+    )
+  }
+
   return (
     <AdminLayout currentPage="general">
       <div className="min-h-screen bg-gray-50">
@@ -137,6 +155,9 @@ export default function AdminTournamentsPage() {
                     Tournoi
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Compétition
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -147,9 +168,6 @@ export default function AdminTournamentsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Participants
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pronos
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Créé le
@@ -167,6 +185,9 @@ export default function AdminTournamentsPage() {
                       <div className="text-xs text-gray-500">{tournament.slug}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {getTournamentTypeBadge(tournament.tournament_type)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{tournament.competition_name}</div>
                       <div className="text-xs text-gray-500">ID: {tournament.competition_id}</div>
                     </td>
@@ -178,9 +199,6 @@ export default function AdminTournamentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
                       {tournament.participants_count}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
-                      {tournament.predictions_count}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(tournament.created_at).toLocaleDateString('fr-FR', {

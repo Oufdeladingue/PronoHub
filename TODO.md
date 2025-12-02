@@ -159,6 +159,12 @@ Liste des fonctionnalités et améliorations à développer pour PronoHub.
 
 ## 🔐 Sécurité & Performance
 
+- [ ] **Connexion via Google**
+  - Intégration OAuth Google
+  - Bouton "Se connecter avec Google" sur la page de login
+  - Configurer Supabase pour supporter le provider Google
+  - Lier compte Google à un compte existant
+
 - [ ] **Webhook automatique pour les trophées**
   - Actuellement le recalcul des trophées se fait à la demande (bouton "Actualiser")
   - Créer un webhook/trigger Supabase qui recalcule automatiquement après chaque fin de match

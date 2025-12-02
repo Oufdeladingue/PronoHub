@@ -44,11 +44,12 @@ export default function NavBar({
   if (context === 'admin') {
     const adminPath = process.env.NEXT_PUBLIC_ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
     const navItems = [
-      { name: 'Général', href: `/${adminPath}`, icon: 'home' },
+      { name: 'General', href: `/${adminPath}`, icon: 'home' },
       { name: 'Import', href: `/${adminPath}/import`, icon: 'import' },
       { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
       { name: 'Tournois', href: `/${adminPath}/tournaments`, icon: 'trophy' },
-      { name: 'Réglages', href: `/${adminPath}/settings`, icon: 'settings' },
+      { name: 'Tarifs', href: `/${adminPath}/pricing`, icon: 'euro' },
+      { name: 'Reglages', href: `/${adminPath}/settings`, icon: 'settings' },
     ]
 
     return (
@@ -98,6 +99,11 @@ export default function NavBar({
                   {item.icon === 'trophy' && (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                  )}
+                  {item.icon === 'euro' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95c-.285.475-.507 1-.67 1.55H6a1 1 0 000 2h.013a9.358 9.358 0 000 1H6a1 1 0 100 2h.337c.163.55.385 1.075.67 1.55C7.721 15.216 8.768 16 10 16s2.279-.784 2.979-1.95a1 1 0 10-1.715-1.029c-.472.786-.96.979-1.264.979-.304 0-.792-.193-1.264-.979a4.265 4.265 0 01-.264-.521H10a1 1 0 100-2H8.017a7.36 7.36 0 010-1H10a1 1 0 100-2H8.472c.08-.185.167-.36.264-.521z" clipRule="evenodd" />
                     </svg>
                   )}
                   {item.icon === 'settings' && (
@@ -264,8 +270,8 @@ export default function NavBar({
             <div className="flex items-center justify-center gap-4">
               {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
-                  {/* Logo blanc en thème sombre, logo normal en thème clair */}
-                  {theme === 'dark' && tournamentContext.competitionLogoWhite ? (
+                  {/* Logo blanc toujours car nav bleue en light et sombre en dark */}
+                  {tournamentContext.competitionLogoWhite ? (
                     <img
                       src={tournamentContext.competitionLogoWhite}
                       alt={tournamentContext.competitionName}
@@ -275,7 +281,7 @@ export default function NavBar({
                     <img
                       src={tournamentContext.competitionLogo || ''}
                       alt={tournamentContext.competitionName}
-                      className="w-full h-full object-contain dark:brightness-0 dark:invert"
+                      className="w-full h-full object-contain brightness-0 invert"
                     />
                   )}
                 </div>
@@ -363,7 +369,7 @@ export default function NavBar({
         <div className="grid grid-cols-3 gap-4 items-center">
           {/* COLONNE GAUCHE (33%) - Logo + Theme Toggle */}
           <div className="flex items-center gap-4">
-            <Link href="/dashboard">
+            <Link href="/dashboard" className="nav-logo-wrapper">
               <img
                 src="/images/logo.svg"
                 alt="PronoHub"

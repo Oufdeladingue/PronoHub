@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
+import { Trophy, Users, Award, Check } from 'lucide-react'
 
 interface Competition {
   id: number
@@ -100,9 +101,13 @@ const formatSeason = (startDate: string, endDate: string): string => {
 
 export default function VestiaireClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Recuperer le type de tournoi depuis l'URL (apres paiement)
+  const tournamentType = searchParams.get('type') as 'oneshot' | 'elite' | 'platinium' | null
 
   useEffect(() => {
     fetchActiveCompetitions()
@@ -153,6 +158,56 @@ export default function VestiaireClient() {
   return (
     <div className="theme-bg flex flex-col flex-1">
       <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
+        {/* Message contextuel si type passe en URL (apres paiement) */}
+        {tournamentType === 'oneshot' && (
+          <div className="mb-6 p-4 rounded-xl border-2 border-green-500/50 bg-green-500/10 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+              <Trophy className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-500" />
+                <span className="font-semibold text-green-400">Votre credit One-Shot est pret a etre utilise !</span>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">
+                Selectionnez une competition pour creer votre tournoi One-Shot
+              </p>
+            </div>
+          </div>
+        )}
+        {tournamentType === 'elite' && (
+          <div className="mb-6 p-4 rounded-xl border-2 border-orange-500/50 bg-orange-500/10 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-orange-500" />
+                <span className="font-semibold text-orange-400">Votre credit Elite Team est pret a etre utilise !</span>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">
+                Selectionnez une competition pour creer votre tournoi Elite Team
+              </p>
+            </div>
+          </div>
+        )}
+        {tournamentType === 'platinium' && (
+          <div className="mb-6 p-4 rounded-xl border-2 border-yellow-500/50 bg-yellow-500/10 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+              <Award className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-yellow-500" />
+                <span className="font-semibold text-yellow-400">Votre credit Platinium est pret a etre utilise !</span>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">
+                Selectionnez une competition pour creer votre tournoi Platinium
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* En-tête */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-[#ff9900] mb-4">Le Vestiaire</h1>
@@ -176,7 +231,7 @@ export default function VestiaireClient() {
             {competitions.map((comp) => (
               <div
                 key={comp.id}
-                onClick={() => router.push(`/vestiaire/create/${comp.id}`)}
+                onClick={() => router.push(`/vestiaire/create/${comp.id}${tournamentType ? `?type=${tournamentType}` : ''}`)}
                 className="group competition-badge"
               >
                 {/* Badge "Plus populaire" */}

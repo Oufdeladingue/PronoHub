@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
+import { Zap, Trophy, Users, Award } from 'lucide-react'
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
 function formatMatchDate(dateString: string) {
@@ -20,12 +21,19 @@ function formatMatchDate(dateString: string) {
 }
 
 interface QuotasInfo {
+  // Tournois Free-Kick (gratuits)
   freeTournaments: number
   freeTournamentsMax: number
+  canCreateFree: boolean
+  canJoinFree: boolean
+  // Compteurs par type de tournoi cree
+  oneshotCreated: number
+  eliteCreated: number
+  platiniumCreated: number
+  // Legacy
   premiumTournaments: number
   premiumTournamentsMax: number
   oneshotSlotsAvailable: number
-  canCreateFree: boolean
   canCreatePremium: boolean
   canCreateOneshot: boolean
 }
@@ -72,6 +80,42 @@ function DashboardContent({
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [showQuotaModal, setShowQuotaModal] = useState<'create' | 'join' | null>(null)
+  const [showPlatiniumChoice, setShowPlatiniumChoice] = useState(false)
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState<string | null>(null)
+  // Nouveau: modale de paiement pour rejoindre un tournoi specifique
+  const [joinPaymentModal, setJoinPaymentModal] = useState<{
+    show: boolean
+    tournamentId: string
+    tournamentName: string
+    tournamentType: string
+    paymentAmount: number
+    paymentType: string
+    message: string
+    hasPrepaidSlots?: boolean
+  } | null>(null)
+
+  // Fonction pour rediriger vers Stripe checkout
+  const handleCheckout = async (purchaseType: string) => {
+    setIsCheckoutLoading(purchaseType)
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseType }),
+      })
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('Erreur checkout:', data.error)
+        setIsCheckoutLoading(null)
+      }
+    } catch (error) {
+      console.error('Erreur checkout:', error)
+      setIsCheckoutLoading(null)
+    }
+  }
 
   // Séparer les tournois actifs/en attente des tournois terminés
   const activeTournaments = tournaments.filter(t => t.status !== 'finished')
@@ -99,7 +143,22 @@ function DashboardContent({
       if (response.ok && data.tournament) {
         // Rediriger vers la page d'échauffement du tournoi
         router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
+      } else if (response.status === 402 && data.requiresPayment) {
+        // Paiement requis - afficher la modale de paiement contextuelle
+        setJoinPaymentModal({
+          show: true,
+          tournamentId: data.tournamentId,
+          tournamentName: data.tournamentName,
+          tournamentType: data.paymentType === 'platinium_participation' ? 'platinium' : 'free',
+          paymentAmount: data.paymentAmount,
+          paymentType: data.paymentType,
+          message: data.message
+        })
+        // Cacher l'input de code
+        setShowJoinInput(false)
+        setJoinCode('')
       } else {
+        // Erreur classique (tournoi complet, commencé, introuvable, etc.)
         setJoinError(data.error || 'Code invalide ou tournoi introuvable')
       }
     } catch (error) {
@@ -141,10 +200,14 @@ function DashboardContent({
           <div className="mb-4">
             <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">Mes tournois</h2>
             <p className="text-sm theme-text-secondary mt-1">
-              {hasSubscription
-                ? `Premium : ${quotas.premiumTournaments}/${quotas.premiumTournamentsMax} · Gratuit : ${quotas.freeTournaments}/${quotas.freeTournamentsMax}`
-                : `Gratuit : ${quotas.freeTournaments}/${quotas.freeTournamentsMax} tournois actifs`
-              }
+              Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
+              {(quotas.oneshotCreated > 0 || quotas.eliteCreated > 0 || quotas.platiniumCreated > 0) && (
+                <span>
+                  {quotas.oneshotCreated > 0 && ` · Tournois One-Shot : ${quotas.oneshotCreated}`}
+                  {quotas.eliteCreated > 0 && ` · Tournois Elite : ${quotas.eliteCreated}`}
+                  {quotas.platiniumCreated > 0 && ` · Tournois Platinium : ${quotas.platiniumCreated}`}
+                </span>
+              )}
             </p>
           </div>
           {activeTournaments.length === 0 ? (
@@ -204,19 +267,19 @@ function DashboardContent({
                           {/* Logo de la compétition */}
                           <div className="flex-shrink-0">
                             {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
-                              <div className="w-12 h-12 flex items-center justify-center relative">
-                                {/* Logo blanc par défaut - pas de hover sur mobile */}
+                              <div className="logo-container w-12 h-12 flex items-center justify-center relative transition-colors duration-300">
+                                {/* Logo blanc - visible par défaut en dark, au survol en light */}
                                 <img
                                   src={tournament.custom_emblem_white || tournament.emblem || ''}
                                   alt={tournament.competition_name}
-                                  className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 md:group-hover:opacity-0"
+                                  className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                 />
-                                {/* Logo couleur au survol - uniquement sur desktop */}
+                                {/* Logo couleur - au survol en dark, par défaut en light */}
                                 {tournament.custom_emblem_color && (
                                   <img
                                     src={tournament.custom_emblem_color}
                                     alt={tournament.competition_name}
-                                    className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300 opacity-0 md:group-hover:opacity-100"
+                                    className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                   />
                                 )}
                               </div>
@@ -278,19 +341,19 @@ function DashboardContent({
                       {/* Logo de la compétition */}
                       <div>
                         {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
-                          <div className="w-20 h-20 flex items-center justify-center relative">
-                            {/* Logo blanc par défaut */}
+                          <div className="logo-container w-20 h-20 flex items-center justify-center relative transition-colors duration-300">
+                            {/* Logo blanc - visible par défaut en dark, au survol en light */}
                             <img
                               src={tournament.custom_emblem_white || tournament.emblem || ''}
                               alt={tournament.competition_name}
-                              className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 group-hover:opacity-0"
+                              className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300"
                             />
-                            {/* Logo couleur au survol */}
+                            {/* Logo couleur - au survol en dark, par défaut en light */}
                             {tournament.custom_emblem_color && (
                               <img
                                 src={tournament.custom_emblem_color}
                                 alt={tournament.competition_name}
-                                className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+                                className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300"
                               />
                             )}
                           </div>
@@ -400,13 +463,22 @@ function DashboardContent({
 
                             {/* Logo de la compétition */}
                             <div className="flex-shrink-0">
-                              {tournament.custom_emblem_white || tournament.emblem ? (
-                                <div className="w-10 h-10 flex items-center justify-center">
+                              {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
+                                <div className="w-10 h-10 flex items-center justify-center relative">
+                                  {/* Logo blanc - visible en thème sombre */}
                                   <img
                                     src={tournament.custom_emblem_white || tournament.emblem || ''}
                                     alt={tournament.competition_name}
-                                    className="logo-competition-white w-8 h-8 object-contain opacity-70"
+                                    className="archived-logo-white absolute w-8 h-8 object-contain opacity-70"
                                   />
+                                  {/* Logo couleur - visible en thème clair */}
+                                  {tournament.custom_emblem_color && (
+                                    <img
+                                      src={tournament.custom_emblem_color}
+                                      alt={tournament.competition_name}
+                                      className="archived-logo-color absolute w-8 h-8 object-contain opacity-70"
+                                    />
+                                  )}
                                 </div>
                               ) : (
                                 <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center">
@@ -450,13 +522,22 @@ function DashboardContent({
 
                             {/* Logo de la compétition */}
                             <div className="flex-shrink-0 grayscale">
-                              {tournament.custom_emblem_white || tournament.emblem ? (
-                                <div className="w-10 h-10 flex items-center justify-center">
+                              {tournament.custom_emblem_white || tournament.custom_emblem_color || tournament.emblem ? (
+                                <div className="w-10 h-10 flex items-center justify-center relative">
+                                  {/* Logo blanc - visible en thème sombre */}
                                   <img
                                     src={tournament.custom_emblem_white || tournament.emblem || ''}
                                     alt={tournament.competition_name}
-                                    className="logo-competition-white w-8 h-8 object-contain opacity-50"
+                                    className="archived-logo-white absolute w-8 h-8 object-contain opacity-50"
                                   />
+                                  {/* Logo couleur - visible en thème clair */}
+                                  {tournament.custom_emblem_color && (
+                                    <img
+                                      src={tournament.custom_emblem_color}
+                                      alt={tournament.competition_name}
+                                      className="archived-logo-color absolute w-8 h-8 object-contain opacity-50"
+                                    />
+                                  )}
                                 </div>
                               ) : (
                                 <div className="w-10 h-10 placeholder-logo rounded-lg flex items-center justify-center">
@@ -491,47 +572,358 @@ function DashboardContent({
           )}
         </div>
 
+        {/* Modale quota atteint */}
+        {showQuotaModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowQuotaModal(null)}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/70" />
+
+            {/* Contenu modale */}
+            <div
+              className="theme-card max-w-md w-full relative z-10 p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setShowQuotaModal(null)}
+                className="absolute top-4 right-4 theme-text-secondary hover:text-[#ff9900] transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Titre */}
+              <h3 className="text-lg font-bold theme-text text-center mb-2">
+                Limite atteinte
+              </h3>
+
+              {/* Message */}
+              <p className="text-sm theme-text-secondary text-center mb-5">
+                Vous participez déjà à {quotas.freeTournamentsMax} tournois Free-Kick.
+              </p>
+
+              {/* Options d'achat */}
+              <div className="space-y-4">
+                {/* Slot Free-Kick */}
+                <div className="flex items-center gap-4 p-4 border border-blue-500/50 rounded-lg bg-blue-500/5">
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-blue-400 text-base">Slot Free-Kick</h4>
+                    <p className="text-sm theme-text-secondary">+1 tournoi gratuit</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">5 joueurs · 10 journées max</p>
+                  </div>
+                  <button
+                    onClick={() => handleCheckout('slot_invite')}
+                    disabled={isCheckoutLoading === 'slot_invite'}
+                    className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                  >
+                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
+                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                  </button>
+                </div>
+
+                {/* One-Shot */}
+                <div className="flex items-center gap-4 p-4 border border-green-500/50 rounded-lg bg-green-500/5">
+                  <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Trophy className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-green-400 text-base">One-Shot</h4>
+                    <p className="text-sm theme-text-secondary">Tournoi unique entre amis</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">10 joueurs · Saison complète · <span className="text-green-400">Stats+</span></p>
+                  </div>
+                  <button
+                    onClick={() => handleCheckout('tournament_creation_oneshot')}
+                    disabled={isCheckoutLoading === 'tournament_creation_oneshot'}
+                    className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                  >
+                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_oneshot' ? '...' : '4,99€'}</span>
+                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                  </button>
+                </div>
+
+                {/* Elite Team */}
+                <div className="flex items-center gap-4 p-4 border-2 border-orange-500 rounded-lg bg-orange-500/10 relative">
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">POPULAIRE</span>
+                  </div>
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Users className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-orange-400 text-base">Elite Team</h4>
+                    <p className="text-sm theme-text-secondary">Pour les groupes passionnés</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">20 joueurs · Saison complète · <span className="text-orange-400">Tous bonus</span></p>
+                  </div>
+                  <button
+                    onClick={() => handleCheckout('tournament_creation_elite')}
+                    disabled={isCheckoutLoading === 'tournament_creation_elite'}
+                    className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                  >
+                    <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_elite' ? '...' : '9,99€'}</span>
+                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                  </button>
+                </div>
+
+                {/* Platinium */}
+                <div className="flex items-center gap-4 p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5">
+                  <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Award className="w-5 h-5 text-yellow-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-yellow-400 text-base">Platinium</h4>
+                    <p className="text-sm theme-text-secondary">L'expérience ultime</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">De 11 à 30 joueurs · <span className="text-yellow-400">Lot à gagner</span></p>
+                  </div>
+                  <button
+                    onClick={() => setShowPlatiniumChoice(true)}
+                    className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                  >
+                    <span className="text-black font-bold text-base leading-none">6,99€</span>
+                    <span className="text-black text-[9px] leading-none">/joueur</span>
+                    <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Lien vers pricing */}
+              <a
+                href="/pricing"
+                className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-[#ff9900] transition underline"
+              >
+                Voir le détail des offres
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Sous-modale choix Platinium */}
+        {showPlatiniumChoice && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowPlatiniumChoice(false)}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/80" />
+
+            {/* Contenu modale */}
+            <div
+              className="theme-card max-w-sm w-full relative z-10 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setShowPlatiniumChoice(false)}
+                className="absolute top-4 right-4 theme-text-secondary hover:text-yellow-500 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Titre */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Award className="w-6 h-6 text-yellow-500" />
+                <h3 className="text-lg font-bold text-yellow-400">Platinium</h3>
+              </div>
+
+              <p className="text-sm theme-text-secondary text-center mb-5">
+                Choisissez votre formule
+              </p>
+
+              {/* Options */}
+              <div className="space-y-3">
+                {/* Option 1 place */}
+                <button
+                  onClick={() => {
+                    setShowPlatiniumChoice(false)
+                    handleCheckout('platinium_participation')
+                  }}
+                  disabled={isCheckoutLoading === 'platinium_participation'}
+                  className="w-full flex items-center justify-between p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5 hover:bg-yellow-500/10 transition disabled:opacity-50"
+                >
+                  <div className="text-left">
+                    <h4 className="font-semibold text-yellow-400">1 place</h4>
+                    <p className="text-xs theme-text-secondary">Pour rejoindre un tournoi Platinium</p>
+                  </div>
+                  <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
+                    <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_participation' ? '...' : '6,99€'}</span>
+                  </div>
+                </button>
+
+                {/* Option 11 places */}
+                <button
+                  onClick={() => {
+                    setShowPlatiniumChoice(false)
+                    handleCheckout('platinium_group_11')
+                  }}
+                  disabled={isCheckoutLoading === 'platinium_group_11'}
+                  className="w-full flex items-center justify-between p-4 border-2 border-yellow-500 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/15 transition disabled:opacity-50 relative"
+                >
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">ÉCONOMISEZ</span>
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-semibold text-yellow-400">11 places</h4>
+                    <p className="text-xs theme-text-secondary">Lancez votre tournoi + invitez 10 amis</p>
+                  </div>
+                  <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
+                    <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_group_11' ? '...' : '76,89€'}</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* Bouton retour */}
+              <button
+                onClick={() => setShowPlatiniumChoice(false)}
+                className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-yellow-500 transition"
+              >
+                ← Retour aux offres
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modale de paiement contextuelle pour rejoindre un tournoi */}
+        {joinPaymentModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setJoinPaymentModal(null)}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/70" />
+
+            {/* Contenu modale */}
+            <div
+              className="theme-card max-w-md w-full relative z-10 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setJoinPaymentModal(null)}
+                className="absolute top-4 right-4 theme-text-secondary hover:text-[#ff9900] transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Titre */}
+              <h3 className="text-lg font-bold theme-text text-center mb-2">
+                Rejoindre "{joinPaymentModal.tournamentName}"
+              </h3>
+
+              {/* Message */}
+              <p className="text-sm theme-text-secondary text-center mb-5">
+                {joinPaymentModal.message}
+              </p>
+
+              {/* Option de paiement selon le type */}
+              <div className="space-y-4">
+                {/* Platinium */}
+                {joinPaymentModal.paymentType === 'platinium_participation' && (
+                  <div className="flex items-center gap-4 p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5">
+                    <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Award className="w-5 h-5 text-yellow-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-yellow-400 text-base">Participation Platinium</h4>
+                      <p className="text-sm theme-text-secondary">Accès au tournoi avec lot à gagner</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setJoinPaymentModal(null)
+                        handleCheckout('platinium_participation')
+                      }}
+                      disabled={isCheckoutLoading === 'platinium_participation'}
+                      className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                    >
+                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'platinium_participation' ? '...' : '6,99€'}</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Slot Free-Kick (quota atteint) */}
+                {joinPaymentModal.paymentType === 'slot_invite' && (
+                  <div className="flex items-center gap-4 p-4 border border-blue-500/50 rounded-lg bg-blue-500/5">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Zap className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-blue-400 text-base">Slot supplémentaire</h4>
+                      <p className="text-sm theme-text-secondary">Débloquez une place pour ce tournoi</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setJoinPaymentModal(null)
+                        handleCheckout('slot_invite')
+                      }}
+                      disabled={isCheckoutLoading === 'slot_invite'}
+                      className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                    >
+                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Bouton annuler */}
+              <button
+                onClick={() => setJoinPaymentModal(null)}
+                className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-[#ff9900] transition"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Actions : Créer et Rejoindre */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="theme-card">
-            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Créer un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Creer un tournoi</h2>
             <p className="theme-text-secondary mb-4">
-              Lancez votre propre tournoi de pronostics et invitez vos amis à participer.
+              Lancez votre propre tournoi de pronostics et invitez vos amis a participer.
             </p>
-            {!canCreateTournament ? (
-              <div className="space-y-2">
-                <div className="w-full py-2 px-4 border-2 border-[#ff9900] bg-transparent text-[#ff9900] rounded-md text-center cursor-not-allowed opacity-50 font-semibold">
-                  Quota atteint en mode gratuit : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
-                </div>
-                <p className="text-xs text-[#ff9900] text-center">
-                  Passer à une offre supérieure pour pouvoir créer un nouveau tournoi
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Bouton principal - redirige ou affiche modale selon quota */}
+              {quotas.canCreateFree ? (
                 <a href="/vestiaire" className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
                     <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
                   </svg>
                   Nouveau tournoi
                 </a>
-                <p className="text-xs theme-text-secondary text-center">
-                  {quotas.canCreatePremium && `Premium : ${quotas.premiumTournaments}/${quotas.premiumTournamentsMax}`}
-                  {quotas.canCreatePremium && quotas.canCreateFree && ' · '}
-                  {quotas.canCreateFree && `Gratuit : ${quotas.freeTournaments}/${quotas.freeTournamentsMax}`}
-                  {quotas.canCreateOneshot && ` · One-shot : ${quotas.oneshotSlotsAvailable} dispo`}
-                </p>
-              </div>
-            )}
+              ) : (
+                <button
+                  onClick={() => setShowQuotaModal('create')}
+                  className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
+                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
+                  </svg>
+                  Nouveau tournoi
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="theme-card">
             <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Rejoindre un tournoi</h2>
             <p className="theme-text-secondary mb-4">
-              Vous avez reçu un code d'invitation ? Rejoignez un tournoi existant.
+              Vous avez recu un code d'invitation ? Rejoignez un tournoi existant.
             </p>
             {!showJoinInput ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Bouton principal - toujours afficher l'input de code d'abord */}
                 <button
                   onClick={() => setShowJoinInput(true)}
                   className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold"
@@ -541,29 +933,15 @@ function DashboardContent({
                   </svg>
                   Rejoindre
                 </button>
-                {/* Message informatif si quota gratuit atteint */}
-                {!quotas.canCreateFree && (
-                  <p className="text-xs text-[#ff9900] text-center">
-                    Quota gratuit atteint - vous ne pouvez rejoindre qu'un tournoi premium ou one-shot
-                  </p>
-                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Message si quota gratuit atteint */}
-                {!quotas.canCreateFree && (
-                  <div className="p-2 bg-[#ff9900]/10 border border-[#ff9900]/30 rounded-md">
-                    <p className="text-xs text-[#ff9900] text-center">
-                      Quota gratuit atteint - vous ne pouvez rejoindre qu'un tournoi premium ou one-shot
-                    </p>
-                  </div>
-                )}
                 <div>
                   <input
                     type="text"
                     value={joinCode}
                     onChange={handleJoinCodeChange}
-                    placeholder="CODE 8 CARACTÈRES"
+                    placeholder="CODE 8 CARACTERES"
                     maxLength={8}
                     className="w-full px-4 py-2 border-2 border-[#ff9900] rounded-md text-center font-mono text-lg uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
                     autoFocus

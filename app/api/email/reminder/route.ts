@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
           tournamentName: tournament.name,
           matchDate: `${nextMatch.home_team} vs ${nextMatch.away_team} - ${matchDate}`,
           competitionName: tournament.competitions?.name,
-          actionUrl: `https://pronohub.fr/vestiaire/${tournament.slug}/opposition`
+          actionUrl: `https://pronohub.fr/${tournament.slug}/opposition`
         })
 
         if (result.success) {

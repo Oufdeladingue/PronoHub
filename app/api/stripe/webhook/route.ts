@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { stripe, isStripeEnabled } from '@/lib/stripe'
+import { stripe } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
-// import Stripe from 'stripe' // Désactivé temporairement - à réactiver quand Stripe sera configuré
+import { TOURNAMENT_RULES, TournamentType } from '@/types/monetization'
 
-// Client Supabase avec service role pour les webhooks
+// Client Supabase avec service role pour les webhooks (bypass RLS)
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
 
 export async function POST(request: Request) {
   // Vérifier si Stripe est configuré
-  if (!isStripeEnabled() || !stripe) {
+  if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: 'Stripe n\'est pas configuré' },
       { status: 503 }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     )
   }
 
-  let event: any // Stripe.Event - type désactivé temporairement
+  let event: any
 
   try {
     event = stripe.webhooks.constructEvent(
@@ -52,17 +52,8 @@ export async function POST(request: Request) {
         await handleCheckoutCompleted(event.data.object)
         break
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdate(event.data.object)
-        break
-
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object)
-        break
-
-      case 'invoice.payment_failed':
-        await handlePaymentFailed(event.data.object)
+      case 'checkout.session.expired':
+        await handleCheckoutExpired(event.data.object)
         break
 
       default:
@@ -80,109 +71,247 @@ export async function POST(request: Request) {
   }
 }
 
-// Handler: Checkout session completed
+// Handler: Checkout session completed (paiement réussi)
 async function handleCheckoutCompleted(session: any) {
   const userId = session.metadata?.user_id
-  const type = session.metadata?.type
+  const purchaseType = session.metadata?.purchase_type
 
-  if (!userId || !type) {
-    console.error('Missing metadata in checkout session')
+  if (!userId || !purchaseType) {
+    console.error('Missing metadata in checkout session:', session.id)
     return
   }
 
-  if (type === 'subscription') {
-    // L'abonnement est géré par customer.subscription.created
-    console.log('Subscription checkout completed, waiting for subscription event')
-  } else if (type === 'oneshot') {
-    // Créer le slot one-shot
-    await supabaseAdmin.from('user_oneshot_purchases').insert({
-      user_id: userId,
-      status: 'available',
-      stripe_checkout_session_id: session.id,
-      stripe_payment_intent_id: session.payment_intent as string,
-      amount_paid: session.amount_total,
-      currency: session.currency || 'eur',
-    })
-    console.log('One-shot slot created for user:', userId)
-  } else if (type === 'enterprise') {
-    // Créer le compte entreprise
-    await supabaseAdmin.from('enterprise_accounts').insert({
-      user_id: userId,
-      company_name: session.metadata?.company_name || 'Entreprise',
-      contact_email: session.metadata?.contact_email,
-      max_participants: parseInt(session.metadata?.max_participants || '300'),
-      status: 'active',
-      stripe_payment_intent_id: session.payment_intent as string,
-      amount_paid: session.amount_total,
-      currency: session.currency || 'eur',
-      valid_from: new Date().toISOString(),
-    })
-    console.log('Enterprise account created for user:', userId)
-  }
-}
+  console.log(`Processing payment for user ${userId}, type: ${purchaseType}`)
 
-// Handler: Subscription created or updated
-async function handleSubscriptionUpdate(subscription: any) {
-  const customerId = subscription.customer as string
-
-  // Récupérer le customer pour avoir l'user_id
-  const customer = await stripe!.customers.retrieve(customerId) as any
-  const userId = customer.metadata?.supabase_user_id
-
-  if (!userId) {
-    console.error('No user_id found in customer metadata')
-    return
-  }
-
-  const subscriptionType = subscription.items.data[0]?.price?.recurring?.interval === 'year'
-    ? 'yearly'
-    : 'monthly'
-
-  // Upsert l'abonnement
-  await supabaseAdmin.from('user_subscriptions').upsert({
-    user_id: userId,
-    subscription_type: subscriptionType,
-    status: subscription.status === 'active' ? 'active' : 'past_due',
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscription.id,
-    stripe_price_id: subscription.items.data[0]?.price?.id,
-    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
-    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
-    updated_at: new Date().toISOString(),
-  }, {
-    onConflict: 'stripe_subscription_id',
-  })
-
-  console.log('Subscription updated for user:', userId, 'Status:', subscription.status)
-}
-
-// Handler: Subscription deleted/cancelled
-async function handleSubscriptionDeleted(subscription: any) {
-  await supabaseAdmin
-    .from('user_subscriptions')
+  // Mettre à jour le statut de l'achat
+  const { error: updateError } = await supabaseAdmin
+    .from('tournament_purchases')
     .update({
-      status: 'cancelled',
-      cancelled_at: new Date().toISOString(),
+      status: 'completed',
+      stripe_payment_intent_id: session.payment_intent,
       updated_at: new Date().toISOString(),
     })
-    .eq('stripe_subscription_id', subscription.id)
+    .eq('stripe_checkout_session_id', session.id)
 
-  console.log('Subscription cancelled:', subscription.id)
+  if (updateError) {
+    console.error('Error updating purchase:', updateError)
+  }
+
+  // Traiter selon le type d'achat
+  if (purchaseType.startsWith('tournament_creation_')) {
+    await handleTournamentCreation(session)
+  } else if (purchaseType === 'slot_invite') {
+    // Le slot est déjà enregistré, rien à faire de plus
+    // L'utilisateur peut maintenant rejoindre/créer un tournoi avec ce slot
+    console.log('Slot invite purchased for user:', userId)
+  } else if (purchaseType === 'platinium_participation') {
+    await handlePlatiniumParticipation(session)
+  } else if (purchaseType === 'duration_extension') {
+    await handleDurationExtension(session)
+  } else if (purchaseType === 'player_extension') {
+    await handlePlayerExtension(session)
+  }
 }
 
-// Handler: Payment failed
-async function handlePaymentFailed(invoice: any) {
-  const subscriptionId = (invoice as any).subscription as string
+// Handler: Checkout session expired
+async function handleCheckoutExpired(session: any) {
+  // Marquer l'achat comme expiré/échoué
+  await supabaseAdmin
+    .from('tournament_purchases')
+    .update({
+      status: 'failed',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_checkout_session_id', session.id)
 
-  if (subscriptionId) {
-    await supabaseAdmin
-      .from('user_subscriptions')
-      .update({
-        status: 'past_due',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_subscription_id', subscriptionId)
+  console.log('Checkout session expired:', session.id)
+}
 
-    console.log('Payment failed for subscription:', subscriptionId)
+// Créer un tournoi après paiement
+async function handleTournamentCreation(session: any) {
+  const userId = session.metadata?.user_id
+  const purchaseType = session.metadata?.purchase_type
+  const tournamentDataStr = session.metadata?.tournament_data
+
+  if (!tournamentDataStr) {
+    console.error('No tournament data in metadata')
+    return
   }
+
+  const tournamentData = JSON.parse(tournamentDataStr)
+
+  // Déterminer le type de tournoi
+  let tournamentType: TournamentType = 'free'
+  if (purchaseType === 'tournament_creation_oneshot') tournamentType = 'oneshot'
+  else if (purchaseType === 'tournament_creation_elite') tournamentType = 'elite'
+  else if (purchaseType === 'tournament_creation_platinium') tournamentType = 'platinium'
+
+  const rules = TOURNAMENT_RULES[tournamentType]
+
+  // Créer le tournoi
+  const { data: tournament, error: tournamentError } = await supabaseAdmin
+    .from('tournaments')
+    .insert({
+      name: tournamentData.name,
+      slug: tournamentData.slug,
+      invite_code: tournamentData.slug,
+      competition_id: parseInt(tournamentData.competitionId),
+      competition_name: tournamentData.competitionName,
+      max_players: Math.min(tournamentData.maxPlayers || rules.maxPlayers, rules.maxPlayers),
+      max_participants: Math.min(tournamentData.maxPlayers || rules.maxPlayers, rules.maxPlayers),
+      num_matchdays: tournamentData.numMatchdays,
+      matchdays_count: tournamentData.numMatchdays,
+      max_matchdays: rules.maxMatchdays,
+      all_matchdays: tournamentData.allMatchdays,
+      bonus_match_enabled: tournamentData.bonusMatchEnabled,
+      creator_id: userId,
+      original_creator_id: userId,
+      status: 'pending',
+      current_participants: 1,
+      scoring_exact_score: 3,
+      scoring_correct_winner: 1,
+      scoring_correct_goal_difference: 2,
+      scoring_default_prediction_max: tournamentData.drawWithDefaultPredictionPoints || 1,
+      tournament_type: tournamentType,
+      is_legacy: false,
+      duration_extended: false,
+      players_extended: 0,
+    })
+    .select()
+    .single()
+
+  if (tournamentError) {
+    console.error('Error creating tournament:', tournamentError)
+    return
+  }
+
+  // Ajouter le créateur comme capitaine
+  await supabaseAdmin
+    .from('tournament_participants')
+    .insert({
+      tournament_id: tournament.id,
+      user_id: userId,
+      participant_role: 'captain',
+      invite_type: 'free',
+      has_paid: true,
+      amount_paid: rules.creationPrice,
+    })
+
+  // Créer les journées du tournoi
+  const journeys = []
+  for (let i = 1; i <= tournamentData.numMatchdays; i++) {
+    journeys.push({
+      tournament_id: tournament.id,
+      journey_number: i,
+      status: 'pending',
+    })
+  }
+
+  await supabaseAdmin
+    .from('tournament_journeys')
+    .insert(journeys)
+
+  // Mettre à jour l'achat avec l'ID du tournoi
+  await supabaseAdmin
+    .from('tournament_purchases')
+    .update({ tournament_id: tournament.id })
+    .eq('stripe_checkout_session_id', session.id)
+
+  console.log('Tournament created:', tournament.id, 'Type:', tournamentType)
+}
+
+// Rejoindre un tournoi Platinium après paiement
+async function handlePlatiniumParticipation(session: any) {
+  const userId = session.metadata?.user_id
+  const inviteCode = session.metadata?.invite_code
+
+  if (!inviteCode) {
+    console.error('No invite code in metadata')
+    return
+  }
+
+  // Trouver le tournoi
+  const { data: tournament } = await supabaseAdmin
+    .from('tournaments')
+    .select('id')
+    .or(`invite_code.eq.${inviteCode.toUpperCase()},slug.eq.${inviteCode.toUpperCase()}`)
+    .single()
+
+  if (!tournament) {
+    console.error('Tournament not found:', inviteCode)
+    return
+  }
+
+  // Ajouter le participant
+  await supabaseAdmin
+    .from('tournament_participants')
+    .insert({
+      tournament_id: tournament.id,
+      user_id: userId,
+      participant_role: 'member',
+      invite_type: 'paid_slot',
+      has_paid: true,
+      amount_paid: 6.99,
+    })
+
+  // Mettre à jour l'achat avec l'ID du tournoi
+  await supabaseAdmin
+    .from('tournament_purchases')
+    .update({ tournament_id: tournament.id })
+    .eq('stripe_checkout_session_id', session.id)
+
+  console.log('User', userId, 'joined Platinium tournament:', tournament.id)
+}
+
+// Extension de durée
+async function handleDurationExtension(session: any) {
+  const tournamentId = session.metadata?.tournament_id
+
+  if (!tournamentId) {
+    console.error('No tournament_id in metadata')
+    return
+  }
+
+  await supabaseAdmin
+    .from('tournaments')
+    .update({
+      duration_extended: true,
+      max_matchdays: null, // Illimité
+    })
+    .eq('id', tournamentId)
+
+  console.log('Duration extended for tournament:', tournamentId)
+}
+
+// Extension de joueurs (+5)
+async function handlePlayerExtension(session: any) {
+  const tournamentId = session.metadata?.tournament_id
+
+  if (!tournamentId) {
+    console.error('No tournament_id in metadata')
+    return
+  }
+
+  // Récupérer le tournoi actuel
+  const { data: tournament } = await supabaseAdmin
+    .from('tournaments')
+    .select('max_players, players_extended')
+    .eq('id', tournamentId)
+    .single()
+
+  if (!tournament) {
+    console.error('Tournament not found:', tournamentId)
+    return
+  }
+
+  await supabaseAdmin
+    .from('tournaments')
+    .update({
+      max_players: tournament.max_players + 5,
+      max_participants: tournament.max_players + 5,
+      players_extended: (tournament.players_extended || 0) + 5,
+    })
+    .eq('id', tournamentId)
+
+  console.log('Players extended for tournament:', tournamentId)
 }

@@ -11,6 +11,7 @@ import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
+import Footer from '@/components/Footer'
 
 interface Tournament {
   id: string
@@ -116,6 +117,7 @@ export default function OppositionPage() {
 
   // Ref et états pour la navigation des journées avec flèches
   const matchdaysContainerRef = useRef<HTMLDivElement>(null)
+  const matchdayButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({})
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
@@ -891,6 +893,8 @@ export default function OppositionPage() {
 
   const unlockPrediction = (matchId: number) => {
     setLockedPredictions(prev => ({ ...prev, [matchId]: false }))
+    // Marquer comme modifié pour réafficher les boutons +/-
+    setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
   }
 
   const savePrediction = async (matchId: number) => {
@@ -1010,8 +1014,8 @@ export default function OppositionPage() {
     const firstMatchTime = new Date(Math.min(...matchdayMatches.map(m => new Date(m.utc_date).getTime())))
     const hoursUntilFirstMatch = (firstMatchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    // Vérifier si la journée a commencé ou commence dans moins de 24h
-    const journeyStartedOrSoon = hoursUntilFirstMatch < 24
+    // Vérifier si la journée a commencé ou commence dans moins de 48h
+    const journeyStartedOrSoon = hoursUntilFirstMatch < 48
 
     if (!journeyStartedOrSoon) return false
 
@@ -1075,6 +1079,33 @@ export default function OppositionPage() {
     window.addEventListener('resize', checkScrollButtons)
     return () => window.removeEventListener('resize', checkScrollButtons)
   }, [checkScrollButtons, availableMatchdays])
+
+  // Centrer la journée sélectionnée dans le conteneur de navigation
+  useEffect(() => {
+    if (selectedMatchday === null) return
+
+    const container = matchdaysContainerRef.current
+    const button = matchdayButtonRefs.current[selectedMatchday]
+
+    if (container && button) {
+      // Calculer la position pour centrer le bouton
+      const containerRect = container.getBoundingClientRect()
+      const buttonRect = button.getBoundingClientRect()
+
+      // Position du bouton par rapport au conteneur
+      const buttonLeftInContainer = button.offsetLeft
+      const buttonCenter = buttonLeftInContainer + button.offsetWidth / 2
+      const containerCenter = container.offsetWidth / 2
+
+      // Scroll pour centrer le bouton
+      const scrollTarget = buttonCenter - containerCenter
+
+      container.scrollTo({
+        left: scrollTarget,
+        behavior: 'smooth'
+      })
+    }
+  }, [selectedMatchday, availableMatchdays])
 
   // Grouper les matchs par date
   const groupMatchesByDate = (matches: Match[]) => {
@@ -1255,9 +1286,9 @@ export default function OppositionPage() {
           <div className="flex justify-between md:justify-start md:gap-2 border-b theme-border">
             <button
               onClick={() => setActiveTab('pronostics')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'pronostics'
-                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  ? 'nav-tab-active theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
               }`}
             >
@@ -1274,9 +1305,9 @@ export default function OppositionPage() {
             </button>
             <button
               onClick={() => setActiveTab('classement')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'classement'
-                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  ? 'nav-tab-active theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
               }`}
             >
@@ -1293,9 +1324,9 @@ export default function OppositionPage() {
             </button>
             <button
               onClick={handleCauserieClick}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'tchat'
-                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  ? 'nav-tab-active theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
               }`}
             >
@@ -1328,9 +1359,9 @@ export default function OppositionPage() {
             </button>
             <button
               onClick={() => setActiveTab('regles')}
-              className={`flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+              className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
                 activeTab === 'regles'
-                  ? 'theme-accent-text-always border-b-2 border-[#ff9900]'
+                  ? 'nav-tab-active theme-accent-text-always border-b-2 border-[#ff9900]'
                   : 'theme-slate-text hover:theme-text'
               }`}
             >
@@ -1386,6 +1417,7 @@ export default function OppositionPage() {
                         return (
                           <button
                             key={matchday}
+                            ref={(el) => { matchdayButtonRefs.current[matchday] = el }}
                             onClick={() => setSelectedMatchday(matchday)}
                             className={`relative px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] flex-shrink-0 ${
                               isActive
@@ -1400,8 +1432,7 @@ export default function OppositionPage() {
                               <img
                                 src="/images/icons/exclamation.svg"
                                 alt="Pronostics manquants"
-                                className="absolute top-1 right-1 w-4 h-4 animate-pulse"
-                                style={{ filter: 'invert(7%) sepia(10%) saturate(2083%) hue-rotate(183deg) brightness(96%) contrast(97%)' }}
+                                className="absolute top-1 right-1 w-4 h-4 animate-blink-warning"
                                 title="Vous avez des pronostics manquants pour cette journée"
                               />
                             )}
@@ -1691,17 +1722,25 @@ export default function OppositionPage() {
                                   </div>
 
                                   {/* Ligne de modification du pronostic (uniquement si pas clôturé) */}
+                                  {/* Sur mobile : masquée si prono sauvegardé et verrouillé */}
                                   {!isClosed && (
-                                    <div className="flex items-center justify-center gap-2 mb-3">
-                                      {/* Boutons pour score domicile */}
-                                      <div className="flex flex-col gap-0.5">
+                                    <div className={`items-center justify-center gap-2 mb-3 ${
+                                      isSaved && !isModified && isLocked
+                                        ? 'hidden md:flex'
+                                        : 'flex'
+                                    }`}>
+                                      {/* Boutons pour score domicile - cachés si prono enregistré et non modifié */}
+                                      <div
+                                        className="flex flex-col gap-0.5"
+                                        style={{ visibility: savedPredictions[match.id] && !isModified ? 'hidden' : 'visible' }}
+                                      >
                                         <button
                                           onClick={() => {
                                             const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
                                             handleScoreChange(match.id, 'home', newValue)
                                           }}
                                           disabled={isLocked}
-                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          className="btn-score-adjust"
                                         >
                                           +
                                         </button>
@@ -1711,7 +1750,7 @@ export default function OppositionPage() {
                                             handleScoreChange(match.id, 'home', newValue)
                                           }}
                                           disabled={isLocked}
-                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          className="btn-score-adjust"
                                         >
                                           −
                                         </button>
@@ -1751,15 +1790,18 @@ export default function OppositionPage() {
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
 
-                                      {/* Boutons pour score extérieur */}
-                                      <div className="flex flex-col gap-0.5">
+                                      {/* Boutons pour score extérieur - cachés si prono enregistré et non modifié */}
+                                      <div
+                                        className="flex flex-col gap-0.5"
+                                        style={{ visibility: savedPredictions[match.id] && !isModified ? 'hidden' : 'visible' }}
+                                      >
                                         <button
                                           onClick={() => {
                                             const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
                                             handleScoreChange(match.id, 'away', newValue)
                                           }}
                                           disabled={isLocked}
-                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          className="btn-score-adjust"
                                         >
                                           +
                                         </button>
@@ -1769,7 +1811,7 @@ export default function OppositionPage() {
                                             handleScoreChange(match.id, 'away', newValue)
                                           }}
                                           disabled={isLocked}
-                                          className="w-8 h-6 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                          className="btn-score-adjust"
                                         >
                                           −
                                         </button>
@@ -1790,7 +1832,7 @@ export default function OppositionPage() {
                                       )
                                     ) : isSaved && !isModified && isLocked ? (
                                       <div className="flex items-center gap-2">
-                                        <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400">
+                                        <div className="badge-prono-validated">
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                           </svg>
@@ -1809,11 +1851,7 @@ export default function OppositionPage() {
                                       <button
                                         onClick={() => savePrediction(match.id)}
                                         disabled={savingPrediction === match.id}
-                                        className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs ${
-                                          isModified
-                                            ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
-                                            : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
-                                        } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                        className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed"
                                       >
                                         {savingPrediction === match.id ? (
                                           <>
@@ -1822,13 +1860,6 @@ export default function OppositionPage() {
                                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
                                             <span>Envoi...</span>
-                                          </>
-                                        ) : isModified ? (
-                                          <>
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                            </svg>
-                                            <span>Modifier</span>
                                           </>
                                         ) : (
                                           <span>Enregistrer</span>
@@ -1928,14 +1959,17 @@ export default function OppositionPage() {
                                           {/* Score domicile */}
                                           <div className="flex items-center gap-1">
                                             {!isClosed && match.status !== 'POSTPONED' && (
-                                              <div className="flex flex-col gap-0.5">
+                                              <div
+                                                className="flex flex-col gap-0.5"
+                                                style={{ visibility: savedPredictions[match.id] && !isModified ? 'hidden' : 'visible' }}
+                                              >
                                                 <button
                                                   onClick={() => {
                                                     const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
                                                     handleScoreChange(match.id, 'home', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="btn-score-adjust w-6 h-5 text-sm"
                                                 >
                                                   +
                                                 </button>
@@ -1945,7 +1979,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'home', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="btn-score-adjust w-6 h-5 text-sm"
                                                 >
                                                   −
                                                 </button>
@@ -1987,14 +2021,17 @@ export default function OppositionPage() {
                                               className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                             {!isClosed && match.status !== 'POSTPONED' && (
-                                              <div className="flex flex-col gap-0.5">
+                                              <div
+                                                className="flex flex-col gap-0.5"
+                                                style={{ visibility: savedPredictions[match.id] && !isModified ? 'hidden' : 'visible' }}
+                                              >
                                                 <button
                                                   onClick={() => {
                                                     const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
                                                     handleScoreChange(match.id, 'away', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="btn-score-adjust w-6 h-5 text-sm"
                                                 >
                                                   +
                                                 </button>
@@ -2004,7 +2041,7 @@ export default function OppositionPage() {
                                                     handleScoreChange(match.id, 'away', newValue)
                                                   }}
                                                   disabled={isLocked}
-                                                  className="w-6 h-5 flex items-center justify-center rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  className="btn-score-adjust w-6 h-5 text-sm"
                                                 >
                                                   −
                                                 </button>
@@ -2063,7 +2100,7 @@ export default function OppositionPage() {
                                         )
                                       ) : isSaved && !isModified && isLocked ? (
                                         <div className="flex items-center gap-1.5">
-                                          <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-400 flex-shrink-0">
+                                          <div className="badge-prono-validated flex-shrink-0">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                             </svg>
@@ -2296,9 +2333,9 @@ export default function OppositionPage() {
                 </div>
 
                 {tournament?.bonus_match && (
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4">
+                  <div className="quota-warning-box rounded-lg p-4">
                     <div className="flex items-start gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 quota-warning-icon flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       <div>
@@ -2371,6 +2408,9 @@ export default function OppositionPage() {
             />
           )}
         </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </ThemeProvider>
   )

@@ -2568,3 +2568,50 @@ input[type="number"] {
 :root[data-theme="light"] .hover\:from-slate-700:hover {
   --tw-gradient-from: #64748b !important;
 }
+
+/* ========================================
+   BADGES D'ACHAT - Effet glossy
+   ======================================== */
+
+@keyframes glossy-sweep {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 150%;
+  }
+}
+
+.badge-glossy {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.badge-glossy::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 60% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  ) !important;
+  transform: skewX(-20deg) !important;
+  animation: glossy-sweep 2.5s ease-in-out infinite !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+.badge-glossy:hover {
+  transform: scale(1.08) !important;
+}
+
+.badge-glossy:hover .badge-acheter {
+  color: #000000 !important;
+}

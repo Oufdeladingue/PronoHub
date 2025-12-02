@@ -1,0 +1,11 @@
+Nom;nom en bdd;NB tournoi actif maximum;Compétition ponctuelle gratuite;Durée du tournoi;Nombre de joueurs max;Déblocage de Trophées;Paramétrage de Bonus;Possibilité de jeu en Équipe;Vainqueur remporte un lot;Branding du tournoi;Outils d'administration dédiés;Présentation d'une gallerie des lots;Prix de l'offre;;Prix extension durée du tournoi;Extension nombre de joueurs possible jusqu'à;Prix extension nb joueur;Prix d'un slot invité (multi-tournoi);
+Free-Kick;free;2;oui;10 journées;5;non;oui;non;non;non;non;non;0;;3,99;5;1,99;0,99;
+One-shot;premium;1;oui;illimité;10;oui;oui;non;non;non;non;non;4,99;;;;;0,99;
+Elite Team;elite;1;oui;illimité;20;oui;oui;oui;non;non;non;non;9,99;;;;;0,99;
+Platinium;platinium;1;oui;illimité;11 à 30;oui;oui;oui;oui;non;non;non;6,99/joueur;;;;;;
+Corpo;entreprise;1;oui;illimité;max 300;oui;oui;oui;non;oui;oui;oui;à partir de 99€;;;;;;
+;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;

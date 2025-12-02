@@ -33,7 +33,7 @@ export async function GET() {
     // Récupérer tous les tournois
     const { data: tournaments, error } = await supabase
       .from('tournaments')
-      .select('id, name, slug, status, competition_id, created_at, creator_id')
+      .select('id, name, slug, status, competition_id, created_at, creator_id, tournament_type')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -67,23 +67,17 @@ export async function GET() {
           .select('*', { count: 'exact', head: true })
           .eq('tournament_id', tournament.id)
 
-        // Compter les pronostics
-        const { count: predictionsCount } = await supabase
-          .from('predictions')
-          .select('*', { count: 'exact', head: true })
-          .eq('tournament_id', tournament.id)
-
         return {
           id: tournament.id,
           name: tournament.name,
           slug: tournament.slug,
           status: tournament.status,
+          tournament_type: tournament.tournament_type || 'free',
           competition_id: tournament.competition_id,
           competition_name: competition?.name || 'N/A',
           created_at: tournament.created_at,
           creator_username: creator?.username || 'N/A',
           participants_count: participantsCount || 0,
-          predictions_count: predictionsCount || 0,
         }
       })
     )

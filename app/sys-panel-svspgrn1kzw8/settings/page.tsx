@@ -10,8 +10,6 @@ interface Settings {
   auto_refresh_interval: string
   auto_refresh_smart_mode: string
   auto_refresh_pause_inactive: string
-  free_tier_max_players: string
-  max_tournaments_per_user: string
   points_exact_score: string
   points_correct_result: string
   points_incorrect_result: string
@@ -24,8 +22,6 @@ export default function AdminSettingsPage() {
     auto_refresh_interval: '300000',
     auto_refresh_smart_mode: 'true',
     auto_refresh_pause_inactive: 'true',
-    free_tier_max_players: '10',
-    max_tournaments_per_user: '3',
     points_exact_score: '3',
     points_correct_result: '1',
     points_incorrect_result: '0'
@@ -54,8 +50,6 @@ export default function AdminSettingsPage() {
           auto_refresh_interval: data.settings.auto_refresh_interval ?? '300000',
           auto_refresh_smart_mode: data.settings.auto_refresh_smart_mode ?? 'true',
           auto_refresh_pause_inactive: data.settings.auto_refresh_pause_inactive ?? 'true',
-          free_tier_max_players: data.settings.free_tier_max_players ?? '10',
-          max_tournaments_per_user: data.settings.max_tournaments_per_user ?? '3',
           points_exact_score: data.settings.points_exact_score ?? '3',
           points_correct_result: data.settings.points_correct_result ?? '1',
           points_incorrect_result: data.settings.points_incorrect_result ?? '0'
@@ -297,47 +291,14 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          {/* Paramètres des tournois */}
+          {/* Paramètres des tournois (points par defaut) */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Paramètres des tournois</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Systeme de points par defaut</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Ces valeurs sont utilisees comme valeurs par defaut lors de la creation d'un tournoi.
+              Chaque tournoi peut avoir ses propres reglages.
+            </p>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre max de participants (version gratuite)
-                </label>
-                <input
-                  type="number"
-                  value={settings.free_tier_max_players}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    free_tier_max_players: e.target.value
-                  }))}
-                  min="2"
-                  max="50"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre max de tournois simultanés par utilisateur
-                </label>
-                <input
-                  type="number"
-                  value={settings.max_tournaments_per_user}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    max_tournaments_per_user: e.target.value
-                  }))}
-                  min="1"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Limite le nombre de tournois auxquels un utilisateur peut participer en même temps
-                </p>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Points pour score exact

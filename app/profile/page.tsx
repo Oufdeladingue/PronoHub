@@ -655,14 +655,14 @@ function ProfileContent() {
             >
               <img
                 src="/images/icons/premium.svg"
-                alt="Abonnement"
+                alt="Zone VIP"
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'abonnement'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Abonnement</span>
+              <span className="hidden md:inline">Zone VIP</span>
             </button>
           </div>
 

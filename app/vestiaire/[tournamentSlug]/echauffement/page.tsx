@@ -10,6 +10,7 @@ import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 import { getAvatarUrl } from '@/lib/avatars'
+import { TOURNAMENT_RULES, PRICES, TournamentType } from '@/types/monetization'
 
 interface Tournament {
   id: string
@@ -24,7 +25,9 @@ interface Tournament {
   creator_id: string
   status: string
   created_at: string
-  tournament_type?: 'free' | 'premium' | 'oneshot' | 'enterprise'
+  tournament_type?: TournamentType
+  is_legacy?: boolean
+  prepaid_slots_remaining?: number
 }
 
 interface Competition {
@@ -37,6 +40,9 @@ interface Player {
   id: string
   user_id: string
   joined_at: string
+  has_paid?: boolean
+  paid_by_creator?: boolean
+  invite_type?: string
   profiles?: {
     username: string
     avatar?: string
@@ -54,7 +60,6 @@ function EchauffementPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [copySuccess, setCopySuccess] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(10)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
   const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
@@ -81,7 +86,6 @@ function EchauffementPageContent() {
 
   useEffect(() => {
     fetchCurrentUser()
-    fetchMaxParticipantsLimit()
     fetchTournamentData()
   }, [tournamentSlug])
 
@@ -175,33 +179,19 @@ function EchauffementPageContent() {
     }
   }
 
-  const fetchMaxParticipantsLimit = async () => {
-    try {
-      const response = await fetch('/api/settings/public')
-      const data = await response.json()
-      if (data.success && data.settings?.free_tier_max_players) {
-        // La limite par défaut est celle des comptes gratuits
-        // Elle sera ajustée selon le type de tournoi une fois le tournoi chargé
-        setMaxParticipantsLimit(parseInt(data.settings.free_tier_max_players, 10))
-      }
-    } catch (err) {
-      console.error('Error fetching max participants limit:', err)
-    }
-  }
-
   // Calculer la limite maximale de participants selon le type de tournoi
   const getMaxPlayersLimit = () => {
-    if (!tournament) return maxParticipantsLimit
+    if (!tournament) return PRICES.FREE_MAX_PLAYERS
 
-    // Tournois premium, oneshot et enterprise peuvent avoir jusqu'à 20 joueurs
-    if (tournament.tournament_type === 'premium' ||
-        tournament.tournament_type === 'oneshot' ||
-        tournament.tournament_type === 'enterprise') {
-      return 20
+    // Tournois legacy n'ont pas de limite stricte, utiliser max_players du tournoi
+    if (tournament.is_legacy) {
+      return tournament.max_players || 20
     }
 
-    // Tournois gratuits utilisent la limite définie dans les settings
-    return maxParticipantsLimit
+    // Utiliser les regles definies dans monetization.ts
+    const tournamentType = tournament.tournament_type || 'free'
+    const rules = TOURNAMENT_RULES[tournamentType]
+    return rules?.maxPlayers || PRICES.FREE_MAX_PLAYERS
   }
 
   const fetchPlayers = async () => {
@@ -210,7 +200,7 @@ function EchauffementPageContent() {
 
       const { data: playersData, error: playersError } = await supabase
         .from('tournament_participants')
-        .select('*, profiles(username, avatar)')
+        .select('*, profiles(username, avatar), has_paid, paid_by_creator, invite_type')
         .eq('tournament_id', tournament?.id)
         .order('joined_at', { ascending: true })
 
@@ -934,6 +924,9 @@ function EchauffementPageContent() {
                 const isCaptain = player.user_id === tournament?.creator_id
                 const isCreatorViewing = currentUserId === tournament?.creator_id
                 const canTransfer = isCreatorViewing && !isCaptain && players.length > 1
+                const isPlatinium = tournament?.tournament_type === 'platinium'
+                const isPaidByCreator = player.paid_by_creator
+                const hasPaid = player.has_paid
 
                 return (
                   <div
@@ -957,7 +950,7 @@ function EchauffementPageContent() {
                       </div>
                     </div>
 
-                    {/* Nom + Capitaine */}
+                    {/* Nom + Capitaine + Badge paiement Platinium */}
                     <div className="flex-1">
                       <p className="font-semibold flex items-center gap-2">
                         <span className={player.user_id === currentUserId ? 'text-[#ff9900]' : 'theme-text'}>
@@ -967,6 +960,27 @@ function EchauffementPageContent() {
                           <span className="text-xs dark-text-white font-semibold">(cap.)</span>
                         )}
                       </p>
+                      {/* Badge de statut de paiement pour Platinium */}
+                      {isPlatinium && (
+                        <p className="text-xs mt-0.5">
+                          {isPaidByCreator ? (
+                            <span className="text-green-400 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Place offerte
+                            </span>
+                          ) : hasPaid ? (
+                            <span className="text-yellow-400 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                              Place payee
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
+                              En attente paiement
+                            </span>
+                          )}
+                        </p>
+                      )}
                     </div>
 
                     {/* Bouton Transférer */}
@@ -983,22 +997,42 @@ function EchauffementPageContent() {
               })}
 
               {/* Places vides */}
-              {Array.from({ length: tournament.max_players - players.length }).map((_, index) => (
-                <div
-                  key={`empty-${index}`}
-                  className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2 border-dashed opacity-50"
-                >
-                  <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
-                    <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className="empty-jersey-svg">
-                      <path d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
-                    </svg>
-                    <span className="absolute empty-jersey-number font-bold text-xs">{players.length + index + 1}</span>
+              {Array.from({ length: tournament.max_players - players.length }).map((_, index) => {
+                const isPlatinium = tournament?.tournament_type === 'platinium'
+                const prepaidRemaining = tournament?.prepaid_slots_remaining || 0
+                const isThisSlotPrepaid = isPlatinium && index < prepaidRemaining
+
+                return (
+                  <div
+                    key={`empty-${index}`}
+                    className={`dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2 border-dashed ${isThisSlotPrepaid ? 'opacity-70 border-green-500/50' : 'opacity-50'}`}
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 relative flex items-center justify-center">
+                      <svg width="40" height="40" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" className={isThisSlotPrepaid ? 'text-green-500' : 'empty-jersey-svg'}>
+                        <path fill="currentColor" d="M11.91 14.22H4.06l-.5-.5V7.06H2.15l-.48-.38L1 4l.33-.6L5.59 2l.64.32a2.7 2.7 0 0 0 .21.44c.071.103.152.2.24.29.168.169.369.302.59.39a1.82 1.82 0 0 0 1.43 0 1.74 1.74 0 0 0 .59-.39c.09-.095.173-.195.25-.3l.15-.29a1.21 1.21 0 0 0 .05-.14l.64-.32 4.26 1.42L15 4l-.66 2.66-.49.38h-1.44v6.66l-.5.52zm-7.35-1h6.85V6.56l.5-.5h1.52l.46-1.83-3.4-1.14a1.132 1.132 0 0 1-.12.21c-.11.161-.233.312-.37.45a2.75 2.75 0 0 1-.91.61 2.85 2.85 0 0 1-2.22 0A2.92 2.92 0 0 1 6 3.75a2.17 2.17 0 0 1-.36-.44l-.13-.22-3.43 1.14.46 1.83h1.52l.5.5v6.66z"/>
+                      </svg>
+                      <span className={`absolute font-bold text-xs ${isThisSlotPrepaid ? 'text-green-500' : 'empty-jersey-number'}`}>{players.length + index + 1}</span>
+                    </div>
+                    <div className="flex-1">
+                      {isPlatinium ? (
+                        isThisSlotPrepaid ? (
+                          <p className="text-green-400 text-sm font-medium flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                            Place prepayee - Gratuit
+                          </p>
+                        ) : (
+                          <p className="text-yellow-400/70 text-sm italic flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                            En attente - 6,99€
+                          </p>
+                        )
+                      ) : (
+                        <p className="empty-jersey-text italic">En attente...</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="empty-jersey-text italic">En attente...</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
 
               {/* Boutons gestion des places (visible uniquement pour le capitaine) */}
               {currentUserId === tournament?.creator_id && (

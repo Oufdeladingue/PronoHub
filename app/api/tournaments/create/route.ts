@@ -1,98 +1,58 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { TournamentType, ACCOUNT_LIMITS } from '@/types/monetization'
+import { TournamentType, PRICES, TOURNAMENT_RULES } from '@/types/monetization'
 
-// Déterminer le type de tournoi selon les quotas utilisateur
-// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
-// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
-async function determineTournamentType(supabase: any, userId: string): Promise<{
-  tournamentType: TournamentType | null;
+// =====================================================
+// Système de création de tournoi v2
+// =====================================================
+// FREE-KICK: Gratuit, max 2 actifs, 5 joueurs, 10 journées
+// ONE-SHOT: 4.99€, 10 joueurs, durée illimitée
+// ELITE: 9.99€, 20 joueurs, durée illimitée
+// PLATINIUM: 6.99€/personne, 11-30 joueurs
+// =====================================================
+
+interface TournamentTypeResult {
+  canCreate: boolean;
+  requiresPayment: boolean;
+  paymentAmount: number;
+  tournamentType: TournamentType;
   maxPlayers: number;
+  maxMatchdays: number | null;
   reason: string;
-}> {
-  // Vérifier abonnement actif
-  const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('status')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .single()
-
-  // Compter tournois premium actifs CRÉÉS par cet utilisateur (original_creator_id)
-  // On utilise original_creator_id car même après transfert de capitanat, le slot reste occupé
-  const { count: premiumCount } = await supabase
-    .from('tournaments')
-    .select('*', { count: 'exact', head: true })
-    .eq('original_creator_id', userId)
-    .eq('tournament_type', 'premium')
-    .neq('status', 'completed')
-
-  // Priorité 1: Abonnement premium (max 5, 20 joueurs)
-  if (subscription && (premiumCount || 0) < 5) {
-    return { tournamentType: 'premium', maxPlayers: 20, reason: 'Slot premium' }
-  }
-
-  // Compter slots one-shot disponibles
-  const { count: oneshotAvailable } = await supabase
-    .from('user_oneshot_purchases')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'available')
-
-  // Priorité 2: One-shot (20 joueurs)
-  if ((oneshotAvailable || 0) > 0) {
-    return { tournamentType: 'oneshot', maxPlayers: 20, reason: 'Slot one-shot' }
-  }
-
-  // GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
-  // Récupérer d'abord les IDs des tournois où l'utilisateur participe
-  const { data: participations } = await supabase
-    .from('tournament_participants')
-    .select('tournament_id')
-    .eq('user_id', userId)
-
-  const tournamentIds = participations?.map((p: any) => p.tournament_id) || []
-
-  // Compter combien de ces tournois sont gratuits et actifs
-  let freeParticipationCount = 0
-  if (tournamentIds.length > 0) {
-    const { count } = await supabase
-      .from('tournaments')
-      .select('*', { count: 'exact', head: true })
-      .in('id', tournamentIds)
-      .eq('tournament_type', 'free')
-      .neq('status', 'completed')
-
-    freeParticipationCount = count || 0
-  }
-
-  // Priorité 3: Gratuit (max 3 participations, 8 joueurs)
-  if (freeParticipationCount < 3) {
-    return { tournamentType: 'free', maxPlayers: 8, reason: 'Slot gratuit' }
-  }
-
-  return { tournamentType: null, maxPlayers: 0, reason: 'Quota atteint - upgrade requis' }
 }
 
-// Utiliser un slot one-shot
-async function useOneshotSlot(supabase: any, userId: string, tournamentId: string): Promise<boolean> {
-  const { data: slot } = await supabase
-    .from('user_oneshot_purchases')
-    .select('id')
+// Vérifier si l'utilisateur peut créer un tournoi FREE
+async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
+  canCreate: boolean;
+  currentCount: number;
+}> {
+  // Compter les tournois FREE actifs (non legacy) où l'utilisateur participe avec slot gratuit
+  const { data: participations } = await supabase
+    .from('tournament_participants')
+    .select(`
+      tournament_id,
+      invite_type,
+      tournaments!inner (
+        id,
+        tournament_type,
+        status,
+        is_legacy
+      )
+    `)
     .eq('user_id', userId)
-    .eq('status', 'available')
-    .order('purchased_at', { ascending: true })
-    .limit(1)
-    .single()
 
-  if (!slot) return false
+  const freeCount = (participations || []).filter((p: any) =>
+    p.tournaments &&
+    (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
+    ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
+    !p.tournaments.is_legacy &&
+    (p.invite_type === 'free' || !p.invite_type)
+  ).length
 
-  await supabase
-    .from('user_oneshot_purchases')
-    .update({ status: 'in_use', tournament_id: tournamentId, used_at: new Date().toISOString() })
-    .eq('id', slot.id)
-
-  return true
+  return {
+    canCreate: freeCount < PRICES.FREE_MAX_TOURNAMENTS,
+    currentCount: freeCount
+  }
 }
 
 export async function POST(request: Request) {
@@ -109,16 +69,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Déterminer le type de tournoi selon les quotas
-    const { tournamentType, maxPlayers: allowedMaxPlayers, reason } = await determineTournamentType(supabase, user.id)
-
-    if (!tournamentType) {
-      return NextResponse.json(
-        { success: false, error: reason, needsUpgrade: true, quotaExceeded: true },
-        { status: 403 }
-      )
-    }
-
     // Récupérer les données du tournoi
     const body = await request.json()
     const {
@@ -130,10 +80,11 @@ export async function POST(request: Request) {
       numMatchdays,
       allMatchdays,
       bonusMatchEnabled,
-      drawWithDefaultPredictionPoints
+      drawWithDefaultPredictionPoints,
+      tournamentType: requestedType // Type demandé par l'utilisateur (free, oneshot, elite, platinium)
     } = body
 
-    // Validation
+    // Validation de base
     if (!name || !slug || !competitionId || !competitionName) {
       return NextResponse.json(
         { success: false, error: 'Données manquantes' },
@@ -155,12 +106,105 @@ export async function POST(request: Request) {
       )
     }
 
-    // Limiter maxPlayers selon le type de compte
-    const effectiveMaxPlayers = Math.min(maxPlayers || allowedMaxPlayers, allowedMaxPlayers)
+    // Déterminer le type de tournoi
+    const tournamentType: TournamentType = requestedType || 'free'
+    const rules = TOURNAMENT_RULES[tournamentType]
 
-    // Créer le tournoi avec le type déterminé
-    // original_creator_id garde en mémoire qui a créé le tournoi (pour le quota)
-    // creator_id est le capitaine actuel (peut changer avec le transfert)
+    // Vérification des quotas selon le type
+    if (tournamentType === 'free') {
+      const { canCreate, currentCount } = await canCreateFreeTournament(supabase, user.id)
+      if (!canCreate) {
+        return NextResponse.json({
+          success: false,
+          error: `Vous avez atteint votre quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits actifs (${currentCount}/${PRICES.FREE_MAX_TOURNAMENTS}). Passez à One-Shot ou Elite Team pour créer plus de tournois.`,
+          needsUpgrade: true,
+          quotaExceeded: true,
+          currentCount,
+          maxCount: PRICES.FREE_MAX_TOURNAMENTS
+        }, { status: 403 })
+      }
+    }
+
+    // Pour les tournois payants (oneshot, elite, platinium), verifier le credit disponible
+    let usedPurchaseId: string | null = null
+    let prepaidSlotsToAdd = 0 // Nombre de places prepayees (pour platinium_group)
+    let usedPurchaseType: string | null = null
+
+    if (['oneshot', 'elite', 'platinium'].includes(tournamentType)) {
+      const { use_credit } = body
+
+      if (!use_credit) {
+        // Retourner les infos de prix pour acheter un credit
+        return NextResponse.json({
+          success: false,
+          requiresPayment: true,
+          tournamentType,
+          paymentAmount: rules.creationPrice,
+          maxPlayers: rules.maxPlayers,
+          message: `La creation d'un tournoi ${tournamentType} necessite un credit. Achetez-en un sur la page Pricing.`
+        }, { status: 402 })
+      }
+
+      // Pour Platinium, verifier d'abord s'il y a un credit groupe (11 places)
+      if (tournamentType === 'platinium') {
+        const { data: groupCredit } = await supabase
+          .from('tournament_purchases')
+          .select('id, slots_included')
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'platinium_group')
+          .eq('status', 'completed')
+          .eq('used', false)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (groupCredit) {
+          usedPurchaseId = groupCredit.id
+          usedPurchaseType = 'platinium_group'
+          // Le createur utilise 1 place, les autres sont prepayees pour les invites
+          prepaidSlotsToAdd = (groupCredit.slots_included || 11) - 1
+        }
+      }
+
+      // Si pas de credit groupe trouve, chercher un credit solo
+      if (!usedPurchaseId) {
+        const { data: availableCredit } = await supabase
+          .from('tournament_purchases')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'tournament_creation')
+          .eq('tournament_subtype', tournamentType)
+          .eq('status', 'completed')
+          .eq('used', false)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (!availableCredit) {
+          return NextResponse.json({
+            success: false,
+            error: `Aucun credit ${tournamentType} disponible. Achetez-en un sur la page Pricing.`,
+            requiresPayment: true,
+            tournamentType,
+            paymentAmount: rules.creationPrice
+          }, { status: 402 })
+        }
+
+        usedPurchaseId = availableCredit.id
+        usedPurchaseType = 'tournament_creation'
+      }
+    }
+
+    // Limiter maxPlayers selon le type de tournoi
+    const effectiveMaxPlayers = Math.min(maxPlayers || rules.maxPlayers, rules.maxPlayers)
+
+    // Limiter numMatchdays pour les tournois FREE
+    let effectiveMatchdays = numMatchdays
+    if (tournamentType === 'free' && rules.maxMatchdays) {
+      effectiveMatchdays = Math.min(numMatchdays, rules.maxMatchdays)
+    }
+
+    // Créer le tournoi
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
       .insert({
@@ -171,19 +215,24 @@ export async function POST(request: Request) {
         competition_name: competitionName,
         max_players: effectiveMaxPlayers,
         max_participants: effectiveMaxPlayers,
-        num_matchdays: numMatchdays,
-        matchdays_count: numMatchdays,
+        num_matchdays: effectiveMatchdays,
+        matchdays_count: effectiveMatchdays,
+        max_matchdays: rules.maxMatchdays, // Limite de journées (null = illimité)
         all_matchdays: allMatchdays,
         bonus_match_enabled: bonusMatchEnabled,
         creator_id: user.id,
-        original_creator_id: user.id, // Garde en mémoire le créateur original pour les quotas
+        original_creator_id: user.id,
         status: 'pending',
         current_participants: 1,
         scoring_exact_score: 3,
         scoring_correct_winner: 1,
         scoring_correct_goal_difference: 2,
         scoring_default_prediction_max: drawWithDefaultPredictionPoints || 1,
-        tournament_type: tournamentType
+        tournament_type: tournamentType,
+        is_legacy: false, // Nouveau tournoi = pas legacy
+        duration_extended: false,
+        players_extended: 0,
+        prepaid_slots_remaining: prepaidSlotsToAdd // Places prepayees pour les invites (platinium_group)
       })
       .select()
       .single()
@@ -194,11 +243,6 @@ export async function POST(request: Request) {
         { success: false, error: 'Erreur lors de la création du tournoi' },
         { status: 500 }
       )
-    }
-
-    // Si c'est un one-shot, utiliser le slot
-    if (tournamentType === 'oneshot') {
-      await useOneshotSlot(supabase, user.id, tournament.id)
     }
 
     // Vérifier si l'utilisateur a un profil
@@ -217,12 +261,18 @@ export async function POST(request: Request) {
       })
     }
 
-    // Ajouter le créateur comme premier participant
+    // Ajouter le créateur comme premier participant (capitaine)
+    const isPlatiniumGroup = usedPurchaseType === 'platinium_group'
     const { error: playerError } = await supabase
       .from('tournament_participants')
       .insert({
         tournament_id: tournament.id,
-        user_id: user.id
+        user_id: user.id,
+        participant_role: 'captain',
+        invite_type: isPlatiniumGroup ? 'prepaid_slot' : 'free', // Le créateur utilise une place du groupe si platinium_group
+        has_paid: ['oneshot', 'elite', 'platinium'].includes(tournamentType),
+        amount_paid: isPlatiniumGroup ? PRICES.PLATINIUM_PARTICIPATION : rules.creationPrice,
+        paid_by_creator: isPlatiniumGroup // Le createur a paye sa propre place via le groupe
       })
 
     if (playerError) {
@@ -232,7 +282,7 @@ export async function POST(request: Request) {
 
     // Créer les journées du tournoi
     const journeys = []
-    for (let i = 1; i <= numMatchdays; i++) {
+    for (let i = 1; i <= effectiveMatchdays; i++) {
       journeys.push({
         tournament_id: tournament.id,
         journey_number: i,
@@ -246,12 +296,32 @@ export async function POST(request: Request) {
 
     if (journeysError) {
       console.error('Error creating tournament journeys:', journeysError)
-      // On continue quand même, le tournoi est créé
+      // On continue quand meme, le tournoi est cree
+    }
+
+    // Marquer le credit comme utilise si applicable
+    if (usedPurchaseId) {
+      const { error: updateError } = await supabase
+        .from('tournament_purchases')
+        .update({
+          used: true,
+          used_at: new Date().toISOString(),
+          used_for_tournament_id: tournament.id,
+          tournament_id: tournament.id
+        })
+        .eq('id', usedPurchaseId)
+
+      if (updateError) {
+        console.error('Error marking credit as used:', updateError)
+      }
     }
 
     return NextResponse.json({
       success: true,
-      tournament
+      tournament,
+      tournamentType,
+      maxPlayers: effectiveMaxPlayers,
+      maxMatchdays: rules.maxMatchdays
     })
 
   } catch (error: any) {

@@ -620,7 +620,7 @@ export function getDetailedReminderTemplate(props: ReminderEmailProps) {
     defaultPredictionMaxPoints
   } = props
 
-  const actionUrl = `https://www.pronohub.club/vestiaire/${tournamentSlug}/opposition`
+  const actionUrl = `https://www.pronohub.club/${tournamentSlug}/opposition`
 
   // Générer le HTML des matchs
   const matchesHtml = matches.map(match => `

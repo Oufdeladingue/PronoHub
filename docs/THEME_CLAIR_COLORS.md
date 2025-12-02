@@ -7,14 +7,14 @@
 | ⚡ Accent principal | Orange | `#FF9900` | Boutons primaires, liens actifs, éléments d'action, hover |
 | 🔵 Accent secondaire fort | Bleu élite | `#0055FF` | Éléments secondaires, badges, bordures accent |
 | ⚫ Titres soft | Graphite bleu | `#243447` | Titres, textes principaux, labels importants |
-| 🌫️ Fond | Gris glacier | `#F2F4F7` | Background général, cartes secondaires |
-| 🕊️ Fond principal | Blanc | `#FFFFFF` | Cartes principales, navigation, conteneurs |
+| 🌫️ Fond page | Gris ardoise | `#D0D6DE` | Background général de la page (contraste avec cartes) |
+| 🕊️ Fond cartes | Blanc | `#FFFFFF` | Cartes principales, navigation, conteneurs, sections |
 
 ## Variables CSS correspondantes
 
 ```css
 :root[data-theme="light"] {
-  --background: #F2F4F7;        /* Gris glacier - fond général */
+  --background: #D0D6DE;        /* Gris ardoise - fond général (contraste) */
   --foreground: #243447;        /* Graphite bleu - texte principal */
   --card-bg: #FFFFFF;           /* Blanc - fond des cartes */
   --nav-bg: #FFFFFF;            /* Blanc - fond navigation */
@@ -47,9 +47,9 @@
 - Texte principal important
 - Labels de formulaires
 
-### Gris glacier (#F2F4F7)
-- Background de page
-- Fond des sections
+### Gris ardoise (#D0D6DE)
+- Background général de la page
+- Crée le contraste avec les cartes blanches
 - Séparateurs visuels
 
 ### Blanc (#FFFFFF)
