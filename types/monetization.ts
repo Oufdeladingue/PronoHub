@@ -189,6 +189,7 @@ export interface EnterpriseAccount {
   user_id: string;
   company_name: string;
   logo_url?: string | null;
+  custom_logo_url?: string | null;
   primary_color?: string | null;
   secondary_color?: string | null;
   status: EnterpriseStatus;
