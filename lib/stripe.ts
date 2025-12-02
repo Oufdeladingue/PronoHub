@@ -1,5 +1,8 @@
 import Stripe from 'stripe'
 
+// Vérifier si Stripe est configuré
+export const isStripeEnabled = !!process.env.STRIPE_SECRET_KEY
+
 if (!process.env.STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY is not defined - Stripe payments will not work')
 }
