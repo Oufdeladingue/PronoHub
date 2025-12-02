@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { stripe, isStripeEnabled } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
@@ -12,7 +12,7 @@ const supabaseAdmin = createAdminClient(
 export async function POST(request: NextRequest) {
   try {
     // Verifier si Stripe est configure
-    if (!process.env.STRIPE_SECRET_KEY) {
+    if (!isStripeEnabled || !stripe) {
       return NextResponse.json(
         { error: 'Stripe n\'est pas configure' },
         { status: 503 }
