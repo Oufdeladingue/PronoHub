@@ -183,6 +183,19 @@ export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'past_due'
 export type OneshotStatus = 'available' | 'in_use' | 'expired';
 export type EnterpriseStatus = 'active' | 'expired' | 'cancelled';
 
+// Interface pour le branding entreprise
+export interface EnterpriseAccount {
+  id: string;
+  user_id: string;
+  company_name: string;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  secondary_color?: string | null;
+  status: EnterpriseStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface UserQuotas {
   user_id: string;
   username: string;
