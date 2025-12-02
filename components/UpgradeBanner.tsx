@@ -64,7 +64,8 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
               <p className="text-sm font-medium text-gray-200">
                 {currentType === 'free' && `Tournoi gratuit - Max ${maxPlayers} joueurs`}
                 {currentType === 'oneshot' && `Tournoi One-Shot - Max ${maxPlayers} joueurs`}
-                {currentType === 'premium' && `Tournoi Premium - Max ${maxPlayers} joueurs`}
+                {currentType === 'elite' && `Tournoi Elite - Max ${maxPlayers} joueurs`}
+                {currentType === 'platinium' && `Tournoi Platinium - Max ${maxPlayers} joueurs`}
               </p>
               {currentType === 'free' && (
                 <p className="text-xs text-gray-400">
@@ -203,7 +204,7 @@ export function TournamentTypeIndicator() {
     )
   }
 
-  const typeConfig = {
+  const typeConfig: Record<string, { icon: string; label: string }> = {
     free: {
       icon: '/images/icons/futebol.svg',
       label: 'Tournoi Gratuit',
@@ -212,9 +213,13 @@ export function TournamentTypeIndicator() {
       icon: '/images/icons/futebol.svg',
       label: 'Tournoi One-Shot',
     },
-    premium: {
+    elite: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi Premium',
+      label: 'Tournoi Elite',
+    },
+    platinium: {
+      icon: '/images/icons/futebol.svg',
+      label: 'Tournoi Platinium',
     },
     enterprise: {
       icon: '/images/icons/futebol.svg',
