@@ -66,22 +66,24 @@ export function useStripeCheckout() {
         throw new Error(data.error || 'Erreur lors de la création de la session')
       }
 
-      // Rediriger vers Stripe Checkout
-      const stripe = await stripePromise
-
-      if (!stripe) {
-        throw new Error('Impossible de charger Stripe')
+      // Rediriger vers Stripe Checkout via l'URL
+      if (data.url) {
+        window.location.href = data.url
+        return { success: true }
       }
 
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId: data.sessionId,
-      })
-
-      if (stripeError) {
-        throw new Error(stripeError.message)
+      // Fallback: utiliser sessionId si url n'est pas fournie
+      if (data.sessionId) {
+        const stripe = await stripePromise
+        if (!stripe) {
+          throw new Error('Impossible de charger Stripe')
+        }
+        // Rediriger manuellement vers la page de checkout Stripe
+        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`
+        return { success: true }
       }
 
-      return { success: true }
+      throw new Error('Aucune URL de checkout reçue')
     } catch (err: any) {
       console.error('Checkout error:', err)
       setError(err.message)
