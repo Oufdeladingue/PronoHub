@@ -89,7 +89,7 @@ export function EnterpriseLogoHeader() {
           className="h-12 object-contain"
         />
       ) : (
-        <div className="text-xl font-bold" style={{ color: branding.primary_color }}>
+        <div className="text-xl font-bold" style={{ color: branding.primary_color || undefined }}>
           {branding.company_name}
         </div>
       )}
