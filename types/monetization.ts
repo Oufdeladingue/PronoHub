@@ -214,6 +214,16 @@ export interface UserQuotas {
   can_create_tournament: boolean;
 }
 
+// Type pour les features disponibles
+export type Feature =
+  | 'basic_rankings'
+  | 'simple_predictions'
+  | 'trophies'
+  | 'team_play'
+  | 'prize'
+  | 'extended_stats'
+  | 'all';
+
 // Legacy constants (pour compatibilité avec le code existant)
 export const ACCOUNT_LIMITS = {
   free: {
