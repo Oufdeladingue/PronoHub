@@ -241,11 +241,11 @@ async function determineTournamentTypeManually(
   const uniquePremiumIds = new Set(allPremiumCreated.map(t => t.id))
   const premiumCount = uniquePremiumIds.size
 
-  // Priorité 1: Abonnement premium
+  // Priorité 1: Abonnement premium (utilise le type elite)
   if (hasSubscription && premiumCount < 5) {
     return {
-      tournament_type: 'premium',
-      max_players: ACCOUNT_LIMITS.premium.maxPlayersPerTournament,
+      tournament_type: 'elite',
+      max_players: ACCOUNT_LIMITS.elite.maxPlayersPerTournament,
       reason: 'Slot abonnement premium utilisé'
     }
   }
