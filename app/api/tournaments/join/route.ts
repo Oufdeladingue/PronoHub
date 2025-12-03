@@ -63,18 +63,19 @@ async function checkJoinEligibility(
     `)
     .eq('user_id', userId)
 
-  // Cas FREE-KICK
-  if (tournamentType === 'free') {
-    // Compter les tournois FREE actifs (non legacy) avec invite gratuite
-    const freeCount = (participations || []).filter((p: any) =>
-      p.tournaments &&
-      (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
-      ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
-      !p.tournaments.is_legacy &&
-      (p.invite_type === 'free' || !p.invite_type)
-    ).length
+  // Compter les tournois FREE-KICK actifs (non legacy)
+  // Cette variable est utilisee pour FREE-KICK, ONE-SHOT et ELITE-TEAM
+  const freekickCount = (participations || []).filter((p: any) =>
+    p.tournaments &&
+    (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
+    ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
+    !p.tournaments.is_legacy
+  ).length
 
-    if (freeCount < PRICES.FREE_MAX_TOURNAMENTS) {
+  // Cas FREE-KICK
+  // Regle: gratuit si freekick_count < 2, sinon 0.99€
+  if (tournamentType === 'free') {
+    if (freekickCount < PRICES.FREE_MAX_TOURNAMENTS) {
       return {
         canJoin: true,
         requiresPayment: false,
@@ -95,26 +96,27 @@ async function checkJoinEligibility(
     }
   }
 
-  // Cas ONE-SHOT / ELITE
+  // Cas ONE-SHOT / ELITE-TEAM
+  // Regle: gratuit si l'user n'est pas deja invite dans un tournoi premium actif
+  // Sinon 0.99€ (evite que des users profitent d'invitations gratuites sans jamais payer)
   if (tournamentType === 'oneshot' || tournamentType === 'elite') {
-    // Compter les invitations premium gratuites utilisées (non legacy, membre uniquement)
-    const premiumInviteCount = (participations || []).filter((p: any) =>
+    // Compter les tournois ONE-SHOT/ELITE actifs ou l'user est INVITE (pas createur)
+    const premiumGuestCount = (participations || []).filter((p: any) =>
       p.tournaments &&
       ['oneshot', 'elite'].includes(p.tournaments.tournament_type) &&
       ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
       !p.tournaments.is_legacy &&
-      p.invite_type === 'premium_invite' &&
-      p.participant_role === 'member'
+      p.participant_role !== 'captain' // Seulement les invites, pas les createurs
     ).length
 
-    if (premiumInviteCount < 1) {
+    if (premiumGuestCount === 0) {
       return {
         canJoin: true,
         requiresPayment: false,
         paymentAmount: 0,
         paymentType: '',
         inviteType: 'premium_invite',
-        reason: 'Invitation premium gratuite'
+        reason: 'Premiere invitation gratuite'
       }
     } else {
       return {
@@ -123,7 +125,7 @@ async function checkJoinEligibility(
         paymentAmount: PRICES.SLOT_INVITE,
         paymentType: 'slot_invite',
         inviteType: 'paid_slot',
-        reason: `Invitation gratuite déjà utilisée - slot payant à ${PRICES.SLOT_INVITE}€`
+        reason: `Vous etes deja invite dans ${premiumGuestCount} tournoi(s) premium - slot payant à ${PRICES.SLOT_INVITE}€`
       }
     }
   }
@@ -192,18 +194,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Chercher le tournoi avec ce code d'invitation
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy, prepaid_slots_remaining')
-      .or(`invite_code.eq.${inviteCode.toUpperCase()},slug.eq.${inviteCode.toUpperCase()}`)
-      .single()
+    const upperCode = inviteCode.toUpperCase()
+    console.log('[JOIN] Searching for tournament with code:', upperCode)
 
-    if (tournamentError || !tournament) {
+    // Récupérer tous les tournois avec le client utilisateur
+    // Note: La politique RLS permet à tout le monde de voir les tournois
+    const { data: allTournamentsForSearch, error: searchError } = await supabase
+      .from('tournaments')
+      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy')
+
+    console.log('[JOIN] All tournaments count:', allTournamentsForSearch?.length || 0)
+    console.log('[JOIN] Search error:', searchError?.message || 'none')
+
+    // Chercher le tournoi par invite_code ou slug
+    let tournament = allTournamentsForSearch?.find(t =>
+      t.invite_code === upperCode || t.slug === upperCode
+    ) || null
+
+    console.log('[JOIN] Tournament search result:', {
+      found: !!tournament,
+      tournamentName: tournament?.name,
+      allCount: allTournamentsForSearch?.length
+    })
+
+    if (!tournament) {
+      console.log('[JOIN] Tournament not found for code:', upperCode)
       return NextResponse.json(
         { error: 'Tournoi introuvable avec ce code' },
         { status: 404 }
       )
     }
+
+    console.log('[JOIN] Tournament found:', { id: tournament.id, name: tournament.name, invite_code: tournament.invite_code, slug: tournament.slug })
 
     // Vérifier que le tournoi est en attente ou warmup
     if (!['pending', 'warmup'].includes(tournament.status)) {
@@ -288,37 +310,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Si c'est une place prepayee, decrementer le compteur
-    const isPrepaidSlot = eligibility.inviteType === 'prepaid_slot'
-    if (isPrepaidSlot) {
-      const { error: decrementError } = await supabase
-        .from('tournaments')
-        .update({
-          prepaid_slots_remaining: (tournament.prepaid_slots_remaining || 1) - 1
-        })
-        .eq('id', tournament.id)
-
-      if (decrementError) {
-        console.error('Error decrementing prepaid slots:', decrementError)
-        return NextResponse.json(
-          { error: 'Erreur lors de l\'utilisation de la place prepayee' },
-          { status: 500 }
-        )
-      }
-    }
+    // Note: La fonctionnalité prepaid_slots n'est pas encore implémentée en BDD
+    // TODO: Ajouter la colonne prepaid_slots_remaining à la table tournaments si besoin
 
     // Ajouter l'utilisateur au tournoi
+    // Note: On utilise uniquement les colonnes de base qui existent dans la table
     const { error: joinError } = await supabase
       .from('tournament_participants')
       .insert({
         tournament_id: tournament.id,
         user_id: user.id,
-        joined_at: new Date().toISOString(),
-        participant_role: 'member',
-        invite_type: eligibility.inviteType,
-        has_paid: eligibility.requiresPayment || isPrepaidSlot, // Prepaid = deja paye par le createur
-        amount_paid: eligibility.requiresPayment ? eligibility.paymentAmount : 0,
-        paid_by_creator: isPrepaidSlot // Marquer si c'est le createur qui a paye
+        joined_at: new Date().toISOString()
       })
 
     if (joinError) {

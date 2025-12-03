@@ -1,0 +1,152 @@
+{
+  "currency": "EUR",
+  "variables": {
+    "freekick_count": "number of active Free-Kick tournaments for this user",
+    "premium_guest_count": "number of One-Shot or Elite-Team tournaments where user is a guest (not captain)",
+    "current_players_in_tournament": "number of players currently in the tournament the user is joining (used for Platinum Prepaid join)"
+  },
+  "tournament_types": {
+    "FREE_KICK": {
+      "max_players": 5,
+      "max_match_days": 10
+    },
+    "ONE_SHOT": {
+      "max_players": 10,
+      "max_match_days": null
+    },
+    "ELITE_TEAM": {
+      "max_players": 20,
+      "max_match_days": null
+    },
+    "PLATINUM": {
+      "max_players": 30,
+      "max_match_days": null
+    },
+    "PLATINUM_PREPAID_11": {
+      "base_max_players": 11,
+      "absolute_max_players": 30,
+      "max_match_days": null
+    }
+  },
+  "rules": [
+    {
+      "id": "JOIN_FREE_KICK_1",
+      "action": "JOIN",
+      "tournament_type": "FREE_KICK",
+      "condition": "freekick_count < 2",
+      "price_eur": 0.0
+    },
+    {
+      "id": "JOIN_FREE_KICK_2",
+      "action": "JOIN",
+      "tournament_type": "FREE_KICK",
+      "condition": "freekick_count >= 2",
+      "price_eur": 0.99
+    },
+    {
+      "id": "JOIN_ONE_SHOT_1",
+      "action": "JOIN",
+      "tournament_type": "ONE_SHOT",
+      "condition": "premium_guest_count == 0",
+      "price_eur": 0.0
+    },
+    {
+      "id": "JOIN_ONE_SHOT_2",
+      "action": "JOIN",
+      "tournament_type": "ONE_SHOT",
+      "condition": "premium_guest_count >= 1",
+      "price_eur": 0.99
+    },
+    {
+      "id": "JOIN_ELITE_TEAM_1",
+      "action": "JOIN",
+      "tournament_type": "ELITE_TEAM",
+      "condition": "premium_guest_count == 0",
+      "price_eur": 0.0
+    },
+    {
+      "id": "JOIN_ELITE_TEAM_2",
+      "action": "JOIN",
+      "tournament_type": "ELITE_TEAM",
+      "condition": "premium_guest_count >= 1",
+      "price_eur": 0.99
+    },
+    {
+      "id": "JOIN_PLATINUM",
+      "action": "JOIN",
+      "tournament_type": "PLATINUM",
+      "condition": "true",
+      "price_eur": 6.99
+    },
+    {
+      "id": "JOIN_PLATINUM_PREPAID_FIRST_11",
+      "action": "JOIN",
+      "tournament_type": "PLATINUM_PREPAID_11",
+      "condition": "current_players_in_tournament < 11",
+      "price_eur": 0.0
+    },
+    {
+      "id": "JOIN_PLATINUM_PREPAID_AFTER_11",
+      "action": "JOIN",
+      "tournament_type": "PLATINUM_PREPAID_11",
+      "condition": "current_players_in_tournament >= 11 && current_players_in_tournament < 30",
+      "price_eur": 6.99
+    },
+    {
+      "id": "CREATE_FREE_KICK_1",
+      "action": "CREATE",
+      "tournament_type": "FREE_KICK",
+      "condition": "freekick_count < 2",
+      "price_eur": 0.0
+    },
+    {
+      "id": "CREATE_FREE_KICK_2",
+      "action": "CREATE",
+      "tournament_type": "FREE_KICK",
+      "condition": "freekick_count >= 2",
+      "price_eur": 0.99
+    },
+    {
+      "id": "CREATE_ONE_SHOT",
+      "action": "CREATE",
+      "tournament_type": "ONE_SHOT",
+      "condition": "true",
+      "price_eur": 4.99
+    },
+    {
+      "id": "CREATE_ELITE_TEAM",
+      "action": "CREATE",
+      "tournament_type": "ELITE_TEAM",
+      "condition": "true",
+      "price_eur": 9.99
+    },
+    {
+      "id": "CREATE_PLATINUM",
+      "action": "CREATE",
+      "tournament_type": "PLATINUM",
+      "condition": "true",
+      "price_eur": 9.99
+    },
+    {
+      "id": "CREATE_PLATINUM_PREPAID_11",
+      "action": "CREATE",
+      "tournament_type": "PLATINUM_PREPAID_11",
+      "condition": "true",
+      "price_eur": 69.2
+    },
+    {
+      "id": "EXTEND_FREE_KICK_DURATION",
+      "action": "EXTEND_DURATION",
+      "tournament_type": "FREE_KICK",
+      "condition": "true",
+      "price_eur": 3.99
+    },
+    {
+      "id": "EXTEND_FREE_KICK_PLAYERS",
+      "action": "EXTEND_PLAYERS",
+      "tournament_type": "FREE_KICK",
+      "condition": "true",
+      "price_eur": 1.99
+    }
+  ]
+}
