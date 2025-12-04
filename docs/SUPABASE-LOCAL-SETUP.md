@@ -116,8 +116,8 @@ DB URL: postgresql://postgres:postgres@localhost:54322/postgres
 Studio URL: http://localhost:54323
 Inbucket URL: http://localhost:54324
 JWT secret: super-secret-jwt-token-with-at-least-32-characters-long
-anon key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-service_role key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+anon key: <votre_anon_key>
+service_role key: <votre_service_role_key>
 ```
 
 ### 5. Configurer les variables d'environnement

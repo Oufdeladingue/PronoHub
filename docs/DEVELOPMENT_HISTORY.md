@@ -421,8 +421,8 @@ npm install
 ### 2. Variables d'environnement
 Créer `.env.local`:
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://txpmihreaxmtsxlgmdko.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4cG1paHJlYXhtdHN4bGdtZGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1OTAyMjYsImV4cCI6MjA3NzE2NjIyNn0.HCXBXe-BKXhvTNkudOUP52OKgisLXGw3y8VXl2b2FZA
+NEXT_PUBLIC_SUPABASE_URL=<votre_supabase_url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<votre_anon_key>
 ```
 
 ### 3. Lancer le dev server
