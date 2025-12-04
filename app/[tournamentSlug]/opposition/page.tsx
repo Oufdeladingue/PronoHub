@@ -28,6 +28,8 @@ interface Tournament {
   scoring_default_prediction_max?: number
   start_date?: string // Date de lancement du tournoi (passage en status 'active')
   bonus_match?: boolean
+  tournament_type?: string
+  teams_enabled?: boolean
 }
 
 interface Match {
@@ -2316,6 +2318,8 @@ export default function OppositionPage() {
               availableMatchdays={availableMatchdays}
               tournamentName={tournament.name}
               allMatches={allMatches}
+              teamsEnabled={tournament.teams_enabled}
+              tournamentType={tournament.tournament_type}
             />
           )}
 

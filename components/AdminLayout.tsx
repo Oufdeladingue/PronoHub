@@ -8,7 +8,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 
 interface AdminLayoutProps {
   children: React.ReactNode
-  currentPage?: 'general' | 'import' | 'settings' | 'logos' | 'tournaments' | 'pricing'
+  currentPage?: 'general' | 'import' | 'settings' | 'logos' | 'tournaments' | 'pricing' | 'credits'
 }
 
 export default function AdminLayout({ children, currentPage }: AdminLayoutProps) {

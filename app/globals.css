@@ -16,11 +16,12 @@
   --nav-bg: #FFFFFF;               /* Blanc - fond navigation */
   --border-color: #6B7280;         /* Gray-500 - bordures */
   --text-primary: #243447;         /* Graphite bleu - titres */
-  --text-secondary: #64748b;       /* Slate-500 - texte secondaire */
-  --input-bg: #FFFFFF;             /* Blanc - fond inputs */
-  --input-border: #cbd5e1;         /* Slate-300 - bordure inputs */
+  --text-secondary: #475569;       /* Slate-600 - texte secondaire (plus foncé pour contraste) */
+  --input-bg: #F1F5F9;             /* Slate-100 - fond inputs (léger gris pour contraste) */
+  --input-border: #94a3b8;         /* Slate-400 - bordure inputs (plus visible) */
   --accent-primary: #FF9900;       /* Orange - accent principal */
   --accent-secondary: #0055FF;     /* Bleu élite - accent secondaire */
+  --info-bg: #F8FAFC;              /* Slate-50 - fond des stat-cards */
 }
 
 :root[data-theme="dark"] {
@@ -127,6 +128,12 @@ input:disabled,
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
+/* Nav header spécifique - au-dessus de la bannière */
+.theme-nav-header {
+  position: relative;
+  z-index: 20;
+}
+
 .theme-text {
   color: var(--text-primary);
 }
@@ -137,6 +144,23 @@ input:disabled,
 
 .theme-border {
   border-color: var(--border-color);
+}
+
+/* Classes pour affichage conditionnel selon le thème */
+.show-on-dark {
+  display: none;
+}
+
+.show-on-light {
+  display: block;
+}
+
+:root[data-theme="dark"] .show-on-dark {
+  display: block;
+}
+
+:root[data-theme="dark"] .show-on-light {
+  display: none;
 }
 
 .theme-input {
@@ -683,20 +707,33 @@ input:-moz-autofill:focus {
 }
 
 /* Filtres SVG pour icônes */
-.icon-filter-orange {
-  filter: none;
+/* Blue (#3b82f6) */
+.icon-filter-blue {
+  filter: invert(44%) sepia(83%) saturate(1352%) hue-rotate(203deg) brightness(100%) contrast(96%);
 }
 
-:root[data-theme="dark"] .icon-filter-orange {
-  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
+/* Green (#22c55e) */
+.icon-filter-green {
+  filter: invert(62%) sepia(72%) saturate(455%) hue-rotate(87deg) brightness(94%) contrast(90%);
+}
+
+/* Orange (#f97316 / orange-500) - pour Elite Team */
+.icon-filter-orange {
+  filter: brightness(0) saturate(100%) invert(55%) sepia(78%) saturate(2476%) hue-rotate(360deg) brightness(101%) contrast(97%);
+}
+
+/* Yellow (#facc15 / yellow-400) - pour Platinium */
+.icon-filter-yellow {
+  filter: brightness(0) saturate(100%) invert(83%) sepia(46%) saturate(747%) hue-rotate(359deg) brightness(103%) contrast(97%);
+}
+
+/* Purple (#a855f7) */
+.icon-filter-purple {
+  filter: invert(47%) sepia(94%) saturate(1352%) hue-rotate(249deg) brightness(100%) contrast(94%);
 }
 
 .icon-filter-white {
-  filter: none;
-}
-
-:root[data-theme="dark"] .icon-filter-white {
-  filter: invert(1) brightness(2) !important;
+  filter: invert(1) brightness(2);
 }
 
 .icon-filter-theme {
@@ -707,21 +744,61 @@ input:-moz-autofill:focus {
   filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
 }
 
-.icon-filter-orange {
-  filter: none;
-}
-
-:root[data-theme="dark"] .icon-filter-orange {
-  filter: invert(62%) sepia(46%) saturate(1614%) hue-rotate(1deg) brightness(103%) contrast(101%) !important;
-}
-
 /* Filtre pour #94a3b8 (gris-bleu slate) */
 .icon-filter-slate {
-  filter: none;
+  filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%);
 }
 
-:root[data-theme="dark"] .icon-filter-slate {
-  filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%) !important;
+/* Filtre pour texte secondaire selon le thème */
+/* Light mode: #6b7280 (gray-500) */
+.icon-filter-theme-text {
+  filter: invert(45%) sepia(6%) saturate(654%) hue-rotate(182deg) brightness(94%) contrast(90%);
+}
+
+/* Dark mode: #9ca3af (gray-400) */
+:root[data-theme="dark"] .icon-filter-theme-text {
+  filter: invert(71%) sepia(5%) saturate(513%) hue-rotate(182deg) brightness(92%) contrast(88%);
+}
+
+/* Couleurs des icônes de type de tournoi (utilisent fill: currentColor) */
+/* Free-Kick: Bleu */
+.tournament-icon-free {
+  color: #3b82f6;
+}
+:root[data-theme="light"] .tournament-icon-free {
+  color: #2563eb;
+}
+
+/* One-Shot: Vert */
+.tournament-icon-oneshot {
+  color: #22c55e;
+}
+:root[data-theme="light"] .tournament-icon-oneshot {
+  color: #16a34a;
+}
+
+/* Elite: Orange */
+.tournament-icon-elite {
+  color: #ff9900;
+}
+:root[data-theme="light"] .tournament-icon-elite {
+  color: #ea580c;
+}
+
+/* Platinium: Jaune */
+.tournament-icon-platinium {
+  color: #eab308;
+}
+:root[data-theme="light"] .tournament-icon-platinium {
+  color: #ca8a04;
+}
+
+/* Enterprise: Violet */
+.tournament-icon-enterprise {
+  color: #a855f7;
+}
+:root[data-theme="light"] .tournament-icon-enterprise {
+  color: #9333ea;
 }
 
 /* Backgrounds pour authentification */
@@ -787,6 +864,20 @@ input:-moz-autofill:focus {
   stroke: #ff9900;
   animation: bounce-icon 1.5s ease-in-out infinite;
   transform-origin: center;
+}
+
+/* Badge "En attente" en gris sur thème sombre */
+:root[data-theme="dark"] .status-badge-pending {
+  border-color: #9ea3ad !important;
+  color: #9ea3ad !important;
+}
+
+:root[data-theme="dark"] .status-badge-pending .badge-pending-animated {
+  color: #9ea3ad;
+}
+
+:root[data-theme="dark"] .status-badge-pending .badge-pending-animated svg {
+  stroke: #9ea3ad;
 }
 
 @keyframes bounce-icon {
@@ -890,6 +981,12 @@ input[type="number"] {
   text-align: center;
   border: 1px solid var(--border-color);
   background-color: var(--info-bg);
+}
+
+:root[data-theme="light"] .stat-card {
+  background-color: #FFFFFF !important;
+  border-width: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 :root[data-theme="dark"] .stat-card {
@@ -1955,11 +2052,26 @@ input[type="number"] {
 }
 
 :root[data-theme="light"] .upgrade-banner-title {
-  color: #1e293b;
+  color: #0055FF;
+  font-weight: 700;
 }
 
 :root[data-theme="light"] .upgrade-banner-subtitle {
   color: #475569;
+}
+
+/* Boutons "Passer Pro" dans la bannière - thème clair */
+:root[data-theme="light"] .upgrade-banner .premium-btn-shimmer {
+  background-color: #0055FF !important;
+  color: white !important;
+}
+
+:root[data-theme="light"] .upgrade-banner .premium-btn-shimmer:hover {
+  background-color: #0044cc !important;
+}
+
+:root[data-theme="light"] .upgrade-banner .premium-btn-shimmer img {
+  filter: brightness(0) invert(1) !important;
 }
 
 /* ----------------------------------------
@@ -2185,14 +2297,8 @@ input[type="number"] {
 
 /* ----------------------------------------
    BADGE TYPE TOURNOI - Thème clair
+   Chaque type de tournoi garde sa couleur
    ---------------------------------------- */
-
-/* Badge type tournoi : bleu par défaut en thème clair */
-:root[data-theme="light"] .tournament-type-badge svg {
-  /* Filtre pour transformer en #0055FF - Bleu élite */
-  filter: brightness(0) saturate(100%) invert(20%) sepia(100%) saturate(3000%) hue-rotate(215deg) brightness(95%) contrast(105%);
-  transition: none;
-}
 
 /* Badge type tournoi : blanc au survol de la carte en thème clair */
 :root[data-theme="light"] .glossy-card:hover .tournament-type-badge svg {
@@ -2614,4 +2720,170 @@ input[type="number"] {
 
 .badge-glossy:hover .badge-acheter {
   color: #000000 !important;
+}
+
+/* =====================================================
+   UPGRADE BANNER - Bannière pendante depuis la nav
+   ===================================================== */
+
+/* Container de la bannière - style accordéon */
+.upgrade-banner-wrapper {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-top: -2rem; /* Compense le py-8 du parent pour coller à la nav */
+  margin-bottom: 1.5rem; /* Espace avec le conteneur en dessous */
+  transition: grid-template-rows 0.5s ease-out, margin-top 0.5s ease-out, margin-bottom 0.5s ease-out;
+}
+
+.upgrade-banner-wrapper.banner-closing,
+.upgrade-banner-wrapper.banner-closed {
+  grid-template-rows: 0fr;
+  margin-top: 0; /* Rétablit l'espace normal avec la nav */
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+.upgrade-banner-wrapper > div {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Bannière - Style pendante accrochée à la nav */
+.upgrade-banner {
+  border-color: #ff9900;
+  border-top: none;
+  border-radius: 0 0 0.75rem 0.75rem;
+  position: relative;
+  /* Animation d'entrée avec translation */
+  animation: bannerSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Animation d'entrée - descend depuis la nav */
+@keyframes bannerSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation de fermeture - remonte vers la nav */
+.upgrade-banner-wrapper.banner-closing .upgrade-banner {
+  animation: bannerSlideOut 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes bannerSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+}
+
+/* Thème clair - bordure bleue */
+:root[data-theme="light"] .upgrade-banner {
+  border-color: #0055FF;
+}
+
+/* Bouton de fermeture en bas à droite */
+.banner-close-btn {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #9ca3af;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.banner-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Thème clair - bouton de fermeture */
+:root[data-theme="light"] .banner-close-btn {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #6b7280;
+}
+
+:root[data-theme="light"] .banner-close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+}
+
+/* Effet zoom sur les boutons d'action (sauf le bouton fermer) */
+.upgrade-banner button:not(.banner-close-btn),
+.upgrade-banner .premium-btn-shimmer {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.upgrade-banner button:not(.banner-close-btn):hover,
+.upgrade-banner .premium-btn-shimmer:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   TEAMS MANAGER - Styles pour l'affichage des équipes
+   ======================================== */
+
+/* Carte équipe pour les non-capitaines (vue lecture seule) */
+.team-card-viewer {
+  background-color: rgba(209, 213, 219, 0.3);
+  border-color: rgba(156, 163, 175, 0.5);
+}
+
+:root[data-theme="dark"] .team-card-viewer {
+  background-color: rgba(30, 41, 59, 0.5);
+  border-color: #374151;
+}
+
+/* Item membre d'équipe (pour le drag & drop et l'affichage liste) */
+.team-member-item {
+  background-color: rgba(243, 244, 246, 0.8);
+}
+
+:root[data-theme="dark"] .team-member-item {
+  background-color: rgba(51, 65, 85, 0.5);
+}
+
+/* Chip membre d'équipe (affichage compact pour non-capitaines) */
+.team-member-chip {
+  background-color: rgba(229, 231, 235, 0.8);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+:root[data-theme="dark"] .team-member-chip {
+  background-color: rgba(51, 65, 85, 0.7);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+}
+
+/* Trait de séparation sous le nom d'équipe */
+.team-header-separator {
+  width: 60%;
+  height: 2px;
+  background: #3b82f6;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+:root[data-theme="dark"] .team-header-separator {
+  background: #ff9900;
+}
+
+/* Pseudo de l'utilisateur connecté en orange dans les équipes */
+.team-member-current-user {
+  color: #ff9900 !important;
+  font-weight: 600;
+}
+
+:root[data-theme="light"] .team-member-current-user {
+  color: #0055FF !important;
 }

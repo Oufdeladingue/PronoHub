@@ -132,7 +132,7 @@ export default function VestiaireClient() {
   if (loading) {
     return (
       <div className="theme-bg flex flex-col flex-1">
-        <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
+        <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-20 w-full flex-1">
           <div className="text-center py-12">
             <div className="text-gray-400">Chargement des compétitions...</div>
           </div>
@@ -145,7 +145,7 @@ export default function VestiaireClient() {
   if (error) {
     return (
       <div className="theme-bg flex flex-col flex-1">
-        <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
+        <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-20 w-full flex-1">
           <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4 text-red-200 mb-6">
             <strong>Erreur :</strong> {error}
           </div>
@@ -157,7 +157,7 @@ export default function VestiaireClient() {
 
   return (
     <div className="theme-bg flex flex-col flex-1">
-      <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1">
+      <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-20 w-full flex-1">
         {/* Message contextuel si type passe en URL (apres paiement) */}
         {tournamentType === 'oneshot' && (
           <div className="mb-6 p-4 rounded-xl border-2 border-green-500/50 bg-green-500/10 flex items-center gap-4">

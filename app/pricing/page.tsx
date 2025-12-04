@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Navigation from '@/components/Navigation'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 import PricingClient from './PricingClient'
 
 export default async function PricingPage() {
@@ -17,7 +18,7 @@ export default async function PricingPage() {
   }
 
   return (
-    <>
+    <ThemeProvider>
       {profile && (
         <Navigation
           username={profile.username || 'Utilisateur'}
@@ -27,6 +28,6 @@ export default async function PricingPage() {
         />
       )}
       <PricingClient isLoggedIn={!!user} />
-    </>
+    </ThemeProvider>
   )
 }

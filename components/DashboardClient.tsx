@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
-import { Zap, Trophy, Users, Award } from 'lucide-react'
+// Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
 function formatMatchDate(dateString: string) {
@@ -105,7 +105,12 @@ function DashboardContent({
     paymentType: string
     message: string
     hasPrepaidSlots?: boolean
+    hasAvailableSlot?: boolean
+    availableSlotId?: string | null
+    availableSlotsCount?: number
+    inviteCode?: string
   } | null>(null)
+  const [isUsingSlot, setIsUsingSlot] = useState(false)
 
   // Fonction pour rediriger vers Stripe checkout
   const handleCheckout = async (purchaseType: string) => {
@@ -164,7 +169,11 @@ function DashboardContent({
           tournamentType: data.paymentType === 'platinium_participation' ? 'platinium' : 'free',
           paymentAmount: data.paymentAmount,
           paymentType: data.paymentType,
-          message: data.message
+          message: data.message,
+          hasAvailableSlot: data.hasAvailableSlot || false,
+          availableSlotId: data.availableSlotId || null,
+          availableSlotsCount: data.availableSlotsCount || 0,
+          inviteCode: joinCode.toUpperCase()
         })
         // Cacher l'input de code
         setShowJoinInput(false)
@@ -184,6 +193,37 @@ function DashboardContent({
     const value = e.target.value.toUpperCase().slice(0, 8)
     setJoinCode(value)
     setJoinError('')
+  }
+
+  // Fonction pour utiliser un slot existant et rejoindre le tournoi
+  const handleUseSlot = async () => {
+    if (!joinPaymentModal?.availableSlotId || !joinPaymentModal?.inviteCode) return
+
+    setIsUsingSlot(true)
+    try {
+      const response = await fetch('/api/tournaments/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inviteCode: joinPaymentModal.inviteCode,
+          useSlotId: joinPaymentModal.availableSlotId
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.tournament) {
+        setJoinPaymentModal(null)
+        router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
+      } else {
+        alert(data.error || 'Erreur lors de l\'utilisation du slot')
+      }
+    } catch (error) {
+      console.error('Error using slot:', error)
+      alert('Erreur lors de l\'utilisation du slot')
+    } finally {
+      setIsUsingSlot(false)
+    }
   }
 
   return (
@@ -211,13 +251,27 @@ function DashboardContent({
         <div className="theme-card mb-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">Mes tournois</h2>
-            <p className="text-sm theme-text-secondary mt-1">
-              Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
-              {(quotas.oneshotCreated > 0 || quotas.eliteCreated > 0 || quotas.platiniumCreated > 0) && (
-                <span>
-                  {quotas.oneshotCreated > 0 && ` · Tournois One-Shot : ${quotas.oneshotCreated}`}
-                  {quotas.eliteCreated > 0 && ` · Tournois Elite : ${quotas.eliteCreated}`}
-                  {quotas.platiniumCreated > 0 && ` · Tournois Platinium : ${quotas.platiniumCreated}`}
+            <p className="text-sm theme-text-secondary mt-1 flex flex-wrap items-center gap-x-5 gap-y-1">
+              <span className="inline-flex items-center gap-1">
+                <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
+                Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
+              </span>
+              {quotas.oneshotCreated > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <img src="/images/icons/on-shot-tour.svg" alt="" className="w-4 h-4 icon-filter-green" />
+                  Tournois One-Shot : {quotas.oneshotCreated}
+                </span>
+              )}
+              {quotas.eliteCreated > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <img src="/images/icons/team-elite-tour.svg" alt="" className="w-4 h-4 icon-filter-orange" />
+                  Tournois Elite : {quotas.eliteCreated}
+                </span>
+              )}
+              {quotas.platiniumCreated > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
+                  Tournois Platinium : {quotas.platiniumCreated}
                 </span>
               )}
             </p>
@@ -309,7 +363,7 @@ function DashboardContent({
                         </div>
 
                         {/* Badge statut à droite */}
-                        <span className="status-badge px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900]">
+                        <span className={`status-badge px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
                               <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" strokeWidth="3">
@@ -389,7 +443,7 @@ function DashboardContent({
 
                       {/* Statut et informations */}
                       <div className="text-right">
-                        <span className="status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900]">
+                        <span className={`status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" strokeWidth="3">
@@ -610,12 +664,15 @@ function DashboardContent({
 
               {/* Titre */}
               <h3 className="text-lg font-bold theme-text text-center mb-2">
-                Limite atteinte
+                {quotas.canCreateFree ? 'Choisir un type de tournoi' : 'Limite atteinte'}
               </h3>
 
               {/* Message */}
               <p className="text-sm theme-text-secondary text-center mb-5">
-                Vous participez déjà à {quotas.freeTournamentsMax} tournois Free-Kick.
+                {quotas.canCreateFree
+                  ? `Vous participez à ${quotas.freeTournaments}/${quotas.freeTournamentsMax} tournois Free-Kick.`
+                  : `Vous participez déjà à ${quotas.freeTournamentsMax} tournois Free-Kick.`
+                }
               </p>
 
               {/* Options d'achat */}
@@ -623,14 +680,22 @@ function DashboardContent({
                 {/* Slot Free-Kick */}
                 <div className="flex items-center gap-4 p-4 border border-blue-500/50 rounded-lg bg-blue-500/5">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 text-blue-500" />
+                    <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-5 h-5 icon-filter-blue" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-blue-400 text-base">Slot Free-Kick</h4>
                     <p className="text-sm theme-text-secondary">+1 tournoi gratuit</p>
                     <p className="text-xs theme-text-secondary mt-0.5">5 joueurs · 10 journées max</p>
                   </div>
-                  {credits && credits.slot_invite > 0 ? (
+                  {quotas.canCreateFree ? (
+                    <a
+                      href="/vestiaire?type=free"
+                      className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2"
+                    >
+                      <span className="text-black font-bold text-base">Créer</span>
+                      <span className="text-black text-[10px] font-medium">{quotas.freeTournamentsMax - quotas.freeTournaments} slot{quotas.freeTournamentsMax - quotas.freeTournaments > 1 ? 's' : ''}</span>
+                    </a>
+                  ) : credits && credits.slot_invite > 0 ? (
                     <a
                       href="/vestiaire?type=free"
                       className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2"
@@ -653,7 +718,7 @@ function DashboardContent({
                 {/* One-Shot */}
                 <div className="flex items-center gap-4 p-4 border border-green-500/50 rounded-lg bg-green-500/5">
                   <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Trophy className="w-5 h-5 text-green-500" />
+                    <img src="/images/icons/on-shot-tour.svg" alt="One-Shot" className="w-5 h-5 icon-filter-green" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-green-400 text-base">One-Shot</h4>
@@ -686,7 +751,7 @@ function DashboardContent({
                     <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">POPULAIRE</span>
                   </div>
                   <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-orange-500" />
+                    <img src="/images/icons/team-elite-tour.svg" alt="Elite Team" className="w-5 h-5 icon-filter-orange" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-orange-400 text-base">Elite Team</h4>
@@ -716,7 +781,7 @@ function DashboardContent({
                 {/* Platinium */}
                 <div className="flex items-center gap-4 p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5">
                   <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Award className="w-5 h-5 text-yellow-500" />
+                    <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-yellow-400 text-base">Platinium</h4>
@@ -783,7 +848,7 @@ function DashboardContent({
 
               {/* Titre */}
               <div className="flex items-center justify-center gap-2 mb-4">
-                <Award className="w-6 h-6 text-yellow-500" />
+                <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
                 <h3 className="text-lg font-bold text-yellow-400">Platinium</h3>
               </div>
 
@@ -804,7 +869,7 @@ function DashboardContent({
                 >
                   <div className="text-left">
                     <h4 className="font-semibold text-yellow-400">1 place</h4>
-                    <p className="text-xs theme-text-secondary">Pour rejoindre un tournoi Platinium</p>
+                    <p className="text-xs theme-text-secondary">Pour rejoindre ou créer un tournoi Platinium</p>
                   </div>
                   <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
                     <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_participation' ? '...' : '6,99€'}</span>
@@ -821,16 +886,24 @@ function DashboardContent({
                   className="w-full flex items-center justify-between p-4 border-2 border-yellow-500 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/15 transition disabled:opacity-50 relative"
                 >
                   <div className="absolute -top-2.5 left-4">
-                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">ÉCONOMISEZ</span>
+                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">ÉCONOMISEZ 7,69 €</span>
                   </div>
                   <div className="text-left">
                     <h4 className="font-semibold text-yellow-400">11 places</h4>
-                    <p className="text-xs theme-text-secondary">Lancez votre tournoi + invitez 10 amis</p>
+                    <p className="text-xs theme-text-secondary">Créez votre tournoi pour vous et 10 joueurs</p>
                   </div>
                   <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
-                    <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_group_11' ? '...' : '76,89€'}</span>
+                    <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_group_11' ? '...' : '69,20€'}</span>
                   </div>
                 </button>
+              </div>
+
+              {/* Lot à gagner */}
+              <div className="flex items-center justify-center gap-3 mt-5 p-3 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
+                <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-8" />
+                <p className="text-sm text-yellow-400 font-medium text-center">
+                  Le vainqueur remportera un maillot neuf et authentique de la part de "Le bon maillot"
+                </p>
               </div>
 
               {/* Bouton retour */}
@@ -884,7 +957,7 @@ function DashboardContent({
                 {joinPaymentModal.paymentType === 'platinium_participation' && (
                   <div className="flex items-center gap-4 p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5">
                     <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="w-5 h-5 text-yellow-500" />
+                      <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-yellow-400 text-base">Participation Platinium</h4>
@@ -906,26 +979,61 @@ function DashboardContent({
 
                 {/* Slot Free-Kick (quota atteint) */}
                 {joinPaymentModal.paymentType === 'slot_invite' && (
-                  <div className="flex items-center gap-4 p-4 border border-blue-500/50 rounded-lg bg-blue-500/5">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-5 h-5 text-blue-500" />
+                  <>
+                    {/* Option 1: Utiliser un slot existant (si disponible) */}
+                    {joinPaymentModal.hasAvailableSlot && joinPaymentModal.availableSlotId && (
+                      <div className="flex items-center gap-4 p-4 border-2 border-green-500 rounded-lg bg-green-500/10">
+                        <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-green-400 text-base">Utiliser un slot</h4>
+                          <p className="text-sm theme-text-secondary">Vous avez {joinPaymentModal.availableSlotsCount} slot{(joinPaymentModal.availableSlotsCount || 0) > 1 ? 's' : ''} disponible{(joinPaymentModal.availableSlotsCount || 0) > 1 ? 's' : ''}</p>
+                        </div>
+                        <button
+                          onClick={handleUseSlot}
+                          disabled={isUsingSlot}
+                          className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                        >
+                          <span className="text-black font-bold text-base">{isUsingSlot ? '...' : 'Gratuit'}</span>
+                          <span className="text-black text-xs font-medium">Utiliser</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Séparateur si slot disponible */}
+                    {joinPaymentModal.hasAvailableSlot && joinPaymentModal.availableSlotId && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 h-px bg-gray-600"></div>
+                        <span className="text-xs theme-text-secondary">ou</span>
+                        <div className="flex-1 h-px bg-gray-600"></div>
+                      </div>
+                    )}
+
+                    {/* Option 2: Acheter un nouveau slot */}
+                    <div className="flex items-center gap-4 p-4 border border-blue-500/50 rounded-lg bg-blue-500/5">
+                      <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-5 h-5 icon-filter-blue" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-blue-400 text-base">Acheter un slot</h4>
+                        <p className="text-sm theme-text-secondary">Débloquez une place supplémentaire</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setJoinPaymentModal(null)
+                          handleCheckout('slot_invite')
+                        }}
+                        disabled={isCheckoutLoading === 'slot_invite'}
+                        className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
+                      >
+                        <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
+                        <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-blue-400 text-base">Slot supplémentaire</h4>
-                      <p className="text-sm theme-text-secondary">Débloquez une place pour ce tournoi</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setJoinPaymentModal(null)
-                        handleCheckout('slot_invite')
-                      }}
-                      disabled={isCheckoutLoading === 'slot_invite'}
-                      className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
-                    >
-                      <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -948,25 +1056,16 @@ function DashboardContent({
               Lancez votre propre tournoi de pronostics et invitez vos amis a participer.
             </p>
             <div className="space-y-3">
-              {/* Bouton principal - redirige ou affiche modale selon quota */}
-              {quotas.canCreateFree ? (
-                <a href="/vestiaire" className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
-                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
-                  </svg>
-                  Nouveau tournoi
-                </a>
-              ) : (
-                <button
-                  onClick={() => setShowQuotaModal('create')}
-                  className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
-                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
-                  </svg>
-                  Nouveau tournoi
-                </button>
-              )}
+              {/* Bouton principal - affiche toujours la modale de choix du type */}
+              <button
+                onClick={() => setShowQuotaModal('create')}
+                className="flex items-center justify-center gap-2 w-full py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
+                  <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
+                </svg>
+                Nouveau tournoi
+              </button>
             </div>
           </div>
 

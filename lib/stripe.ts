@@ -67,8 +67,8 @@ export const STRIPE_PRODUCTS: Record<StripePurchaseType, {
   },
   platinium_group_11: {
     name: 'Platinium Groupe 11',
-    description: 'Lancer un tournoi Platinium avec 11 places incluses',
-    priceInCents: 7689,
+    description: 'Lancer un tournoi Platinium avec 11 places incluses (10% de remise)',
+    priceInCents: 6920, // 11 x 6.99€ = 76.89€ - 10% = 69.20€
   },
 }
 

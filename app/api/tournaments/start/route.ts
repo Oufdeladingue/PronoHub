@@ -110,6 +110,29 @@ export async function POST(request: NextRequest) {
       (_, i) => startingMatchday + i
     )
 
+    // 6b. Supprimer les équipes vides (si mode équipe activé)
+    if (tournament.teams_enabled) {
+      // Récupérer les équipes avec leurs membres
+      const { data: teams } = await supabase
+        .from('tournament_teams')
+        .select('id, tournament_team_members(id)')
+        .eq('tournament_id', tournamentId)
+
+      if (teams) {
+        const emptyTeamIds = teams
+          .filter(t => !t.tournament_team_members || t.tournament_team_members.length === 0)
+          .map(t => t.id)
+
+        if (emptyTeamIds.length > 0) {
+          console.log('[START] Deleting empty teams:', emptyTeamIds.length)
+          await supabase
+            .from('tournament_teams')
+            .delete()
+            .in('id', emptyTeamIds)
+        }
+      }
+    }
+
     // 7. Démarrer le tournoi avec les données de tracking
     const { error: updateError } = await supabase
       .from('tournaments')

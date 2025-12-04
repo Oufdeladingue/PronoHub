@@ -34,6 +34,7 @@ export async function GET() {
         platinium: pricesMap['platinium_creation_price'] || 6.99,
         platiniumGroup: Math.round(groupPrice * 100) / 100,
         platiniumGroupSize: groupSize,
+        platiniumGroupDiscount: groupDiscount || 10,
 
         // Extensions
         slotInvite: pricesMap['slot_invite_price'] || 0.99,
@@ -62,8 +63,9 @@ export async function GET() {
         oneshot: 4.99,
         elite: 9.99,
         platinium: 6.99,
-        platiniumGroup: 76.89,
+        platiniumGroup: 69.20, // 11 x 6.99 = 76.89 - 10% = 69.20
         platiniumGroupSize: 11,
+        platiniumGroupDiscount: 10,
         slotInvite: 0.99,
         durationExtension: 3.99,
         playerExtension: 1.99,

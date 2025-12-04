@@ -9,6 +9,7 @@ import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import MatchdayWarningModal from '@/components/MatchdayWarningModal'
+import TeamsManager from '@/components/TeamsManager'
 import { getAvatarUrl } from '@/lib/avatars'
 import { TOURNAMENT_RULES, PRICES, TournamentType } from '@/types/monetization'
 
@@ -62,6 +63,7 @@ function EchauffementPageContent() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
+  const [competitionLogoColor, setCompetitionLogoColor] = useState<string | null>(null)
   const [nextMatchDate, setNextMatchDate] = useState<Date | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<{days: number, hours: number, minutes: number, seconds: number} | null>(null)
   const [transferConfirmation, setTransferConfirmation] = useState<{ show: boolean, playerId: string, playerName: string }>({ show: false, playerId: '', playerName: '' })
@@ -80,6 +82,9 @@ function EchauffementPageContent() {
     totalMatchdays: number
   } | null>(null)
   const [remainingMatchdaysToPredict, setRemainingMatchdaysToPredict] = useState<number | null>(null)
+  const [playerTeams, setPlayerTeams] = useState<Record<string, { teamName: string; teamAvatar: string }>>({})
+  const [teamsData, setTeamsData] = useState<{ teamsEnabled: boolean; teams: Array<{ id: string; name: string; members: any[] }> }>({ teamsEnabled: false, teams: [] })
+  const [unassignedPlayersWarning, setUnassignedPlayersWarning] = useState<{ show: boolean; count: number }>({ show: false, count: 0 })
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -97,11 +102,42 @@ function EchauffementPageContent() {
     fetchCompetitionLogo()
     fetchNextMatchDate()
     fetchRemainingMatchdays()
+    fetchTeamsMapping()
 
-    // Actualiser l'effectif toutes les 5 secondes
-    const interval = setInterval(fetchPlayers, 5000)
+    // Actualiser l'effectif et les équipes toutes les 5 secondes
+    const interval = setInterval(() => {
+      fetchPlayers()
+      fetchTeamsMapping()
+    }, 5000)
     return () => clearInterval(interval)
   }, [tournament?.id])
+
+  // Vérifier si le tournoi a été lancé (pour les participants non-capitaines)
+  useEffect(() => {
+    if (!tournament?.id || !tournamentSlug) return
+
+    // Vérifier le statut du tournoi toutes les 3 secondes
+    const checkTournamentStatus = async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('tournaments')
+          .select('status')
+          .eq('id', tournament.id)
+          .single()
+
+        // Si le tournoi est passé en "active", rediriger vers la page opposition
+        if (data?.status === 'active') {
+          window.location.href = `/${tournamentSlug}/opposition`
+        }
+      } catch (err) {
+        console.error('Error checking tournament status:', err)
+      }
+    }
+
+    const statusInterval = setInterval(checkTournamentStatus, 3000)
+    return () => clearInterval(statusInterval)
+  }, [tournament?.id, tournamentSlug])
 
   // Timer en temps réel pour le compte à rebours
   useEffect(() => {
@@ -219,7 +255,7 @@ function EchauffementPageContent() {
       const supabase = createClient()
       const { data: competition } = await supabase
         .from('competitions')
-        .select('emblem, custom_emblem_white')
+        .select('emblem, custom_emblem_white, custom_emblem_color')
         .eq('id', tournament.competition_id)
         .single()
 
@@ -228,6 +264,9 @@ function EchauffementPageContent() {
       }
       if (competition?.custom_emblem_white) {
         setCompetitionLogoWhite(competition.custom_emblem_white)
+      }
+      if (competition?.custom_emblem_color) {
+        setCompetitionLogoColor(competition.custom_emblem_color)
       }
     } catch (err) {
       console.error('Error fetching competition logo:', err)
@@ -283,6 +322,35 @@ function EchauffementPageContent() {
       }
     } catch (err) {
       console.error('Error fetching remaining matchdays:', err)
+    }
+  }
+
+  const fetchTeamsMapping = async () => {
+    if (!tournament?.id) return
+    // Ne fetch que pour les tournois Elite/Platinium
+    if (tournament.tournament_type !== 'elite' && tournament.tournament_type !== 'platinium') return
+
+    try {
+      const response = await fetch(`/api/tournaments/${tournament.id}/teams`)
+      const data = await response.json()
+
+      if (response.ok && data.teams) {
+        // Stocker les données complètes des équipes
+        setTeamsData({ teamsEnabled: data.teamsEnabled, teams: data.teams })
+
+        const mapping: Record<string, { teamName: string; teamAvatar: string }> = {}
+        data.teams.forEach((team: any) => {
+          team.members.forEach((member: any) => {
+            mapping[member.userId] = {
+              teamName: team.name,
+              teamAvatar: team.avatar
+            }
+          })
+        })
+        setPlayerTeams(mapping)
+      }
+    } catch (err) {
+      console.error('Error fetching teams mapping:', err)
     }
   }
 
@@ -346,6 +414,25 @@ function EchauffementPageContent() {
       alert('Il faut au moins 2 participants pour démarrer le tournoi')
       return
     }
+
+    // Vérifier si le mode équipe est activé pour les tournois Elite/Platinium
+    if ((tournament?.tournament_type === 'elite' || tournament?.tournament_type === 'platinium') && teamsData.teamsEnabled) {
+      // Compter les joueurs sans équipe
+      const assignedUserIds = new Set<string>()
+      teamsData.teams.forEach(team => {
+        team.members.forEach((member: any) => {
+          assignedUserIds.add(member.userId)
+        })
+      })
+
+      const unassignedCount = players.filter(p => !assignedUserIds.has(p.user_id)).length
+
+      if (unassignedCount > 0) {
+        setUnassignedPlayersWarning({ show: true, count: unassignedCount })
+        return
+      }
+    }
+
     setStartConfirmation(true)
   }
 
@@ -582,7 +669,11 @@ function EchauffementPageContent() {
   return (
     <div className="min-h-screen theme-bg">
       {/* Popup de confirmation de démarrage */}
-      {startConfirmation && (
+      {startConfirmation && (() => {
+        // Calculer les équipes vides s'il y en a
+        const emptyTeams = teamsData.teamsEnabled ? teamsData.teams.filter(t => t.members.length === 0) : []
+
+        return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
             <div className="text-center mb-6">
@@ -601,6 +692,15 @@ function EchauffementPageContent() {
               </p>
             </div>
 
+            {/* Avertissement équipes vides */}
+            {emptyTeams.length > 0 && (
+              <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+                <p className="text-sm text-yellow-400">
+                  <strong>Note :</strong> {emptyTeams.length} équipe{emptyTeams.length > 1 ? 's' : ''} vide{emptyTeams.length > 1 ? 's' : ''} ({emptyTeams.map(t => t.name).join(', ')}) sera{emptyTeams.length > 1 ? 'ont' : ''} automatiquement supprimée{emptyTeams.length > 1 ? 's' : ''} au démarrage.
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 onClick={hideStartConfirmation}
@@ -617,7 +717,8 @@ function EchauffementPageContent() {
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* Popup de confirmation d'annulation */}
       {cancelConfirmation && (
@@ -789,6 +890,38 @@ function EchauffementPageContent() {
         </div>
       )}
 
+      {/* Popup d'avertissement: joueurs sans équipe */}
+      {unassignedPlayersWarning.show && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">⚠️</div>
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Joueurs sans équipe
+              </h3>
+              <p className="theme-text-secondary">
+                <span className="font-bold text-red-500">{unassignedPlayersWarning.count} joueur{unassignedPlayersWarning.count > 1 ? 's' : ''}</span> n'{unassignedPlayersWarning.count > 1 ? 'ont' : 'a'} pas encore été assigné{unassignedPlayersWarning.count > 1 ? 's' : ''} à une équipe.
+              </p>
+            </div>
+
+            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+              <p className="text-sm text-red-400">
+                <strong>Impossible de démarrer :</strong> En mode équipe, tous les joueurs doivent être assignés à une équipe avant de pouvoir lancer le tournoi.
+              </p>
+            </div>
+
+            <div className="flex justify-center">
+              <button
+                onClick={() => setUnassignedPlayersWarning({ show: false, count: 0 })}
+                className="px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
+              >
+                J'ai compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <Navigation
         username={username}
@@ -823,10 +956,17 @@ function EchauffementPageContent() {
                 {/* Logo de la compétition + infos tournoi - visible uniquement en desktop */}
                 {competitionLogo && tournament && (
                   <div className="mt-4 hidden md:flex items-center gap-4 px-4">
+                    {/* Logo blanc pour thème sombre */}
                     <img
-                      src={competitionLogo}
+                      src={competitionLogoWhite || competitionLogo}
                       alt={tournament.competition_name}
-                      className="w-14 h-14 object-contain icon-filter-white flex-shrink-0"
+                      className="w-14 h-14 object-contain flex-shrink-0 show-on-dark"
+                    />
+                    {/* Logo couleur pour thème clair */}
+                    <img
+                      src={competitionLogoColor || competitionLogo}
+                      alt={tournament.competition_name}
+                      className="w-14 h-14 object-contain flex-shrink-0 show-on-light"
                     />
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-lg font-bold theme-text">{tournament.name}</h3>
@@ -906,7 +1046,8 @@ function EchauffementPageContent() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6">
+        {/* Grid 2 colonnes pour tous les types de tournois */}
+        <div className="grid gap-6 md:grid-cols-2">
           {/* Effectif */}
           <div className="theme-card">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -927,13 +1068,14 @@ function EchauffementPageContent() {
                 const isPlatinium = tournament?.tournament_type === 'platinium'
                 const isPaidByCreator = player.paid_by_creator
                 const hasPaid = player.has_paid
+                const playerTeam = playerTeams[player.user_id]
 
                 return (
                   <div
                     key={player.id}
                     className="dark-bg-primary dark-border-primary flex items-center gap-3 p-3 rounded-lg border-2"
                   >
-                    {/* Avatar avec numéro superposé */}
+                    {/* Avatar avec numéro superposé et badge équipe */}
                     <div className="relative w-12 h-12 flex-shrink-0">
                       <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-[#ff9900]">
                         <Image
@@ -944,6 +1086,19 @@ function EchauffementPageContent() {
                           sizes="48px"
                         />
                       </div>
+                      {/* Badge équipe en haut à droite */}
+                      {playerTeam && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5" title={playerTeam.teamName}>
+                          <img
+                            src={`/images/team-avatars/${playerTeam.teamAvatar}.svg`}
+                            alt={playerTeam.teamName}
+                            className="w-full h-full"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/team-avatars/team1.svg'
+                            }}
+                          />
+                        </div>
+                      )}
                       {/* Numéro en badge */}
                       <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${player.user_id === currentUserId ? 'bg-[#ff9900] text-[#111]' : 'participant-number-badge'}`}>
                         {index + 1}
@@ -1101,8 +1256,20 @@ function EchauffementPageContent() {
             </div>
           </div>
 
-          {/* Code d'invitation */}
+          {/* Colonne droite: Equipes + Code d'invitation */}
           <div className="space-y-6">
+            {/* Section Equipes (uniquement pour Elite et Platinium) */}
+            {(tournament?.tournament_type === 'elite' || tournament?.tournament_type === 'platinium') && (
+              <TeamsManager
+                tournamentId={tournament.id}
+                tournamentType={tournament.tournament_type}
+                players={players}
+                currentUserId={currentUserId}
+                creatorId={tournament.creator_id}
+                tournamentStatus={tournament.status}
+                onTeamsChange={fetchTeamsMapping}
+              />
+            )}
             <div className="theme-card">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <img src="/images/icons/code.svg" alt="Code" className="w-6 h-6 icon-orange" />
@@ -1154,26 +1321,25 @@ function EchauffementPageContent() {
               </div>
             </div>
 
-            {/* Bouton Quitter le tournoi - pour tous les participants */}
-            <div className="theme-card mt-6">
-              <button
-                onClick={handleLeaveTournament}
-                className="w-full px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold flex items-center justify-center gap-2"
-              >
-                <img
-                  src="/images/icons/dehors.svg"
-                  alt=""
-                  className="w-5 h-5"
-                />
-                Quitter le tournoi
-              </button>
-              <p className="text-xs theme-text-secondary text-center mt-2">
-                {currentUserId === tournament?.creator_id
-                  ? "En tant que capitaine, vous devez d'abord transférer le rôle"
-                  : "Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté"
-                }
-              </p>
-            </div>
+            {/* Bouton Quitter le tournoi - uniquement pour les non-capitaines */}
+            {currentUserId !== tournament?.creator_id && (
+              <div className="theme-card mt-6">
+                <button
+                  onClick={handleLeaveTournament}
+                  className="w-full px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold flex items-center justify-center gap-2"
+                >
+                  <img
+                    src="/images/icons/dehors.svg"
+                    alt=""
+                    className="w-5 h-5"
+                  />
+                  Quitter le tournoi
+                </button>
+                <p className="text-xs theme-text-secondary text-center mt-2">
+                  Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

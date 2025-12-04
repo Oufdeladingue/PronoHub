@@ -15,7 +15,8 @@ import { TournamentType, PRICES, InviteType } from '@/types/monetization'
 
 interface JoinTournamentRequest {
   inviteCode: string
-  stripe_session_id?: string // Pour les paiements
+  stripe_session_id?: string // Pour les paiements Stripe
+  useSlotId?: string         // Pour utiliser un slot déjà acheté
 }
 
 interface JoinResult {
@@ -25,6 +26,9 @@ interface JoinResult {
   paymentType: string
   inviteType: InviteType
   reason: string
+  hasAvailableSlot?: boolean  // L'utilisateur a un slot acheté non utilisé
+  availableSlotId?: string    // ID du slot disponible
+  availableSlotsCount?: number // Nombre total de slots disponibles
 }
 
 // Vérifier si l'utilisateur peut rejoindre un tournoi
@@ -74,6 +78,7 @@ async function checkJoinEligibility(
 
   // Cas FREE-KICK
   // Regle: gratuit si freekick_count < 2, sinon 0.99€
+  // SAUF s'il a un slot acheté non utilisé
   if (tournamentType === 'free') {
     if (freekickCount < PRICES.FREE_MAX_TOURNAMENTS) {
       return {
@@ -85,6 +90,31 @@ async function checkJoinEligibility(
         reason: 'Slot gratuit disponible'
       }
     } else {
+      // Vérifier si l'utilisateur a des slots achetés non utilisés
+      const { data: availableSlots, count: slotsCount } = await supabase
+        .from('tournament_purchases')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('purchase_type', 'slot_invite')
+        .eq('used', false)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: true })
+
+      if (availableSlots && availableSlots.length > 0) {
+        // L'utilisateur a des slots disponibles
+        return {
+          canJoin: true,
+          requiresPayment: true, // On garde true pour afficher la modale, mais avec l'option d'utiliser le slot
+          paymentAmount: PRICES.SLOT_INVITE,
+          paymentType: 'slot_invite',
+          inviteType: 'paid_slot',
+          reason: `Quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits atteint`,
+          hasAvailableSlot: true,
+          availableSlotId: availableSlots[0].id, // Prendre le premier (le plus ancien)
+          availableSlotsCount: slotsCount || availableSlots.length
+        }
+      }
+
       return {
         canJoin: true,
         requiresPayment: true,
@@ -99,6 +129,7 @@ async function checkJoinEligibility(
   // Cas ONE-SHOT / ELITE-TEAM
   // Regle: gratuit si l'user n'est pas deja invite dans un tournoi premium actif
   // Sinon 0.99€ (evite que des users profitent d'invitations gratuites sans jamais payer)
+  // SAUF s'il a un slot acheté non utilisé
   if (tournamentType === 'oneshot' || tournamentType === 'elite') {
     // Compter les tournois ONE-SHOT/ELITE actifs ou l'user est INVITE (pas createur)
     const premiumGuestCount = (participations || []).filter((p: any) =>
@@ -119,6 +150,31 @@ async function checkJoinEligibility(
         reason: 'Premiere invitation gratuite'
       }
     } else {
+      // Vérifier si l'utilisateur a des slots achetés non utilisés
+      const { data: availableSlots, count: slotsCount } = await supabase
+        .from('tournament_purchases')
+        .select('id', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('purchase_type', 'slot_invite')
+        .eq('used', false)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: true })
+
+      if (availableSlots && availableSlots.length > 0) {
+        // L'utilisateur a des slots disponibles
+        return {
+          canJoin: true,
+          requiresPayment: true, // On garde true pour afficher la modale, mais avec l'option d'utiliser le slot
+          paymentAmount: PRICES.SLOT_INVITE,
+          paymentType: 'slot_invite',
+          inviteType: 'paid_slot',
+          reason: `Vous êtes déjà invité dans ${premiumGuestCount} tournoi(s) premium`,
+          hasAvailableSlot: true,
+          availableSlotId: availableSlots[0].id,
+          availableSlotsCount: slotsCount || availableSlots.length
+        }
+      }
+
       return {
         canJoin: true,
         requiresPayment: true,
@@ -172,7 +228,7 @@ async function checkJoinEligibility(
 export async function POST(request: NextRequest) {
   try {
     const body: JoinTournamentRequest = await request.json()
-    const { inviteCode, stripe_session_id } = body
+    const { inviteCode, stripe_session_id, useSlotId } = body
 
     if (!inviteCode || inviteCode.length !== 8) {
       return NextResponse.json(
@@ -280,8 +336,65 @@ export async function POST(request: NextRequest) {
 
     // Si paiement requis
     if (eligibility.requiresPayment) {
-      if (!stripe_session_id) {
-        // Retourner les infos pour créer la session Stripe
+      // Cas 1: Utilisation d'un slot existant
+      if (useSlotId) {
+        // Vérifier que le slot appartient bien à l'utilisateur et n'est pas utilisé
+        const { data: slot, error: slotError } = await supabase
+          .from('tournament_purchases')
+          .select('*')
+          .eq('id', useSlotId)
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'slot_invite')
+          .eq('used', false)
+          .eq('status', 'completed')
+          .single()
+
+        if (slotError || !slot) {
+          return NextResponse.json({
+            success: false,
+            error: 'Slot invalide ou déjà utilisé'
+          }, { status: 400 })
+        }
+
+        // Marquer le slot comme utilisé
+        const { error: updateError } = await supabase
+          .from('tournament_purchases')
+          .update({
+            used: true,
+            tournament_id: tournament.id
+          })
+          .eq('id', useSlotId)
+
+        if (updateError) {
+          console.error('Error marking slot as used:', updateError)
+          return NextResponse.json({
+            success: false,
+            error: 'Erreur lors de l\'utilisation du slot'
+          }, { status: 500 })
+        }
+
+        console.log(`[JOIN] Slot ${useSlotId} used for tournament ${tournament.id} by user ${user.id}`)
+      }
+      // Cas 2: Paiement Stripe
+      else if (stripe_session_id) {
+        // Vérifier le paiement
+        const { data: purchase } = await supabase
+          .from('tournament_purchases')
+          .select('*')
+          .eq('stripe_checkout_session_id', stripe_session_id)
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+          .single()
+
+        if (!purchase) {
+          return NextResponse.json({
+            success: false,
+            error: 'Paiement non trouvé ou invalide'
+          }, { status: 400 })
+        }
+      }
+      // Cas 3: Ni slot ni paiement - retourner les infos pour la modale
+      else {
         return NextResponse.json({
           success: false,
           requiresPayment: true,
@@ -289,24 +402,11 @@ export async function POST(request: NextRequest) {
           paymentType: eligibility.paymentType,
           tournamentId: tournament.id,
           tournamentName: tournament.name,
-          message: eligibility.reason
+          message: eligibility.reason,
+          hasAvailableSlot: eligibility.hasAvailableSlot || false,
+          availableSlotId: eligibility.availableSlotId || null,
+          availableSlotsCount: eligibility.availableSlotsCount || 0
         }, { status: 402 })
-      }
-
-      // Vérifier le paiement
-      const { data: purchase } = await supabase
-        .from('tournament_purchases')
-        .select('*')
-        .eq('stripe_checkout_session_id', stripe_session_id)
-        .eq('user_id', user.id)
-        .eq('status', 'completed')
-        .single()
-
-      if (!purchase) {
-        return NextResponse.json({
-          success: false,
-          error: 'Paiement non trouvé ou invalide'
-        }, { status: 400 })
       }
     }
 

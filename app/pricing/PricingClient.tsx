@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, X, Loader2, Zap, Trophy, Users, Award, Building2, Plus } from 'lucide-react'
+import { Check, X, Loader2, Plus } from 'lucide-react'
 import Footer from '@/components/Footer'
 
 interface PricingClientProps {
@@ -15,6 +15,7 @@ interface Prices {
   platinium: number
   platiniumGroup: number
   platiniumGroupSize: number
+  platiniumGroupDiscount: number
   slotInvite: number
   durationExtension: number
   playerExtension: number
@@ -30,8 +31,9 @@ const defaultPrices: Prices = {
   oneshot: 4.99,
   elite: 9.99,
   platinium: 6.99,
-  platiniumGroup: 76.89,
+  platiniumGroup: 69.20, // 11 x 6.99 = 76.89 - 10% = 69.20
   platiniumGroupSize: 11,
+  platiniumGroupDiscount: 10,
   slotInvite: 0.99,
   durationExtension: 3.99,
   playerExtension: 1.99,
@@ -130,7 +132,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="bg-gray-800/50 rounded-2xl p-6 border border-blue-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Zap className="w-6 h-6 text-blue-500" />
+                  <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-6 h-6 icon-filter-blue" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-blue-400">Free-Kick</h3>
                 <p className="text-gray-400 text-sm">Pour découvrir PronoHub</p>
@@ -183,7 +185,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="bg-gray-800/50 rounded-2xl p-6 border border-green-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Trophy className="w-6 h-6 text-green-500" />
+                  <img src="/images/icons/on-shot-tour.svg" alt="One-Shot" className="w-6 h-6 icon-filter-green" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-green-400">One-Shot</h3>
                 <p className="text-gray-400 text-sm">Pour un tournoi complet</p>
@@ -240,7 +242,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Users className="w-6 h-6 text-orange-500" />
+                  <img src="/images/icons/team-elite-tour.svg" alt="Elite Team" className="w-6 h-6 icon-filter-orange" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-orange-400">Elite Team</h3>
                 <p className="text-gray-400 text-sm">Pour les grands groupes</p>
@@ -292,7 +294,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="bg-gray-800/50 rounded-2xl p-6 border border-yellow-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Award className="w-6 h-6 text-yellow-500" />
+                  <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-yellow-400">Platinium</h3>
                 <p className="text-gray-400 text-sm">Tournoi événementiel</p>
@@ -338,7 +340,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Building2 className="w-6 h-6 text-purple-500" />
+                  <img src="/images/icons/company-tour.svg" alt="Corpo" className="w-6 h-6 icon-filter-purple" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-purple-400">Corpo</h3>
                 <p className="text-gray-400 text-sm">Pour les entreprises</p>
@@ -411,7 +413,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                    <Award className="w-5 h-5 text-yellow-500" />
+                    <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                   </div>
                   <h2 className="text-xl font-bold text-yellow-400">Lancer un tournoi Platinium</h2>
                 </div>
@@ -434,10 +436,10 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-yellow-500/50 transition-colors">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Je paie ma place</h3>
-                    <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
+                    <h3 className="text-lg font-semibold text-white mb-1">1 place</h3>
+                    <p className="text-xs text-gray-400">Pour rejoindre ou créer un tournoi Platinium</p>
                   </div>
-                  <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded-full">Individuel</span>
+                  <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
                 </div>
                 <ul className="space-y-2 mb-4 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -477,14 +479,18 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               {/* Option 2 : Groupe */}
-              <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-yellow-500/50 transition-colors">
-                <div className="flex items-start justify-between mb-4">
+              <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-yellow-500/50 transition-colors relative">
+                <div className="absolute -top-2.5 left-4">
+                  <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    ÉCONOMISEZ {(prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',')} €
+                  </span>
+                </div>
+                <div className="flex items-start justify-between mb-4 mt-2">
                   <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">Je paie pour {prices.platiniumGroupSize} participants</h3>
-                    <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
-                    <p className="text-xs text-gray-500 mt-1">{prices.platiniumGroupSize} x {prices.platinium.toFixed(2).replace('.', ',')} EUR</p>
+                    <h3 className="text-lg font-semibold text-white mb-1">{prices.platiniumGroupSize} places</h3>
+                    <p className="text-xs text-gray-400">Créez votre tournoi pour vous et 10 joueurs</p>
                   </div>
-                  <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">Recommande</span>
+                  <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
                 </div>
                 <ul className="space-y-2 mb-4 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -518,6 +524,14 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                     `Payer ${prices.platiniumGroup.toFixed(2).replace('.', ',')} EUR`
                   )}
                 </button>
+              </div>
+
+              {/* Lot à gagner */}
+              <div className="flex items-center justify-center gap-3 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
+                <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-10" />
+                <p className="text-sm text-yellow-400 font-medium text-center">
+                  Le vainqueur remportera un maillot neuf et authentique de la part de "Le bon maillot"
+                </p>
               </div>
             </div>
           </div>

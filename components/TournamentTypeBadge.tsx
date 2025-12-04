@@ -1,6 +1,6 @@
 'use client'
 
-type TournamentType = 'free' | 'oneshot' | 'premium' | 'enterprise'
+type TournamentType = 'free' | 'oneshot' | 'elite' | 'platinium' | 'premium' | 'enterprise'
 
 interface TournamentTypeBadgeProps {
   type: TournamentType
@@ -8,24 +8,35 @@ interface TournamentTypeBadgeProps {
   className?: string
 }
 
+// Couleurs fixes par type de tournoi
 const BADGE_CONFIG: Record<TournamentType, { color: string; label: string; tooltip: string }> = {
   free: {
-    color: '#ffffff',
+    color: '#3b82f6', // Bleu
     label: 'FREE',
-    tooltip: 'Tournoi gratuit'
+    tooltip: 'Tournoi Free-Kick'
   },
   oneshot: {
-    color: '#99a1af',
+    color: '#22c55e', // Vert
     label: 'ONE-SHOT',
-    tooltip: 'Tournoi one-shot'
+    tooltip: 'Tournoi One-Shot'
+  },
+  elite: {
+    color: '#ff9900', // Orange
+    label: 'ELITE',
+    tooltip: 'Tournoi Elite Team'
+  },
+  platinium: {
+    color: '#eab308', // Jaune
+    label: 'PLATINIUM',
+    tooltip: 'Tournoi Platinium'
   },
   premium: {
-    color: '#ff9900',
+    color: '#ff9900', // Orange (même que elite)
     label: 'PREMIUM',
     tooltip: 'Tournoi premium'
   },
   enterprise: {
-    color: '#0f1729',
+    color: '#a855f7', // Violet
     label: 'ENTREPRISE',
     tooltip: 'Tournoi entreprise'
   }
@@ -37,8 +48,8 @@ const SIZE_CONFIG = {
   lg: 36
 }
 
-// SVG Icons inline pour pouvoir appliquer les couleurs
-const FreeTourIcon = ({ color, size }: { color: string; size: number }) => (
+// SVG Icons avec couleur passée en prop
+const FreeTourIcon = ({ size, color }: { size: number; color: string }) => (
   <svg width={size} height={size} viewBox="0 0 800 800" fill={color}>
     <path d="M644,550.6c-19.6,5.9-38.8,16-58.2,35.3l0,0c-25.2,25.4-35.1,50.6-39.5,76.6c-4.3,26-2.2,52.6-1.7,78.1
       c0,4.3,0.1,8.5,0,12.7l208.7-208.7c-6.6,0.2-13.3,0.1-20.1-0.1C704,543.6,673.3,541.8,644,550.6z"/>
@@ -52,20 +63,19 @@ const FreeTourIcon = ({ color, size }: { color: string; size: number }) => (
   </svg>
 )
 
-const OneShotTourIcon = ({ color, size }: { color: string; size: number }) => (
+const OneShotTourIcon = ({ size, color }: { size: number; color: string }) => (
   <svg width={size} height={size} viewBox="0 0 800 800" fill={color}>
     <path d="M644,550.6c-19.6,5.9-38.8,16-58.2,35.3l0,0c-25.2,25.4-35.1,50.6-39.5,76.6c-4.3,26-2.2,52.6-1.7,78.1
       c0,4.3,0.1,8.5,0,12.7l208.7-208.7c-6.6,0.2-13.3,0.1-20.1-0.1C704,543.6,673.3,541.8,644,550.6z"/>
-    <path d="M400,0C179.1,0,0,179.1,0,400c0,220.9,179.1,400,400,400c33.1,0,65.1-4.3,95.9-11.9c4-4.4,6.5-9.8,8.1-18.5
-      c1.7-9.1,1.8-21.3,1.4-35.3c-0.7-28.1-3.4-63.7,7.7-101.5c7.4-25.1,21.3-51,45.2-74.7c0,0,0,0,0,0c31.2-31.4,66-45.3,98-50.4
+    <path d="M400,0C179.1,0,0,179.1,0,400s179.1,400,400,400c33.1,0,65.1-4.3,95.9-11.9c4-4.4,6.5-9.8,8.1-18.5
+      c1.7-9.1,1.8-21.3,1.4-35.3c-0.7-28.1-3.4-63.7,7.7-101.5c7.4-25.1,21.3-51,45.2-74.7c31.2-31.4,66-45.3,98-50.4
       c32.1-5.2,61.6-2.5,85.1-2.2c15.6,0.3,28.3-0.6,36.6-3.6c4.4-1.5,7.5-3.5,10.3-6.1C795.7,465.1,800,433,800,400
-      C800,179.1,620.9,0,400,0z"/>
-    <path fill="#ffffff" d="M240.2,149l-50.4,42.2L249,337.9L127.8,439.6l24.6,61l157.8-11l59.2,146.7l65.6-4.6l38.4-153.5l157.8-11
-      l15.9-63.8L513,319.6l38.4-153.5l-55.7-34.9L374.4,232.9L240.2,149z"/>
+      C800,179.1,620.9,0,400,0z M631.2,467.2l-157.8,11L435,631.7l-65.6,4.6l-59.2-146.7l-157.8,11l-24.6-61L249,337.9l-59.2-146.7
+      l50.4-42.2l134.2,83.9l121.3-101.7l55.7,34.9L513,319.6l134.1,83.8L631.2,467.2z"/>
   </svg>
 )
 
-const PremiumTourIcon = ({ color, size }: { color: string; size: number }) => (
+const PremiumTourIcon = ({ size, color }: { size: number; color: string }) => (
   <svg width={size} height={size} viewBox="0 0 800 800" fill={color}>
     <path d="M644,550.6c-19.6,5.9-38.8,16-58.2,35.3l0,0c-25.2,25.4-35.1,50.6-39.5,76.6c-4.3,26-2.2,52.6-1.7,78.1
       c0,4.3,0.1,8.5,0,12.7l208.7-208.7c-6.6,0.2-13.3,0.1-20.1-0.1C704,543.6,673.3,541.8,644,550.6z"/>
@@ -84,7 +94,7 @@ const PremiumTourIcon = ({ color, size }: { color: string; size: number }) => (
   </svg>
 )
 
-const EnterpriseTourIcon = ({ color, size }: { color: string; size: number }) => (
+const EnterpriseTourIcon = ({ size, color }: { size: number; color: string }) => (
   <svg width={size} height={size} viewBox="0 0 800 800" fill={color}>
     <path d="M644,550.6c-19.6,5.9-38.8,16-58.2,35.3l0,0c-25.2,25.4-35.1,50.6-39.5,76.6c-4.3,26-2.2,52.6-1.7,78.1
       c0,4.3,0.1,8.5,0,12.7l208.7-208.7c-6.6,0.2-13.3,0.1-20.1-0.1C704,543.6,673.3,541.8,644,550.6z"/>
@@ -112,19 +122,24 @@ const EnterpriseTourIcon = ({ color, size }: { color: string; size: number }) =>
 export function TournamentTypeBadge({ type, size = 'md', className = '' }: TournamentTypeBadgeProps) {
   const config = BADGE_CONFIG[type] || BADGE_CONFIG.free
   const iconSize = SIZE_CONFIG[size]
+  const color = config.color
 
   const renderIcon = () => {
     switch (type) {
       case 'free':
-        return <FreeTourIcon color={config.color} size={iconSize} />
+        return <FreeTourIcon size={iconSize} color={color} />
       case 'oneshot':
-        return <OneShotTourIcon color={config.color} size={iconSize} />
+        return <OneShotTourIcon size={iconSize} color={color} />
+      case 'elite':
+        return <PremiumTourIcon size={iconSize} color={color} />
+      case 'platinium':
+        return <PremiumTourIcon size={iconSize} color={color} />
       case 'premium':
-        return <PremiumTourIcon color={config.color} size={iconSize} />
+        return <PremiumTourIcon size={iconSize} color={color} />
       case 'enterprise':
-        return <EnterpriseTourIcon color={config.color} size={iconSize} />
+        return <EnterpriseTourIcon size={iconSize} color={color} />
       default:
-        return <FreeTourIcon color={config.color} size={iconSize} />
+        return <FreeTourIcon size={iconSize} color={color} />
     }
   }
 

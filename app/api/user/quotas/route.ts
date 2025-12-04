@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { UserQuotas, TournamentTypeResult, ACCOUNT_LIMITS } from '@/types/monetization'
+import { UserQuotas, TournamentTypeResult, ACCOUNT_LIMITS, PRICES } from '@/types/monetization'
 
 // GET /api/user/quotas
 // Retourne les quotas de l'utilisateur connecté
@@ -35,9 +35,8 @@ export async function GET() {
   }
 }
 
-// Calcul manuel des quotas (fallback si la vue n'existe pas)
-// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id)
-// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
+// Calcul manuel des quotas basé sur les crédits achetés
+// Plus d'abonnement premium - uniquement des achats de crédits par type
 async function calculateQuotasManually(supabase: any, userId: string): Promise<UserQuotas> {
   // Récupérer le profil
   const { data: profile } = await supabase
@@ -46,12 +45,11 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     .eq('id', userId)
     .single()
 
-  // Vérifier abonnement actif
-  const { data: subscription } = await supabase
-    .from('user_subscriptions')
+  // Récupérer les crédits disponibles depuis la vue
+  const { data: credits } = await supabase
+    .from('user_available_credits')
     .select('*')
     .eq('user_id', userId)
-    .eq('status', 'active')
     .single()
 
   // GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
@@ -74,45 +72,17 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     freeParticipationCount = count || 0
   }
 
-  // Compter les tournois one-shot actifs
+  // Crédits disponibles par type
+  const oneshotCredits = credits?.oneshot_credits || 0
+  const eliteCredits = credits?.elite_credits || 0
+  const platiniumCredits = (credits?.platinium_solo_credits || 0) + (credits?.platinium_group_slots || 0)
+
+  // Compter les tournois one-shot actifs (ancienne logique pour compatibilité)
   const { count: oneshotActiveCount } = await supabase
     .from('user_oneshot_purchases')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'in_use')
-
-  // Compter les slots one-shot disponibles
-  const { count: oneshotAvailableCount } = await supabase
-    .from('user_oneshot_purchases')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'available')
-
-  // PREMIUM: Compter les tournois premium CRÉÉS par l'utilisateur
-  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
-  const { data: premiumWithOriginalCreator } = await supabase
-    .from('tournaments')
-    .select('id')
-    .eq('original_creator_id', userId)
-    .eq('tournament_type', 'premium')
-    .neq('status', 'completed')
-
-  // Fallback: tournois où creator_id = userId ET original_creator_id est NULL (anciens tournois)
-  const { data: premiumWithCreatorFallback } = await supabase
-    .from('tournaments')
-    .select('id')
-    .eq('creator_id', userId)
-    .eq('tournament_type', 'premium')
-    .is('original_creator_id', null)
-    .neq('status', 'completed')
-
-  // Combiner les deux listes en évitant les doublons
-  const allPremiumCreated = [
-    ...(premiumWithOriginalCreator || []),
-    ...(premiumWithCreatorFallback || [])
-  ]
-  const uniquePremiumIds = new Set(allPremiumCreated.map(t => t.id))
-  const premiumCount = uniquePremiumIds.size
 
   // Compter les comptes entreprise actifs
   const { count: enterpriseCount } = await supabase
@@ -121,30 +91,25 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
     .eq('user_id', userId)
     .eq('status', 'active')
 
-  const hasSubscription = subscription?.status === 'active'
-  const premiumMax = hasSubscription ? 5 : 0
-
-  // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
-  // GRATUIT: basé sur les PARTICIPATIONS (max 3)
-  // PREMIUM: basé sur les CRÉATIONS (max 5)
-  const canCreate =
-    (hasSubscription && premiumCount < 5) ||
-    (oneshotAvailableCount || 0) > 0 ||
-    freeParticipationCount < 3
+  // Déterminer si l'utilisateur peut créer un tournoi
+  // Soit il a des crédits disponibles, soit il a encore des slots gratuits
+  const hasCreationCredits = oneshotCredits > 0 || eliteCredits > 0 || platiniumCredits > 0
+  const canCreateFree = freeParticipationCount < PRICES.FREE_MAX_TOURNAMENTS
+  const canCreate = hasCreationCredits || canCreateFree
 
   return {
     user_id: userId,
     username: profile?.username || 'Unknown',
-    subscription_status: subscription?.status || 'none',
-    subscription_type: subscription?.subscription_type || null,
-    subscription_expires_at: subscription?.current_period_end || null,
+    subscription_status: 'none', // Plus d'abonnement premium
+    subscription_type: null,
+    subscription_expires_at: null,
     free_tournaments_active: freeParticipationCount,
-    free_tournaments_max: 3,
+    free_tournaments_max: PRICES.FREE_MAX_TOURNAMENTS,
     oneshot_tournaments_active: oneshotActiveCount || 0,
     oneshot_tournaments_max: 2,
-    oneshot_slots_available: oneshotAvailableCount || 0,
-    premium_tournaments_active: premiumCount,
-    premium_tournaments_max: premiumMax,
+    oneshot_slots_available: oneshotCredits, // Utilise les crédits one-shot
+    premium_tournaments_active: 0, // Plus de concept premium
+    premium_tournaments_max: 0,
     enterprise_accounts_active: enterpriseCount || 0,
     can_create_tournament: canCreate,
   }
@@ -200,69 +165,48 @@ export async function POST() {
   }
 }
 
-// Calcul manuel du type de tournoi
-// PREMIUM: basé sur les tournois CRÉÉS (original_creator_id avec fallback creator_id)
-// GRATUIT: basé sur les PARTICIPATIONS (count des tournament_participants)
+// Calcul manuel du type de tournoi basé sur les crédits disponibles
+// Priorité: Elite > Platinium > One-Shot > Gratuit
 async function determineTournamentTypeManually(
   supabase: any,
   userId: string
 ): Promise<TournamentTypeResult> {
-  // Vérifier abonnement actif
-  const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('status')
+  // Récupérer les crédits disponibles depuis la vue
+  const { data: credits } = await supabase
+    .from('user_available_credits')
+    .select('*')
     .eq('user_id', userId)
-    .eq('status', 'active')
     .single()
 
-  const hasSubscription = !!subscription
+  const oneshotCredits = credits?.oneshot_credits || 0
+  const eliteCredits = credits?.elite_credits || 0
+  const platiniumSoloCredits = credits?.platinium_solo_credits || 0
+  const platiniumGroupSlots = credits?.platinium_group_slots || 0
 
-  // PREMIUM: Compter tournois premium CRÉÉS par l'utilisateur
-  // On utilise original_creator_id en priorité, avec fallback sur creator_id pour les anciens tournois
-  const { data: premiumWithOriginalCreator } = await supabase
-    .from('tournaments')
-    .select('id')
-    .eq('original_creator_id', userId)
-    .eq('tournament_type', 'premium')
-    .neq('status', 'completed')
-
-  const { data: premiumWithCreatorFallback } = await supabase
-    .from('tournaments')
-    .select('id')
-    .eq('creator_id', userId)
-    .eq('tournament_type', 'premium')
-    .is('original_creator_id', null)
-    .neq('status', 'completed')
-
-  const allPremiumCreated = [
-    ...(premiumWithOriginalCreator || []),
-    ...(premiumWithCreatorFallback || [])
-  ]
-  const uniquePremiumIds = new Set(allPremiumCreated.map(t => t.id))
-  const premiumCount = uniquePremiumIds.size
-
-  // Priorité 1: Abonnement premium (utilise le type elite)
-  if (hasSubscription && premiumCount < 5) {
+  // Priorité 1: Elite Team (meilleur rapport qualité/prix)
+  if (eliteCredits > 0) {
     return {
       tournament_type: 'elite',
       max_players: ACCOUNT_LIMITS.elite.maxPlayersPerTournament,
-      reason: 'Slot abonnement premium utilisé'
+      reason: 'Crédit Elite Team disponible'
     }
   }
 
-  // Compter slots one-shot disponibles
-  const { count: oneshotAvailable } = await supabase
-    .from('user_oneshot_purchases')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('status', 'available')
+  // Priorité 2: Platinium
+  if (platiniumSoloCredits > 0 || platiniumGroupSlots > 0) {
+    return {
+      tournament_type: 'platinium',
+      max_players: ACCOUNT_LIMITS.platinium.maxPlayersPerTournament,
+      reason: 'Crédit Platinium disponible'
+    }
+  }
 
-  // Priorité 2: One-shot
-  if ((oneshotAvailable || 0) > 0) {
+  // Priorité 3: One-shot
+  if (oneshotCredits > 0) {
     return {
       tournament_type: 'oneshot',
       max_players: ACCOUNT_LIMITS.oneshot.maxPlayersPerTournament,
-      reason: 'Slot one-shot utilisé'
+      reason: 'Crédit One-Shot disponible'
     }
   }
 
@@ -286,8 +230,8 @@ async function determineTournamentTypeManually(
     freeParticipationCount = count || 0
   }
 
-  // Priorité 3: Gratuit (max 3 participations)
-  if (freeParticipationCount < 3) {
+  // Priorité 4: Gratuit (max FREE_MAX_TOURNAMENTS participations)
+  if (freeParticipationCount < PRICES.FREE_MAX_TOURNAMENTS) {
     return {
       tournament_type: 'free',
       max_players: ACCOUNT_LIMITS.free.maxPlayersPerTournament,
@@ -299,6 +243,6 @@ async function determineTournamentTypeManually(
   return {
     tournament_type: null,
     max_players: 0,
-    reason: 'Aucun slot disponible - upgrade requis'
+    reason: 'Aucun slot disponible - achetez un crédit'
   }
 }

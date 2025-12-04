@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, Trophy, Users, Award, Building2, AlertTriangle, Plus, Clock, UserPlus, Sparkles, ChevronRight } from 'lucide-react'
+import { AlertTriangle, Plus, Clock, UserPlus, Users, Sparkles, ChevronRight, Loader2 } from 'lucide-react'
 import { PRICES, formatPrice } from '@/types/monetization'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -38,6 +38,9 @@ interface ZoneVIPData {
   premium_invites_max: number
   can_create_free_tournament: boolean
   can_join_premium_free: boolean
+  // Slots payants
+  paid_slots_used: number
+  paid_slots_total: number
 
   // Crédits disponibles
   credits?: Credits
@@ -62,10 +65,33 @@ export default function UserQuotasCard() {
   const router = useRouter()
   const [data, setData] = useState<ZoneVIPData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Fonction pour rediriger vers Stripe checkout
+  const handleCheckout = async (purchaseType: string) => {
+    setIsCheckoutLoading(purchaseType)
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchaseType }),
+      })
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('Erreur checkout:', data.error)
+        setIsCheckoutLoading(null)
+      }
+    } catch (error) {
+      console.error('Erreur checkout:', error)
+      setIsCheckoutLoading(null)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -131,43 +157,120 @@ export default function UserQuotasCard() {
         </h4>
 
         {/* Barre de progression tournois gratuits */}
-        <div className="stat-card border-blue-200 dark:border-blue-800/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm theme-text-secondary">Tournois gratuits actifs</span>
-            <span className={`font-bold ${data.free_tournaments_active >= data.free_tournaments_max ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'}`}>
-              {data.free_tournaments_active}/{data.free_tournaments_max}
-            </span>
+        <div className="stat-card border-blue-400 dark:border-blue-800/50">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium theme-text">Tournois gratuits actifs</span>
+                <span className={`font-bold ${data.free_tournaments_active >= data.free_tournaments_max ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'}`}>
+                  {data.free_tournaments_active}/{data.free_tournaments_max}
+                </span>
+              </div>
+              <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    data.free_tournaments_active >= data.free_tournaments_max
+                      ? 'bg-red-500'
+                      : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min((data.free_tournaments_active / data.free_tournaments_max) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            {data.free_tournaments_active >= data.free_tournaments_max && (
+              <button
+                onClick={() => handleCheckout('slot_invite')}
+                disabled={isCheckoutLoading === 'slot_invite'}
+                className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+              >
+                {isCheckoutLoading === 'slot_invite' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Plus className="w-3 h-3" />
+                )}
+                Acheter un slot
+              </button>
+            )}
           </div>
-          <div className="h-3 theme-bg rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                data.free_tournaments_active >= data.free_tournaments_max
-                  ? 'bg-red-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min((data.free_tournaments_active / data.free_tournaments_max) * 100, 100)}%` }}
-            />
-          </div>
-          {data.free_tournaments_active >= data.free_tournaments_max && (
-            <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" />
-              Limite atteinte - Achetez un slot pour rejoindre un autre tournoi
-            </p>
-          )}
         </div>
 
-        {/* Invitation premium */}
-        <div className="stat-card border-green-200 dark:border-green-800/50">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm theme-text-secondary">Invitation premium gratuite</span>
-            <span className={`font-bold ${data.premium_invites_active >= data.premium_invites_max ? 'text-orange-500' : 'text-green-600 dark:text-green-400'}`}>
-              {data.can_join_premium_free ? 'Disponible' : 'Utilisée'}
-            </span>
+        {/* Participation gratuite à un tournoi payant */}
+        <div className="stat-card border-green-400 dark:border-green-800/50">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium theme-text">Participation gratuite à un tournoi payant</span>
+                <span className={`font-bold ${data.premium_invites_active >= data.premium_invites_max ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
+                  {data.premium_invites_active}/{data.premium_invites_max}
+                </span>
+              </div>
+              <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    data.premium_invites_active >= data.premium_invites_max
+                      ? 'bg-red-500'
+                      : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min((data.premium_invites_active / data.premium_invites_max) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            {data.premium_invites_active >= data.premium_invites_max && data.paid_slots_total === 0 && (
+              <button
+                onClick={() => handleCheckout('slot_invite')}
+                disabled={isCheckoutLoading === 'slot_invite'}
+                className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+              >
+                {isCheckoutLoading === 'slot_invite' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Plus className="w-3 h-3" />
+                )}
+                Acheter un slot
+              </button>
+            )}
           </div>
-          <p className="text-xs theme-text-secondary">
-            Vous pouvez être invité gratuitement dans 1 tournoi One-Shot ou Elite Team
-          </p>
         </div>
+
+        {/* Participation payante à un tournoi - affiché uniquement si l'utilisateur a des slots payants */}
+        {data.paid_slots_total > 0 && (
+          <div className="stat-card border-orange-400 dark:border-orange-800/50">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium theme-text">Participation payante à un tournoi</span>
+                  <span className={`font-bold ${data.paid_slots_used >= data.paid_slots_total ? 'text-red-500' : 'text-orange-600 dark:text-orange-400'}`}>
+                    {data.paid_slots_used}/{data.paid_slots_total}
+                  </span>
+                </div>
+                <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      data.paid_slots_used >= data.paid_slots_total
+                        ? 'bg-red-500'
+                        : 'bg-orange-500'
+                    }`}
+                    style={{ width: `${Math.min((data.paid_slots_used / data.paid_slots_total) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              {data.paid_slots_used >= data.paid_slots_total && (
+                <button
+                  onClick={() => handleCheckout('slot_invite')}
+                  disabled={isCheckoutLoading === 'slot_invite'}
+                  className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+                >
+                  {isCheckoutLoading === 'slot_invite' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Plus className="w-3 h-3" />
+                  )}
+                  Acheter un slot
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Séparateur */}
@@ -187,11 +290,11 @@ export default function UserQuotasCard() {
               {data.credits.oneshot > 0 && (
                 <Link
                   href="/vestiaire?type=oneshot&use_credit=true"
-                  className="stat-card border-green-200 dark:border-green-800/50 bg-green-50/50 dark:bg-green-900/10 hover:border-green-400 dark:hover:border-green-600 transition-all cursor-pointer group"
+                  className="stat-card border-green-400 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 hover:border-green-500 dark:hover:border-green-600 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Trophy className="w-5 h-5 text-green-500 dark:text-green-400" />
+                      <img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium theme-text">One-Shot</p>
@@ -210,11 +313,11 @@ export default function UserQuotasCard() {
               {data.credits.elite > 0 && (
                 <Link
                   href="/vestiaire?type=elite&use_credit=true"
-                  className="stat-card border-orange-200 dark:border-orange-800/50 bg-orange-50/50 dark:bg-orange-900/10 hover:border-orange-400 dark:hover:border-orange-600 transition-all cursor-pointer group"
+                  className="stat-card border-orange-400 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/10 hover:border-orange-500 dark:hover:border-orange-600 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Users className="w-5 h-5 text-[#ff9900]" />
+                      <img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium theme-text">Elite Team</p>
@@ -231,10 +334,10 @@ export default function UserQuotasCard() {
 
               {/* Crédits Platinium solo */}
               {data.credits.platinium_solo > 0 && (
-                <div className="stat-card border-yellow-200 dark:border-yellow-800/50 bg-yellow-50/50 dark:bg-yellow-900/10">
+                <div className="stat-card border-yellow-400 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+                      <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium theme-text">Platinium</p>
@@ -252,11 +355,11 @@ export default function UserQuotasCard() {
               {data.credits.platinium_group > 0 && (
                 <Link
                   href="/vestiaire?type=platinium&use_credit=true"
-                  className="stat-card border-yellow-200 dark:border-yellow-800/50 bg-yellow-50/50 dark:bg-yellow-900/10 hover:border-yellow-400 dark:hover:border-yellow-600 transition-all cursor-pointer group"
+                  className="stat-card border-yellow-400 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 hover:border-yellow-500 dark:hover:border-yellow-600 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Award className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+                      <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium theme-text">Platinium Groupe</p>
@@ -275,7 +378,7 @@ export default function UserQuotasCard() {
               {data.credits.slot_invite > 0 && (
                 <Link
                   href="/dashboard?action=join"
-                  className="stat-card border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-900/10 hover:border-blue-400 dark:hover:border-blue-600 transition-all cursor-pointer group"
+                  className="stat-card border-blue-400 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 hover:border-blue-500 dark:hover:border-blue-600 transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -326,7 +429,7 @@ export default function UserQuotasCard() {
             {freeTournaments.length > 0 && (
               <TournamentGroup
                 title="Free-Kick"
-                icon={<Zap className="w-5 h-5 text-blue-500 dark:text-blue-400" />}
+                icon={<img src="/images/icons/free-tour.svg" alt="" className="w-5 h-5 icon-filter-blue" />}
                 tournaments={freeTournaments}
                 color="blue"
               />
@@ -336,7 +439,7 @@ export default function UserQuotasCard() {
             {oneshotTournaments.length > 0 && (
               <TournamentGroup
                 title="One-Shot"
-                icon={<Trophy className="w-5 h-5 text-green-500 dark:text-green-400" />}
+                icon={<img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />}
                 tournaments={oneshotTournaments}
                 color="green"
               />
@@ -346,7 +449,7 @@ export default function UserQuotasCard() {
             {eliteTournaments.length > 0 && (
               <TournamentGroup
                 title="Elite Team"
-                icon={<Users className="w-5 h-5 text-[#ff9900]" />}
+                icon={<img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />}
                 tournaments={eliteTournaments}
                 color="orange"
               />
@@ -356,7 +459,7 @@ export default function UserQuotasCard() {
             {platiniumTournaments.length > 0 && (
               <TournamentGroup
                 title="Platinium"
-                icon={<Award className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />}
+                icon={<img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />}
                 tournaments={platiniumTournaments}
                 color="yellow"
               />
@@ -380,11 +483,11 @@ export default function UserQuotasCard() {
           {/* One-Shot */}
           <button
             onClick={() => router.push('/pricing')}
-            className="stat-card border-green-200 dark:border-green-800/50 hover:border-green-400 dark:hover:border-green-600 transition-all text-left group"
+            className="stat-card border-green-400 dark:border-green-800/50 hover:border-green-500 dark:hover:border-green-600 transition-all text-left group"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-green-500 dark:text-green-400" />
+                <img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />
                 <span className="font-medium theme-text">One-Shot</span>
               </div>
               <span className="font-bold text-green-600 dark:text-green-400">{formatPrice(PRICES.ONESHOT_CREATION)}</span>
@@ -400,19 +503,19 @@ export default function UserQuotasCard() {
           {/* Elite Team */}
           <button
             onClick={() => router.push('/pricing')}
-            className="stat-card border-blue-200 dark:border-blue-800/50 hover:border-blue-400 dark:hover:border-blue-600 transition-all text-left group"
+            className="stat-card border-orange-400 dark:border-orange-800/50 hover:border-orange-500 dark:hover:border-orange-600 transition-all text-left group"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />
                 <span className="font-medium theme-text">Elite Team</span>
               </div>
-              <span className="font-bold text-blue-600 dark:text-blue-400">{formatPrice(PRICES.ELITE_CREATION)}</span>
+              <span className="font-bold text-orange-600 dark:text-orange-400">{formatPrice(PRICES.ELITE_CREATION)}</span>
             </div>
             <p className="text-xs theme-text-secondary">
               1 tournoi · {PRICES.ELITE_MAX_PLAYERS} joueurs · Jeu en équipe
             </p>
-            <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 mt-2 group-hover:underline">
+            <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 mt-2 group-hover:underline">
               Créer un Elite Team <ChevronRight className="w-3 h-3" />
             </div>
           </button>
@@ -420,11 +523,11 @@ export default function UserQuotasCard() {
           {/* Platinium */}
           <button
             onClick={() => router.push('/pricing')}
-            className="stat-card border-yellow-200 dark:border-yellow-800/50 hover:border-yellow-400 dark:hover:border-yellow-600 transition-all text-left group"
+            className="stat-card border-yellow-400 dark:border-yellow-800/50 hover:border-yellow-500 dark:hover:border-yellow-600 transition-all text-left group"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
+                <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
                 <span className="font-medium theme-text">Platinium</span>
               </div>
               <span className="font-bold text-yellow-600 dark:text-yellow-400">{formatPrice(PRICES.PLATINIUM_CREATION)}/pers.</span>
@@ -440,11 +543,11 @@ export default function UserQuotasCard() {
           {/* Entreprise */}
           <button
             onClick={() => router.push('/contact?type=enterprise')}
-            className="stat-card border-purple-200 dark:border-purple-800/50 hover:border-purple-400 dark:hover:border-purple-600 transition-all text-left group"
+            className="stat-card border-purple-400 dark:border-purple-800/50 hover:border-purple-500 dark:hover:border-purple-600 transition-all text-left group"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                <img src="/images/icons/company-tour.svg" alt="" className="w-5 h-5 icon-filter-purple" />
                 <span className="font-medium theme-text">Corpo</span>
               </div>
               <span className="font-bold text-purple-600 dark:text-purple-400">Sur devis</span>
@@ -471,7 +574,7 @@ export default function UserQuotasCard() {
 
         <div className="grid grid-cols-1 gap-3">
           {/* Recrue du mercato - 0.99€ */}
-          <div className="stat-card border-blue-200 dark:border-blue-800/50 flex items-center justify-between">
+          <div className="stat-card border-blue-400 dark:border-blue-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
                 <UserPlus className="w-5 h-5 text-blue-500 dark:text-blue-400" />
@@ -485,7 +588,7 @@ export default function UserQuotasCard() {
           </div>
 
           {/* Renfort du banc - 1.99€ */}
-          <div className="stat-card border-orange-200 dark:border-orange-800/50 flex items-center justify-between">
+          <div className="stat-card border-orange-400 dark:border-orange-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
                 <Users className="w-5 h-5 text-[#ff9900]" />
@@ -499,7 +602,7 @@ export default function UserQuotasCard() {
           </div>
 
           {/* Joue les prolongations - 3.99€ */}
-          <div className="stat-card border-green-200 dark:border-green-800/50 flex items-center justify-between">
+          <div className="stat-card border-green-400 dark:border-green-800/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-green-500 dark:text-green-400" />
@@ -544,11 +647,11 @@ function TournamentGroup({
   color: 'blue' | 'green' | 'orange' | 'yellow' | 'purple'
 }) {
   const borderColors = {
-    blue: 'border-blue-200 dark:border-blue-800/50',
-    green: 'border-green-200 dark:border-green-800/50',
-    orange: 'border-orange-200 dark:border-orange-800/50',
-    yellow: 'border-yellow-200 dark:border-yellow-800/50',
-    purple: 'border-purple-200 dark:border-purple-800/50',
+    blue: 'border-blue-400 dark:border-blue-800/50',
+    green: 'border-green-400 dark:border-green-800/50',
+    orange: 'border-orange-400 dark:border-orange-800/50',
+    yellow: 'border-yellow-400 dark:border-yellow-800/50',
+    purple: 'border-purple-400 dark:border-purple-800/50',
   }
 
   return (

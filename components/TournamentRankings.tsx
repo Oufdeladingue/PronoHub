@@ -20,6 +20,18 @@ interface PlayerStats {
   rankChange?: 'up' | 'down' | 'same'
 }
 
+interface TeamStats {
+  teamId: string
+  teamName: string
+  teamAvatar: string
+  memberCount: number
+  avgPoints: number
+  totalPoints: number
+  avgExactScores: number
+  avgCorrectResults: number
+  rank: number
+}
+
 interface RankingsData {
   rankings: PlayerStats[]
   matchday: number | null
@@ -38,15 +50,21 @@ interface TournamentRankingsProps {
   availableMatchdays: number[]
   tournamentName?: string
   allMatches?: any[]
+  teamsEnabled?: boolean
+  tournamentType?: string
 }
 
-export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches }: TournamentRankingsProps) {
-  const [selectedView, setSelectedView] = useState<'general' | number>('general')
+export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType }: TournamentRankingsProps) {
+  const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
+  const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>({})
+
+  // Verifier si les equipes sont supportees (Elite ou Platinium)
+  const supportsTeams = tournamentType === 'elite' || tournamentType === 'platinium'
 
   // Ref et états pour la navigation des vues avec flèches
   const viewsContainerRef = useRef<HTMLDivElement>(null)
@@ -148,7 +166,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     setError(null)
 
     try {
-      const supabase = createClient()
+      // Si vue equipes, charger le classement par equipe
+      if (selectedView === 'teams') {
+        const response = await fetch(`/api/tournaments/${tournamentId}/teams/rankings`)
+        if (response.ok) {
+          const data = await response.json()
+          setTeamRankings(data.rankings || [])
+        } else {
+          setTeamRankings([])
+        }
+        setLoading(false)
+        return
+      }
 
       // Construire l'URL avec le paramètre matchday si nécessaire
       const url = selectedView === 'general'
@@ -243,6 +272,22 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             >
               Général
             </button>
+            {/* Bouton Équipes (uniquement si supporte et active) */}
+            {supportsTeams && teamsEnabled && (
+              <button
+                onClick={() => setSelectedView('teams')}
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-sm md:text-base font-semibold transition whitespace-nowrap flex-shrink-0 flex items-center gap-1 ${
+                  selectedView === 'teams'
+                    ? 'bg-[#ff9900] text-[#111]'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
+                }`}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M21 17C21 15.77 19.77 14.71 18 14.25M3 17C3 15.77 4.23 14.71 6 14.25M18 10.24C18.61 9.69 19 8.89 19 8C19 6.34 17.66 5 16 5C15.23 5 14.53 5.29 14 5.76M6 10.24C5.39 9.69 5 8.89 5 8C5 6.34 6.34 5 8 5C8.77 5 9.47 5.29 10 5.76M12 14C10.34 14 9 12.66 9 11C9 9.34 10.34 8 12 8C13.66 8 15 9.34 15 11C15 12.66 13.66 14 12 14Z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Équipes
+              </button>
+            )}
             {availableMatchdays
               .filter(matchday => hasMatchdayStarted(matchday))
               .map(matchday => {
@@ -292,6 +337,110 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
         <div className="text-center py-12">
           <p className="text-red-500">{error}</p>
         </div>
+      ) : selectedView === 'teams' ? (
+        // Vue classement par equipes
+        teamRankings.length === 0 ? (
+          <div className="text-center py-12">
+            <svg className="w-16 h-16 mx-auto mb-4 theme-text-secondary opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M21 17C21 15.77 19.77 14.71 18 14.25M3 17C3 15.77 4.23 14.71 6 14.25M18 10.24C18.61 9.69 19 8.89 19 8C19 6.34 17.66 5 16 5C15.23 5 14.53 5.29 14 5.76M6 10.24C5.39 9.69 5 8.89 5 8C5 6.34 6.34 5 8 5C8.77 5 9.47 5.29 10 5.76M12 14C10.34 14 9 12.66 9 11C9 9.34 10.34 8 12 8C13.66 8 15 9.34 15 11C15 12.66 13.66 14 12 14Z" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="theme-text-secondary">
+              Aucune equipe creee pour le moment.
+            </p>
+            <p className="text-sm theme-text-secondary mt-2">
+              Le capitaine doit creer des equipes sur la page d&apos;echauffement.
+            </p>
+          </div>
+        ) : (
+          <div>
+            {/* Info classement équipes */}
+            <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg info-bg-container">
+              <p className="text-xs md:text-sm theme-text-secondary">
+                Classement basé sur la moyenne des points de chaque équipe
+              </p>
+            </div>
+
+            {/* Tableau des équipes */}
+            <div className="overflow-x-auto -mx-2 md:mx-0">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 theme-border">
+                    <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">#</th>
+                    <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Équipe</th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Moyenne Points">
+                      <span className="md:hidden">Moy.</span>
+                      <span className="hidden md:inline">Moy. Points</span>
+                    </th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Total Points">
+                      <span className="md:hidden">Tot.</span>
+                      <span className="hidden md:inline">Total Pts</span>
+                    </th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base hidden md:table-cell">Membres</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teamRankings.map((team) => (
+                    <tr
+                      key={team.teamId}
+                      className="border-b theme-border hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                    >
+                      {/* Rang */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 theme-text font-bold text-xs md:text-base">
+                        <span className="w-4 md:w-6 text-center">{team.rank}</span>
+                      </td>
+
+                      {/* Nom equipe avec avatar */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 font-medium">
+                        <div className="flex items-center gap-1 md:gap-2">
+                          <img
+                            src={`/images/team-avatars/${team.teamAvatar}.svg`}
+                            alt={team.teamName}
+                            className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/team-avatars/team1.svg'
+                            }}
+                          />
+                          <span className="text-xs md:text-base truncate max-w-[100px] md:max-w-none theme-text">
+                            {team.teamName}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Moyenne Points */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 text-center">
+                        {team.rank <= 3 ? (
+                          <span className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full font-bold text-xs md:text-base ${
+                            team.rank === 1
+                              ? 'bg-yellow-500 text-[#0f172a]'
+                              : team.rank === 2
+                                ? 'bg-gray-400 text-[#0f172a]'
+                                : 'bg-amber-600 text-[#0f172a]'
+                          }`}>
+                            {team.avgPoints.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="theme-text font-bold text-xs md:text-base">
+                            {team.avgPoints.toFixed(1)}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Total Points */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text text-xs md:text-base">
+                        {team.totalPoints}
+                      </td>
+
+                      {/* Nombre de membres */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text-secondary text-xs md:text-base hidden md:table-cell">
+                        {team.memberCount}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : !rankingsData ? (
         <div className="text-center py-12">
           <p className="theme-text-secondary">

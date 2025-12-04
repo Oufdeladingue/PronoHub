@@ -474,34 +474,33 @@ function ProfileContent() {
 
               {/* Menu desktop (caché sur mobile) */}
               <div className="hidden md:flex items-center gap-3">
-                <span className="theme-text text-sm">Bonjour, {username} !</span>
+                <span className="nav-greeting">Bonjour, {username} !</span>
 
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
-
-                {/* Lien Accueil */}
+                {/* Lien Accueil avec icône */}
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                  className="nav-icon-btn"
+                  title="Accueil"
                 >
-                  Accueil
+                  <img
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6"
+                  />
                 </Link>
-
-                {/* Séparateur */}
-                <div className="h-6 w-[2px] bg-[#e68a00]"></div>
 
                 {/* Bouton Déconnexion avec icône */}
                 <form action="/auth/signout" method="post">
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded transition-all duration-200 hover:scale-105 cursor-pointer theme-accent-text"
+                    className="nav-icon-btn"
+                    title="Quitter le terrain"
                   >
                     <img
                       src="/images/icons/logout.svg"
                       alt="Quitter"
-                      className="w-5 h-5 icon-filter-orange"
+                      className="w-6 h-6"
                     />
-                    Quitter le terrain
                   </button>
                 </form>
               </div>

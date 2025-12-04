@@ -48,6 +48,7 @@ export default function NavBar({
       { name: 'Import', href: `/${adminPath}/import`, icon: 'import' },
       { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
       { name: 'Tournois', href: `/${adminPath}/tournaments`, icon: 'trophy' },
+      { name: 'Crédits', href: `/${adminPath}/credits`, icon: 'credit' },
       { name: 'Tarifs', href: `/${adminPath}/pricing`, icon: 'euro' },
       { name: 'Reglages', href: `/${adminPath}/settings`, icon: 'settings' },
     ]
@@ -99,6 +100,12 @@ export default function NavBar({
                   {item.icon === 'trophy' && (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                    </svg>
+                  )}
+                  {item.icon === 'credit' && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                      <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
                     </svg>
                   )}
                   {item.icon === 'euro' && (
@@ -363,7 +370,7 @@ export default function NavBar({
 
   // Rendu pour le contexte App (par défaut) - Dashboard
   return (
-    <nav className="theme-nav hidden md:block">
+    <nav className="theme-nav theme-nav-header hidden md:block">
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Navigation layout - 3 colonnes égales (33% chacune) */}
         <div className="grid grid-cols-3 gap-4 items-center">
@@ -409,6 +416,21 @@ export default function NavBar({
             {/* Menu desktop */}
             <div className="flex items-center gap-3">
               <span className="nav-greeting">Bonjour {username} !</span>
+
+              {/* Lien Accueil avec icône et tooltip - affiché si showBackToDashboard */}
+              {appContext?.showBackToDashboard && (
+                <Link
+                  href="/dashboard"
+                  className="nav-icon-btn"
+                  title="Accueil"
+                >
+                  <img
+                    src="/images/icons/home.svg"
+                    alt="Accueil"
+                    className="w-6 h-6"
+                  />
+                </Link>
+              )}
 
               {/* Lien Carrière avec icône et tooltip */}
               <Link

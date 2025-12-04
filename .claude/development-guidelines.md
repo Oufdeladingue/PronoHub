@@ -126,3 +126,45 @@
 ---
 
 **📌 Note importante : Ce fichier doit être consulté AU DÉBUT de CHAQUE session de travail, que ce soit sur le PC maison ou au travail.**
+
+---
+
+## 8. Historique des sessions de travail
+
+### Session du 4 décembre 2025
+
+#### Fonctionnalités implémentées :
+
+**1. Système de slots payants pour rejoindre les tournois**
+- Ajout de la possibilité d'utiliser un slot pré-acheté lors de la tentative de rejoindre un tournoi
+- Modale de paiement améliorée : affiche "Utiliser un slot" avec le nombre de slots disponibles
+- API `join/route.ts` : vérifie les slots disponibles et permet leur utilisation via `useSlotId`
+- Interface utilisateur : option "Utiliser un slot" (gratuit) vs "Acheter un slot" (0.99€)
+
+**2. Zone VIP - Nouvelles jauges de quotas**
+- Séparation des jauges : "Participation gratuite à un tournoi payant" (1/1) reste inchangée
+- Nouvelle jauge : "Participation payante à un tournoi" (slots utilisés/slots totaux)
+- Affichée uniquement si l'utilisateur a acheté des slots
+
+**3. Page Admin Crédits**
+- Correction : les super_admin sont maintenant visibles dans la liste des utilisateurs
+- Amélioration du dropdown d'ajout de crédit : thème sombre (bg-slate-800)
+- Correction du dropdown coupé par le tableau : positionnement `fixed` avec calcul dynamique
+
+**4. Corrections de texte et accents**
+- Page Classement/Opposition : "Equipes" → "Équipes"
+- Message : "Classement base sur la moyenne des points de chaque equipe" → "Classement basé sur la moyenne des points de chaque équipe"
+- En-tête tableau : "Equipe" → "Équipe"
+
+**5. TeamsManager - Indication drag & drop**
+- Ajout sous "Tous les joueurs sont dans une équipe" : "Faîtes glisser les joueurs dans leurs équipes"
+
+#### Fichiers modifiés :
+- `app/api/tournaments/join/route.ts` - Gestion des slots pré-achetés
+- `components/DashboardClient.tsx` - UI pour utiliser les slots existants
+- `app/api/user/zone-vip/route.ts` - Tracking des slots payants (utilisés/total)
+- `components/UserQuotasCard.tsx` - Nouvelle jauge "Participation payante"
+- `app/api/admin/credits/route.ts` - Inclure super_admin dans la liste
+- `app/sys-panel-svspgrn1kzw8/credits/page.tsx` - Dropdown fixé et stylé
+- `components/TournamentRankings.tsx` - Corrections accents
+- `components/TeamsManager.tsx` - Indication drag & drop

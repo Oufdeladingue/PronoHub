@@ -46,9 +46,9 @@ export async function GET() {
       )
     }
 
-    // Filtrer les tournois actifs (pending, warmup ou active)
+    // Filtrer les tournois actifs (tous sauf completed - cohérent avec dashboard)
     const activeTournaments = (participations || [])
-      .filter((p: any) => p.tournaments && ['pending', 'warmup', 'active'].includes(p.tournaments.status))
+      .filter((p: any) => p.tournaments && p.tournaments.status !== 'completed')
       .map((p: any) => {
         // Déterminer le rôle: utiliser participant_role si disponible, sinon vérifier creator_id
         const isCaptain = p.participant_role === 'captain' || p.tournaments.creator_id === user.id
@@ -78,9 +78,9 @@ export async function GET() {
     }
 
     // Calculer les quotas
-    // Tournois FREE actifs (non legacy)
+    // Tournois FREE actifs - cohérent avec le dashboard (pas de filtre is_legacy)
     const freeTournamentsActive = activeTournaments.filter(
-      (t: any) => t.tournament_type === 'free' && !t.is_legacy
+      (t: any) => t.tournament_type === 'free' || !t.tournament_type
     ).length
 
     // Invitations premium gratuites utilisées (non legacy)
@@ -101,6 +101,23 @@ export async function GET() {
       .eq('user_id', user.id)
       .eq('status', 'completed')
       .eq('used', false)
+
+    // Récupérer le nombre total de slots payants achetés (utilisés + non utilisés)
+    const { count: totalPaidSlotsCount } = await supabase
+      .from('tournament_purchases')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('purchase_type', 'slot_invite')
+      .eq('status', 'completed')
+
+    // Récupérer le nombre de slots payants utilisés
+    const { count: usedPaidSlotsCount } = await supabase
+      .from('tournament_purchases')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('purchase_type', 'slot_invite')
+      .eq('status', 'completed')
+      .eq('used', true)
 
     // Compter les crédits par type
     const credits = {
@@ -137,14 +154,21 @@ export async function GET() {
       created_at: c.created_at,
     }))
 
+    // Slots payants: total acheté vs utilisé
+    const paidSlotsTotal = totalPaidSlotsCount || 0
+    const paidSlotsUsed = usedPaidSlotsCount || 0
+
     const data = {
       // Quotas
       free_tournaments_active: freeTournamentsActive,
       free_tournaments_max: PRICES.FREE_MAX_TOURNAMENTS,
       premium_invites_active: premiumInvitesActive,
-      premium_invites_max: 1,
+      premium_invites_max: 1, // Toujours 1 invitation gratuite
       can_create_free_tournament: freeTournamentsActive < PRICES.FREE_MAX_TOURNAMENTS,
       can_join_premium_free: premiumInvitesActive < 1,
+      // Nouveau: slots payants
+      paid_slots_used: paidSlotsUsed,
+      paid_slots_total: paidSlotsTotal,
 
       // Crédits disponibles
       credits,
