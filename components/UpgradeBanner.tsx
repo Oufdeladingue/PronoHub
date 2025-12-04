@@ -297,7 +297,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
         }
       }
 
-      if (currentType === 'elite' || currentType === 'premium') {
+      if (currentType === 'elite') {
         return {
           icon: '/images/icons/team-elite-tour.svg',
           iconFilter: 'icon-filter-orange',
