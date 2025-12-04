@@ -20,7 +20,7 @@ export interface ReminderEmailProps {
     homeTeam: string
     awayTeam: string
     matchDate: string // Format: "Samedi 30 novembre à 21h00"
-    deadlineTime: string // Format: "20h00" (1h avant le match)
+    deadlineTime: string // Format: "20h00" (30min avant le match)
   }>
   defaultPredictionMaxPoints: number
 }

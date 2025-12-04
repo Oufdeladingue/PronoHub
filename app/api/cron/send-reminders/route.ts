@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
                 homeTeam: match.home_team_name,
                 awayTeam: match.away_team_name,
                 matchDate: formattedDate,
-                deadlineTime: new Date(matchDate.getTime() - 60 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
               }],
               defaultPredictionMaxPoints: 1
             })

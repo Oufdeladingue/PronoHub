@@ -273,6 +273,7 @@ function CreditDropdown({
     { key: 'oneshot_creation', label: 'Crédit One-Shot', price: '4.99€', color: 'bg-green-500', textColor: 'text-green-400' },
     { key: 'elite_creation', label: 'Crédit Elite', price: '9.99€', color: 'bg-orange-500', textColor: 'text-orange-400' },
     { key: 'platinium_participation', label: 'Crédit Platinium', price: '6.99€', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
+    { key: 'platinium_prepaid_11', label: 'Platinium Prepaid 11j', price: '69.20€', color: 'bg-purple-500', textColor: 'text-purple-400' },
   ]
 
   const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {

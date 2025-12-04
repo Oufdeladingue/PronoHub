@@ -30,6 +30,7 @@ interface Tournament {
   bonus_match?: boolean
   tournament_type?: string
   teams_enabled?: boolean
+  early_prediction_bonus?: boolean
 }
 
 interface Match {
@@ -68,7 +69,7 @@ export default function OppositionPage() {
   const [error, setError] = useState<string | null>(null)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'regles' | 'tchat'>('pronostics')
+  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>('pronostics')
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [userId, setUserId] = useState<string | null>(null)
@@ -117,6 +118,22 @@ export default function OppositionPage() {
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
 
+  // États pour les équipes
+  interface TeamMember {
+    id: string
+    userId: string
+    username: string
+    avatar: string
+  }
+  interface Team {
+    id: string
+    name: string
+    avatar: string
+    members: TeamMember[]
+  }
+  const [teams, setTeams] = useState<Team[]>([])
+  const [loadingTeams, setLoadingTeams] = useState(false)
+
   // Ref et états pour la navigation des journées avec flèches
   const matchdaysContainerRef = useRef<HTMLDivElement>(null)
   const matchdayButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({})
@@ -138,6 +155,13 @@ export default function OppositionPage() {
       fetchUnreadMessagesCount()
     }
   }, [tournament?.id])
+
+  // Charger les équipes si le mode équipe est activé et le tournoi est lancé
+  useEffect(() => {
+    if (tournament?.id && tournament?.teams_enabled && tournament?.status === 'active') {
+      fetchTeams()
+    }
+  }, [tournament?.id, tournament?.teams_enabled, tournament?.status])
 
   useEffect(() => {
     if (tournament?.competition_id) {
@@ -283,6 +307,28 @@ export default function OppositionPage() {
     }
   }
 
+  const fetchTeams = async () => {
+    if (!tournament?.id) return
+
+    setLoadingTeams(true)
+    try {
+      const response = await fetch(`/api/tournaments/${tournament.id}/teams`)
+      if (!response.ok) {
+        console.log('Error fetching teams')
+        return
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        setTeams(data.teams || [])
+      }
+    } catch (err) {
+      console.log('Error fetching teams:', err)
+    } finally {
+      setLoadingTeams(false)
+    }
+  }
+
   const markMessagesAsRead = async () => {
     if (!tournament?.id) return
 
@@ -347,7 +393,7 @@ export default function OppositionPage() {
 
       if (matchesData && matchesData.length > 0) {
         const firstMatchTime = new Date(matchesData[0].utc_date)
-        const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000) // 1h avant
+        const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30min avant
         const now = new Date()
 
         // Si cette journée n'est pas encore clôturée, on la sélectionne
@@ -392,10 +438,10 @@ export default function OppositionPage() {
           if (matchdayMatches.length === 0) return true // Garder si pas de matchs trouvés (sécurité)
 
           // Vérifier si au moins un match n'était pas encore clôturé à la date de lancement
-          // Un match est clôturé 1h avant son coup d'envoi
+          // Un match est clôturé 30min avant son coup d'envoi
           return matchdayMatches.some(match => {
             const matchDate = new Date(match.utc_date)
-            const closingTime = new Date(matchDate.getTime() - 60 * 60 * 1000) // 1h avant le match
+            const closingTime = new Date(matchDate.getTime() - 30 * 60 * 1000) // 30min avant le match
             return closingTime > tournamentStartDate // Le match n'était pas encore clôturé
           })
         })
@@ -991,11 +1037,11 @@ export default function OppositionPage() {
       return 'Terminée'
     }
 
-    // Vérifier si la journée est en cours (1h avant le premier match ou après)
+    // Vérifier si la journée est en cours (30min avant le premier match ou après)
     const firstMatchTime = new Date(Math.min(...matchdayMatches.map(m => new Date(m.utc_date).getTime())))
     const hoursUntilFirstMatch = (firstMatchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    if (hoursUntilFirstMatch < 1) {
+    if (hoursUntilFirstMatch < 0.5) {
       return 'En cours'
     }
 
@@ -1035,8 +1081,8 @@ export default function OppositionPage() {
       const matchTime = new Date(match.utc_date)
       const hoursBeforeMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-      // Le match est encore éditable (plus d'1h avant le match)
-      const isEditable = hoursBeforeMatch > 1
+      // Le match est encore éditable (plus d'30min avant le match)
+      const isEditable = hoursBeforeMatch > 0.5
 
       if (!isEditable) continue
 
@@ -1127,10 +1173,10 @@ export default function OppositionPage() {
     return groups
   }
 
-  // Vérifier si un match spécifique est verrouillé (1h avant son coup d'envoi)
+  // Vérifier si un match spécifique est verrouillé (30min avant son coup d'envoi)
   const isMatchLocked = (match: Match) => {
     const matchTime = new Date(match.utc_date)
-    const lockTime = new Date(matchTime.getTime() - 60 * 60 * 1000) // 1h avant
+    const lockTime = new Date(matchTime.getTime() - 30 * 60 * 1000) // 30min avant
     return new Date() >= lockTime
   }
 
@@ -1140,11 +1186,11 @@ export default function OppositionPage() {
     return new Date() >= matchTime
   }
 
-  // Vérifier si les pronostics sont clôturés (1h avant le premier match) - Pour compatibilité
+  // Vérifier si les pronostics sont clôturés (30min avant le premier match) - Pour compatibilité
   const arePronosticsClosed = () => {
     if (matches.length === 0) return false
     const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
-    const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000)
+    const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000)
     return new Date() >= closingTime
   }
 
@@ -1163,12 +1209,12 @@ export default function OppositionPage() {
     return new Date() >= twoHoursAfter
   }
 
-  // Calculer le temps restant avant la clôture des pronostics (1h avant le 1er match)
+  // Calculer le temps restant avant la clôture des pronostics (30min avant le 1er match)
   const calculateTimeRemaining = () => {
     if (matches.length === 0) return ''
 
     const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
-    const closingTime = new Date(firstMatchTime.getTime() - 60 * 60 * 1000) // 1 heure avant
+    const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30 minutes avant
     const now = new Date()
     const diff = closingTime.getTime() - now.getTime()
 
@@ -1359,6 +1405,28 @@ export default function OppositionPage() {
                 )}
               </span>
             </button>
+            {/* Onglet Équipes - visible uniquement si teams_enabled et tournoi actif */}
+            {tournament?.teams_enabled && tournament?.status === 'active' && (
+              <button
+                onClick={() => setActiveTab('equipes')}
+                className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
+                  activeTab === 'equipes'
+                    ? 'nav-tab-active theme-accent-text-always border-b-2 border-[#ff9900]'
+                    : 'theme-slate-text hover:theme-text'
+                }`}
+              >
+                <img
+                  src="/images/icons/team.svg"
+                  alt="Équipes"
+                  className={`w-7 h-7 md:w-5 md:h-5 ${
+                    activeTab === 'equipes'
+                      ? 'icon-filter-orange'
+                      : 'icon-filter-slate'
+                  }`}
+                />
+                <span className="hidden md:inline">Équipes</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('regles')}
               className={`nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 ${
@@ -1382,7 +1450,7 @@ export default function OppositionPage() {
         </div>
 
         {/* Contenu des onglets */}
-        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8">
+        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8 md:pb-20">
           {activeTab === 'pronostics' && (
             <div className="theme-card">
               {/* Menu de navigation des journées */}
@@ -1517,7 +1585,7 @@ export default function OppositionPage() {
                                     </span>
                                   </>
                                 ) : (
-                                  /* Pronostics clôturés mais aucun match commencé (1h avant) */
+                                  /* Pronostics clôturés mais aucun match commencé (30min avant) */
                                   <>
                                     <span className="hidden md:inline">
                                       Pronostics clôturés : les matchs commencent bientôt
@@ -1556,7 +1624,7 @@ export default function OppositionPage() {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
-                            const isClosed = isMatchLocked(match) // Verrouillé 1h avant ce match spécifique
+                            const isClosed = isMatchLocked(match) // Verrouillé 30min avant ce match spécifique
                             const isMatchInProgress = hasMatchStarted(match) // Match a commencé
                             const isSaved = savedPredictions[match.id]
                             const isModified = modifiedPredictions[match.id]
@@ -2323,6 +2391,83 @@ export default function OppositionPage() {
             />
           )}
 
+          {activeTab === 'equipes' && tournament?.teams_enabled && (
+            <div className="theme-card">
+              <h2 className="text-2xl font-bold theme-accent-text mb-6">Composition des équipes</h2>
+
+              {loadingTeams ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+                  <p className="mt-4 theme-text-secondary">Chargement des équipes...</p>
+                </div>
+              ) : teams.length === 0 ? (
+                <div className="text-center py-12">
+                  <img
+                    src="/images/icons/team.svg"
+                    alt="Équipes"
+                    className="w-16 h-16 mx-auto mb-4 icon-filter-slate opacity-50"
+                  />
+                  <p className="theme-text-secondary">Aucune équipe n'a été constituée pour ce tournoi.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  {teams.map((team) => (
+                    <div
+                      key={team.id}
+                      className="theme-bg rounded-xl p-4 md:p-5 border theme-border"
+                    >
+                      {/* En-tête de l'équipe */}
+                      <div className="flex items-center gap-3 mb-4 pb-3 border-b theme-border">
+                        <img
+                          src={`/images/team-avatars/${team.avatar || 'team1'}.svg`}
+                          alt={team.name}
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-lg"
+                        />
+                        <div>
+                          <h3 className="font-bold theme-text text-lg">{team.name}</h3>
+                          <p className="text-xs theme-text-secondary">
+                            {team.members.length} {team.members.length > 1 ? 'membres' : 'membre'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Liste des membres */}
+                      <div className="space-y-2">
+                        {team.members.map((member) => {
+                          const isCurrentUser = member.userId === userId
+                          return (
+                            <div
+                              key={member.id}
+                              className={`flex items-center gap-3 p-2 rounded-lg ${
+                                isCurrentUser ? 'bg-slate-700/30' : ''
+                              }`}
+                            >
+                              <img
+                                src={getAvatarUrl(member.avatar)}
+                                alt={member.username}
+                                className="w-8 h-8 rounded-full"
+                              />
+                              <span className={`font-medium ${
+                                isCurrentUser
+                                  ? 'theme-accent-text-always'
+                                  : 'theme-text'
+                              }`}>
+                                {member.username}
+                                {isCurrentUser && (
+                                  <span className="ml-2 text-xs theme-text-secondary">(vous)</span>
+                                )}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'regles' && (
             <div className="theme-card">
               <h2 className="text-2xl font-bold theme-accent-text mb-4">Règles du tournoi</h2>
@@ -2361,6 +2506,44 @@ export default function OppositionPage() {
                   </div>
                 )}
 
+                {tournament?.early_prediction_bonus && (
+                  <div className="quota-warning-box rounded-lg p-4">
+                    <div className="flex items-start gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 quota-warning-icon flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <h3 className="font-semibold theme-text mb-2">Prime d'avant-match activée</h3>
+                        <p className="text-sm">
+                          Si tous vos pronostics sont renseignés <span className="font-semibold theme-text">avant le début du premier match</span> de la journée,
+                          vous gagnez <span className="font-semibold theme-text">1 point supplémentaire</span>.
+                          Cette règle aide à lutter contre les forfaits et les oublis.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tournament?.teams_enabled && (
+                  <div className="quota-warning-box rounded-lg p-4">
+                    <div className="flex items-start gap-2">
+                      <img
+                        src="/images/icons/team.svg"
+                        alt="Équipes"
+                        className="w-5 h-5 flex-shrink-0 mt-0.5 icon-filter-orange"
+                      />
+                      <div>
+                        <h3 className="font-semibold theme-text mb-2">Classement par équipes activé</h3>
+                        <p className="text-sm">
+                          En plus du classement individuel, un <span className="font-semibold theme-text">classement par équipes</span> est disponible.
+                          Le score d'une équipe correspond à la <span className="font-semibold theme-text">moyenne des points</span> de ses membres.
+                          Consultez l'onglet "Équipes" pour voir la composition des équipes.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Configuration du tournoi</h3>
                   <p>
@@ -2386,7 +2569,7 @@ export default function OppositionPage() {
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Délais de pronostic</h3>
                   <p>
-                    Les pronostics doivent être saisis au minimum une heure avant le coup d'envoi du match.{' '}
+                    Les pronostics doivent être saisis au minimum 30 minutes avant le coup d'envoi du match.{' '}
                     <span className="font-semibold theme-text">
                       Si ce délai venait à ne pas être respecté, c'est le score de 0-0 qui sera retenu et ne pourra pas donner plus de{' '}
                       {tournament?.scoring_default_prediction_max || 1}{' '}

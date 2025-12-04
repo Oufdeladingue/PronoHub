@@ -4,7 +4,7 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 
 // Mapping des types de crédit vers les valeurs de tournament_purchases
-const creditTypeConfig: Record<string, { purchaseType: string; amount: number; label: string }> = {
+const creditTypeConfig: Record<string, { purchaseType: string; amount: number; label: string; tournamentSubtype?: string }> = {
   'slot_invite': {
     purchaseType: 'slot_invite',
     amount: 0.99,
@@ -13,17 +13,25 @@ const creditTypeConfig: Record<string, { purchaseType: string; amount: number; l
   'oneshot_creation': {
     purchaseType: 'tournament_creation',
     amount: 4.99,
-    label: 'Crédit One-Shot'
+    label: 'Crédit One-Shot',
+    tournamentSubtype: 'oneshot'
   },
   'elite_creation': {
     purchaseType: 'tournament_creation',
     amount: 9.99,
-    label: 'Crédit Elite'
+    label: 'Crédit Elite',
+    tournamentSubtype: 'elite'
   },
   'platinium_participation': {
     purchaseType: 'platinium_participation',
     amount: 6.99,
     label: 'Crédit Platinium'
+  },
+  'platinium_prepaid_11': {
+    purchaseType: 'tournament_creation',
+    amount: 69.20,
+    label: 'Platinium Prepaid 11 joueurs',
+    tournamentSubtype: 'platinium_prepaid_11'
   }
 }
 
@@ -72,14 +80,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
     }
 
-    // Déterminer le sous-type pour les crédits de création de tournoi
-    let tournamentSubtype = null
-    if (creditType === 'oneshot_creation') {
-      tournamentSubtype = 'oneshot'
-    } else if (creditType === 'elite_creation') {
-      tournamentSubtype = 'elite'
-    }
-
     // Créer l'entrée dans tournament_purchases
     const { data: purchase, error: purchaseError } = await adminClient
       .from('tournament_purchases')
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         currency: 'eur',
         status: 'completed',
         used: false,
-        tournament_subtype: tournamentSubtype
+        tournament_subtype: config.tournamentSubtype || null
       })
       .select()
       .single()
