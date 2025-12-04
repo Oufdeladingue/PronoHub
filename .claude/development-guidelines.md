@@ -4,6 +4,22 @@
 
 ---
 
+## 🔐 SÉCURITÉ - ACTION REQUISE AVANT MISE EN PRODUCTION
+
+**Les clés Supabase doivent être régénérées avant la mise en ligne définitive.**
+
+Le 4 décembre 2025, GitGuardian a détecté que des clés JWT Supabase étaient exposées dans les fichiers de documentation (`docs/DEVELOPMENT_HISTORY.md` et `docs/SUPABASE-LOCAL-SETUP.md`). Les clés ont été supprimées du code mais restent dans l'historique Git.
+
+**Actions à effectuer :**
+1. Aller dans le dashboard Supabase → Settings → API
+2. Régénérer la clé `service_role` et la clé `anon`
+3. Mettre à jour le fichier `.env.local` avec les nouvelles clés
+4. Mettre à jour les variables d'environnement sur Vercel
+
+**Note :** Le repository GitHub est PUBLIC. Envisager de le passer en privé si le projet contient des informations sensibles.
+
+---
+
 ## 1. Classes CSS Thématiques - PRIORITÉ ABSOLUE
 
 ### 🎨 Classes utilitaires disponibles (définies dans `app/globals.css`)
