@@ -18,6 +18,7 @@ interface Competition {
   }
   isImported: boolean
   isActive: boolean
+  isEvent: boolean
   importedAt?: string
   lastUpdatedAt?: string
 }
@@ -29,6 +30,7 @@ export default function AdminImportPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [importing, setImporting] = useState<number | null>(null)
   const [toggling, setToggling] = useState<number | null>(null)
+  const [togglingEvent, setTogglingEvent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -115,6 +117,34 @@ export default function AdminImportPage() {
       setError(err.message)
     } finally {
       setToggling(null)
+    }
+  }
+
+  const toggleEvent = async (competitionId: number, currentStatus: boolean) => {
+    setTogglingEvent(competitionId)
+    setError(null)
+    setSuccess(null)
+    try {
+      const response = await fetch('/api/football/toggle-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          competitionId,
+          isEvent: !currentStatus
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to toggle event status')
+
+      const data = await response.json()
+      setSuccess(data.message)
+
+      // Refresh la liste des compétitions importées
+      await fetchImportedCompetitions()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setTogglingEvent(null)
     }
   }
 
@@ -258,6 +288,24 @@ export default function AdminImportPage() {
                   {comp.isImported && comp.lastUpdatedAt && (
                     <div className="text-xs text-gray-500 mb-3 text-center">
                       MAJ: le {new Date(comp.lastUpdatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })} à {new Date(comp.lastUpdatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+
+                  {/* Toggle Événement */}
+                  {comp.isImported && (
+                    <div className="mb-3 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => toggleEvent(comp.id, comp.isEvent)}
+                        disabled={togglingEvent === comp.id}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                          comp.isEvent
+                            ? 'bg-purple-600 text-white border border-purple-700 hover:bg-purple-700'
+                            : 'bg-amber-500 text-white border border-amber-600 hover:bg-amber-600'
+                        }`}
+                        title={comp.isEvent ? 'Compétition événementielle - Cliquez pour désactiver' : 'Cliquez pour marquer comme événement'}
+                      >
+                        {togglingEvent === comp.id ? '...' : comp.isEvent ? '🏆 Événement' : 'Définir comme événement'}
+                      </button>
                     </div>
                   )}
 

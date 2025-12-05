@@ -35,6 +35,7 @@ export async function GET() {
         },
         isImported: true,
         isActive: comp.is_active,
+        isEvent: comp.is_event || false,
         importedAt: comp.imported_at,
         lastUpdatedAt: comp.last_updated_at
       }

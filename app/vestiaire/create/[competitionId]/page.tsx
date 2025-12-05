@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Crown, Sparkles, Trophy, Users, Award, Zap, Check, Lock } from 'lucide-react'
+import { Crown, Sparkles, Trophy, Users, Award, Zap, Check, Lock, AlertTriangle, X, Info } from 'lucide-react'
 import { TournamentTypeResult } from '@/types/monetization'
 import { TournamentTypeIndicator } from '@/components/UpgradeBanner'
 import Navigation from '@/components/Navigation'
@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/contexts/UserContext'
 
 interface Competition {
-  id: number
+  id: number | string
   name: string
   code: string
   emblem: string | null
@@ -20,6 +20,12 @@ interface Competition {
   current_matchday: number
   remaining_matchdays: number
   remaining_matches: number
+  is_custom?: boolean
+  custom_competition_id?: string
+  competition_type?: string
+  matches_per_matchday?: number
+  season?: string
+  description?: string
 }
 
 // Interface pour les limites de pricing
@@ -80,6 +86,14 @@ export default function TableauNoirPage() {
   const [earlyPredictionBonus, setEarlyPredictionBonus] = useState(false)
   const [tournamentSlug, setTournamentSlug] = useState('')
   const [drawWithDefaultPredictionPoints, setDrawWithDefaultPredictionPoints] = useState(1)
+
+  // Modal d'erreur/alerte
+  const [alertModal, setAlertModal] = useState<{ show: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'error'
+  })
 
   // Générer un slug unique au chargement
   useEffect(() => {
@@ -186,7 +200,14 @@ export default function TableauNoirPage() {
       if (!response.ok) throw new Error('Erreur lors du chargement de la compétition')
 
       const data = await response.json()
-      const comp = data.competitions.find((c: Competition) => c.id === parseInt(competitionId))
+
+      // Vérifier si c'est une compétition personnalisée (id commence par "custom_")
+      let comp: Competition | undefined
+      if (competitionId.startsWith('custom_')) {
+        comp = data.competitions.find((c: Competition) => c.id === competitionId)
+      } else {
+        comp = data.competitions.find((c: Competition) => c.id === parseInt(competitionId))
+      }
 
       if (!comp) throw new Error('Compétition non trouvée')
 
@@ -238,53 +259,72 @@ export default function TableauNoirPage() {
     }
   }
 
+  // Fonction pour afficher la modal d'alerte
+  const showAlert = (title: string, message: string, type: 'error' | 'warning' | 'info' = 'error') => {
+    setAlertModal({ show: true, title, message, type })
+  }
+
+  const closeAlert = () => {
+    setAlertModal(prev => ({ ...prev, show: false }))
+  }
+
   const handleCreateTournament = async () => {
     if (!tournamentName.trim()) {
-      alert('Veuillez entrer un nom de tournoi')
+      showAlert('Allez champion !', 'Veuillez entrer un nom de tournoi', 'warning')
       return
     }
 
     if (!competition) {
-      alert('Competition non trouvee')
+      showAlert('Erreur', 'Compétition non trouvée', 'error')
       return
     }
 
     // Verifier les credits pour les tournois payants
     if (selectedTournamentType !== 'free' && !hasCredit(selectedTournamentType)) {
-      alert(`Vous n'avez pas de credit ${selectedTournamentType}. Achetez-en un sur la page Pricing.`)
-      router.push('/pricing')
+      showAlert('Crédit requis', `Vous n'avez pas de crédit ${selectedTournamentType}. Achetez-en un sur la page Pricing.`, 'warning')
+      setTimeout(() => router.push('/pricing'), 2000)
       return
     }
 
     try {
+      // Préparer les données selon le type de compétition
+      const tournamentData: any = {
+        name: tournamentName,
+        slug: tournamentSlug,
+        competitionName: competition.name,
+        maxPlayers,
+        numMatchdays: allMatchdays ? competition.remaining_matchdays : numMatchdays,
+        allMatchdays,
+        bonusMatchEnabled,
+        earlyPredictionBonus,
+        drawWithDefaultPredictionPoints,
+        tournamentType: selectedTournamentType,
+        use_credit: selectedTournamentType !== 'free'
+      }
+
+      // Pour les compétitions personnalisées, utiliser custom_competition_id
+      if (competition.is_custom && competition.custom_competition_id) {
+        tournamentData.customCompetitionId = competition.custom_competition_id
+        tournamentData.isCustomCompetition = true
+      } else {
+        tournamentData.competitionId = competition.id
+      }
+
       const response = await fetch('/api/tournaments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: tournamentName,
-          slug: tournamentSlug,
-          competitionId: competition.id,
-          competitionName: competition.name,
-          maxPlayers,
-          numMatchdays: allMatchdays ? competition.remaining_matchdays : numMatchdays,
-          allMatchdays,
-          bonusMatchEnabled,
-          earlyPredictionBonus,
-          drawWithDefaultPredictionPoints,
-          tournamentType: selectedTournamentType,
-          use_credit: selectedTournamentType !== 'free'
-        })
+        body: JSON.stringify(tournamentData)
       })
 
       const data = await response.json()
 
       if (!data.success) {
         if (data.requiresPayment) {
-          alert(`Ce type de tournoi necessite un credit. Achetez-en un sur la page Pricing.`)
-          router.push('/pricing')
+          showAlert('Crédit requis', 'Ce type de tournoi nécessite un crédit. Achetez-en un sur la page Pricing.', 'warning')
+          setTimeout(() => router.push('/pricing'), 2000)
           return
         }
-        alert('Erreur: ' + (data.error || 'Erreur lors de la creation du tournoi'))
+        showAlert('Erreur', data.error || 'Erreur lors de la création du tournoi', 'error')
         return
       }
 
@@ -293,7 +333,7 @@ export default function TableauNoirPage() {
       router.push(`/vestiaire/${slug}/echauffement`)
     } catch (error) {
       console.error('Error creating tournament:', error)
-      alert('Erreur lors de la creation du tournoi')
+      showAlert('Erreur', 'Une erreur est survenue lors de la création du tournoi', 'error')
     }
   }
 
@@ -787,6 +827,71 @@ export default function TableauNoirPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Modal d'alerte */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={closeAlert}
+          />
+
+          {/* Modal */}
+          <div className="relative w-full max-w-md theme-card rounded-xl shadow-2xl border theme-border overflow-hidden">
+            {/* Header avec icône */}
+            <div className={`px-6 py-4 flex items-center gap-3 ${
+              alertModal.type === 'error' ? 'bg-red-500/10 border-b border-red-500/20' :
+              alertModal.type === 'warning' ? 'bg-orange-500/10 border-b border-orange-500/20' :
+              'bg-blue-500/10 border-b border-blue-500/20'
+            }`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                alertModal.type === 'error' ? 'bg-red-500/20' :
+                alertModal.type === 'warning' ? 'bg-orange-500/20' :
+                'bg-blue-500/20'
+              }`}>
+                {alertModal.type === 'error' && <X className="w-5 h-5 text-red-500" />}
+                {alertModal.type === 'warning' && <AlertTriangle className="w-5 h-5 text-orange-500" />}
+                {alertModal.type === 'info' && <Info className="w-5 h-5 text-blue-500" />}
+              </div>
+              <h3 className={`text-lg font-semibold ${
+                alertModal.type === 'error' ? 'text-red-400' :
+                alertModal.type === 'warning' ? 'text-orange-400' :
+                'text-blue-400'
+              }`}>
+                {alertModal.title}
+              </h3>
+              <button
+                type="button"
+                onClick={closeAlert}
+                className="ml-auto p-1 rounded-lg hover:bg-gray-700/50 transition"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="px-6 py-5">
+              <p className="theme-text text-center">{alertModal.message}</p>
+            </div>
+
+            {/* Footer avec bouton */}
+            <div className="px-6 py-4 border-t theme-border flex justify-center">
+              <button
+                type="button"
+                onClick={closeAlert}
+                className={`px-8 py-2.5 rounded-lg font-medium transition ${
+                  alertModal.type === 'error' ? 'bg-red-500 hover:bg-red-600 text-white' :
+                  alertModal.type === 'warning' ? 'bg-orange-500 hover:bg-orange-600 text-white' :
+                  'bg-blue-500 hover:bg-blue-600 text-white'
+                }`}
+              >
+                Compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

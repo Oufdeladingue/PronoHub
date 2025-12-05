@@ -25,7 +25,7 @@ export interface TournamentNavContext {
 
 // Props spécifiques au contexte "admin"
 export interface AdminNavContext {
-  currentPage?: 'general' | 'import' | 'settings' | 'logos' | 'tournaments' | 'pricing' | 'credits'
+  currentPage?: 'general' | 'import' | 'settings' | 'logos' | 'tournaments' | 'pricing' | 'credits' | 'custom'
 }
 
 // Props spécifiques au contexte "creation" (page de création de tournoi)

@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
-import { Trophy, Users, Award, Check } from 'lucide-react'
+import { Trophy, Users, Award, Check, Star, Sparkles } from 'lucide-react'
 
 interface Competition {
-  id: number
+  id: number | string
   name: string
   code: string
   emblem: string | null
@@ -21,6 +21,12 @@ interface Competition {
   is_most_popular?: boolean
   custom_emblem_white?: string | null
   custom_emblem_color?: string | null
+  is_custom?: boolean
+  custom_competition_id?: string
+  competition_type?: string
+  matches_per_matchday?: number
+  season?: string
+  description?: string
 }
 
 // Traduction des noms de pays en français
@@ -231,8 +237,14 @@ export default function VestiaireClient() {
             {competitions.map((comp) => (
               <div
                 key={comp.id}
-                onClick={() => router.push(`/vestiaire/create/${comp.id}${tournamentType ? `?type=${tournamentType}` : ''}`)}
-                className="group competition-badge"
+                onClick={() => {
+                  if (comp.is_custom) {
+                    router.push(`/vestiaire/create/custom_${comp.custom_competition_id}${tournamentType ? `?type=${tournamentType}` : ''}`)
+                  } else {
+                    router.push(`/vestiaire/create/${comp.id}${tournamentType ? `?type=${tournamentType}` : ''}`)
+                  }
+                }}
+                className={`group competition-badge ${comp.is_custom ? 'custom-competition' : ''}`}
               >
                 {/* Badge "Plus populaire" */}
                 {comp.is_most_popular && (
@@ -257,17 +269,17 @@ export default function VestiaireClient() {
 
                 {/* Contenu de la tuile */}
                 <div className="relative z-10 w-full">
-                  {/* Journées restantes - Badge en haut à gauche */}
-                  {comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
-                    <div className="text-left mb-2">
+                  {/* Journées restantes - Badge en haut à gauche (toujours présent pour l'alignement) */}
+                  <div className="text-left mb-2 min-h-[26px]">
+                    {comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
                         {comp.remaining_matchdays === 1
                           ? '1 journée restante'
                           : `${comp.remaining_matchdays} journées restantes`
                         }
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <div className="text-center">
                     {/* Logo */}
@@ -289,6 +301,14 @@ export default function VestiaireClient() {
                             />
                           )}
                         </>
+                      ) : comp.is_custom ? (
+                        // Fallback pour les compétitions custom sans logo
+                        <div className="w-[140px] h-[140px] rounded-full flex items-center justify-center bg-gradient-to-br from-purple-600/20 to-purple-900/30 border-2 border-purple-500/50 group-hover:border-purple-400 transition-all duration-300">
+                          <div className="relative">
+                            <Sparkles className="w-16 h-16 text-purple-400 group-hover:text-purple-300 transition-colors duration-300" />
+                            <Star className="w-6 h-6 text-yellow-400 absolute -top-1 -right-1 animate-pulse" />
+                          </div>
+                        </div>
                       ) : (
                         <div className="w-[140px] h-[140px] bg-gray-800 rounded-full flex items-center justify-center text-gray-500 font-bold text-3xl">
                           {comp.code}
@@ -303,12 +323,18 @@ export default function VestiaireClient() {
 
                     {/* Saison */}
                     <p className="badge-text text-xs mb-0.5 transition-colors duration-300">
-                      Saison {formatSeason(comp.current_season_start_date, comp.current_season_end_date)}
+                      {comp.is_custom
+                        ? `Saison ${comp.season || new Date().getFullYear()}`
+                        : `Saison ${formatSeason(comp.current_season_start_date, comp.current_season_end_date)}`
+                      }
                     </p>
 
-                    {/* Pays/Zone */}
-                    <p className="badge-text text-xs mb-1 transition-colors duration-300">
-                      {translateCountryName(comp.area_name)}
+                    {/* Pays/Zone pour normale, Description pour custom */}
+                    <p className="badge-text text-xs mb-1 transition-colors duration-300 line-clamp-2" title={comp.is_custom && comp.description ? comp.description : undefined}>
+                      {comp.is_custom
+                        ? (comp.description || (comp.competition_type === 'best_of_week' ? 'Best of Week' : 'Custom'))
+                        : translateCountryName(comp.area_name)
+                      }
                     </p>
                   </div>
                 </div>

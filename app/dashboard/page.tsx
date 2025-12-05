@@ -104,14 +104,14 @@ export default async function DashboardPage() {
   // Récupérer les détails des tournois où l'utilisateur participe
   const { data: userTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
+    .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
     .in('id', tournamentIds)
 
   // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté (n'est plus participant)
   // Ces tournois occupent toujours un slot mais l'utilisateur n'y a plus accès
   const { data: leftTournaments } = await supabase
     .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
+    .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
     .eq('original_creator_id', user.id)
     .neq('status', 'completed')
     .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
@@ -119,8 +119,9 @@ export default async function DashboardPage() {
   // Récupérer les IDs de compétitions (inclure les tournois quittés aussi)
   const allTournamentsForCompetitions = [...(userTournaments || []), ...(leftTournaments || [])]
   const competitionIds = allTournamentsForCompetitions.map((t: any) => t.competition_id).filter(Boolean) || []
+  const customCompetitionIds = allTournamentsForCompetitions.map((t: any) => t.custom_competition_id).filter(Boolean) || []
 
-  // Récupérer les emblèmes des compétitions (y compris logos personnalisés)
+  // Récupérer les emblèmes des compétitions importées (y compris logos personnalisés)
   let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
   if (competitionIds.length > 0) {
     const { data: competitions } = await supabase
@@ -132,6 +133,26 @@ export default async function DashboardPage() {
       competitionsMap = competitions.reduce((acc: any, comp: any) => {
         acc[comp.id] = {
           emblem: comp.emblem,
+          custom_emblem_white: comp.custom_emblem_white,
+          custom_emblem_color: comp.custom_emblem_color
+        }
+        return acc
+      }, {})
+    }
+  }
+
+  // Récupérer les emblèmes des compétitions custom (Best of Week, etc.)
+  let customCompetitionsMap: Record<string, { name: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
+  if (customCompetitionIds.length > 0) {
+    const { data: customCompetitions } = await supabase
+      .from('custom_competitions')
+      .select('id, name, custom_emblem_white, custom_emblem_color')
+      .in('id', customCompetitionIds)
+
+    if (customCompetitions) {
+      customCompetitionsMap = customCompetitions.reduce((acc: any, comp: any) => {
+        acc[comp.id] = {
+          name: comp.name,
           custom_emblem_white: comp.custom_emblem_white,
           custom_emblem_color: comp.custom_emblem_color
         }
@@ -252,7 +273,16 @@ export default async function DashboardPage() {
     // Créer le slug complet : nom-du-tournoi_CODE
     const tournamentSlug = `${t.name.toLowerCase().replace(/\s+/g, '-')}_${t.slug || t.invite_code}`
 
+    // Récupérer les données de compétition (importée ou custom)
     const competitionData = competitionsMap[t.competition_id] || { emblem: null, custom_emblem_white: null, custom_emblem_color: null }
+    const customCompetitionData = t.custom_competition_id ? customCompetitionsMap[t.custom_competition_id] : null
+
+    // Pour les compétitions custom, utiliser leurs emblèmes
+    const emblemData = customCompetitionData ? {
+      emblem: null, // Pas d'emblème standard pour les compétitions custom
+      custom_emblem_white: customCompetitionData.custom_emblem_white,
+      custom_emblem_color: customCompetitionData.custom_emblem_color
+    } : competitionData
 
     const tournamentData = {
       id: t.id,
@@ -260,14 +290,15 @@ export default async function DashboardPage() {
       slug: tournamentSlug,
       code: t.slug || t.invite_code,
       competition_id: t.competition_id,
+      custom_competition_id: t.custom_competition_id, // ID de la compétition custom (Best of Week)
       competition_name: t.competition_name,
       creator_id: t.creator_id,
       status: t.status,
       current_participants: participantCounts[t.id] || 0,
       max_players: t.max_players || t.max_participants || 8,
-      emblem: competitionData.emblem,
-      custom_emblem_white: competitionData.custom_emblem_white,
-      custom_emblem_color: competitionData.custom_emblem_color,
+      emblem: emblemData.emblem,
+      custom_emblem_white: emblemData.custom_emblem_white,
+      custom_emblem_color: emblemData.custom_emblem_color,
       isCaptain: t.creator_id === user.id,
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null,
@@ -285,16 +316,26 @@ export default async function DashboardPage() {
 
   // Formater les tournois quittés (créateur original mais plus participant)
   const leftTournamentsList = (leftTournaments || []).map((t: any) => {
+    // Récupérer les données de compétition (importée ou custom)
     const competitionData = competitionsMap[t.competition_id] || { emblem: null, custom_emblem_white: null, custom_emblem_color: null }
+    const customCompetitionData = t.custom_competition_id ? customCompetitionsMap[t.custom_competition_id] : null
+
+    // Pour les compétitions custom, utiliser leurs emblèmes
+    const emblemData = customCompetitionData ? {
+      emblem: null,
+      custom_emblem_white: customCompetitionData.custom_emblem_white,
+      custom_emblem_color: customCompetitionData.custom_emblem_color
+    } : competitionData
 
     return {
       id: t.id,
       name: t.name,
       competition_id: t.competition_id,
+      custom_competition_id: t.custom_competition_id, // ID de la compétition custom (Best of Week)
       competition_name: t.competition_name,
-      emblem: competitionData.emblem,
-      custom_emblem_white: competitionData.custom_emblem_white,
-      custom_emblem_color: competitionData.custom_emblem_color,
+      emblem: emblemData.emblem,
+      custom_emblem_white: emblemData.custom_emblem_white,
+      custom_emblem_color: emblemData.custom_emblem_color,
       tournament_type: t.tournament_type || 'free',
       status: t.status,
       hasLeft: true // Marqueur pour indiquer que l'utilisateur a quitté ce tournoi

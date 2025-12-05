@@ -46,6 +46,7 @@ export default function NavBar({
     const navItems = [
       { name: 'General', href: `/${adminPath}`, icon: 'home' },
       { name: 'Import', href: `/${adminPath}/import`, icon: 'import' },
+      { name: 'Custom', href: `/${adminPath}/custom`, icon: 'star' },
       { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
       { name: 'Tournois', href: `/${adminPath}/tournaments`, icon: 'trophy' },
       { name: 'Crédits', href: `/${adminPath}/credits`, icon: 'credit' },

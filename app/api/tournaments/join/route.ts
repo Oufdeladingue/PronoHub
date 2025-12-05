@@ -10,6 +10,7 @@ import { TournamentType, PRICES, InviteType } from '@/types/monetization'
 // ONE-SHOT/ELITE: 1 invitation gratuite max par utilisateur
 //   - Si quota atteint: slot payant à 0.99€
 // PLATINIUM: Participation payante 6.99€
+// EVENT: 1 participation gratuite, puis 0.99€ par slot
 // LEGACY: Pas de restrictions
 // =====================================================
 
@@ -225,6 +226,80 @@ async function checkJoinEligibility(
   }
 }
 
+// Vérifier l'éligibilité pour un tournoi événement
+async function checkEventJoinEligibility(
+  supabase: any,
+  userId: string,
+  tournamentId: string
+): Promise<JoinResult> {
+  // Compter les participations événement actives de l'utilisateur
+  const { data: eventParticipations } = await supabase
+    .from('tournament_participants')
+    .select(`
+      tournament_id,
+      tournaments!inner (
+        id,
+        status,
+        competition_id,
+        competitions!inner (
+          id,
+          is_event
+        )
+      )
+    `)
+    .eq('user_id', userId)
+
+  // Filtrer les participations événement actives
+  const activeEventCount = (eventParticipations || []).filter((p: any) =>
+    p.tournaments?.competitions?.is_event === true &&
+    ['warmup', 'active', 'pending'].includes(p.tournaments.status)
+  ).length
+
+  // 1 participation gratuite autorisée
+  if (activeEventCount < 1) {
+    return {
+      canJoin: true,
+      requiresPayment: false,
+      paymentAmount: 0,
+      paymentType: '',
+      inviteType: 'free',
+      reason: 'Première participation événement gratuite'
+    }
+  }
+
+  // Vérifier si l'utilisateur a des slots événement achetés
+  const { data: availableSlots, count: slotsCount } = await supabase
+    .from('event_tournament_slots')
+    .select('id', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('status', 'available')
+    .order('purchased_at', { ascending: true })
+
+  if (availableSlots && availableSlots.length > 0) {
+    return {
+      canJoin: true,
+      requiresPayment: true,
+      paymentAmount: 0.99,
+      paymentType: 'event_slot',
+      inviteType: 'paid_slot',
+      reason: `Quota événement atteint (${activeEventCount}/1)`,
+      hasAvailableSlot: true,
+      availableSlotId: availableSlots[0].id,
+      availableSlotsCount: slotsCount || availableSlots.length
+    }
+  }
+
+  // Pas de slot disponible, paiement requis
+  return {
+    canJoin: true,
+    requiresPayment: true,
+    paymentAmount: 0.99,
+    paymentType: 'event_slot',
+    inviteType: 'paid_slot',
+    reason: `Quota événement atteint (${activeEventCount}/1) - slot à 0.99€`
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: JoinTournamentRequest = await request.json()
@@ -253,27 +328,20 @@ export async function POST(request: NextRequest) {
     const upperCode = inviteCode.toUpperCase()
     console.log('[JOIN] Searching for tournament with code:', upperCode)
 
-    // Récupérer tous les tournois avec le client utilisateur
-    // Note: La politique RLS permet à tout le monde de voir les tournois
-    const { data: allTournamentsForSearch, error: searchError } = await supabase
+    // Récupérer le tournoi par invite_code ou slug (sans jointure)
+    const { data: tournamentData, error: searchError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy')
-
-    console.log('[JOIN] All tournaments count:', allTournamentsForSearch?.length || 0)
-    console.log('[JOIN] Search error:', searchError?.message || 'none')
-
-    // Chercher le tournoi par invite_code ou slug
-    let tournament = allTournamentsForSearch?.find(t =>
-      t.invite_code === upperCode || t.slug === upperCode
-    ) || null
+      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy, competition_id, custom_competition_id')
+      .or(`invite_code.eq.${upperCode},slug.eq.${upperCode}`)
+      .single()
 
     console.log('[JOIN] Tournament search result:', {
-      found: !!tournament,
-      tournamentName: tournament?.name,
-      allCount: allTournamentsForSearch?.length
+      found: !!tournamentData,
+      tournamentName: tournamentData?.name,
+      error: searchError?.message || 'none'
     })
 
-    if (!tournament) {
+    if (!tournamentData) {
       console.log('[JOIN] Tournament not found for code:', upperCode)
       return NextResponse.json(
         { error: 'Tournoi introuvable avec ce code' },
@@ -281,7 +349,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[JOIN] Tournament found:', { id: tournament.id, name: tournament.name, invite_code: tournament.invite_code, slug: tournament.slug })
+    // Récupérer les infos de compétition séparément si nécessaire
+    let competitionInfo: { id: number, is_event: boolean } | null = null
+    if (tournamentData.competition_id) {
+      const { data: compData } = await supabase
+        .from('competitions')
+        .select('id, is_event')
+        .eq('id', tournamentData.competition_id)
+        .single()
+      competitionInfo = compData
+    }
+
+    // Construire l'objet tournament avec les infos de compétition
+    const tournament = {
+      ...tournamentData,
+      competitions: competitionInfo
+    }
+
+    console.log('[JOIN] Tournament found:', { id: tournament.id, name: tournament.name, invite_code: tournament.invite_code, slug: tournament.slug, hasCompetition: !!competitionInfo })
 
     // Vérifier que le tournoi est en attente ou warmup
     if (!['pending', 'warmup'].includes(tournament.status)) {
@@ -324,8 +409,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier l'éligibilité selon le nouveau système v2
-    const eligibility = await checkJoinEligibility(supabase, user.id, tournament)
+    // Déterminer si c'est un tournoi événement
+    const isEventTournament = tournament.competitions?.is_event === true
+
+    // Vérifier l'éligibilité selon le type de tournoi
+    const eligibility = isEventTournament
+      ? await checkEventJoinEligibility(supabase, user.id, tournament.id)
+      : await checkJoinEligibility(supabase, user.id, tournament)
 
     if (!eligibility.canJoin) {
       return NextResponse.json(
@@ -338,59 +428,120 @@ export async function POST(request: NextRequest) {
     if (eligibility.requiresPayment) {
       // Cas 1: Utilisation d'un slot existant
       if (useSlotId) {
-        // Vérifier que le slot appartient bien à l'utilisateur et n'est pas utilisé
-        const { data: slot, error: slotError } = await supabase
-          .from('tournament_purchases')
-          .select('*')
-          .eq('id', useSlotId)
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'slot_invite')
-          .eq('used', false)
-          .eq('status', 'completed')
-          .single()
+        if (isEventTournament && eligibility.paymentType === 'event_slot') {
+          // Vérifier et utiliser un slot événement
+          const { data: eventSlot, error: eventSlotError } = await supabase
+            .from('event_tournament_slots')
+            .select('*')
+            .eq('id', useSlotId)
+            .eq('user_id', user.id)
+            .eq('status', 'available')
+            .single()
 
-        if (slotError || !slot) {
-          return NextResponse.json({
-            success: false,
-            error: 'Slot invalide ou déjà utilisé'
-          }, { status: 400 })
+          if (eventSlotError || !eventSlot) {
+            return NextResponse.json({
+              success: false,
+              error: 'Slot événement invalide ou déjà utilisé'
+            }, { status: 400 })
+          }
+
+          // Marquer le slot événement comme utilisé
+          const { error: updateError } = await supabase
+            .from('event_tournament_slots')
+            .update({
+              status: 'used',
+              used_at: new Date().toISOString(),
+              tournament_id: tournament.id
+            })
+            .eq('id', useSlotId)
+
+          if (updateError) {
+            console.error('Error marking event slot as used:', updateError)
+            return NextResponse.json({
+              success: false,
+              error: 'Erreur lors de l\'utilisation du slot événement'
+            }, { status: 500 })
+          }
+
+          console.log(`[JOIN] Event slot ${useSlotId} used for tournament ${tournament.id} by user ${user.id}`)
+        } else {
+          // Vérifier que le slot appartient bien à l'utilisateur et n'est pas utilisé
+          const { data: slot, error: slotError } = await supabase
+            .from('tournament_purchases')
+            .select('*')
+            .eq('id', useSlotId)
+            .eq('user_id', user.id)
+            .eq('purchase_type', 'slot_invite')
+            .eq('used', false)
+            .eq('status', 'completed')
+            .single()
+
+          if (slotError || !slot) {
+            return NextResponse.json({
+              success: false,
+              error: 'Slot invalide ou déjà utilisé'
+            }, { status: 400 })
+          }
+
+          // Marquer le slot comme utilisé
+          const { error: updateError } = await supabase
+            .from('tournament_purchases')
+            .update({
+              used: true,
+              tournament_id: tournament.id
+            })
+            .eq('id', useSlotId)
+
+          if (updateError) {
+            console.error('Error marking slot as used:', updateError)
+            return NextResponse.json({
+              success: false,
+              error: 'Erreur lors de l\'utilisation du slot'
+            }, { status: 500 })
+          }
+
+          console.log(`[JOIN] Slot ${useSlotId} used for tournament ${tournament.id} by user ${user.id}`)
         }
-
-        // Marquer le slot comme utilisé
-        const { error: updateError } = await supabase
-          .from('tournament_purchases')
-          .update({
-            used: true,
-            tournament_id: tournament.id
-          })
-          .eq('id', useSlotId)
-
-        if (updateError) {
-          console.error('Error marking slot as used:', updateError)
-          return NextResponse.json({
-            success: false,
-            error: 'Erreur lors de l\'utilisation du slot'
-          }, { status: 500 })
-        }
-
-        console.log(`[JOIN] Slot ${useSlotId} used for tournament ${tournament.id} by user ${user.id}`)
       }
       // Cas 2: Paiement Stripe
       else if (stripe_session_id) {
-        // Vérifier le paiement
-        const { data: purchase } = await supabase
-          .from('tournament_purchases')
-          .select('*')
-          .eq('stripe_checkout_session_id', stripe_session_id)
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .single()
+        if (isEventTournament && eligibility.paymentType === 'event_slot') {
+          // Vérifier le paiement d'un slot événement
+          const { data: eventSlot } = await supabase
+            .from('event_tournament_slots')
+            .select('*')
+            .eq('stripe_session_id', stripe_session_id)
+            .eq('user_id', user.id)
+            .eq('status', 'available')
+            .single()
 
-        if (!purchase) {
-          return NextResponse.json({
-            success: false,
-            error: 'Paiement non trouvé ou invalide'
-          }, { status: 400 })
+          if (eventSlot) {
+            // Marquer le slot comme utilisé immédiatement
+            await supabase
+              .from('event_tournament_slots')
+              .update({
+                status: 'used',
+                used_at: new Date().toISOString(),
+                tournament_id: tournament.id
+              })
+              .eq('id', eventSlot.id)
+          }
+        } else {
+          // Vérifier le paiement classique
+          const { data: purchase } = await supabase
+            .from('tournament_purchases')
+            .select('*')
+            .eq('stripe_checkout_session_id', stripe_session_id)
+            .eq('user_id', user.id)
+            .eq('status', 'completed')
+            .single()
+
+          if (!purchase) {
+            return NextResponse.json({
+              success: false,
+              error: 'Paiement non trouvé ou invalide'
+            }, { status: 400 })
+          }
         }
       }
       // Cas 3: Ni slot ni paiement - retourner les infos pour la modale
@@ -405,7 +556,8 @@ export async function POST(request: NextRequest) {
           message: eligibility.reason,
           hasAvailableSlot: eligibility.hasAvailableSlot || false,
           availableSlotId: eligibility.availableSlotId || null,
-          availableSlotsCount: eligibility.availableSlotsCount || 0
+          availableSlotsCount: eligibility.availableSlotsCount || 0,
+          isEventTournament: isEventTournament
         }, { status: 402 })
       }
     }

@@ -45,8 +45,22 @@ export async function GET(
     }
 
     // 3. Déterminer les journées à prendre en compte
-    const startMatchday = tournament.starting_matchday
-    const endMatchday = tournament.ending_matchday
+    let startMatchday = tournament.starting_matchday
+    let endMatchday = tournament.ending_matchday
+
+    // Pour les tournois custom, récupérer les journées depuis la compétition custom
+    if (tournament.custom_competition_id && (!startMatchday || !endMatchday)) {
+      const { data: customMatchdays } = await supabase
+        .from('custom_competition_matchdays')
+        .select('matchday_number')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .order('matchday_number', { ascending: true })
+
+      if (customMatchdays && customMatchdays.length > 0) {
+        startMatchday = customMatchdays[0].matchday_number
+        endMatchday = customMatchdays[customMatchdays.length - 1].matchday_number
+      }
+    }
 
     if (!startMatchday || !endMatchday) {
       return NextResponse.json({ error: 'Le tournoi n\'a pas de journées définies' }, { status: 400 })
@@ -57,20 +71,126 @@ export async function GET(
       ? [parseInt(matchday)]
       : Array.from({ length: endMatchday - startMatchday + 1 }, (_, i) => startMatchday + i)
 
-    // 4. Récupérer tous les matchs avec scores pour ces journées (terminés ou en cours)
     // IMPORTANT: Filtrer les matchs qui ont eu lieu avant la date de démarrage du tournoi
     const tournamentStartDate = tournament.start_date ? new Date(tournament.start_date) : null
 
-    const { data: finishedMatchesRaw, error: matchesError } = await supabase
-      .from('imported_matches')
-      .select('*')
-      .eq('competition_id', tournament.competition_id)
-      .in('matchday', matchdaysToCalculate)
-      .not('home_score', 'is', null)
-      .not('away_score', 'is', null)
+    let finishedMatchesRaw: any[] = []
+    let allMatchesRaw: any[] = []
+    let matchesError: any = null
+    let allMatchesError: any = null
+
+    // Déterminer si c'est un tournoi custom ou standard
+    const isCustomCompetition = !!tournament.custom_competition_id
+    console.log('[Rankings API] Tournament type:', isCustomCompetition ? 'CUSTOM' : 'STANDARD')
+    console.log('[Rankings API] custom_competition_id:', tournament.custom_competition_id)
+    console.log('[Rankings API] matchdaysToCalculate:', matchdaysToCalculate)
+
+    if (isCustomCompetition) {
+      // 4a. TOURNOI CUSTOM - Récupérer les matchs via custom_competition_matches
+      // D'abord récupérer les matchdays correspondants
+      const { data: matchdaysData } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id, matchday_number')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .in('matchday_number', matchdaysToCalculate)
+
+      console.log('[Rankings API] matchdaysData:', matchdaysData)
+      if (matchdaysData && matchdaysData.length > 0) {
+        const matchdayIds = matchdaysData.map(md => md.id)
+        const matchdayNumberMap: Record<string, number> = {}
+        matchdaysData.forEach(md => { matchdayNumberMap[md.id] = md.matchday_number })
+        console.log('[Rankings API] matchdayIds:', matchdayIds)
+
+        // Récupérer les matchs custom
+        const { data: customMatches, error: customMatchesError } = await supabase
+          .from('custom_competition_matches')
+          .select('id, custom_matchday_id, football_data_match_id, cached_utc_date')
+          .in('custom_matchday_id', matchdayIds)
+
+        console.log('[Rankings API] customMatches:', customMatches?.length, 'error:', customMatchesError)
+        if (customMatchesError) {
+          matchesError = customMatchesError
+        } else if (customMatches) {
+          // Récupérer les football_data_match_id pour chercher les scores dans imported_matches
+          const footballDataIds = customMatches
+            .map(m => m.football_data_match_id)
+            .filter(id => id !== null)
+
+          // Récupérer les scores depuis imported_matches via football_data_match_id
+          // IMPORTANT: On récupère aussi l'id de imported_matches car c'est lui qui est utilisé
+          // dans la table predictions (contrainte FK)
+          const { data: importedMatches } = await supabase
+            .from('imported_matches')
+            .select('id, football_data_match_id, home_score, away_score, status, utc_date')
+            .in('football_data_match_id', footballDataIds)
+
+          const importedMatchesMap: Record<number, any> = {}
+          importedMatches?.forEach(im => {
+            importedMatchesMap[im.football_data_match_id] = im
+          })
+
+          // Transformer les matchs custom en format attendu
+          // IMPORTANT: Utiliser l'ID de imported_matches (im.id) car c'est celui-ci
+          // qui est utilisé dans la table predictions
+          finishedMatchesRaw = customMatches
+            .map(cm => {
+              const im = importedMatchesMap[cm.football_data_match_id]
+              return {
+                // Utiliser l'ID de imported_matches pour matcher avec predictions
+                id: im?.id || cm.id,
+                matchday: matchdayNumberMap[cm.custom_matchday_id],
+                utc_date: im?.utc_date || cm.cached_utc_date,
+                home_score: im?.home_score ?? null,
+                away_score: im?.away_score ?? null,
+                status: im?.status || 'SCHEDULED'
+              }
+            })
+            .filter(m => m.home_score !== null && m.away_score !== null)
+
+          // Tous les matchs disponibles (pour calculer le total)
+          allMatchesRaw = customMatches.map(cm => {
+            const im = importedMatchesMap[cm.football_data_match_id]
+            return {
+              // Utiliser l'ID de imported_matches
+              id: im?.id || cm.id,
+              matchday: matchdayNumberMap[cm.custom_matchday_id],
+              utc_date: im?.utc_date || cm.cached_utc_date
+            }
+          })
+        }
+      }
+    } else {
+      // 4b. TOURNOI STANDARD - Récupérer les matchs depuis imported_matches
+      const { data: matchesData, error: mError } = await supabase
+        .from('imported_matches')
+        .select('*')
+        .eq('competition_id', tournament.competition_id)
+        .in('matchday', matchdaysToCalculate)
+        .not('home_score', 'is', null)
+        .not('away_score', 'is', null)
+
+      matchesError = mError
+      finishedMatchesRaw = matchesData || []
+
+      // 5b. Récupérer tous les matchs disponibles
+      const { data: allData, error: aError } = await supabase
+        .from('imported_matches')
+        .select('id, matchday, utc_date')
+        .eq('competition_id', tournament.competition_id)
+        .in('matchday', matchdaysToCalculate)
+
+      allMatchesError = aError
+      allMatchesRaw = allData || []
+    }
 
     if (matchesError) {
+      console.error('[Rankings] Erreur matchs:', matchesError)
       return NextResponse.json({ error: 'Erreur lors de la récupération des matchs' }, { status: 500 })
+    }
+
+    if (allMatchesError) {
+      console.error('[Rankings] Erreur tous matchs:', allMatchesError)
+      return NextResponse.json({ error: 'Erreur lors de la récupération des matchs disponibles' }, { status: 500 })
     }
 
     // Filtrer les matchs qui ont eu lieu AVANT la date de démarrage du tournoi
@@ -86,18 +206,6 @@ export async function GET(
     const hasInProgressMatches = finishedMatches?.some(m =>
       m.status === 'IN_PLAY' || m.status === 'PAUSED'
     ) || false
-
-    // 5. Récupérer tous les matchs disponibles (pour calculer matchesAvailable)
-    // Filtrer aussi par date de démarrage du tournoi
-    const { data: allMatchesRaw, error: allMatchesError } = await supabase
-      .from('imported_matches')
-      .select('id, matchday, utc_date')
-      .eq('competition_id', tournament.competition_id)
-      .in('matchday', matchdaysToCalculate)
-
-    if (allMatchesError) {
-      return NextResponse.json({ error: 'Erreur lors de la récupération des matchs disponibles' }, { status: 500 })
-    }
 
     // Filtrer les matchs disponibles par date de démarrage du tournoi
     const allMatches = tournamentStartDate
@@ -128,7 +236,27 @@ export async function GET(
       drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
     }
 
-    // 8. Calculer les statistiques pour chaque joueur
+    // 8. Préparer les données pour le bonus "Prime d'avant-match"
+    // Créer une map: journée -> premier match (date la plus tôt)
+    const firstMatchByMatchday: Record<number, Date> = {}
+    const matchIdsByMatchday: Record<number, string[]> = {}
+
+    if (tournament.early_prediction_bonus && allMatches) {
+      for (const match of allMatches) {
+        const md = match.matchday
+        if (!matchIdsByMatchday[md]) {
+          matchIdsByMatchday[md] = []
+        }
+        matchIdsByMatchday[md].push(match.id)
+
+        const matchDate = new Date(match.utc_date)
+        if (!firstMatchByMatchday[md] || matchDate < firstMatchByMatchday[md]) {
+          firstMatchByMatchday[md] = matchDate
+        }
+      }
+    }
+
+    // 9. Calculer les statistiques pour chaque joueur
     const playerStatsMap = new Map<string, Omit<PlayerStats, 'rank' | 'rankChange'>>()
 
     for (const participant of participants) {
@@ -136,13 +264,15 @@ export async function GET(
       const username = (participant.profiles as any)?.username || 'Inconnu'
       const avatar = (participant.profiles as any)?.avatar || 'avatar1'
 
-      // Récupérer tous les pronostics du joueur pour ces journées
+      // Récupérer tous les pronostics du joueur pour ces journées (avec created_at pour le bonus early)
+      // On récupère les pronostics de TOUS les matchs (pas seulement terminés) pour calculer le bonus "Prime d'avant-match"
+      const allMatchIds = allMatches?.map(m => m.id) || []
       const { data: predictions, error: predError } = await supabase
         .from('predictions')
-        .select('*, is_default_prediction')
+        .select('*, is_default_prediction, created_at')
         .eq('user_id', userId)
         .eq('tournament_id', tournamentId)
-        .in('match_id', finishedMatches?.map(m => m.id) || [])
+        .in('match_id', allMatchIds.length > 0 ? allMatchIds : (finishedMatches?.map(m => m.id) || []))
 
       console.log(`[Rankings API] ${username}: ${predictions?.length || 0} predictions found`, predError)
 
@@ -216,6 +346,54 @@ export async function GET(
         }
       }
 
+      // Calculer le bonus "Prime d'avant-match" si activé
+      // Le joueur gagne +1 point par journée s'il a fait TOUS ses pronostics avant le premier match
+      let earlyPredictionBonusPoints = 0
+      if (tournament.early_prediction_bonus && predictions && predictions.length > 0) {
+        // Créer une map des pronostics par match_id avec leur created_at
+        const predictionsByMatch: Record<string, Date | null> = {}
+        for (const pred of predictions) {
+          if (!pred.is_default_prediction && pred.created_at) {
+            predictionsByMatch[pred.match_id] = new Date(pred.created_at)
+          }
+        }
+
+        // Pour chaque journée avec des matchs terminés, vérifier si tous les pronos ont été faits à temps
+        for (const md of matchdaysToCalculate) {
+          const matchIdsForDay = matchIdsByMatchday[md] || []
+          const firstMatchTime = firstMatchByMatchday[md]
+
+          if (!firstMatchTime || matchIdsForDay.length === 0) continue
+
+          // Filtrer les matchs terminés de cette journée
+          const finishedMatchIdsForDay = matchIdsForDay.filter(mId =>
+            finishedMatches?.some(fm => fm.id === mId)
+          )
+
+          if (finishedMatchIdsForDay.length === 0) continue
+
+          // Vérifier si TOUS les pronostics de cette journée ont été faits avant le premier match
+          let allPredictionsOnTime = true
+          for (const matchId of finishedMatchIdsForDay) {
+            const predCreatedAt = predictionsByMatch[matchId]
+            // Si pas de pronostic (sera default) ou pronostic fait après le premier match
+            if (!predCreatedAt || predCreatedAt >= firstMatchTime) {
+              allPredictionsOnTime = false
+              break
+            }
+          }
+
+          if (allPredictionsOnTime) {
+            earlyPredictionBonusPoints += 1
+          }
+        }
+
+        totalPoints += earlyPredictionBonusPoints
+        if (earlyPredictionBonusPoints > 0) {
+          console.log(`[Rankings API] ${username}: +${earlyPredictionBonusPoints} bonus prime d'avant-match`)
+        }
+      }
+
       playerStatsMap.set(userId, {
         playerId: userId,
         playerName: username,
@@ -224,11 +402,12 @@ export async function GET(
         exactScores,
         correctResults,
         matchesPlayed,
-        matchesAvailable: finishedMatches?.length || 0
+        matchesAvailable: finishedMatches?.length || 0,
+        earlyPredictionBonus: earlyPredictionBonusPoints
       } as any)
     }
 
-    // 9. Calculer les rangs
+    // 10. Calculer les rangs
     const playersArray = Array.from(playerStatsMap.values())
 
     // Si on demande le classement général, calculer aussi le classement de la journée précédente
@@ -251,7 +430,8 @@ export async function GET(
     })
 
   } catch (error: any) {
-    console.error('Erreur lors du calcul du classement:', error)
+    console.error('[Rankings API] Erreur lors du calcul du classement:', error)
+    console.error('[Rankings API] Stack:', error.stack)
     return NextResponse.json(
       { error: 'Erreur serveur', details: error.message },
       { status: 500 }

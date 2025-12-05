@@ -14,14 +14,43 @@ export async function GET() {
       )
     }
 
-    // Récupérer les compétitions actives
+    // Récupérer les compétitions importées actives
     const { data: competitions, error } = await supabase
       .from('competitions')
       .select('*')
       .eq('is_active', true)
       .order('name')
 
+    // Récupérer les compétitions personnalisées actives
+    const { data: customCompetitions, error: customError } = await supabase
+      .from('custom_competitions')
+      .select('*')
+      .eq('is_active', true)
+      .order('name')
+
     if (error) throw error
+    if (customError) {
+      console.error('Error fetching custom competitions:', customError)
+    }
+
+    // Récupérer les matchdays séparément pour chaque compétition custom
+    const customCompetitionsWithMatchdays = await Promise.all(
+      (customCompetitions || []).map(async (comp) => {
+        const { data: matchdays, error: matchdaysError } = await supabase
+          .from('custom_competition_matchdays')
+          .select('id, status')
+          .eq('custom_competition_id', comp.id)
+
+        if (matchdaysError) {
+          console.error('Error fetching matchdays for', comp.name, ':', matchdaysError)
+        }
+
+        return {
+          ...comp,
+          custom_competition_matchdays: matchdays || []
+        }
+      })
+    )
 
     // Pour chaque compétition, compter les journées restantes et la popularité
     const competitionsWithStats = await Promise.all(
@@ -88,9 +117,47 @@ export async function GET() {
       competitionsWithStats[0].is_most_popular = true
     }
 
+    // Formater les compétitions personnalisées
+    const customCompetitionsFormatted = customCompetitionsWithMatchdays.map(customComp => {
+      // Compter uniquement les journées restantes (statut différent de 'completed' et 'active')
+      // Status dans la DB: 'draft', 'pending', 'active', 'completed'
+      const allMatchdays = customComp.custom_competition_matchdays || []
+      const remainingMatchdays = allMatchdays.filter(
+        (md: { id: string; status: string }) => md.status !== 'completed' && md.status !== 'active'
+      ).length
+
+      // Pour les compétitions personnalisées, on utilise le nombre de journées restantes
+      return {
+        id: `custom_${customComp.id}`,
+        name: customComp.name,
+        code: customComp.code,
+        emblem: null,
+        area_name: 'Best of Week',
+        current_matchday: customComp.current_matchday || 1,
+        current_season_start_date: customComp.created_at,
+        current_season_end_date: customComp.created_at,
+        is_active: customComp.is_active,
+        remaining_matchdays: remainingMatchdays,
+        remaining_matches: remainingMatchdays * (customComp.matches_per_matchday || 8),
+        tournaments_count: 0,
+        is_most_popular: false,
+        custom_emblem_white: customComp.custom_emblem_white ?? null,
+        custom_emblem_color: customComp.custom_emblem_color ?? null,
+        is_custom: true,
+        custom_competition_id: customComp.id,
+        competition_type: customComp.competition_type,
+        matches_per_matchday: customComp.matches_per_matchday,
+        season: customComp.season,
+        description: customComp.description
+      }
+    })
+
+    // Combiner les deux types de compétitions (personnalisées en premier)
+    const allCompetitions = [...customCompetitionsFormatted, ...competitionsWithStats]
+
     return NextResponse.json({
       success: true,
-      competitions: competitionsWithStats
+      competitions: allCompetitions
     })
   } catch (error: any) {
     console.error('Error fetching active competitions:', error)

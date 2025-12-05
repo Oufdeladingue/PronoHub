@@ -17,7 +17,8 @@ interface Tournament {
   id: string
   name: string
   slug: string
-  competition_id: number
+  competition_id: number | null
+  custom_competition_id?: string | null
   competition_name: string
   max_players: number
   num_matchdays: number
@@ -249,24 +250,44 @@ function EchauffementPageContent() {
   }
 
   const fetchCompetitionLogo = async () => {
-    if (!tournament?.competition_id) return
+    if (!tournament?.competition_id && !tournament?.custom_competition_id) return
 
     try {
       const supabase = createClient()
-      const { data: competition } = await supabase
-        .from('competitions')
-        .select('emblem, custom_emblem_white, custom_emblem_color')
-        .eq('id', tournament.competition_id)
-        .single()
 
-      if (competition?.emblem) {
-        setCompetitionLogo(competition.emblem)
+      // Compétition custom (Best of Week)
+      if (tournament.custom_competition_id) {
+        const { data: customCompetition } = await supabase
+          .from('custom_competitions')
+          .select('custom_emblem_white, custom_emblem_color')
+          .eq('id', tournament.custom_competition_id)
+          .single()
+
+        if (customCompetition?.custom_emblem_white) {
+          setCompetitionLogoWhite(customCompetition.custom_emblem_white)
+          setCompetitionLogo(customCompetition.custom_emblem_white)
+        }
+        if (customCompetition?.custom_emblem_color) {
+          setCompetitionLogoColor(customCompetition.custom_emblem_color)
+        }
       }
-      if (competition?.custom_emblem_white) {
-        setCompetitionLogoWhite(competition.custom_emblem_white)
-      }
-      if (competition?.custom_emblem_color) {
-        setCompetitionLogoColor(competition.custom_emblem_color)
+      // Compétition importée classique
+      else if (tournament.competition_id) {
+        const { data: competition } = await supabase
+          .from('competitions')
+          .select('emblem, custom_emblem_white, custom_emblem_color')
+          .eq('id', tournament.competition_id)
+          .single()
+
+        if (competition?.emblem) {
+          setCompetitionLogo(competition.emblem)
+        }
+        if (competition?.custom_emblem_white) {
+          setCompetitionLogoWhite(competition.custom_emblem_white)
+        }
+        if (competition?.custom_emblem_color) {
+          setCompetitionLogoColor(competition.custom_emblem_color)
+        }
       }
     } catch (err) {
       console.error('Error fetching competition logo:', err)
@@ -298,27 +319,50 @@ function EchauffementPageContent() {
   }
 
   const fetchRemainingMatchdays = async () => {
-    if (!tournament?.competition_id) return
+    if (!tournament?.competition_id && !tournament?.custom_competition_id) return
 
     try {
       const supabase = createClient()
-      const { data: competition } = await supabase
-        .from('competitions')
-        .select('current_matchday, total_matchdays')
-        .eq('id', tournament.competition_id)
-        .single()
 
-      if (competition?.total_matchdays) {
-        const currentMatchday = competition.current_matchday || 0
-        const remaining = competition.total_matchdays - currentMatchday
+      // Compétition custom (Best of Week)
+      if (tournament.custom_competition_id) {
+        const { data: matchdays } = await supabase
+          .from('custom_competition_matchdays')
+          .select('id, status')
+          .eq('custom_competition_id', tournament.custom_competition_id)
 
-        // Si le tournoi est configuré pour "toutes les journées", on affiche le nombre restant
-        // Sinon, on prend le minimum entre le nombre configuré et le nombre restant
-        const matchdaysToPredict = tournament.all_matchdays
-          ? remaining
-          : Math.min(tournament.num_matchdays, remaining)
+        if (matchdays) {
+          // Compter les journées restantes (pas completed ni active)
+          const remaining = matchdays.filter(md => md.status !== 'completed' && md.status !== 'active').length
+          const total = matchdays.length
 
-        setRemainingMatchdaysToPredict(matchdaysToPredict)
+          const matchdaysToPredict = tournament.all_matchdays
+            ? remaining
+            : Math.min(tournament.num_matchdays, remaining)
+
+          setRemainingMatchdaysToPredict(matchdaysToPredict)
+        }
+      }
+      // Compétition importée classique
+      else if (tournament.competition_id) {
+        const { data: competition } = await supabase
+          .from('competitions')
+          .select('current_matchday, total_matchdays')
+          .eq('id', tournament.competition_id)
+          .single()
+
+        if (competition?.total_matchdays) {
+          const currentMatchday = competition.current_matchday || 0
+          const remaining = competition.total_matchdays - currentMatchday
+
+          // Si le tournoi est configuré pour "toutes les journées", on affiche le nombre restant
+          // Sinon, on prend le minimum entre le nombre configuré et le nombre restant
+          const matchdaysToPredict = tournament.all_matchdays
+            ? remaining
+            : Math.min(tournament.num_matchdays, remaining)
+
+          setRemainingMatchdaysToPredict(matchdaysToPredict)
+        }
       }
     } catch (err) {
       console.error('Error fetching remaining matchdays:', err)
@@ -954,20 +998,30 @@ function EchauffementPageContent() {
                 <p className="text-sm mt-1 italic text-center md:text-left theme-accent-text-always">Le brassard implique de grandes responsabilités</p>
 
                 {/* Logo de la compétition + infos tournoi - visible uniquement en desktop */}
-                {competitionLogo && tournament && (
+                {tournament && (
                   <div className="mt-4 hidden md:flex items-center gap-4 px-4">
                     {/* Logo blanc pour thème sombre */}
-                    <img
-                      src={competitionLogoWhite || competitionLogo}
-                      alt={tournament.competition_name}
-                      className="w-14 h-14 object-contain flex-shrink-0 show-on-dark"
-                    />
+                    {(competitionLogoWhite || competitionLogo) && (
+                      <img
+                        src={competitionLogoWhite || competitionLogo}
+                        alt={tournament.competition_name}
+                        className="w-14 h-14 object-contain flex-shrink-0 show-on-dark"
+                      />
+                    )}
                     {/* Logo couleur pour thème clair */}
-                    <img
-                      src={competitionLogoColor || competitionLogo}
-                      alt={tournament.competition_name}
-                      className="w-14 h-14 object-contain flex-shrink-0 show-on-light"
-                    />
+                    {(competitionLogoColor || competitionLogo) && (
+                      <img
+                        src={competitionLogoColor || competitionLogo}
+                        alt={tournament.competition_name}
+                        className="w-14 h-14 object-contain flex-shrink-0 show-on-light"
+                      />
+                    )}
+                    {/* Placeholder si pas de logo (compétition custom sans logo) */}
+                    {!competitionLogo && !competitionLogoWhite && !competitionLogoColor && (
+                      <div className="w-14 h-14 flex-shrink-0 rounded-lg bg-[#ff9900]/20 flex items-center justify-center">
+                        <span className="text-2xl">🏆</span>
+                      </div>
+                    )}
                     <div className="flex flex-col gap-0.5">
                       <h3 className="text-lg font-bold theme-text">{tournament.name}</h3>
                       <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>

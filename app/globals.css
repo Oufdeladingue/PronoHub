@@ -1301,6 +1301,75 @@ input[type="number"] {
 }
 
 /* ========================================
+   COMPÉTITIONS PERSONNALISÉES (Best of Week)
+   ======================================== */
+
+/* Badge de compétition personnalisée */
+.competition-badge.custom-competition {
+  border: 2px solid #a855f7; /* purple-500 */
+  background: linear-gradient(135deg, #1e1b4b 0%, #1e293b 100%);
+}
+
+.competition-badge.custom-competition:hover {
+  border-color: #c084fc; /* purple-400 */
+  box-shadow: 0 25px 50px -12px rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+}
+
+.competition-badge.custom-competition .badge-title {
+  color: #c084fc; /* purple-400 */
+}
+
+.competition-badge.custom-competition:hover .badge-title {
+  color: #ffffff;
+}
+
+.competition-badge.custom-competition .badge-text {
+  color: #a78bfa; /* purple-400/70 */
+}
+
+.competition-badge.custom-competition:hover .badge-text {
+  color: #f3e8ff; /* purple-100 */
+}
+
+.competition-badge.custom-competition .matchdays-badge {
+  background-color: rgba(168, 85, 247, 0.9);
+  color: #ffffff;
+}
+
+.competition-badge.custom-competition:hover .matchdays-badge {
+  background-color: #ffffff;
+  color: #7c3aed;
+}
+
+/* Thème clair - compétitions personnalisées */
+:root[data-theme="light"] .competition-badge.custom-competition {
+  border: 2px solid #7c3aed; /* purple-600 */
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
+}
+
+:root[data-theme="light"] .competition-badge.custom-competition:hover {
+  border-color: #7c3aed;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+}
+
+:root[data-theme="light"] .competition-badge.custom-competition .badge-title {
+  color: #7c3aed;
+}
+
+:root[data-theme="light"] .competition-badge.custom-competition:hover .badge-title {
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .competition-badge.custom-competition .badge-text {
+  color: #6b7280;
+}
+
+:root[data-theme="light"] .competition-badge.custom-competition:hover .badge-text {
+  color: #f3e8ff;
+}
+
+/* ========================================
    COMPOSANTS PREFERENCES / SETTINGS
    Items de paramètres avec toggle
    ======================================== */

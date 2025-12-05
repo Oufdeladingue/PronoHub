@@ -9,6 +9,7 @@ import { TournamentType, PRICES, TOURNAMENT_RULES } from '@/types/monetization'
 // ONE-SHOT: 4.99€, 10 joueurs, durée illimitée
 // ELITE: 9.99€, 20 joueurs, durée illimitée
 // PLATINIUM: 6.99€/personne, 11-30 joueurs
+// EVENT: 1 participation gratuite, puis 0.99€ par slot
 // =====================================================
 
 interface TournamentTypeResult {
@@ -55,6 +56,80 @@ async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
   }
 }
 
+// Vérifier si l'utilisateur peut participer à un tournoi événement (création = participation)
+async function canCreateEventTournament(supabase: any, userId: string): Promise<{
+  canCreate: boolean;
+  currentCount: number;
+  requiresPayment: boolean;
+  hasAvailableSlot: boolean;
+  availableSlotId: string | null;
+  availableSlotsCount: number;
+}> {
+  // Compter les participations événement actives de l'utilisateur
+  const { data: eventParticipations } = await supabase
+    .from('tournament_participants')
+    .select(`
+      tournament_id,
+      tournaments!inner (
+        id,
+        status,
+        competition_id,
+        competitions!inner (
+          id,
+          is_event
+        )
+      )
+    `)
+    .eq('user_id', userId)
+
+  // Filtrer les participations événement actives
+  const activeEventCount = (eventParticipations || []).filter((p: any) =>
+    p.tournaments?.competitions?.is_event === true &&
+    ['warmup', 'active', 'pending'].includes(p.tournaments.status)
+  ).length
+
+  // 1 participation gratuite autorisée
+  if (activeEventCount < 1) {
+    return {
+      canCreate: true,
+      currentCount: activeEventCount,
+      requiresPayment: false,
+      hasAvailableSlot: false,
+      availableSlotId: null,
+      availableSlotsCount: 0
+    }
+  }
+
+  // Vérifier si l'utilisateur a des slots événement achetés
+  const { data: availableSlots, count: slotsCount } = await supabase
+    .from('event_tournament_slots')
+    .select('id', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('status', 'available')
+    .order('purchased_at', { ascending: true })
+
+  if (availableSlots && availableSlots.length > 0) {
+    return {
+      canCreate: true,
+      currentCount: activeEventCount,
+      requiresPayment: true,
+      hasAvailableSlot: true,
+      availableSlotId: availableSlots[0].id,
+      availableSlotsCount: slotsCount || availableSlots.length
+    }
+  }
+
+  // Pas de slot disponible, paiement requis
+  return {
+    canCreate: true,
+    currentCount: activeEventCount,
+    requiresPayment: true,
+    hasAvailableSlot: false,
+    availableSlotId: null,
+    availableSlotsCount: 0
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -75,17 +150,20 @@ export async function POST(request: Request) {
       name,
       slug,
       competitionId,
+      customCompetitionId, // ID de la compétition personnalisée (Best of Week)
+      isCustomCompetition, // Flag pour indiquer que c'est une compétition personnalisée
       competitionName,
       maxPlayers,
       numMatchdays,
       allMatchdays,
       bonusMatchEnabled,
+      earlyPredictionBonus, // Prime d'avant-match
       drawWithDefaultPredictionPoints,
       tournamentType: requestedType // Type demandé par l'utilisateur (free, oneshot, elite, platinium)
     } = body
 
-    // Validation de base
-    if (!name || !slug || !competitionId || !competitionName) {
+    // Validation de base - soit competitionId soit customCompetitionId doit être présent
+    if (!name || !slug || (!competitionId && !customCompetitionId) || !competitionName) {
       return NextResponse.json(
         { success: false, error: 'Données manquantes' },
         { status: 400 }
@@ -106,12 +184,52 @@ export async function POST(request: Request) {
       )
     }
 
+    // Vérifier si la compétition est un événement (Coupe du Monde, Euro, etc.)
+    let isEventCompetition = false
+    if (competitionId && !isCustomCompetition) {
+      const { data: competition } = await supabase
+        .from('competitions')
+        .select('is_event')
+        .eq('id', parseInt(competitionId))
+        .single()
+      isEventCompetition = competition?.is_event === true
+    }
+
     // Déterminer le type de tournoi
     const tournamentType: TournamentType = requestedType || 'free'
     const rules = TOURNAMENT_RULES[tournamentType]
 
-    // Vérification des quotas selon le type
-    if (tournamentType === 'free') {
+    // Variables pour les slots événement
+    let usedEventSlotId: string | null = null
+
+    // Vérification des quotas pour les tournois événement
+    if (isEventCompetition && tournamentType === 'free') {
+      const { use_event_slot } = body
+      const eventEligibility = await canCreateEventTournament(supabase, user.id)
+
+      if (eventEligibility.requiresPayment) {
+        // Quota atteint, vérifier si un slot est fourni
+        if (use_event_slot && eventEligibility.hasAvailableSlot) {
+          // Utiliser le slot événement
+          usedEventSlotId = eventEligibility.availableSlotId
+        } else if (!use_event_slot) {
+          // Retourner les infos pour la modale de paiement
+          return NextResponse.json({
+            success: false,
+            requiresPayment: true,
+            isEventTournament: true,
+            paymentAmount: 0.99,
+            paymentType: 'event_slot',
+            message: `Quota événement atteint (${eventEligibility.currentCount}/1). Achetez un slot à 0.99€ pour participer.`,
+            hasAvailableSlot: eventEligibility.hasAvailableSlot,
+            availableSlotId: eventEligibility.availableSlotId,
+            availableSlotsCount: eventEligibility.availableSlotsCount
+          }, { status: 402 })
+        }
+      }
+    }
+    // Vérification des quotas selon le type (non-événement)
+    else if (tournamentType === 'free') {
       const { canCreate, currentCount } = await canCreateFreeTournament(supabase, user.id)
       if (!canCreate) {
         return NextResponse.json({
@@ -210,7 +328,6 @@ export async function POST(request: Request) {
       name,
       slug,
       invite_code: slug,
-      competition_id: parseInt(competitionId),
       competition_name: competitionName,
       max_players: effectiveMaxPlayers,
       max_participants: effectiveMaxPlayers,
@@ -218,7 +335,8 @@ export async function POST(request: Request) {
       matchdays_count: effectiveMatchdays,
       max_matchdays: rules.maxMatchdays, // Limite de journées (null = illimité)
       all_matchdays: allMatchdays,
-      bonus_match_enabled: bonusMatchEnabled,
+      bonus_match: bonusMatchEnabled || false, // Match bonus (points x2)
+      early_prediction_bonus: earlyPredictionBonus || false, // Prime d'avant-match
       creator_id: user.id,
       original_creator_id: user.id,
       status: 'pending',
@@ -231,6 +349,16 @@ export async function POST(request: Request) {
       is_legacy: false, // Nouveau tournoi = pas legacy
       duration_extended: false,
       players_extended: 0,
+    }
+
+    // Ajouter l'ID de compétition approprié selon le type
+    if (isCustomCompetition && customCompetitionId) {
+      // Pour les compétitions personnalisées (Best of Week)
+      tournamentData.custom_competition_id = customCompetitionId
+      tournamentData.competition_id = null // Pas de compétition importée
+    } else {
+      // Pour les compétitions importées classiques
+      tournamentData.competition_id = parseInt(competitionId)
     }
 
     // Ajouter prepaid_slots_remaining seulement si > 0 (pour compatibilité)
@@ -321,12 +449,29 @@ export async function POST(request: Request) {
       }
     }
 
+    // Marquer le slot événement comme utilisé si applicable
+    if (usedEventSlotId) {
+      const { error: eventSlotError } = await supabase
+        .from('event_tournament_slots')
+        .update({
+          status: 'used',
+          used_at: new Date().toISOString(),
+          tournament_id: tournament.id
+        })
+        .eq('id', usedEventSlotId)
+
+      if (eventSlotError) {
+        console.error('Error marking event slot as used:', eventSlotError)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       tournament,
       tournamentType,
       maxPlayers: effectiveMaxPlayers,
-      maxMatchdays: rules.maxMatchdays
+      maxMatchdays: rules.maxMatchdays,
+      isEventTournament: isEventCompetition
     })
 
   } catch (error: any) {

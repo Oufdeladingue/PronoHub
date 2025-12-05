@@ -42,31 +42,90 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Récupérer les infos de la compétition
-    console.log('[START] Looking for competition with ID:', tournament.competition_id)
+    // 3. Récupérer les infos de la compétition (importée ou custom)
+    let competition: { id: any, name: string, current_matchday: number | null, total_matchdays: number | null } | null = null
+    let isCustomCompetition = false
 
-    const { data: competition, error: competitionError } = await supabase
-      .from('competitions')
-      .select('id, name, current_matchday, total_matchdays')
-      .eq('id', tournament.competition_id)
-      .single()
+    if (tournament.custom_competition_id) {
+      // Compétition custom (Best of Week, etc.)
+      console.log('[START] Looking for custom competition with ID:', tournament.custom_competition_id)
+      isCustomCompetition = true
 
-    if (competitionError) {
-      console.error('[START] Competition error:', competitionError)
-    }
+      const { data: customCompetition, error: customError } = await supabase
+        .from('custom_competitions')
+        .select('id, name')
+        .eq('id', tournament.custom_competition_id)
+        .single()
 
-    if (competitionError || !competition) {
+      if (customError || !customCompetition) {
+        console.error('[START] Custom competition error:', customError)
+        return NextResponse.json(
+          {
+            error: 'Custom competition not found',
+            details: customError?.message,
+            custom_competition_id: tournament.custom_competition_id
+          },
+          { status: 404 }
+        )
+      }
+
+      // Pour les compétitions custom, récupérer les journées depuis custom_competition_matchdays
+      const { data: matchdays } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id, matchday_number, status')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .order('matchday_number', { ascending: true })
+
+      const totalMatchdays = matchdays?.length || 0
+      const completedMatchdays = matchdays?.filter(m => m.status === 'completed').length || 0
+
+      // Pour les compétitions custom, on utilise les vrais matchday_number (pas séquentiels à partir de 1)
+      // On doit récupérer le premier matchday_number non complété
+      const firstAvailableMatchday = matchdays?.find(m => m.status !== 'completed')
+      const firstMatchdayNumber = firstAvailableMatchday?.matchday_number || matchdays?.[0]?.matchday_number || 1
+      const lastMatchdayNumber = matchdays?.[matchdays.length - 1]?.matchday_number || totalMatchdays
+
+      competition = {
+        id: customCompetition.id,
+        name: customCompetition.name,
+        current_matchday: firstMatchdayNumber - 1, // Pour que starting_matchday = firstMatchdayNumber
+        total_matchdays: lastMatchdayNumber // Utiliser le dernier matchday_number réel
+      }
+
+      console.log('[START] Custom competition found:', customCompetition.name, 'Total matchdays:', totalMatchdays, 'Completed:', completedMatchdays, 'First available:', firstMatchdayNumber, 'Last:', lastMatchdayNumber)
+    } else if (tournament.competition_id) {
+      // Compétition importée classique
+      console.log('[START] Looking for competition with ID:', tournament.competition_id)
+
+      const { data: importedCompetition, error: competitionError } = await supabase
+        .from('competitions')
+        .select('id, name, current_matchday, total_matchdays')
+        .eq('id', tournament.competition_id)
+        .single()
+
+      if (competitionError) {
+        console.error('[START] Competition error:', competitionError)
+      }
+
+      if (competitionError || !importedCompetition) {
+        return NextResponse.json(
+          {
+            error: 'Competition not found',
+            details: competitionError?.message,
+            tournament_competition_id: tournament.competition_id
+          },
+          { status: 404 }
+        )
+      }
+
+      competition = importedCompetition
+      console.log('[START] Competition found:', importedCompetition.name, 'Current matchday:', importedCompetition.current_matchday)
+    } else {
       return NextResponse.json(
-        {
-          error: 'Competition not found',
-          details: competitionError?.message,
-          tournament_competition_id: tournament.competition_id
-        },
-        { status: 404 }
+        { error: 'Tournament has no competition associated' },
+        { status: 400 }
       )
     }
-
-    console.log('[START] Competition found:', competition.name, 'Current matchday:', competition.current_matchday)
 
     // 4. Calculer le nombre de journées restantes
     const remainingMatchdays = competition.total_matchdays

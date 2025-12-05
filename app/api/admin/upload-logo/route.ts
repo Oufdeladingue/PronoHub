@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const competitionId = formData.get('competitionId') as string
     const type = formData.get('type') as 'white' | 'color'
+    const isCustom = formData.get('isCustom') === 'true'
 
     if (!file || !competitionId || !type) {
       return NextResponse.json(
@@ -45,7 +46,8 @@ export async function POST(request: NextRequest) {
 
     // Nom du fichier unique
     const fileExt = file.name.split('.').pop()
-    const fileName = `${competitionId}_${type}_${Date.now()}.${fileExt}`
+    const prefix = isCustom ? 'custom' : 'imported'
+    const fileName = `${prefix}_${competitionId}_${type}_${Date.now()}.${fileExt}`
     const filePath = `${fileName}`
 
     // Convertir le File en ArrayBuffer puis en Buffer
@@ -76,10 +78,12 @@ export async function POST(request: NextRequest) {
 
     // Mettre à jour la base de données
     const columnName = type === 'white' ? 'custom_emblem_white' : 'custom_emblem_color'
+    const tableName = isCustom ? 'custom_competitions' : 'competitions'
+
     const { error: updateError } = await supabaseAdmin
-      .from('competitions')
+      .from(tableName)
       .update({ [columnName]: publicUrl })
-      .eq('id', parseInt(competitionId))
+      .eq('id', isCustom ? competitionId : parseInt(competitionId))
 
     if (updateError) {
       console.error('Erreur update DB:', updateError)
@@ -97,6 +101,50 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Erreur API:', error)
+    return NextResponse.json(
+      { error: error.message || 'Erreur interne du serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const competitionId = searchParams.get('competitionId')
+    const type = searchParams.get('type') as 'white' | 'color'
+    const isCustom = searchParams.get('isCustom') === 'true'
+
+    if (!competitionId || !type) {
+      return NextResponse.json(
+        { error: 'Paramètres manquants' },
+        { status: 400 }
+      )
+    }
+
+    const columnName = type === 'white' ? 'custom_emblem_white' : 'custom_emblem_color'
+    const tableName = isCustom ? 'custom_competitions' : 'competitions'
+
+    const { error: updateError } = await supabaseAdmin
+      .from(tableName)
+      .update({ [columnName]: null })
+      .eq('id', isCustom ? competitionId : parseInt(competitionId))
+
+    if (updateError) {
+      console.error('Erreur suppression logo:', updateError)
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Logo ${type === 'white' ? 'blanc' : 'couleur'} supprimé avec succès !`
+    })
+
+  } catch (error: any) {
+    console.error('Erreur API DELETE:', error)
     return NextResponse.json(
       { error: error.message || 'Erreur interne du serveur' },
       { status: 500 }
