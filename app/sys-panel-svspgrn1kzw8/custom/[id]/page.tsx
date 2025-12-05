@@ -708,19 +708,19 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                             </div>
                             <div className="mt-2">
                               <div className="flex items-center gap-1.5 text-sm">
-                                {match.home_logo && (
-                                  <img src={match.home_logo} alt="" className="w-4 h-4" />
+                                {match.cached_home_logo && (
+                                  <img src={match.cached_home_logo} alt="" className="w-4 h-4" />
                                 )}
-                                <span className="font-medium truncate text-gray-900">{match.home_team}</span>
+                                <span className="font-medium truncate text-gray-900">{match.cached_home_team}</span>
                               </div>
                               <div className="flex items-center gap-1.5 text-sm">
-                                {match.away_logo && (
-                                  <img src={match.away_logo} alt="" className="w-4 h-4" />
+                                {match.cached_away_logo && (
+                                  <img src={match.cached_away_logo} alt="" className="w-4 h-4" />
                                 )}
-                                <span className="font-medium truncate text-gray-900">{match.away_team}</span>
+                                <span className="font-medium truncate text-gray-900">{match.cached_away_team}</span>
                               </div>
                               <p className="text-xs text-gray-600 mt-1 font-medium">
-                                {match.competition_name}
+                                {match.cached_competition_name}
                               </p>
                             </div>
                           </div>
