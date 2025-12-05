@@ -454,8 +454,10 @@ function EchauffementPageContent() {
   }
 
   const showStartConfirmation = () => {
-    if (players.length < 2) {
-      alert('Il faut au moins 2 participants pour démarrer le tournoi')
+    // Vérifier le minimum de joueurs selon le type de tournoi
+    const minPlayers = tournament?.tournament_type === 'platinium' ? PRICES.PLATINIUM_MIN_PLAYERS : 2
+    if (players.length < minPlayers) {
+      alert(`Il faut au moins ${minPlayers} participants pour démarrer ce tournoi`)
       return
     }
 
@@ -1054,7 +1056,9 @@ function EchauffementPageContent() {
               <div className="space-y-2 w-full md:w-[30%]">
                 <button
                   onClick={showStartConfirmation}
-                  disabled={players.length < 2}
+                  disabled={tournament?.tournament_type === 'platinium'
+                    ? players.length < PRICES.PLATINIUM_MIN_PLAYERS
+                    : players.length < 2}
                   className="btn-captain-action"
                 >
                   <img
@@ -1114,6 +1118,18 @@ function EchauffementPageContent() {
               <span className="theme-accent-text">Effectif ({players.length}/{tournament.max_players})</span>
             </h2>
 
+            {/* Alerte minimum joueurs pour Platinium */}
+            {tournament?.tournament_type === 'platinium' && players.length < PRICES.PLATINIUM_MIN_PLAYERS && (
+              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
+                <p className="text-sm text-yellow-400 flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                  </svg>
+                  Le tournoi ne pourra commencer que lorsque le minimum de {PRICES.PLATINIUM_MIN_PLAYERS} joueurs sera atteint
+                </p>
+              </div>
+            )}
+
             <div className="space-y-3">
               {players.map((player, index) => {
                 const isCaptain = player.user_id === tournament?.creator_id
@@ -1172,15 +1188,10 @@ function EchauffementPageContent() {
                       {/* Badge de statut de paiement pour Platinium */}
                       {isPlatinium && (
                         <p className="text-xs mt-0.5">
-                          {isPaidByCreator ? (
+                          {(hasPaid || isPaidByCreator) ? (
                             <span className="text-green-400 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Place offerte
-                            </span>
-                          ) : hasPaid ? (
-                            <span className="text-yellow-400 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Place payee
+                              Payé
                             </span>
                           ) : (
                             <span className="text-gray-500 flex items-center gap-1">
@@ -1260,7 +1271,7 @@ function EchauffementPageContent() {
                   )}
 
                   {/* Bouton Supprimer une place */}
-                  {tournament.max_players > 2 && tournament.max_players > players.length && (
+                  {tournament.max_players > (tournament.tournament_type === 'platinium' ? PRICES.PLATINIUM_MIN_PLAYERS : 2) && tournament.max_players > players.length && (
                     <button
                       onClick={handleDecreaseMaxPlayers}
                       className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"

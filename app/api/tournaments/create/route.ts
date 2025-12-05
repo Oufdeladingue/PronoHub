@@ -244,12 +244,12 @@ export async function POST(request: Request) {
     }
 
     // Pour les tournois payants (oneshot, elite, platinium), verifier le credit disponible
-    let usedPurchaseId: string | null = null
-    let prepaidSlotsToAdd = 0 // Nombre de places prepayees (pour platinium_group)
+    let usedPurchaseIds: string[] = [] // Liste des IDs de crédits utilisés
+    let prepaidSlotsToAdd = 0 // Nombre de places prepayees (pour platinium)
     let usedPurchaseType: string | null = null
 
     if (['oneshot', 'elite', 'platinium'].includes(tournamentType)) {
-      const { use_credit } = body
+      const { use_credit, prepaidSlots } = body
 
       if (!use_credit) {
         // Retourner les infos de prix pour acheter un credit
@@ -263,13 +263,17 @@ export async function POST(request: Request) {
         }, { status: 402 })
       }
 
-      // Pour Platinium, verifier d'abord s'il y a un credit groupe (11 places)
+      // Pour Platinium, gérer les crédits solo multiples OU un crédit groupe
       if (tournamentType === 'platinium') {
+        const requestedSlots = prepaidSlots || 1
+
+        // D'abord, vérifier s'il y a un crédit groupe (11 places)
         const { data: groupCredit } = await supabase
           .from('tournament_purchases')
           .select('id, slots_included')
           .eq('user_id', user.id)
-          .eq('purchase_type', 'platinium_group')
+          .eq('purchase_type', 'tournament_creation')
+          .eq('tournament_subtype', 'platinium_group')
           .eq('status', 'completed')
           .eq('used', false)
           .order('created_at', { ascending: true })
@@ -277,15 +281,52 @@ export async function POST(request: Request) {
           .single()
 
         if (groupCredit) {
-          usedPurchaseId = groupCredit.id
+          // Utiliser le crédit groupe
+          usedPurchaseIds = [groupCredit.id]
           usedPurchaseType = 'platinium_group'
           // Le createur utilise 1 place, les autres sont prepayees pour les invites
           prepaidSlotsToAdd = (groupCredit.slots_included || 11) - 1
-        }
-      }
+        } else {
+          // Pas de crédit groupe, chercher des crédits solo
+          const { data: soloCredits } = await supabase
+            .from('tournament_purchases')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('purchase_type', 'tournament_creation')
+            .eq('tournament_subtype', 'platinium_solo')
+            .eq('status', 'completed')
+            .eq('used', false)
+            .order('created_at', { ascending: true })
+            .limit(requestedSlots)
 
-      // Si pas de credit groupe trouve, chercher un credit solo
-      if (!usedPurchaseId) {
+          if (!soloCredits || soloCredits.length === 0) {
+            return NextResponse.json({
+              success: false,
+              error: `Aucun crédit Platinium disponible. Achetez-en un sur la page Pricing.`,
+              requiresPayment: true,
+              tournamentType,
+              paymentAmount: rules.creationPrice
+            }, { status: 402 })
+          }
+
+          if (soloCredits.length < requestedSlots) {
+            return NextResponse.json({
+              success: false,
+              error: `Vous n'avez que ${soloCredits.length} crédit(s) Platinium mais vous en avez demandé ${requestedSlots}.`,
+              requiresPayment: true,
+              tournamentType,
+              paymentAmount: rules.creationPrice
+            }, { status: 402 })
+          }
+
+          // Utiliser les crédits solo demandés
+          usedPurchaseIds = soloCredits.map(c => c.id)
+          usedPurchaseType = 'platinium_solo'
+          // Le créateur utilise 1 crédit pour lui, les autres sont pour les invités
+          prepaidSlotsToAdd = requestedSlots - 1
+        }
+      } else {
+        // Pour oneshot et elite, chercher un crédit solo
         const { data: availableCredit } = await supabase
           .from('tournament_purchases')
           .select('id')
@@ -308,7 +349,7 @@ export async function POST(request: Request) {
           }, { status: 402 })
         }
 
-        usedPurchaseId = availableCredit.id
+        usedPurchaseIds = [availableCredit.id]
         usedPurchaseType = 'tournament_creation'
       }
     }
@@ -398,16 +439,24 @@ export async function POST(request: Request) {
     }
 
     // Ajouter le créateur comme premier participant (capitaine)
-    // Note: On utilise uniquement les colonnes de base qui existent dans la table
-    const basicParticipantData = {
+    // Pour les tournois payants où le créateur a utilisé un crédit, marquer comme payé
+    const participantData: Record<string, any> = {
       tournament_id: tournament.id,
       user_id: user.id,
       participant_role: 'captain',
     }
 
+    // Si le créateur a utilisé un crédit pour un tournoi Platinium, marquer sa place comme payée
+    if (tournamentType === 'platinium' && usedPurchaseIds.length > 0) {
+      participantData.has_paid = true
+      participantData.paid_by_creator = false // C'est lui le créateur, il a payé pour lui-même
+      participantData.amount_paid = PRICES.PLATINIUM_PARTICIPATION // 6.99€
+      participantData.invite_type = 'paid_slot'
+    }
+
     const { error: playerError } = await supabase
       .from('tournament_participants')
-      .insert(basicParticipantData)
+      .insert(participantData)
 
     if (playerError) {
       console.error('Error adding participant:', playerError)
@@ -432,8 +481,8 @@ export async function POST(request: Request) {
       // On continue quand meme, le tournoi est cree
     }
 
-    // Marquer le credit comme utilise si applicable
-    if (usedPurchaseId) {
+    // Marquer les crédits comme utilisés si applicable
+    if (usedPurchaseIds.length > 0) {
       const { error: updateError } = await supabase
         .from('tournament_purchases')
         .update({
@@ -442,10 +491,10 @@ export async function POST(request: Request) {
           used_for_tournament_id: tournament.id,
           tournament_id: tournament.id
         })
-        .eq('id', usedPurchaseId)
+        .in('id', usedPurchaseIds)
 
       if (updateError) {
-        console.error('Error marking credit as used:', updateError)
+        console.error('Error marking credits as used:', updateError)
       }
     }
 

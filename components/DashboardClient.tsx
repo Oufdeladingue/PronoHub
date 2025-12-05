@@ -94,6 +94,8 @@ function DashboardContent({
   const [showArchived, setShowArchived] = useState(false)
   const [showQuotaModal, setShowQuotaModal] = useState<'create' | 'join' | null>(null)
   const [showPlatiniumChoice, setShowPlatiniumChoice] = useState(false)
+  const [showPlatiniumSlotSelector, setShowPlatiniumSlotSelector] = useState(false)
+  const [selectedPlatiniumSlots, setSelectedPlatiniumSlots] = useState(1)
   const [isCheckoutLoading, setIsCheckoutLoading] = useState<string | null>(null)
   // Nouveau: modale de paiement pour rejoindre un tournoi specifique
   const [joinPaymentModal, setJoinPaymentModal] = useState<{
@@ -788,26 +790,52 @@ function DashboardContent({
                     <p className="text-sm theme-text-secondary">L'expérience ultime</p>
                     <p className="text-xs theme-text-secondary mt-0.5">De 11 à 30 joueurs · <span className="text-yellow-400">Lot à gagner</span></p>
                   </div>
-                  {credits && (credits.platinium_solo > 0 || credits.platinium_group_slots > 0) ? (
-                    <a
-                      href="/vestiaire?type=platinium"
-                      className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
-                    >
-                      <span className="text-black font-bold text-base">Créer</span>
-                      <span className="text-black text-[10px] font-medium">
-                        {credits.platinium_solo + credits.platinium_group_slots} crédit{(credits.platinium_solo + credits.platinium_group_slots) > 1 ? 's' : ''}
-                      </span>
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => setShowPlatiniumChoice(true)}
-                      className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
-                    >
-                      <span className="text-black font-bold text-base leading-none">6,99€</span>
-                      <span className="text-black text-[9px] leading-none">/joueur</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
-                    </button>
-                  )}
+                  {(() => {
+                    const totalPlatiniumCredits = (credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0)
+
+                    // Cas 1: 0 crédit - afficher prix et ouvrir modal achat
+                    if (totalPlatiniumCredits === 0) {
+                      return (
+                        <button
+                          onClick={() => setShowPlatiniumChoice(true)}
+                          className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                        >
+                          <span className="text-black font-bold text-base leading-none">6,99€</span>
+                          <span className="text-black text-[9px] leading-none">/joueur</span>
+                          <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
+                        </button>
+                      )
+                    }
+
+                    // Cas 2: 1 crédit - créer directement (sa propre place)
+                    if (totalPlatiniumCredits === 1) {
+                      return (
+                        <a
+                          href="/vestiaire?type=platinium&slots=1"
+                          className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                        >
+                          <span className="text-black font-bold text-base">Créer</span>
+                          <span className="text-black text-[10px] font-medium">1 crédit</span>
+                        </a>
+                      )
+                    }
+
+                    // Cas 3: 2+ crédits - ouvrir modal sélection du nombre de places
+                    return (
+                      <button
+                        onClick={() => {
+                          setSelectedPlatiniumSlots(1)
+                          setShowPlatiniumSlotSelector(true)
+                        }}
+                        className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
+                      >
+                        <span className="text-black font-bold text-base">Créer</span>
+                        <span className="text-black text-[10px] font-medium">
+                          {totalPlatiniumCredits} crédits
+                        </span>
+                      </button>
+                    )
+                  })()}
                 </div>
               </div>
 
@@ -912,6 +940,88 @@ function DashboardContent({
                 className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-yellow-500 transition"
               >
                 ← Retour aux offres
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal sélection du nombre de places Platinium (2+ crédits) */}
+        {showPlatiniumSlotSelector && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowPlatiniumSlotSelector(false)}
+          >
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/80" />
+
+            {/* Contenu modale */}
+            <div
+              className="theme-card max-w-sm w-full relative z-10 p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Bouton fermer */}
+              <button
+                onClick={() => setShowPlatiniumSlotSelector(false)}
+                className="absolute top-4 right-4 theme-text-secondary hover:text-yellow-500 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* Titre */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
+                <h3 className="text-lg font-bold text-yellow-400">Créer un tournoi Platinium</h3>
+              </div>
+
+              <p className="text-sm theme-text-secondary text-center mb-6">
+                Combien de places souhaitez-vous prépayer ?
+              </p>
+
+              {/* Sélecteur +/- */}
+              <div className="flex items-center justify-center gap-6 mb-6">
+                <button
+                  onClick={() => setSelectedPlatiniumSlots(Math.max(1, selectedPlatiniumSlots - 1))}
+                  disabled={selectedPlatiniumSlots <= 1}
+                  className="w-12 h-12 rounded-full border-2 border-yellow-500 text-yellow-500 text-2xl font-bold flex items-center justify-center hover:bg-yellow-500/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  −
+                </button>
+
+                <div className="text-center">
+                  <span className="text-4xl font-bold text-yellow-400">{selectedPlatiniumSlots}</span>
+                  <p className="text-sm theme-text-secondary mt-1">place{selectedPlatiniumSlots > 1 ? 's' : ''}</p>
+                </div>
+
+                <button
+                  onClick={() => setSelectedPlatiniumSlots(Math.min((credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0), selectedPlatiniumSlots + 1))}
+                  disabled={selectedPlatiniumSlots >= (credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0)}
+                  className="w-12 h-12 rounded-full border-2 border-yellow-500 text-yellow-500 text-2xl font-bold flex items-center justify-center hover:bg-yellow-500/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Info crédits disponibles */}
+              <p className="text-xs theme-text-secondary text-center mb-6">
+                Vous avez <span className="text-yellow-400 font-semibold">{(credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0)}</span> crédits disponibles
+              </p>
+
+              {/* Bouton Créer */}
+              <a
+                href={`/vestiaire?type=platinium&slots=${selectedPlatiniumSlots}`}
+                className="block w-full py-3 text-center rounded-lg badge-glossy bg-yellow-500 text-black font-bold text-lg hover:brightness-110 transition"
+              >
+                Créer avec {selectedPlatiniumSlots} place{selectedPlatiniumSlots > 1 ? 's' : ''}
+              </a>
+
+              {/* Bouton retour */}
+              <button
+                onClick={() => setShowPlatiniumSlotSelector(false)}
+                className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-yellow-500 transition"
+              >
+                ← Retour
               </button>
             </div>
           </div>

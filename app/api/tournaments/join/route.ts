@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
     // Récupérer le tournoi par invite_code ou slug (sans jointure)
     const { data: tournamentData, error: searchError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy, competition_id, custom_competition_id')
+      .select('id, name, slug, invite_code, status, max_players, creator_id, tournament_type, is_legacy, competition_id, custom_competition_id, prepaid_slots_remaining')
       .or(`invite_code.eq.${upperCode},slug.eq.${upperCode}`)
       .single()
 
@@ -562,18 +562,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Note: La fonctionnalité prepaid_slots n'est pas encore implémentée en BDD
-    // TODO: Ajouter la colonne prepaid_slots_remaining à la table tournaments si besoin
+    // Préparer les données du participant avec le tracking de paiement
+    const participantData: {
+      tournament_id: string
+      user_id: string
+      joined_at: string
+      invite_type: InviteType
+      has_paid: boolean
+      paid_by_creator: boolean
+      amount_paid: number
+    } = {
+      tournament_id: tournament.id,
+      user_id: user.id,
+      joined_at: new Date().toISOString(),
+      invite_type: eligibility.inviteType,
+      has_paid: false,
+      paid_by_creator: false,
+      amount_paid: 0
+    }
+
+    // Si c'est une place prepayée Platinium, marquer comme payée par le créateur et décrémenter le compteur
+    if (eligibility.inviteType === 'prepaid_slot' && tournament.tournament_type === 'platinium') {
+      participantData.has_paid = true
+      participantData.paid_by_creator = true
+      participantData.amount_paid = 0 // Gratuit pour le participant
+
+      // Décrémenter le compteur de places prepayées
+      const { error: decrementError } = await supabase.rpc('use_prepaid_slot', {
+        p_tournament_id: tournament.id,
+        p_user_id: user.id
+      })
+
+      if (decrementError) {
+        console.error('Error decrementing prepaid slots:', decrementError)
+        // On continue quand même, le compteur sera peut-être désynchronisé mais le joueur peut rejoindre
+      }
+    }
+
+    // Si le joueur a payé lui-même (Stripe ou slot acheté)
+    if (eligibility.requiresPayment && (stripe_session_id || useSlotId)) {
+      participantData.has_paid = true
+      participantData.paid_by_creator = false
+      participantData.amount_paid = eligibility.paymentAmount
+    }
 
     // Ajouter l'utilisateur au tournoi
-    // Note: On utilise uniquement les colonnes de base qui existent dans la table
     const { error: joinError } = await supabase
       .from('tournament_participants')
-      .insert({
-        tournament_id: tournament.id,
-        user_id: user.id,
-        joined_at: new Date().toISOString()
-      })
+      .insert(participantData)
 
     if (joinError) {
       console.error('Error joining tournament:', joinError)

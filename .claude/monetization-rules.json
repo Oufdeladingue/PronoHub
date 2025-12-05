@@ -125,7 +125,7 @@
       "action": "CREATE",
       "tournament_type": "PLATINUM",
       "condition": "true",
-      "price_eur": 9.99
+      "price_eur": 6.99
     },
     {
       "id": "CREATE_PLATINUM_PREPAID_11",

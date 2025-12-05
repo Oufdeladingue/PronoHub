@@ -114,6 +114,8 @@ export default function VestiaireClient() {
 
   // Recuperer le type de tournoi depuis l'URL (apres paiement)
   const tournamentType = searchParams.get('type') as 'oneshot' | 'elite' | 'platinium' | null
+  const slotsParam = searchParams.get('slots')
+  const selectedSlots = slotsParam ? parseInt(slotsParam, 10) : 1
 
   useEffect(() => {
     fetchActiveCompetitions()
@@ -205,10 +207,15 @@ export default function VestiaireClient() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-yellow-500" />
-                <span className="font-semibold text-yellow-400">Votre credit Platinium est pret a etre utilise !</span>
+                <span className="font-semibold text-yellow-400">
+                  {selectedSlots > 1
+                    ? `Vos ${selectedSlots} crédits Platinium sont prêts à être utilisés !`
+                    : 'Votre crédit Platinium est prêt à être utilisé !'
+                  }
+                </span>
               </div>
               <p className="text-sm text-gray-400 mt-1">
-                Selectionnez une competition pour creer votre tournoi Platinium
+                Sélectionnez une compétition pour créer votre tournoi Platinium
               </p>
             </div>
           </div>
@@ -238,10 +245,16 @@ export default function VestiaireClient() {
               <div
                 key={comp.id}
                 onClick={() => {
+                  // Construire les query params
+                  const params = new URLSearchParams()
+                  if (tournamentType) params.set('type', tournamentType)
+                  if (selectedSlots > 1) params.set('slots', selectedSlots.toString())
+                  const queryString = params.toString() ? `?${params.toString()}` : ''
+
                   if (comp.is_custom) {
-                    router.push(`/vestiaire/create/custom_${comp.custom_competition_id}${tournamentType ? `?type=${tournamentType}` : ''}`)
+                    router.push(`/vestiaire/create/custom_${comp.custom_competition_id}${queryString}`)
                   } else {
-                    router.push(`/vestiaire/create/${comp.id}${tournamentType ? `?type=${tournamentType}` : ''}`)
+                    router.push(`/vestiaire/create/${comp.id}${queryString}`)
                   }
                 }}
                 className={`group competition-badge ${comp.is_custom ? 'custom-competition' : ''}`}

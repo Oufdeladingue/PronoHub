@@ -4,7 +4,7 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 
 // Mapping des types de crédit vers les valeurs de tournament_purchases
-const creditTypeConfig: Record<string, { purchaseType: string; amount: number; label: string; tournamentSubtype?: string }> = {
+const creditTypeConfig: Record<string, { purchaseType: string; amount: number; label: string; tournamentSubtype?: string; slotsIncluded?: number }> = {
   'slot_invite': {
     purchaseType: 'slot_invite',
     amount: 0.99,
@@ -23,15 +23,17 @@ const creditTypeConfig: Record<string, { purchaseType: string; amount: number; l
     tournamentSubtype: 'elite'
   },
   'platinium_participation': {
-    purchaseType: 'platinium_participation',
+    purchaseType: 'tournament_creation',
     amount: 6.99,
-    label: 'Crédit Platinium'
+    label: 'Crédit Platinium',
+    tournamentSubtype: 'platinium_solo'
   },
   'platinium_prepaid_11': {
     purchaseType: 'tournament_creation',
     amount: 69.20,
     label: 'Platinium Prepaid 11 joueurs',
-    tournamentSubtype: 'platinium_prepaid_11'
+    tournamentSubtype: 'platinium_group',
+    slotsIncluded: 11
   }
 }
 
@@ -81,18 +83,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Créer l'entrée dans tournament_purchases
+    const insertData: Record<string, unknown> = {
+      user_id: userId,
+      tournament_id: null, // Non utilisé
+      purchase_type: config.purchaseType,
+      amount: config.amount,
+      currency: 'eur',
+      status: 'completed',
+      used: false,
+      tournament_subtype: config.tournamentSubtype || null
+    }
+
+    // Ajouter slots_included si présent (pour platinium_group)
+    if (config.slotsIncluded) {
+      insertData.slots_included = config.slotsIncluded
+    }
+
     const { data: purchase, error: purchaseError } = await adminClient
       .from('tournament_purchases')
-      .insert({
-        user_id: userId,
-        tournament_id: null, // Non utilisé
-        purchase_type: config.purchaseType,
-        amount: config.amount,
-        currency: 'eur',
-        status: 'completed',
-        used: false,
-        tournament_subtype: config.tournamentSubtype || null
-      })
+      .insert(insertData)
       .select()
       .single()
 

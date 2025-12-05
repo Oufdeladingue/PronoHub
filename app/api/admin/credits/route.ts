@@ -86,6 +86,26 @@ export async function GET(request: NextRequest) {
           .eq('purchase_type', 'slot_invite')
           .eq('used', false)
 
+        // Récupérer les crédits Platinium disponibles
+        const { count: platiniumCredits } = await adminClient
+          .from('tournament_purchases')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'tournament_creation')
+          .eq('tournament_subtype', 'platinium_solo')
+          .eq('status', 'completed')
+          .eq('used', false)
+
+        // Récupérer les crédits Platinium Prepaid 11 disponibles
+        const { count: platiniumPrepaid11Credits } = await adminClient
+          .from('tournament_purchases')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'tournament_creation')
+          .eq('tournament_subtype', 'platinium_group')
+          .eq('status', 'completed')
+          .eq('used', false)
+
         // Calculer les stats par type de tournoi
         const stats = {
           freeKick: { total: 0, paidSlot: 0 },
@@ -129,7 +149,9 @@ export async function GET(request: NextRequest) {
           username: user.username || 'Sans nom',
           avatar: user.avatar || 'avatar1',
           ...stats,
-          availableSlots: availableSlots || 0
+          availableSlots: availableSlots || 0,
+          platiniumCredits: platiniumCredits || 0,
+          platiniumPrepaid11Credits: platiniumPrepaid11Credits || 0
         }
       })
     )

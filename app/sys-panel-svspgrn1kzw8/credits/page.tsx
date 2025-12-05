@@ -4,6 +4,69 @@ import { useState, useEffect, useCallback } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { createClient } from '@/lib/supabase/client'
 
+// Toast notification component
+interface Toast {
+  id: number
+  type: 'success' | 'error'
+  message: string
+  creditType?: string
+  username?: string
+}
+
+function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div
+      className={`flex items-start gap-3 p-4 rounded-xl shadow-2xl border backdrop-blur-sm animate-slide-in ${
+        toast.type === 'success'
+          ? 'bg-green-900/90 border-green-700 text-green-100'
+          : 'bg-red-900/90 border-red-700 text-red-100'
+      }`}
+      style={{ minWidth: '320px' }}
+    >
+      {toast.type === 'success' ? (
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+          <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      ) : (
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+          <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+      )}
+      <div className="flex-1">
+        <p className="font-semibold text-sm">
+          {toast.type === 'success' ? 'Crédit ajouté !' : 'Erreur'}
+        </p>
+        <p className="text-sm opacity-90 mt-0.5">
+          {toast.type === 'success' && toast.creditType && toast.username ? (
+            <>
+              <span className="font-medium">{toast.creditType}</span> ajouté à <span className="font-medium">{toast.username}</span>
+            </>
+          ) : (
+            toast.message
+          )}
+        </p>
+      </div>
+      <button
+        onClick={onClose}
+        className="flex-shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors"
+      >
+        <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 interface UserStats {
   userId: string
   username: string
@@ -14,6 +77,17 @@ interface UserStats {
   platinium: { total: number; paid: number }
   corpo: { total: number; paid: number }
   availableSlots: number
+  platiniumCredits: number
+  platiniumPrepaid11Credits: number
+}
+
+// Labels pour les types de crédit
+const creditTypeLabels: Record<string, string> = {
+  slot_invite: 'Slot Free-Kick',
+  oneshot_creation: 'Crédit One-Shot',
+  elite_creation: 'Crédit Elite',
+  platinium_participation: 'Crédit Platinium',
+  platinium_prepaid_11: 'Platinium Prepaid 11j',
 }
 
 export default function CreditsPage() {
@@ -23,7 +97,17 @@ export default function CreditsPage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [addingCredit, setAddingCredit] = useState<{ userId: string; type: string } | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
   const pageSize = 10
+
+  const addToast = (toast: Omit<Toast, 'id'>) => {
+    const id = Date.now()
+    setToasts(prev => [...prev, { ...toast, id }])
+  }
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -53,7 +137,7 @@ export default function CreditsPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  const handleAddCredit = async (userId: string, creditType: string) => {
+  const handleAddCredit = async (userId: string, creditType: string, username: string) => {
     setAddingCredit({ userId, type: creditType })
     try {
       const response = await fetch('/api/admin/credits/add', {
@@ -66,13 +150,24 @@ export default function CreditsPage() {
       if (data.success) {
         // Rafraichir les donnees
         fetchUsers()
-        alert(`Credit "${creditType}" ajouté avec succès !`)
+        addToast({
+          type: 'success',
+          message: '',
+          creditType: creditTypeLabels[creditType] || creditType,
+          username
+        })
       } else {
-        alert(data.error || 'Erreur lors de l\'ajout du crédit')
+        addToast({
+          type: 'error',
+          message: data.error || 'Erreur lors de l\'ajout du crédit'
+        })
       }
     } catch (error) {
       console.error('Error adding credit:', error)
-      alert('Erreur lors de l\'ajout du crédit')
+      addToast({
+        type: 'error',
+        message: 'Erreur lors de l\'ajout du crédit'
+      })
     }
     setAddingCredit(null)
   }
@@ -81,6 +176,19 @@ export default function CreditsPage() {
 
   return (
     <AdminLayout currentPage="credits">
+      {/* Toast notifications container */}
+      {toasts.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 flex flex-col gap-3">
+          {toasts.map(toast => (
+            <ToastNotification
+              key={toast.id}
+              toast={toast}
+              onClose={() => removeToast(toast.id)}
+            />
+          ))}
+        </div>
+      )}
+
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Crédits</h1>
@@ -138,6 +246,12 @@ export default function CreditsPage() {
                     Slots dispo
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Crédits Plat.
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Plat. (11)
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -145,13 +259,13 @@ export default function CreditsPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                       Chargement...
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                       Aucun utilisateur trouvé
                     </td>
                   </tr>
@@ -198,6 +312,16 @@ export default function CreditsPage() {
                       <td className="px-4 py-4 whitespace-nowrap text-center">
                         <span className={`font-medium ${user.availableSlots > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                           {user.availableSlots}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <span className={`font-medium ${user.platiniumCredits > 0 ? 'text-yellow-500' : 'text-gray-400'}`}>
+                          {user.platiniumCredits}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <span className={`font-medium ${user.platiniumPrepaid11Credits > 0 ? 'text-purple-500' : 'text-gray-400'}`}>
+                          {user.platiniumPrepaid11Credits}
                         </span>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
@@ -261,7 +385,7 @@ function CreditDropdown({
 }: {
   userId: string
   username: string
-  onAddCredit: (userId: string, type: string) => void
+  onAddCredit: (userId: string, type: string, username: string) => void
   isLoading: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -331,7 +455,7 @@ function CreditDropdown({
                 <button
                   key={type.key}
                   onClick={() => {
-                    onAddCredit(userId, type.key)
+                    onAddCredit(userId, type.key, username)
                     setIsOpen(false)
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-700/50 transition-colors group"

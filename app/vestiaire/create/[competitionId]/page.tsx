@@ -48,6 +48,9 @@ export default function TableauNoirPage() {
 
   // Type de tournoi force depuis l'URL (apres paiement)
   const forcedType = searchParams.get('type') as 'oneshot' | 'elite' | 'platinium' | null
+  // Nombre de slots prépayés depuis l'URL (pour Platinium)
+  const slotsParam = searchParams.get('slots')
+  const prepaidSlots = slotsParam ? parseInt(slotsParam, 10) : 1
 
   const [competition, setCompetition] = useState<Competition | null>(null)
   const [loading, setLoading] = useState(true)
@@ -280,7 +283,9 @@ export default function TableauNoirPage() {
     }
 
     // Verifier les credits pour les tournois payants
-    if (selectedTournamentType !== 'free' && !hasCredit(selectedTournamentType)) {
+    // Si forcedType est défini, l'utilisateur a été redirigé depuis le dashboard avec des crédits
+    const hasCreditForType = forcedType === selectedTournamentType || hasCredit(selectedTournamentType)
+    if (selectedTournamentType !== 'free' && !hasCreditForType) {
       showAlert('Crédit requis', `Vous n'avez pas de crédit ${selectedTournamentType}. Achetez-en un sur la page Pricing.`, 'warning')
       setTimeout(() => router.push('/pricing'), 2000)
       return
@@ -299,7 +304,9 @@ export default function TableauNoirPage() {
         earlyPredictionBonus,
         drawWithDefaultPredictionPoints,
         tournamentType: selectedTournamentType,
-        use_credit: selectedTournamentType !== 'free'
+        use_credit: selectedTournamentType !== 'free',
+        // Pour Platinium: nombre de places prépayées
+        prepaidSlots: selectedTournamentType === 'platinium' ? prepaidSlots : undefined
       }
 
       // Pour les compétitions personnalisées, utiliser custom_competition_id
@@ -562,7 +569,7 @@ export default function TableauNoirPage() {
                   <span className="text-xs text-gray-500">{pricingLimits.platiniumMinPlayers}-{pricingLimits.platiniumMaxPlayers} joueurs</span>
                   {(credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0) || forcedType === 'platinium' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'platinium' ? '1+' : (credits.platinium_group_slots || credits.platinium_solo_credits)} place(s)
+                      <Check className="w-3 h-3" /> {forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)} place{(forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)) > 1 ? 's' : ''}
                     </span>
                   ) : (
                     <span className="text-xs text-gray-500">Aucun credit</span>
