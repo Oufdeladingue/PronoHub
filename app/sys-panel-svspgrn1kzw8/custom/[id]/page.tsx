@@ -689,7 +689,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                     ) : (
                       <div className="space-y-2">
                         {[...selectedMatches]
-                          .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+                          .sort((a, b) => new Date(a.cached_utc_date).getTime() - new Date(b.cached_utc_date).getTime())
                           .map((match, index) => (
                           <div
                             key={match.id}
@@ -697,7 +697,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
-                                {formatDateTime(match.utc_date)}
+                                {formatDateTime(match.cached_utc_date)}
                               </span>
                               <button
                                 onClick={() => removeMatch(match.id)}
