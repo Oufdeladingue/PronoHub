@@ -1003,7 +1003,7 @@ function EchauffementPageContent() {
                     {/* Logo blanc pour thème sombre */}
                     {(competitionLogoWhite || competitionLogo) && (
                       <img
-                        src={competitionLogoWhite || competitionLogo}
+                        src={competitionLogoWhite || competitionLogo || undefined}
                         alt={tournament.competition_name}
                         className="w-14 h-14 object-contain flex-shrink-0 show-on-dark"
                       />
@@ -1011,7 +1011,7 @@ function EchauffementPageContent() {
                     {/* Logo couleur pour thème clair */}
                     {(competitionLogoColor || competitionLogo) && (
                       <img
-                        src={competitionLogoColor || competitionLogo}
+                        src={competitionLogoColor || competitionLogo || undefined}
                         alt={tournament.competition_name}
                         className="w-14 h-14 object-contain flex-shrink-0 show-on-light"
                       />
