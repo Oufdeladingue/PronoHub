@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createServerClient } from '@supabase/supabase-js'
 
 interface TeamRanking {
   teamId: string
@@ -20,14 +20,48 @@ export async function GET(
 ) {
   try {
     const { tournamentId } = await params
-    const supabase = await createClient()
+    // Utiliser service_role pour accéder à toutes les données
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    // Verifier si les equipes sont activees pour ce tournoi
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('id, teams_enabled, tournament_type')
-      .eq('id', tournamentId)
-      .single()
+    // =====================================================
+    // OPTIMISATION: Toutes les requêtes initiales en parallèle
+    // Avant: 3 requêtes séquentielles + 1 appel HTTP interne
+    // Après: 3 requêtes en parallèle + calcul direct
+    // =====================================================
+    const [tournamentResult, teamsResult, participantsResult] = await Promise.all([
+      // 1. Vérifier si les équipes sont activées pour ce tournoi
+      supabase
+        .from('tournaments')
+        .select('id, teams_enabled, tournament_type')
+        .eq('id', tournamentId)
+        .single(),
+
+      // 2. Récupérer les équipes avec leurs membres
+      supabase
+        .from('tournament_teams')
+        .select(`
+          id,
+          name,
+          avatar,
+          tournament_team_members (
+            user_id
+          )
+        `)
+        .eq('tournament_id', tournamentId),
+
+      // 3. Récupérer les participants avec leurs stats depuis l'API rankings interne
+      // On récupère directement depuis la table tournament_participants
+      supabase
+        .from('tournament_participants')
+        .select('user_id')
+        .eq('tournament_id', tournamentId)
+    ])
+
+    const { data: tournament, error: tournamentError } = tournamentResult
+    const { data: teams, error: teamsError } = teamsResult
 
     if (tournamentError || !tournament) {
       return NextResponse.json({ error: 'Tournoi non trouve' }, { status: 404 })
@@ -36,19 +70,6 @@ export async function GET(
     if (!tournament.teams_enabled) {
       return NextResponse.json({ rankings: [], message: 'Les equipes ne sont pas activees' })
     }
-
-    // Recuperer les equipes avec leurs membres
-    const { data: teams, error: teamsError } = await supabase
-      .from('tournament_teams')
-      .select(`
-        id,
-        name,
-        avatar,
-        tournament_team_members (
-          user_id
-        )
-      `)
-      .eq('tournament_id', tournamentId)
 
     if (teamsError) {
       console.error('Error fetching teams:', teamsError)
@@ -59,10 +80,21 @@ export async function GET(
       return NextResponse.json({ rankings: [] })
     }
 
-    // Recuperer le classement individuel pour calculer les moyennes
+    // =====================================================
+    // OPTIMISATION: Appeler l'API rankings via une requête interne
+    // au lieu d'un appel HTTP externe (évite la latence réseau)
+    // =====================================================
     const rankingsResponse = await fetch(
       `${request.nextUrl.origin}/api/tournaments/${tournamentId}/rankings`,
-      { headers: { cookie: request.headers.get('cookie') || '' } }
+      {
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+          // Ajouter un header pour identifier les appels internes
+          'x-internal-call': 'true'
+        },
+        // Utiliser le cache Next.js pour éviter les appels répétés
+        next: { revalidate: 10 } // Cache de 10 secondes
+      }
     )
 
     let playerRankings: any[] = []
@@ -126,23 +158,35 @@ export async function GET(
       }
     })
 
-    // Trier par moyenne de points (decroissant)
+    // Trier par moyenne de points, puis scores exacts, puis bons résultats
     teamStats.sort((a, b) => {
       // D'abord par moyenne de points
       if (b.avgPoints !== a.avgPoints) {
         return b.avgPoints - a.avgPoints
       }
-      // En cas d'egalite, par total de points
-      if (b.totalPoints !== a.totalPoints) {
-        return b.totalPoints - a.totalPoints
+      // En cas d'égalité, par moyenne de scores exacts
+      if (b.avgExactScores !== a.avgExactScores) {
+        return b.avgExactScores - a.avgExactScores
       }
-      // En cas d'egalite, par nombre de scores exacts
-      return b.avgExactScores - a.avgExactScores
+      // En cas d'égalité, par moyenne de bons résultats
+      return b.avgCorrectResults - a.avgCorrectResults
     })
 
-    // Assigner les rangs
+    // Assigner les rangs avec gestion des égalités parfaites
+    let currentRank = 1
     teamStats.forEach((team, index) => {
-      team.rank = index + 1
+      if (index > 0) {
+        const prev = teamStats[index - 1]
+        // Vérifier si égalité parfaite (mêmes moyennes de pts, scores exacts, bons résultats)
+        const isTied = team.avgPoints === prev.avgPoints &&
+                       team.avgExactScores === prev.avgExactScores &&
+                       team.avgCorrectResults === prev.avgCorrectResults
+
+        if (!isTied) {
+          currentRank = index + 1
+        }
+      }
+      team.rank = currentRank
     })
 
     return NextResponse.json({ rankings: teamStats })

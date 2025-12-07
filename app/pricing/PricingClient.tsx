@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Check, X, Loader2, Plus } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Check, X, Loader2, Plus, AlertTriangle } from 'lucide-react'
 import Footer from '@/components/Footer'
 
 interface PricingClientProps {
@@ -47,9 +47,12 @@ const defaultPrices: Prices = {
 
 export default function PricingClient({ isLoggedIn }: PricingClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState<string | null>(null)
   const [showPlatiniumModal, setShowPlatiniumModal] = useState(false)
   const [prices, setPrices] = useState<Prices>(defaultPrices)
+  const autoCheckoutTriggered = useRef(false)
+  const [stripeError, setStripeError] = useState<string | null>(null)
 
   // Charger les prix depuis l'API
   useEffect(() => {
@@ -67,6 +70,25 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
     }
     fetchPrices()
   }, [])
+
+  // Auto-checkout si paramètre buy présent
+  useEffect(() => {
+    const buyParam = searchParams.get('buy')
+    if (buyParam && isLoggedIn && !autoCheckoutTriggered.current) {
+      autoCheckoutTriggered.current = true
+      // Mapper les paramètres buy vers les planTypes
+      const buyToPlanMap: Record<string, string> = {
+        'oneshot': 'oneshot-premium',
+        'elite': 'elite-team',
+        'platinium': 'platinium_solo',
+      }
+      const planType = buyToPlanMap[buyParam]
+      if (planType) {
+        // Petit délai pour que la page soit chargée
+        setTimeout(() => handleCheckout(planType), 100)
+      }
+    }
+  }, [searchParams, isLoggedIn])
 
   const handleCheckout = async (planType: string) => {
     if (!isLoggedIn) {
@@ -101,11 +123,12 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         // Rediriger vers la page de checkout Stripe
         window.location.href = data.url
       } else {
-        alert(data.error || 'Erreur lors du paiement')
+        // Afficher l'erreur dans une modale conviviale
+        setStripeError(data.error || 'Erreur lors du paiement')
       }
     } catch (error) {
       console.error('Checkout error:', error)
-      alert('Erreur lors du paiement')
+      setStripeError('Erreur lors du paiement. Veuillez reessayer.')
     } finally {
       setLoading(null)
     }
@@ -404,6 +427,37 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Modal Erreur Stripe */}
+      {stripeError && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 border-b border-gray-700 bg-red-500/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-red-400">Paiement indisponible</h2>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-300">{stripeError}</p>
+              {stripeError.includes('configure') && (
+                <p className="text-sm text-gray-400">
+                  Le systeme de paiement n&apos;est pas disponible en environnement de developpement.
+                  Les paiements fonctionneront en production.
+                </p>
+              )}
+              <button
+                onClick={() => setStripeError(null)}
+                className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Platinium */}
       {showPlatiniumModal && (

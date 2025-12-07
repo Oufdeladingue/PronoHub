@@ -15,210 +15,193 @@ export async function GET(request: Request) {
       )
     }
 
-    // 1. Nombre total de tournois (finis + en cours)
-    const { data: tournaments, error: tournamentsError } = await supabase
-      .from('tournament_participants')
-      .select('tournament_id, tournaments!inner(status)')
-      .eq('user_id', user.id)
+    // ============================================
+    // ÉTAPE 1 : Récupérer les tournois en parallèle avec les predictions et matches
+    // ============================================
 
-    const totalTournaments = tournaments?.length || 0
-    const activeTournaments = tournaments?.filter((t: any) => t.tournaments.status === 'active').length || 0
-    const finishedTournaments = tournaments?.filter((t: any) => t.tournaments.status === 'finished').length || 0
+    const [tournamentsResult, predictionsResult] = await Promise.all([
+      // 1. Tous les tournois de l'utilisateur avec leur statut
+      supabase
+        .from('tournament_participants')
+        .select('tournament_id, tournaments!inner(id, status, starting_matchday, ending_matchday, competition_id)')
+        .eq('user_id', user.id),
 
-    // 2. Récupérer tous les pronostics de l'utilisateur
-    const { data: predictions, error: predictionsError } = await supabase
-      .from('predictions')
-      .select('id, predicted_home_score, predicted_away_score, is_default_prediction, match_id, points_earned')
-      .eq('user_id', user.id)
+      // 2. Tous les pronostics de l'utilisateur avec les infos du match
+      supabase
+        .from('predictions')
+        .select(`
+          id,
+          predicted_home_score,
+          predicted_away_score,
+          is_default_prediction,
+          match_id,
+          points_earned,
+          tournament_id,
+          imported_matches!inner(id, home_score, away_score, status, finished, matchday, competition_id)
+        `)
+        .eq('user_id', user.id)
+    ])
 
-    console.log(`Found ${predictions?.length || 0} predictions for user ${user.id}`)
+    const tournaments = tournamentsResult.data || []
+    const predictions = predictionsResult.data || []
 
-    if (predictionsError) {
-      console.error('Error fetching predictions:', predictionsError)
-    }
+    // ============================================
+    // ÉTAPE 2 : Calculer les stats de base des tournois
+    // ============================================
+
+    const totalTournaments = tournaments.length
+    const activeTournaments = tournaments.filter((t: any) => t.tournaments.status === 'active').length
+    const finishedTournaments = tournaments.filter((t: any) => t.tournaments.status === 'finished').length
+
+    // ============================================
+    // ÉTAPE 3 : Calculer les stats de pronostics (optimisé - plus de requête supplémentaire)
+    // ============================================
 
     let totalFinishedMatches = 0
     let correctResults = 0
     let exactScores = 0
     let defaultPredictions = 0
 
-    if (predictions && predictions.length > 0) {
-      // Récupérer tous les IDs de matchs
-      const matchIds = predictions.map((p: any) => p.match_id).filter(Boolean)
+    predictions.forEach((pred: any) => {
+      const match = pred.imported_matches
+      if (!match) return
 
-      if (matchIds.length > 0) {
-        // Récupérer les informations des matchs
-        const { data: matches, error: matchesError } = await supabase
-          .from('imported_matches')
-          .select('id, home_score, away_score, status, finished')
-          .in('id', matchIds)
+      // Vérifier si le match est terminé
+      if (match.status !== 'FINISHED' && match.finished !== true) return
+      if (match.home_score === null || match.away_score === null) return
 
-        console.log(`Found ${matches?.length || 0} matches`)
+      totalFinishedMatches++
 
-        if (matchesError) {
-          console.error('Error fetching matches:', matchesError)
-        }
+      if (pred.is_default_prediction) {
+        defaultPredictions++
+      }
 
-        if (matches) {
-          // Créer un map des matchs pour un accès rapide
-          const matchesMap: Record<number, any> = {}
-          matches.forEach((match: any) => {
-            matchesMap[match.id] = match
-          })
+      const predHomeScore = pred.predicted_home_score
+      const predAwayScore = pred.predicted_away_score
+      const actualHomeScore = match.home_score
+      const actualAwayScore = match.away_score
 
-          // Calculer les statistiques
-          predictions.forEach((pred: any) => {
-            const match = matchesMap[pred.match_id]
-
-            if (!match) return
-
-            // Vérifier si le match est terminé
-            if (match.status !== 'FINISHED' && match.finished !== true) return
-
-            // Vérifier que les scores sont définis
-            if (match.home_score === null || match.away_score === null) return
-
-            totalFinishedMatches++
-
-            // Compter les pronostics par défaut
-            if (pred.is_default_prediction) {
-              defaultPredictions++
-            }
-
-            const predHomeScore = pred.predicted_home_score
-            const predAwayScore = pred.predicted_away_score
-            const actualHomeScore = match.home_score
-            const actualAwayScore = match.away_score
-
-            // Vérifier le score exact
-            if (predHomeScore === actualHomeScore && predAwayScore === actualAwayScore) {
-              exactScores++
-              correctResults++ // Un score exact est aussi un bon résultat
-            } else {
-              // Vérifier le bon résultat (même issue : victoire domicile, nul, victoire extérieur)
-              const predResult = predHomeScore > predAwayScore ? 'HOME' : predHomeScore < predAwayScore ? 'AWAY' : 'DRAW'
-              const actualResult = actualHomeScore > actualAwayScore ? 'HOME' : actualHomeScore < actualAwayScore ? 'AWAY' : 'DRAW'
-
-              if (predResult === actualResult) {
-                correctResults++
-              }
-            }
-          })
+      // Score exact
+      if (predHomeScore === actualHomeScore && predAwayScore === actualAwayScore) {
+        exactScores++
+        correctResults++
+      } else {
+        // Bon résultat
+        const predResult = predHomeScore > predAwayScore ? 'HOME' : predHomeScore < predAwayScore ? 'AWAY' : 'DRAW'
+        const actualResult = actualHomeScore > actualAwayScore ? 'HOME' : actualHomeScore < actualAwayScore ? 'AWAY' : 'DRAW'
+        if (predResult === actualResult) {
+          correctResults++
         }
       }
-    }
-
-    console.log(`Stats: ${totalFinishedMatches} finished matches, ${correctResults} correct results, ${exactScores} exact scores, ${defaultPredictions} default predictions`)
+    })
 
     const correctResultsPercentage = totalFinishedMatches > 0 ? Math.round((correctResults / totalFinishedMatches) * 100) : 0
     const exactScoresPercentage = totalFinishedMatches > 0 ? Math.round((exactScores / totalFinishedMatches) * 100) : 0
     const defaultPredictionsPercentage = totalFinishedMatches > 0 ? Math.round((defaultPredictions / totalFinishedMatches) * 100) : 0
 
-    // 3. Nombre de premières places finales (classements de tournois terminés)
+    // ============================================
+    // ÉTAPE 4 : Calculer premières places finales (optimisé)
+    // ============================================
+
     let firstPlacesFinal = 0
-    if (finishedTournaments > 0) {
-      const finishedTournamentIds = tournaments
-        ?.filter((t: any) => t.tournaments.status === 'finished')
-        .map((t: any) => t.tournament_id) || []
+    const finishedTournamentIds = tournaments
+      .filter((t: any) => t.tournaments.status === 'finished')
+      .map((t: any) => t.tournament_id)
 
-      for (const tournamentId of finishedTournamentIds) {
-        // Calculer le classement final du tournoi
-        const { data: tournamentParticipants } = await supabase
-          .from('tournament_participants')
-          .select('user_id, total_points')
-          .eq('tournament_id', tournamentId)
-          .order('total_points', { ascending: false })
+    if (finishedTournamentIds.length > 0) {
+      // Une seule requête pour tous les participants de tous les tournois terminés
+      const { data: allParticipants } = await supabase
+        .from('tournament_participants')
+        .select('tournament_id, user_id, total_points')
+        .in('tournament_id', finishedTournamentIds)
+        .order('total_points', { ascending: false })
 
-        if (tournamentParticipants && tournamentParticipants.length > 0) {
-          const maxPoints = tournamentParticipants[0].total_points
-          const winners = tournamentParticipants.filter((p: any) => p.total_points === maxPoints)
+      if (allParticipants) {
+        // Grouper par tournoi et vérifier si l'utilisateur est premier
+        const tournamentGroups: Record<string, any[]> = {}
+        allParticipants.forEach((p: any) => {
+          if (!tournamentGroups[p.tournament_id]) {
+            tournamentGroups[p.tournament_id] = []
+          }
+          tournamentGroups[p.tournament_id].push(p)
+        })
 
-          if (winners.some((w: any) => w.user_id === user.id)) {
+        Object.values(tournamentGroups).forEach((participants: any[]) => {
+          if (participants.length === 0) return
+          const maxPoints = participants[0].total_points
+          const winners = participants.filter(p => p.total_points === maxPoints)
+          if (winners.some(w => w.user_id === user.id)) {
             firstPlacesFinal++
           }
-        }
+        })
       }
     }
 
-    // 4. Nombre de premières places provisoires (classements de journées terminées)
-    let firstPlacesProvisional = 0
+    // ============================================
+    // ÉTAPE 5 : Calculer premières places provisoires (optimisé - calcul local)
+    // ============================================
 
-    // Récupérer tous les tournois actifs ou terminés de l'utilisateur
-    const tournamentIds = tournaments?.map((t: any) => t.tournament_id) || []
+    let firstPlacesProvisional = 0
+    const tournamentIds = tournaments.map((t: any) => t.tournament_id)
 
     if (tournamentIds.length > 0) {
-      for (const tournamentId of tournamentIds) {
-        // Récupérer le tournoi pour connaître les journées
-        const { data: tournament } = await supabase
-          .from('tournaments')
-          .select('starting_matchday, ending_matchday, competition_id')
-          .eq('id', tournamentId)
-          .single()
+      // Une seule requête pour tous les pronostics de tous les tournois
+      const { data: allPredictions } = await supabase
+        .from('predictions')
+        .select(`
+          user_id,
+          points_earned,
+          tournament_id,
+          imported_matches!inner(matchday, competition_id, status, finished, home_score, away_score)
+        `)
+        .in('tournament_id', tournamentIds)
 
-        if (!tournament || !tournament.starting_matchday || !tournament.ending_matchday) continue
+      if (allPredictions) {
+        // Créer une structure pour regrouper par tournoi/journée
+        const journeyData: Record<string, {
+          predictions: any[],
+          competitionId: number,
+          matchday: number
+        }> = {}
 
-        // Pour chaque journée du tournoi
-        for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
-          // Vérifier que tous les matchs de cette journée sont terminés
-          const { data: journeyMatches } = await supabase
-            .from('imported_matches')
-            .select('id, status, finished, home_score, away_score')
-            .eq('competition_id', tournament.competition_id)
-            .eq('matchday', matchday)
+        allPredictions.forEach((pred: any) => {
+          const match = pred.imported_matches
+          if (!match) return
 
-          if (!journeyMatches || journeyMatches.length === 0) continue
+          // Vérifier si le match est terminé
+          if (match.status !== 'FINISHED' && match.finished !== true) return
+          if (match.home_score === null || match.away_score === null) return
 
-          // Vérifier si tous les matchs sont terminés
-          const allMatchesFinished = journeyMatches.every(m =>
-            (m.status === 'FINISHED' || m.finished === true) &&
-            m.home_score !== null &&
-            m.away_score !== null
-          )
+          const key = `${pred.tournament_id}_${match.matchday}`
+          if (!journeyData[key]) {
+            journeyData[key] = {
+              predictions: [],
+              competitionId: match.competition_id,
+              matchday: match.matchday
+            }
+          }
+          journeyData[key].predictions.push(pred)
+        })
 
-          if (!allMatchesFinished) continue
-
-          // Récupérer tous les participants du tournoi
-          const { data: tournamentParticipants } = await supabase
-            .from('tournament_participants')
-            .select('user_id')
-            .eq('tournament_id', tournamentId)
-
-          if (!tournamentParticipants || tournamentParticipants.length === 0) continue
-
-          const userIds = tournamentParticipants.map(p => p.user_id)
-          const matchIds = journeyMatches.map(m => m.id)
-
-          // Récupérer tous les pronostics pour cette journée
-          const { data: journeyPredictions } = await supabase
-            .from('predictions')
-            .select('user_id, points_earned')
-            .eq('tournament_id', tournamentId)
-            .in('user_id', userIds)
-            .in('match_id', matchIds)
-
-          if (!journeyPredictions || journeyPredictions.length === 0) continue
-
-          // Grouper par utilisateur et calculer les points totaux
+        // Pour chaque journée, calculer le classement
+        Object.values(journeyData).forEach((journey) => {
           const userPoints: Record<string, number> = {}
 
-          journeyPredictions.forEach((pred: any) => {
+          journey.predictions.forEach((pred: any) => {
             if (!userPoints[pred.user_id]) {
               userPoints[pred.user_id] = 0
             }
             userPoints[pred.user_id] += pred.points_earned || 0
           })
 
-          // Trouver le maximum de points
           const pointsArray = Object.values(userPoints)
-          if (pointsArray.length === 0) continue
+          if (pointsArray.length === 0) return
 
           const maxPoints = Math.max(...pointsArray)
-
-          // Vérifier si l'utilisateur a le maximum de points
           if (userPoints[user.id] === maxPoints && maxPoints > 0) {
             firstPlacesProvisional++
           }
-        }
+        })
       }
     }
 

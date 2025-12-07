@@ -289,15 +289,19 @@ function ProfileContent() {
   }, [activeTab])
 
   // Charger automatiquement les trophées lorsque l'utilisateur ouvre l'onglet Trophées
+  // Option 3 : Affichage instantané + recalcul en arrière-plan
   useEffect(() => {
     if (activeTab === 'trophees') {
-      loadTrophies()
+      loadTrophiesWithBackgroundRefresh()
     }
   }, [activeTab])
 
-  const loadTrophies = async () => {
+  const loadTrophiesWithBackgroundRefresh = async () => {
     setLoadingTrophies(true)
+    setLastRefreshMessage('')
+
     try {
+      // 1. Charger d'abord les trophées stockés (rapide)
       const response = await fetch('/api/user/trophies')
       const data = await response.json()
 
@@ -310,27 +314,23 @@ function ProfileContent() {
     } finally {
       setLoadingTrophies(false)
     }
-  }
 
-  const recalculateTrophies = async () => {
+    // 2. Lancer le recalcul en arrière-plan (sans bloquer l'affichage)
     setRecalculatingTrophies(true)
-    setLastRefreshMessage('')
     try {
-      const response = await fetch('/api/user/trophies', { method: 'PUT' })
-      const data = await response.json()
+      const refreshResponse = await fetch('/api/user/trophies', { method: 'PUT' })
+      const refreshData = await refreshResponse.json()
 
-      if (data.success) {
-        setTrophies(data.trophies)
-        setHasNewTrophies(data.hasNewTrophies)
-        if (data.newTrophiesUnlocked > 0) {
-          setLastRefreshMessage(`${data.newTrophiesUnlocked} nouveau(x) trophée(s) débloqué(s) !`)
-        } else {
-          setLastRefreshMessage('Aucun nouveau trophée')
+      if (refreshData.success) {
+        // Mettre à jour seulement si de nouveaux trophées ont été trouvés
+        if (refreshData.newTrophiesUnlocked > 0) {
+          setTrophies(refreshData.trophies)
+          setHasNewTrophies(refreshData.hasNewTrophies)
+          setLastRefreshMessage(`${refreshData.newTrophiesUnlocked} nouveau(x) trophée(s) débloqué(s) !`)
         }
       }
     } catch (error) {
-      console.error('Error recalculating trophies:', error)
-      setLastRefreshMessage('Erreur lors de l\'actualisation')
+      console.error('Error refreshing trophies:', error)
     } finally {
       setRecalculatingTrophies(false)
     }
@@ -342,8 +342,8 @@ function ProfileContent() {
         method: 'POST'
       })
       setHasNewTrophies(false)
-      // Recharger les trophées pour mettre à jour l'état is_new
-      loadTrophies()
+      // Mettre à jour localement l'état is_new des trophées
+      setTrophies(prev => prev.map(t => ({ ...t, is_new: false })))
     } catch (error) {
       console.error('Error marking trophies as seen:', error)
     }
@@ -550,7 +550,7 @@ function ProfileContent() {
         </div>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 py-8 md:pb-24">
         {/* Onglets de navigation */}
         <div className="flex justify-between md:justify-start md:gap-1 border-b theme-border mb-6">
             <button
@@ -1002,42 +1002,18 @@ function ProfileContent() {
           {/* Contenu de l'onglet Trophées */}
           {activeTab === 'trophees' && (
             <div className="space-y-6">
-              {/* Bouton Actualiser */}
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <p className="text-sm theme-text-secondary">
-                  Cliquez sur "Actualiser" pour vérifier vos nouveaux trophées
-                </p>
-                <button
-                  onClick={recalculateTrophies}
-                  disabled={recalculatingTrophies}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#ff9900] hover:bg-[#e68a00] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium text-[#0f172a] transition-all"
-                >
-                  {recalculatingTrophies ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-[#0f172a] border-t-transparent rounded-full animate-spin"></div>
-                      Actualisation...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Actualiser
-                    </>
-                  )}
-                </button>
-              </div>
+              {/* Indicateur de synchronisation en arrière-plan */}
+              {recalculatingTrophies && (
+                <div className="flex items-center justify-center gap-2 text-sm theme-text-secondary">
+                  <div className="w-3 h-3 border-2 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Vérification des nouveaux trophées...</span>
+                </div>
+              )}
 
-              {/* Message de résultat */}
+              {/* Message si nouveaux trophées trouvés */}
               {lastRefreshMessage && (
-                <div className={`p-3 rounded-lg text-sm text-center ${
-                  lastRefreshMessage.includes('débloqué')
-                    ? 'bg-green-100 text-green-800'
-                    : lastRefreshMessage.includes('Erreur')
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {lastRefreshMessage}
+                <div className="p-3 rounded-lg text-sm text-center bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  🎉 {lastRefreshMessage}
                 </div>
               )}
 

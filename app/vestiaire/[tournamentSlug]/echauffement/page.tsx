@@ -295,22 +295,57 @@ function EchauffementPageContent() {
   }
 
   const fetchNextMatchDate = async () => {
-    if (!tournament?.competition_id) return
+    if (!tournament?.competition_id && !tournament?.custom_competition_id) return
 
     try {
-      // Récupérer les matchs de la compétition
-      const response = await fetch(`/api/football/competition-matches?competitionId=${tournament.competition_id}`)
-      const data = await response.json()
+      const supabase = createClient()
+      const now = new Date()
 
-      if (data.matches && data.matches.length > 0) {
-        // Trouver le prochain match (premier match non encore joué)
-        const now = new Date()
-        const upcomingMatches = data.matches
-          .filter((match: any) => new Date(match.utc_date) > now)
-          .sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+      // Compétition custom (Best of Week, Les plus belles affiches, etc.)
+      if (tournament.custom_competition_id) {
+        // Récupérer toutes les journées non terminées
+        const { data: matchdays } = await supabase
+          .from('custom_competition_matchdays')
+          .select('id, status')
+          .eq('custom_competition_id', tournament.custom_competition_id)
+          .neq('status', 'completed')
+          .order('matchday_number', { ascending: true })
 
-        if (upcomingMatches.length > 0) {
-          setNextMatchDate(new Date(upcomingMatches[0].utc_date))
+        if (matchdays && matchdays.length > 0) {
+          // Récupérer les matchs de ces journées
+          const matchdayIds = matchdays.map(md => md.id)
+          const { data: customMatches } = await supabase
+            .from('custom_competition_matches')
+            .select('cached_utc_date, football_data_match_id')
+            .in('custom_matchday_id', matchdayIds)
+            .order('cached_utc_date', { ascending: true })
+
+          if (customMatches && customMatches.length > 0) {
+            // Trouver le prochain match (premier match non encore joué)
+            const upcomingMatches = customMatches
+              .filter((match: any) => new Date(match.cached_utc_date) > now)
+              .sort((a: any, b: any) => new Date(a.cached_utc_date).getTime() - new Date(b.cached_utc_date).getTime())
+
+            if (upcomingMatches.length > 0) {
+              setNextMatchDate(new Date(upcomingMatches[0].cached_utc_date))
+            }
+          }
+        }
+      }
+      // Compétition importée classique
+      else if (tournament.competition_id) {
+        const response = await fetch(`/api/football/competition-matches?competitionId=${tournament.competition_id}`)
+        const data = await response.json()
+
+        if (data.matches && data.matches.length > 0) {
+          // Trouver le prochain match (premier match non encore joué)
+          const upcomingMatches = data.matches
+            .filter((match: any) => new Date(match.utc_date) > now)
+            .sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+
+          if (upcomingMatches.length > 0) {
+            setNextMatchDate(new Date(upcomingMatches[0].utc_date))
+          }
         }
       }
     } catch (err) {

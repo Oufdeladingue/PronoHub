@@ -17,28 +17,39 @@ export async function GET(
 
     const { tournamentId } = await params
 
-    // 1. Récupérer le tournoi et ses paramètres
-    const { data: tournament, error: tournamentError } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('id', tournamentId)
-      .single()
+    // =====================================================
+    // OPTIMISATION: Requêtes initiales en parallèle
+    // Avant: 3 requêtes séquentielles
+    // Après: 3 requêtes en parallèle
+    // =====================================================
+    const [tournamentResult, pointsSettingsResult, participantsResult] = await Promise.all([
+      // 1. Récupérer le tournoi et ses paramètres
+      supabase
+        .from('tournaments')
+        .select('*')
+        .eq('id', tournamentId)
+        .single(),
+
+      // 2. Récupérer les paramètres de points depuis admin_settings
+      supabase
+        .from('admin_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result']),
+
+      // 3. Récupérer tous les participants
+      supabase
+        .from('tournament_participants')
+        .select('user_id, profiles(username, avatar)')
+        .eq('tournament_id', tournamentId)
+    ])
+
+    const { data: tournament, error: tournamentError } = tournamentResult
+    const { data: pointsSettingsData } = pointsSettingsResult
+    const { data: participants, error: participantsError } = participantsResult
 
     if (tournamentError || !tournament) {
       return NextResponse.json({ error: 'Tournoi non trouvé' }, { status: 404 })
     }
-
-    // Récupérer les paramètres de points depuis admin_settings
-    const { data: pointsSettingsData } = await supabase
-      .from('admin_settings')
-      .select('setting_key, setting_value')
-      .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result'])
-
-    // 2. Récupérer tous les participants
-    const { data: participants, error: participantsError } = await supabase
-      .from('tournament_participants')
-      .select('user_id, profiles(username, avatar)')
-      .eq('tournament_id', tournamentId)
 
     if (participantsError || !participants) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des participants' }, { status: 500 })
@@ -256,7 +267,30 @@ export async function GET(
       }
     }
 
-    // 9. Calculer les statistiques pour chaque joueur
+    // =====================================================
+    // OPTIMISATION: Récupérer TOUTES les prédictions en une seule requête
+    // Avant: N requêtes (une par participant)
+    // Après: 1 seule requête pour tous les participants
+    // =====================================================
+    const allMatchIds = allMatches?.map(m => m.id) || []
+    const matchIdsToQuery = allMatchIds.length > 0 ? allMatchIds : (finishedMatches?.map(m => m.id) || [])
+
+    const { data: allPredictionsData } = await supabase
+      .from('predictions')
+      .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, created_at')
+      .eq('tournament_id', tournamentId)
+      .in('match_id', matchIdsToQuery.length > 0 ? matchIdsToQuery : ['00000000-0000-0000-0000-000000000000'])
+
+    // Créer une Map des prédictions par utilisateur pour un accès O(1)
+    const predictionsByUser = new Map<string, any[]>()
+    for (const pred of (allPredictionsData || [])) {
+      if (!predictionsByUser.has(pred.user_id)) {
+        predictionsByUser.set(pred.user_id, [])
+      }
+      predictionsByUser.get(pred.user_id)!.push(pred)
+    }
+
+    // 9. Calculer les statistiques pour chaque joueur (sans requête supplémentaire)
     const playerStatsMap = new Map<string, Omit<PlayerStats, 'rank' | 'rankChange'>>()
 
     for (const participant of participants) {
@@ -264,20 +298,11 @@ export async function GET(
       const username = (participant.profiles as any)?.username || 'Inconnu'
       const avatar = (participant.profiles as any)?.avatar || 'avatar1'
 
-      // Récupérer tous les pronostics du joueur pour ces journées (avec created_at pour le bonus early)
-      // On récupère les pronostics de TOUS les matchs (pas seulement terminés) pour calculer le bonus "Prime d'avant-match"
-      const allMatchIds = allMatches?.map(m => m.id) || []
-      const { data: predictions, error: predError } = await supabase
-        .from('predictions')
-        .select('*, is_default_prediction, created_at')
-        .eq('user_id', userId)
-        .eq('tournament_id', tournamentId)
-        .in('match_id', allMatchIds.length > 0 ? allMatchIds : (finishedMatches?.map(m => m.id) || []))
-
-      console.log(`[Rankings API] ${username}: ${predictions?.length || 0} predictions found`, predError)
+      // Récupérer les pronostics de ce joueur depuis la Map (pas de requête DB)
+      const predictions = predictionsByUser.get(userId) || []
 
       // Créer une Map des pronostics existants pour un accès rapide
-      const predictionsMap = new Map(predictions?.map(p => [p.match_id, p]) || [])
+      const predictionsMap = new Map(predictions.map(p => [p.match_id, p]))
 
       // Créer des pronostics par défaut 0-0 pour les matchs où l'utilisateur n'a pas pronostiqué
       const allPredictions = (finishedMatches || []).map(match => {
@@ -349,7 +374,7 @@ export async function GET(
       // Calculer le bonus "Prime d'avant-match" si activé
       // Le joueur gagne +1 point par journée s'il a fait TOUS ses pronostics avant le premier match
       let earlyPredictionBonusPoints = 0
-      if (tournament.early_prediction_bonus && predictions && predictions.length > 0) {
+      if (tournament.early_prediction_bonus && predictions.length > 0) {
         // Créer une map des pronostics par match_id avec leur created_at
         const predictionsByMatch: Record<string, Date | null> = {}
         for (const pred of predictions) {
@@ -389,9 +414,6 @@ export async function GET(
         }
 
         totalPoints += earlyPredictionBonusPoints
-        if (earlyPredictionBonusPoints > 0) {
-          console.log(`[Rankings API] ${username}: +${earlyPredictionBonusPoints} bonus prime d'avant-match`)
-        }
       }
 
       playerStatsMap.set(userId, {

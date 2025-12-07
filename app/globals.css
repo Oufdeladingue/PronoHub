@@ -142,6 +142,15 @@ input:disabled,
   color: var(--text-secondary);
 }
 
+/* Hover utilities - avec !important pour surpasser les classes de thème */
+.hover-accent:hover {
+  color: #ff9900 !important;
+}
+
+.hover-underline:hover {
+  text-decoration: underline !important;
+}
+
 .theme-border {
   border-color: var(--border-color);
 }

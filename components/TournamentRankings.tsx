@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -52,16 +52,24 @@ interface TournamentRankingsProps {
   allMatches?: any[]
   teamsEnabled?: boolean
   tournamentType?: string
+  currentUserId?: string // OPTIMISATION: Recevoir l'ID utilisateur depuis le parent
 }
 
-export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType }: TournamentRankingsProps) {
+export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(propUserId || null)
   const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>({})
+
+  // =====================================================
+  // OPTIMISATION: Cache client pour éviter les re-fetch
+  // Stocke les résultats par vue pour ne pas refetch inutilement
+  // =====================================================
+  const rankingsCache = useRef<Map<string, { data: RankingsData | TeamStats[], timestamp: number }>>(new Map())
+  const CACHE_TTL = 30000 // 30 secondes de cache
 
   // Verifier si les equipes sont supportees (Elite ou Platinium)
   const supportsTeams = tournamentType === 'elite' || tournamentType === 'platinium'
@@ -144,8 +152,17 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     return () => window.removeEventListener('resize', checkScrollButtons)
   }, [checkScrollButtons, availableMatchdays])
 
+  // =====================================================
+  // OPTIMISATION: fetchCurrentUser une seule fois au montage
+  // et seulement si pas déjà fourni par le parent
+  // =====================================================
   useEffect(() => {
-    fetchCurrentUser()
+    if (!propUserId && !currentUserId) {
+      fetchCurrentUser()
+    }
+  }, []) // Une seule fois au montage
+
+  useEffect(() => {
     fetchRankings()
   }, [selectedView, tournamentId])
 
@@ -162,6 +179,23 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   }
 
   const fetchRankings = async () => {
+    // =====================================================
+    // OPTIMISATION: Vérifier le cache avant de fetch
+    // =====================================================
+    const cacheKey = `${tournamentId}-${selectedView}`
+    const cached = rankingsCache.current.get(cacheKey)
+    const now = Date.now()
+
+    if (cached && (now - cached.timestamp) < CACHE_TTL) {
+      // Utiliser les données en cache
+      if (selectedView === 'teams') {
+        setTeamRankings(cached.data as TeamStats[])
+      } else {
+        setRankingsData(cached.data as RankingsData)
+      }
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -171,7 +205,10 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
         const response = await fetch(`/api/tournaments/${tournamentId}/teams/rankings`)
         if (response.ok) {
           const data = await response.json()
-          setTeamRankings(data.rankings || [])
+          const rankings = data.rankings || []
+          setTeamRankings(rankings)
+          // Mettre en cache
+          rankingsCache.current.set(cacheKey, { data: rankings, timestamp: now })
         } else {
           setTeamRankings([])
         }
@@ -192,6 +229,8 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
       const data = await response.json()
       setRankingsData(data)
+      // Mettre en cache
+      rankingsCache.current.set(cacheKey, { data, timestamp: now })
     } catch (err: any) {
       console.error('Erreur:', err)
       setError(err.message || 'Une erreur est survenue')
@@ -368,12 +407,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                     <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">#</th>
                     <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Équipe</th>
                     <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Moyenne Points">
-                      <span className="md:hidden">Moy.</span>
+                      <span className="md:hidden">Pts</span>
                       <span className="hidden md:inline">Moy. Points</span>
                     </th>
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Total Points">
-                      <span className="md:hidden">Tot.</span>
-                      <span className="hidden md:inline">Total Pts</span>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Bons résultats">
+                      <span className="md:hidden">✓</span>
+                      <span className="hidden md:inline">Bons résultats</span>
+                    </th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Scores exacts">
+                      <span className="md:hidden flex justify-center">
+                        <img src="/images/icons/target.svg" alt="Scores exacts" className="w-4 h-4 icon-filter-theme" />
+                      </span>
+                      <span className="hidden md:inline">Scores exacts</span>
                     </th>
                     <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base hidden md:table-cell">Membres</th>
                   </tr>
@@ -425,9 +470,14 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                         )}
                       </td>
 
-                      {/* Total Points */}
+                      {/* Bons résultats (moyenne) */}
                       <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text text-xs md:text-base">
-                        {team.totalPoints}
+                        {team.avgCorrectResults.toFixed(1)}
+                      </td>
+
+                      {/* Scores exacts (moyenne) */}
+                      <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text text-xs md:text-base">
+                        {team.avgExactScores.toFixed(1)}
                       </td>
 
                       {/* Nombre de membres */}
@@ -438,6 +488,21 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Légende pour mobile */}
+            <div className="mt-3 p-2 rounded-lg md:hidden info-bg-container">
+              <div className="space-y-1">
+                <p className="text-xs theme-text-secondary flex items-center gap-1">
+                  <span>* ✓ =</span>
+                  <span>moyenne bons résultats</span>
+                </p>
+                <p className="text-xs theme-text-secondary flex items-center gap-1">
+                  <span>*</span>
+                  <img src="/images/icons/target.svg" alt="Target" className="w-3 h-3 inline-block icon-filter-theme" />
+                  <span>= moyenne scores exacts</span>
+                </p>
+              </div>
             </div>
           </div>
         )

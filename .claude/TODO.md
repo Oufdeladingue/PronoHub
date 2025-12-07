@@ -5,12 +5,12 @@ Ce fichier doit être lu au début de chaque session de travail.
 ## Fonctionnalités à implémenter
 
 ### Platinium
-- [ ] Implémentation des slots payés en Platinium
+- [x] Implémentation des slots payés en Platinium
 - [ ] Implémentation du cadeau dans les règles du Platinium
 - [ ] Remise Platinium codée en dur et non récupérée depuis l'admin (à corriger)
 
 ### Nouveaux types de tournois
-- [ ] Création de tournoi "Les plus belles affiches"
+- [x] Création de tournoi "Les plus belles affiches"
 - [ ] Création de tournoi "Open" à un grand nombre (avec lot)
 - [ ] Création des tournois ponctuels type Coupe du Monde
 
@@ -24,14 +24,14 @@ Ce fichier doit être lu au début de chaque session de travail.
 - [ ] Implémentation Stripe et tests
 
 ### Trophées
-- [ ] Simplification calcul trophées
+- [x] Simplification calcul trophées
 - [ ] Ajout nouveaux trophées
 
 ### Bugs à corriger
-- [ ] Bug ninja-footer sur la page "profile"
+- [x] Bug ninja-footer sur la page "profile"
 
 ### Performance
-- [ ] Accélération chargement stats
+- [x] Accélération chargement stats
 
 ### Fonctionnalités diverses
 - [ ] Accès aux tournois terminés
@@ -39,4 +39,4 @@ Ce fichier doit être lu au début de chaque session de travail.
 
 ---
 
-*Dernière mise à jour : 4 décembre 2024*
+*Dernière mise à jour : 5 décembre 2024*

@@ -150,6 +150,7 @@ function hashString(str: string): number {
 
 /**
  * Calcule les classements avec rangs et progressions
+ * Gère les égalités parfaites avec rangs partagés
  * @param players Liste des joueurs avec leurs stats (sans rang)
  * @param previousRankings Classement de la journée précédente (optionnel)
  * @returns Liste des joueurs avec rangs et changements de rang
@@ -158,7 +159,7 @@ export function calculateRankings(
   players: Omit<PlayerStats, 'rank' | 'rankChange'>[],
   previousRankings?: PlayerStats[]
 ): PlayerStats[] {
-  // Trier par points décroissants, puis par scores exacts décroissants
+  // Trier par points décroissants, puis par scores exacts décroissants, puis bons résultats
   const sorted = [...players].sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) {
       return b.totalPoints - a.totalPoints
@@ -171,9 +172,25 @@ export function calculateRankings(
     return b.correctResults - a.correctResults
   })
 
-  // Calculer les rangs et les changements de rang
+  // Calculer les rangs avec gestion des égalités parfaites
+  // En cas d'égalité parfaite (pts, scores exacts, bons résultats), le rang est partagé
+  let currentRank = 1
+
   return sorted.map((player, index) => {
-    const rank = index + 1
+    // Vérifier si ce joueur a les mêmes stats que le précédent
+    if (index > 0) {
+      const prev = sorted[index - 1]
+      const isTied = player.totalPoints === prev.totalPoints &&
+                     player.exactScores === prev.exactScores &&
+                     player.correctResults === prev.correctResults
+
+      if (!isTied) {
+        // Pas d'égalité : le rang = position + 1
+        currentRank = index + 1
+      }
+      // Si égalité parfaite, on garde le même rang que le précédent
+    }
+
     let rankChange: 'up' | 'down' | 'same' | undefined
     let previousRank: number | undefined
 
@@ -181,9 +198,9 @@ export function calculateRankings(
       const prevPlayer = previousRankings.find(p => p.playerId === player.playerId)
       if (prevPlayer) {
         previousRank = prevPlayer.rank
-        if (rank < prevPlayer.rank) {
+        if (currentRank < prevPlayer.rank) {
           rankChange = 'up'
-        } else if (rank > prevPlayer.rank) {
+        } else if (currentRank > prevPlayer.rank) {
           rankChange = 'down'
         } else {
           rankChange = 'same'
@@ -193,7 +210,7 @@ export function calculateRankings(
 
     return {
       ...player,
-      rank,
+      rank: currentRank,
       previousRank,
       rankChange
     }

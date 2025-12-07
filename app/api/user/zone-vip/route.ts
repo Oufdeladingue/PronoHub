@@ -14,43 +14,80 @@ export async function GET() {
       )
     }
 
-    // Récupérer tous les tournois où l'utilisateur participe
-    // Note: participant_role et invite_type peuvent ne pas exister encore (migration pas appliquée)
-    const { data: participations, error: participationsError } = await supabase
-      .from('tournament_participants')
-      .select(`
-        id,
-        user_id,
-        tournament_id,
-        participant_role,
-        invite_type,
-        tournaments (
-          id,
-          name,
-          slug,
-          tournament_type,
-          status,
-          max_players,
-          competition_name,
-          is_legacy,
-          creator_id
-        )
-      `)
-      .eq('user_id', user.id)
+    // =====================================================
+    // OPTIMISATION: Toutes les requêtes en parallèle
+    // Avant: 1 + 1 + N + 3 = ~15 requêtes pour 10 tournois
+    // Après: 3 requêtes max en parallèle
+    // =====================================================
 
-    if (participationsError) {
-      console.error('Error fetching participations:', participationsError)
+    const [participationsResult, creditsResult, allParticipantsCountResult] = await Promise.all([
+      // 1. Récupérer tous les tournois où l'utilisateur participe
+      supabase
+        .from('tournament_participants')
+        .select(`
+          id,
+          user_id,
+          tournament_id,
+          participant_role,
+          invite_type,
+          tournaments (
+            id,
+            name,
+            slug,
+            tournament_type,
+            status,
+            max_players,
+            competition_name,
+            is_legacy,
+            creator_id
+          )
+        `)
+        .eq('user_id', user.id),
+
+      // 2. Récupérer TOUS les crédits en une seule requête
+      supabase
+        .from('tournament_purchases')
+        .select('id, purchase_type, tournament_subtype, slots_included, created_at, amount, used, status')
+        .eq('user_id', user.id)
+        .eq('status', 'completed'),
+
+      // 3. Récupérer le count de participants pour tous les tournois de l'utilisateur en une seule requête
+      // On récupère tous les participants des tournois où l'utilisateur participe
+      supabase
+        .from('tournament_participants')
+        .select('tournament_id')
+    ])
+
+    const participations = participationsResult.data || []
+    const allCredits = creditsResult.data || []
+
+    if (participationsResult.error) {
+      console.error('Error fetching participations:', participationsResult.error)
       return NextResponse.json(
         { success: false, error: 'Erreur lors de la récupération des données' },
         { status: 500 }
       )
     }
 
-    // Filtrer les tournois actifs (tous sauf completed - cohérent avec dashboard)
-    const activeTournaments = (participations || [])
+    // Extraire les IDs des tournois de l'utilisateur
+    const userTournamentIds = participations
+      .filter((p: any) => p.tournaments)
+      .map((p: any) => p.tournaments.id)
+
+    // Compter les participants par tournoi (calcul local)
+    const participantCountByTournament: Record<string, number> = {}
+    if (allParticipantsCountResult.data) {
+      allParticipantsCountResult.data.forEach((p: any) => {
+        if (userTournamentIds.includes(p.tournament_id)) {
+          participantCountByTournament[p.tournament_id] = (participantCountByTournament[p.tournament_id] || 0) + 1
+        }
+      })
+    }
+
+    // Filtrer les tournois actifs (tous sauf completed)
+    const activeTournaments = participations
       .filter((p: any) => p.tournaments && p.tournaments.status !== 'completed')
       .map((p: any) => {
-        // Déterminer le rôle: utiliser participant_role si disponible, sinon vérifier creator_id
         const isCaptain = p.participant_role === 'captain' || p.tournaments.creator_id === user.id
         return {
           id: p.tournaments.id,
@@ -60,30 +97,18 @@ export async function GET() {
           status: p.tournaments.status,
           participant_role: isCaptain ? 'captain' : 'member',
           invite_type: p.invite_type || 'free',
-          current_players: 0, // Sera calculé ci-dessous
+          current_players: participantCountByTournament[p.tournaments.id] || 0,
           max_players: p.tournaments.max_players || 5,
           competition_name: p.tournaments.competition_name || 'N/A',
           is_legacy: p.tournaments.is_legacy || false,
         }
       })
 
-    // Compter le nombre de participants pour chaque tournoi
-    for (const tournament of activeTournaments) {
-      const { count } = await supabase
-        .from('tournament_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', tournament.id)
-
-      tournament.current_players = count || 0
-    }
-
     // Calculer les quotas
-    // Tournois FREE actifs - cohérent avec le dashboard (pas de filtre is_legacy)
     const freeTournamentsActive = activeTournaments.filter(
       (t: any) => t.tournament_type === 'free' || !t.tournament_type
     ).length
 
-    // Invitations premium gratuites utilisées (non legacy)
     const premiumInvitesActive = activeTournaments.filter(
       (t: any) =>
         ['oneshot', 'elite'].includes(t.tournament_type) &&
@@ -91,61 +116,44 @@ export async function GET() {
         !t.is_legacy
     ).length
 
-    // Nombre de tournois en tant que capitaine
     const totalAsCaptain = activeTournaments.filter((t: any) => t.participant_role === 'captain').length
 
-    // Récupérer les crédits disponibles (achats non utilisés)
-    const { data: availableCredits } = await supabase
-      .from('tournament_purchases')
-      .select('id, purchase_type, tournament_subtype, slots_included, created_at, amount')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .eq('used', false)
-
-    // Récupérer le nombre total de slots payants achetés (utilisés + non utilisés)
-    const { count: totalPaidSlotsCount } = await supabase
-      .from('tournament_purchases')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('purchase_type', 'slot_invite')
-      .eq('status', 'completed')
-
-    // Récupérer le nombre de slots payants utilisés
-    const { count: usedPaidSlotsCount } = await supabase
-      .from('tournament_purchases')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('purchase_type', 'slot_invite')
-      .eq('status', 'completed')
-      .eq('used', true)
+    // Calculer les crédits à partir des données récupérées (calcul local, pas de requête supplémentaire)
+    const availableCredits = allCredits.filter((c: any) => !c.used)
+    const usedCredits = allCredits.filter((c: any) => c.used)
 
     // Compter les crédits par type
     const credits = {
-      oneshot: (availableCredits || []).filter(
+      oneshot: availableCredits.filter(
         (c: any) => c.purchase_type === 'tournament_creation' && c.tournament_subtype === 'oneshot'
       ).length,
-      elite: (availableCredits || []).filter(
+      elite: availableCredits.filter(
         (c: any) => c.purchase_type === 'tournament_creation' && c.tournament_subtype === 'elite'
       ).length,
-      platinium_solo: (availableCredits || []).filter(
+      platinium_solo: availableCredits.filter(
         (c: any) => c.purchase_type === 'platinium_participation'
       ).length,
-      platinium_group: (availableCredits || []).filter(
+      platinium_group: availableCredits.filter(
         (c: any) => c.purchase_type === 'platinium_group'
       ).reduce((sum: number, c: any) => sum + (c.slots_included || 11), 0),
-      slot_invite: (availableCredits || []).filter(
+      slot_invite: availableCredits.filter(
         (c: any) => c.purchase_type === 'slot_invite'
       ).length,
-      duration_extension: (availableCredits || []).filter(
+      duration_extension: availableCredits.filter(
         (c: any) => c.purchase_type === 'duration_extension'
       ).length,
-      player_extension: (availableCredits || []).filter(
+      player_extension: availableCredits.filter(
         (c: any) => c.purchase_type === 'player_extension'
       ).length,
     }
 
-    // Détails des crédits disponibles (pour affichage)
-    const creditDetails = (availableCredits || []).map((c: any) => ({
+    // Slots payants: total vs utilisés (calcul local)
+    const allSlotInvites = allCredits.filter((c: any) => c.purchase_type === 'slot_invite')
+    const paidSlotsTotal = allSlotInvites.length
+    const paidSlotsUsed = allSlotInvites.filter((c: any) => c.used).length
+
+    // Détails des crédits disponibles
+    const creditDetails = availableCredits.map((c: any) => ({
       id: c.id,
       type: c.purchase_type,
       subtype: c.tournament_subtype,
@@ -154,19 +162,15 @@ export async function GET() {
       created_at: c.created_at,
     }))
 
-    // Slots payants: total acheté vs utilisé
-    const paidSlotsTotal = totalPaidSlotsCount || 0
-    const paidSlotsUsed = usedPaidSlotsCount || 0
-
     const data = {
       // Quotas
       free_tournaments_active: freeTournamentsActive,
       free_tournaments_max: PRICES.FREE_MAX_TOURNAMENTS,
       premium_invites_active: premiumInvitesActive,
-      premium_invites_max: 1, // Toujours 1 invitation gratuite
+      premium_invites_max: 1,
       can_create_free_tournament: freeTournamentsActive < PRICES.FREE_MAX_TOURNAMENTS,
       can_join_premium_free: premiumInvitesActive < 1,
-      // Nouveau: slots payants
+      // Slots payants
       paid_slots_used: paidSlotsUsed,
       paid_slots_total: paidSlotsTotal,
 

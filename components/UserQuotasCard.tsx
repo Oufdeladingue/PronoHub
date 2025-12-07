@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Plus, Clock, UserPlus, Users, Sparkles, ChevronRight, Loader2 } from 'lucide-react'
-import { PRICES, formatPrice } from '@/types/monetization'
-import Image from 'next/image'
+import { ChevronRight, Loader2, Trophy, Users, PlusCircle, Eye, Wallet } from 'lucide-react'
 import Link from 'next/link'
 
 interface UserTournament {
@@ -14,7 +12,6 @@ interface UserTournament {
   tournament_type: string
   status: string
   participant_role: string
-  invite_type: string
   current_players: number
   max_players: number
   competition_name: string
@@ -26,37 +23,19 @@ interface Credits {
   platinium_solo: number
   platinium_group: number
   slot_invite: number
-  duration_extension: number
-  player_extension: number
 }
 
 interface ZoneVIPData {
-  // Quotas
   free_tournaments_active: number
   free_tournaments_max: number
   premium_invites_active: number
   premium_invites_max: number
   can_create_free_tournament: boolean
   can_join_premium_free: boolean
-  // Slots payants
   paid_slots_used: number
   paid_slots_total: number
-
-  // Crédits disponibles
   credits?: Credits
-  creditDetails?: Array<{
-    id: string
-    type: string
-    subtype: string | null
-    slots: number | null
-    amount: number
-    created_at: string
-  }>
-
-  // Tournois actifs par type
   tournaments: UserTournament[]
-
-  // Résumé
   total_active_tournaments: number
   total_as_captain: number
 }
@@ -65,33 +44,11 @@ export default function UserQuotasCard() {
   const router = useRouter()
   const [data, setData] = useState<ZoneVIPData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState<string | null>(null)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
   }, [])
-
-  // Fonction pour rediriger vers Stripe checkout
-  const handleCheckout = async (purchaseType: string) => {
-    setIsCheckoutLoading(purchaseType)
-    try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseType }),
-      })
-      const data = await response.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        console.error('Erreur checkout:', data.error)
-        setIsCheckoutLoading(null)
-      }
-    } catch (error) {
-      console.error('Erreur checkout:', error)
-      setIsCheckoutLoading(null)
-    }
-  }
 
   const fetchData = async () => {
     try {
@@ -109,12 +66,8 @@ export default function UserQuotasCard() {
 
   if (loading) {
     return (
-      <div className="animate-pulse">
-        <div className="h-6 theme-bg rounded w-1/3 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-4 theme-bg rounded w-full"></div>
-          <div className="h-4 theme-bg rounded w-2/3"></div>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-[#ff9900] animate-spin" />
       </div>
     )
   }
@@ -127,573 +80,515 @@ export default function UserQuotasCard() {
     )
   }
 
-  // Grouper les tournois par type
-  const freeTournaments = data.tournaments.filter(t => t.tournament_type === 'free')
-  const oneshotTournaments = data.tournaments.filter(t => t.tournament_type === 'oneshot')
-  const eliteTournaments = data.tournaments.filter(t => t.tournament_type === 'elite')
-  const platiniumTournaments = data.tournaments.filter(t => t.tournament_type === 'platinium')
+  // Calculer les crédits de création disponibles
+  const freeCreationSlots = data.free_tournaments_max - data.free_tournaments_active
+  const totalCreationCredits =
+    freeCreationSlots +
+    (data.credits?.oneshot || 0) +
+    (data.credits?.elite || 0) +
+    (data.credits?.platinium_solo || 0) +
+    (data.credits?.platinium_group || 0)
 
-  return (
-    <div className="space-y-6">
-      {/* En-tête Zone VIP */}
-      <div className="flex items-center gap-3 pb-4 border-b theme-border">
-        <div className="w-12 h-12 bg-gradient-to-br from-[#ff9900] to-[#e68a00] rounded-full flex items-center justify-center">
-          <Sparkles className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h3 className="font-bold text-xl theme-accent-text-always">Zone VIP</h3>
-          <p className="text-sm theme-text-secondary">
-            {data.total_active_tournaments} tournoi{data.total_active_tournaments > 1 ? 's' : ''} actif{data.total_active_tournaments > 1 ? 's' : ''}
-            {data.total_as_captain > 0 && ` · ${data.total_as_captain} en tant que capitaine`}
-          </p>
-        </div>
-      </div>
+  // Calculer les crédits pour rejoindre
+  const freeJoinSlots = data.can_join_premium_free ? 1 : 0
+  const paidJoinSlots = (data.credits?.slot_invite || 0) + (data.paid_slots_total - data.paid_slots_used)
+  const totalJoinCredits = freeJoinSlots + paidJoinSlots
 
-      {/* Section Quotas */}
-      <div className="space-y-4">
-        <h4 className="font-semibold theme-text flex items-center gap-2">
-          <Image src="/images/icons/free-tour.svg" alt="" width={20} height={20} className="icon-filter-orange" />
-          Mes quotas Free-Kick
-        </h4>
+  // Construire le résumé pour "Créer"
+  const getCreateSummary = () => {
+    const parts: string[] = []
+    if (freeCreationSlots > 0) parts.push(`${freeCreationSlots} Free-Kick`)
+    if (data.credits?.oneshot) parts.push(`${data.credits.oneshot} One-Shot`)
+    if (data.credits?.elite) parts.push(`${data.credits.elite} Elite`)
+    if (data.credits?.platinium_solo || data.credits?.platinium_group) {
+      const plat = (data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)
+      parts.push(`${plat} Platinium`)
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'Aucun crédit'
+  }
 
-        {/* Barre de progression tournois gratuits */}
-        <div className="stat-card border-blue-400 dark:border-blue-800/50">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium theme-text">Tournois gratuits actifs</span>
-                <span className={`font-bold ${data.free_tournaments_active >= data.free_tournaments_max ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'}`}>
-                  {data.free_tournaments_active}/{data.free_tournaments_max}
-                </span>
-              </div>
-              <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    data.free_tournaments_active >= data.free_tournaments_max
-                      ? 'bg-red-500'
-                      : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${Math.min((data.free_tournaments_active / data.free_tournaments_max) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-            {data.free_tournaments_active >= data.free_tournaments_max && (
-              <button
-                onClick={() => handleCheckout('slot_invite')}
-                disabled={isCheckoutLoading === 'slot_invite'}
-                className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
-              >
-                {isCheckoutLoading === 'slot_invite' ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Plus className="w-3 h-3" />
-                )}
-                Acheter un slot
-              </button>
-            )}
-          </div>
-        </div>
+  // Construire le résumé pour "Rejoindre"
+  const getJoinSummary = () => {
+    if (freeJoinSlots > 0) {
+      return '1 invitation gratuite disponible'
+    }
+    if (paidJoinSlots > 0) {
+      return `${paidJoinSlots} slot${paidJoinSlots > 1 ? 's' : ''} disponible${paidJoinSlots > 1 ? 's' : ''}`
+    }
+    return 'Quota atteint'
+  }
 
-        {/* Participation gratuite à un tournoi payant */}
-        <div className="stat-card border-green-400 dark:border-green-800/50">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium theme-text">Participation gratuite à un tournoi payant</span>
-                <span className={`font-bold ${data.premium_invites_active >= data.premium_invites_max ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
-                  {data.premium_invites_active}/{data.premium_invites_max}
-                </span>
-              </div>
-              <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    data.premium_invites_active >= data.premium_invites_max
-                      ? 'bg-red-500'
-                      : 'bg-green-500'
-                  }`}
-                  style={{ width: `${Math.min((data.premium_invites_active / data.premium_invites_max) * 100, 100)}%` }}
-                />
-              </div>
-            </div>
-            {data.premium_invites_active >= data.premium_invites_max && data.paid_slots_total === 0 && (
-              <button
-                onClick={() => handleCheckout('slot_invite')}
-                disabled={isCheckoutLoading === 'slot_invite'}
-                className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
-              >
-                {isCheckoutLoading === 'slot_invite' ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Plus className="w-3 h-3" />
-                )}
-                Acheter un slot
-              </button>
-            )}
-          </div>
-        </div>
+  // Calculer le total des crédits
+  const getTotalCredits = () => {
+    return (
+      freeCreationSlots +
+      (data.credits?.oneshot || 0) +
+      (data.credits?.elite || 0) +
+      (data.credits?.platinium_solo || 0) +
+      (data.credits?.platinium_group || 0) +
+      (data.credits?.slot_invite || 0) +
+      (data.can_join_premium_free ? 1 : 0)
+    )
+  }
 
-        {/* Participation payante à un tournoi - affiché uniquement si l'utilisateur a des slots payants */}
-        {data.paid_slots_total > 0 && (
-          <div className="stat-card border-orange-400 dark:border-orange-800/50">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium theme-text">Participation payante à un tournoi</span>
-                  <span className={`font-bold ${data.paid_slots_used >= data.paid_slots_total ? 'text-red-500' : 'text-orange-600 dark:text-orange-400'}`}>
-                    {data.paid_slots_used}/{data.paid_slots_total}
-                  </span>
-                </div>
-                <div className="h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      data.paid_slots_used >= data.paid_slots_total
-                        ? 'bg-red-500'
-                        : 'bg-orange-500'
-                    }`}
-                    style={{ width: `${Math.min((data.paid_slots_used / data.paid_slots_total) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-              {data.paid_slots_used >= data.paid_slots_total && (
-                <button
-                  onClick={() => handleCheckout('slot_invite')}
-                  disabled={isCheckoutLoading === 'slot_invite'}
-                  className="text-xs theme-accent-bg hover:opacity-90 text-black font-medium px-3 py-1.5 rounded-full transition-all flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
-                >
-                  {isCheckoutLoading === 'slot_invite' ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Plus className="w-3 h-3" />
-                  )}
-                  Acheter un slot
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Séparateur */}
-      <div className="border-t theme-border"></div>
-
-      {/* Section Crédits disponibles */}
-      {data.credits && (data.credits.oneshot > 0 || data.credits.elite > 0 || data.credits.platinium_solo > 0 || data.credits.platinium_group > 0 || data.credits.slot_invite > 0) && (
-        <>
-          <div className="space-y-4">
-            <h4 className="font-semibold theme-text flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-[#ff9900]" />
-              Mes crédits disponibles
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* Crédits One-Shot */}
-              {data.credits.oneshot > 0 && (
-                <Link
-                  href="/vestiaire?type=oneshot&use_credit=true"
-                  className="stat-card border-green-400 dark:border-green-800/50 bg-green-50 dark:bg-green-900/10 hover:border-green-500 dark:hover:border-green-600 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium theme-text">One-Shot</p>
-                      <p className="text-xs theme-text-secondary">Tournoi à créer</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">{data.credits.oneshot}</span>
-                      <p className="text-xs theme-text-secondary">crédit{data.credits.oneshot > 1 ? 's' : ''}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-green-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              )}
-
-              {/* Crédits Elite */}
-              {data.credits.elite > 0 && (
-                <Link
-                  href="/vestiaire?type=elite&use_credit=true"
-                  className="stat-card border-orange-400 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-900/10 hover:border-orange-500 dark:hover:border-orange-600 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium theme-text">Elite Team</p>
-                      <p className="text-xs theme-text-secondary">Tournoi à créer</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-[#ff9900]">{data.credits.elite}</span>
-                      <p className="text-xs theme-text-secondary">crédit{data.credits.elite > 1 ? 's' : ''}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-[#ff9900] opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              )}
-
-              {/* Crédits Platinium solo */}
-              {data.credits.platinium_solo > 0 && (
-                <div className="stat-card border-yellow-400 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium theme-text">Platinium</p>
-                      <p className="text-xs theme-text-secondary">Participation (rejoindre un tournoi)</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{data.credits.platinium_solo}</span>
-                      <p className="text-xs theme-text-secondary">crédit{data.credits.platinium_solo > 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Crédits Platinium groupe */}
-              {data.credits.platinium_group > 0 && (
-                <Link
-                  href="/vestiaire?type=platinium&use_credit=true"
-                  className="stat-card border-yellow-400 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 hover:border-yellow-500 dark:hover:border-yellow-600 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium theme-text">Platinium Groupe</p>
-                      <p className="text-xs theme-text-secondary">Places prépayées à utiliser</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{data.credits.platinium_group}</span>
-                      <p className="text-xs theme-text-secondary">place{data.credits.platinium_group > 1 ? 's' : ''}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              )}
-
-              {/* Crédits Slot invite */}
-              {data.credits.slot_invite > 0 && (
-                <Link
-                  href="/dashboard?action=join"
-                  className="stat-card border-blue-400 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/10 hover:border-blue-500 dark:hover:border-blue-600 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <UserPlus className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium theme-text">Slot supplémentaire</p>
-                      <p className="text-xs theme-text-secondary">Rejoindre un tournoi</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.credits.slot_invite}</span>
-                      <p className="text-xs theme-text-secondary">crédit{data.credits.slot_invite > 1 ? 's' : ''}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              )}
-            </div>
-
-            <p className="text-xs theme-text-secondary text-center">
-              Cliquez sur un crédit pour l'utiliser
-            </p>
-          </div>
-
-          {/* Séparateur */}
-          <div className="border-t theme-border"></div>
-        </>
-      )}
-
-      {/* Mes tournois actifs */}
-      <div className="space-y-4">
-        <h4 className="font-semibold theme-text">Mes tournois actifs</h4>
-
-        {data.tournaments.length === 0 ? (
-          <div className="text-center py-8 theme-text-secondary">
-            <p className="mb-4">Vous ne participez à aucun tournoi pour le moment</p>
-            <Link
-              href="/dashboard"
-              className="theme-btn-primary inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Créer ou rejoindre un tournoi
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* Tournois FREE */}
-            {freeTournaments.length > 0 && (
-              <TournamentGroup
-                title="Free-Kick"
-                icon={<img src="/images/icons/free-tour.svg" alt="" className="w-5 h-5 icon-filter-blue" />}
-                tournaments={freeTournaments}
-                color="blue"
-              />
-            )}
-
-            {/* Tournois ONE-SHOT */}
-            {oneshotTournaments.length > 0 && (
-              <TournamentGroup
-                title="One-Shot"
-                icon={<img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />}
-                tournaments={oneshotTournaments}
-                color="green"
-              />
-            )}
-
-            {/* Tournois ELITE */}
-            {eliteTournaments.length > 0 && (
-              <TournamentGroup
-                title="Elite Team"
-                icon={<img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />}
-                tournaments={eliteTournaments}
-                color="orange"
-              />
-            )}
-
-            {/* Tournois PLATINIUM */}
-            {platiniumTournaments.length > 0 && (
-              <TournamentGroup
-                title="Platinium"
-                icon={<img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />}
-                tournaments={platiniumTournaments}
-                color="yellow"
-              />
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Séparateur */}
-      <div className="border-t theme-border"></div>
-
-      {/* Section Achats */}
-      <div className="space-y-4">
-        <h4 className="font-semibold theme-text flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#ff9900]" />
-          Acheter des formules
-        </h4>
-
-        {/* Grille des offres */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* One-Shot */}
-          <button
-            onClick={() => router.push('/pricing')}
-            className="stat-card border-green-400 dark:border-green-800/50 hover:border-green-500 dark:hover:border-green-600 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />
-                <span className="font-medium theme-text">One-Shot</span>
-              </div>
-              <span className="font-bold text-green-600 dark:text-green-400">{formatPrice(PRICES.ONESHOT_CREATION)}</span>
-            </div>
-            <p className="text-xs theme-text-secondary">
-              1 tournoi · {PRICES.ONESHOT_MAX_PLAYERS} joueurs · Durée illimitée
-            </p>
-            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-2 group-hover:underline">
-              Créer un One-Shot <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-
-          {/* Elite Team */}
-          <button
-            onClick={() => router.push('/pricing')}
-            className="stat-card border-orange-400 dark:border-orange-800/50 hover:border-orange-500 dark:hover:border-orange-600 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />
-                <span className="font-medium theme-text">Elite Team</span>
-              </div>
-              <span className="font-bold text-orange-600 dark:text-orange-400">{formatPrice(PRICES.ELITE_CREATION)}</span>
-            </div>
-            <p className="text-xs theme-text-secondary">
-              1 tournoi · {PRICES.ELITE_MAX_PLAYERS} joueurs · Jeu en équipe
-            </p>
-            <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 mt-2 group-hover:underline">
-              Créer un Elite Team <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-
-          {/* Platinium */}
-          <button
-            onClick={() => router.push('/pricing')}
-            className="stat-card border-yellow-400 dark:border-yellow-800/50 hover:border-yellow-500 dark:hover:border-yellow-600 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
-                <span className="font-medium theme-text">Platinium</span>
-              </div>
-              <span className="font-bold text-yellow-600 dark:text-yellow-400">{formatPrice(PRICES.PLATINIUM_CREATION)}/pers.</span>
-            </div>
-            <p className="text-xs theme-text-secondary">
-              11-30 joueurs · Lot pour le vainqueur
-            </p>
-            <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400 mt-2 group-hover:underline">
-              Créer un Platinium <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-
-          {/* Entreprise */}
-          <button
-            onClick={() => router.push('/contact?type=enterprise')}
-            className="stat-card border-purple-400 dark:border-purple-800/50 hover:border-purple-500 dark:hover:border-purple-600 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <img src="/images/icons/company-tour.svg" alt="" className="w-5 h-5 icon-filter-purple" />
-                <span className="font-medium theme-text">Corpo</span>
-              </div>
-              <span className="font-bold text-purple-600 dark:text-purple-400">Sur devis</span>
-            </div>
-            <p className="text-xs theme-text-secondary">
-              Jusqu'à 300 joueurs · Branding personnalisé
-            </p>
-            <div className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 mt-2 group-hover:underline">
-              Nous contacter <ChevronRight className="w-3 h-3" />
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* Séparateur */}
-      <div className="border-t theme-border"></div>
-
-      {/* Extensions Free-Kick */}
-      <div className="space-y-4">
-        <h4 className="font-semibold theme-text flex items-center gap-2">
-          <Plus className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-          Pas de salary cap chez nous !
-        </h4>
-
-        <div className="grid grid-cols-1 gap-3">
-          {/* Recrue du mercato - 0.99€ */}
-          <div className="stat-card border-blue-400 dark:border-blue-800/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
-                <UserPlus className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium theme-text">Recrue du mercato</p>
-                <p className="text-xs theme-text-secondary">Rejoindre ou créer un 3ème tournoi gratuit</p>
-              </div>
-            </div>
-            <span className="font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">{formatPrice(PRICES.SLOT_INVITE)}</span>
-          </div>
-
-          {/* Renfort du banc - 1.99€ */}
-          <div className="stat-card border-orange-400 dark:border-orange-800/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-[#ff9900]" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium theme-text">Renfort du banc</p>
-                <p className="text-xs theme-text-secondary">Augmenter la capacité du tournoi de 5 joueurs supplémentaires</p>
-              </div>
-            </div>
-            <span className="font-bold text-[#ff9900] flex-shrink-0">{formatPrice(PRICES.PLAYER_EXTENSION)}</span>
-          </div>
-
-          {/* Joue les prolongations - 3.99€ */}
-          <div className="stat-card border-green-400 dark:border-green-800/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 theme-bg rounded-full flex items-center justify-center flex-shrink-0">
-                <Clock className="w-5 h-5 text-green-500 dark:text-green-400" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium theme-text">Joue les prolongations</p>
-                <p className="text-xs theme-text-secondary">Prolonger le tournoi jusqu'à la fin de la compétition</p>
-              </div>
-            </div>
-            <span className="font-bold text-green-600 dark:text-green-400 flex-shrink-0">{formatPrice(PRICES.DURATION_EXTENSION)}</span>
-          </div>
-        </div>
-
-        <p className="text-xs theme-text-secondary text-center">
-          Les extensions sont achetables depuis la page du tournoi concerné
-        </p>
-      </div>
-
-      {/* Lien vers tarifs complets */}
-      <div className="pt-4 text-center">
-        <Link
-          href="/pricing"
-          className="inline-flex items-center gap-2 text-sm text-[#ff9900] hover:text-[#e68a00] transition"
-        >
-          Voir tous les tarifs <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-// Composant pour afficher un groupe de tournois
-function TournamentGroup({
-  title,
-  icon,
-  tournaments,
-  color,
-}: {
-  title: string
-  icon: React.ReactNode
-  tournaments: UserTournament[]
-  color: 'blue' | 'green' | 'orange' | 'yellow' | 'purple'
-}) {
-  const borderColors = {
-    blue: 'border-blue-400 dark:border-blue-800/50',
-    green: 'border-green-400 dark:border-green-800/50',
-    orange: 'border-orange-400 dark:border-orange-800/50',
-    yellow: 'border-yellow-400 dark:border-yellow-800/50',
-    purple: 'border-purple-400 dark:border-purple-800/50',
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section)
   }
 
   return (
-    <div className={`rounded-lg theme-card border ${borderColors[color]} overflow-hidden`}>
-      <div className="px-4 py-2 border-b theme-border flex items-center gap-2 theme-bg">
-        {icon}
-        <span className="font-medium theme-text text-sm">{title}</span>
-        <span className="text-xs theme-text-secondary ml-auto">{tournaments.length} tournoi{tournaments.length > 1 ? 's' : ''}</span>
+    <div className="space-y-4">
+      {/* Titre simplifié */}
+      <div className="text-center pb-4">
+        <h3 className="text-lg font-bold theme-text">Que voulez-vous faire ?</h3>
       </div>
-      <div className="divide-y theme-border">
-        {tournaments.map((tournament) => (
-          <Link
-            key={tournament.id}
-            href={`/vestiaire/${tournament.slug}`}
-            className="flex items-center justify-between px-4 py-3 hover:theme-bg transition"
-          >
-            <div>
-              <p className="font-medium theme-text text-sm">{tournament.name}</p>
-              <p className="text-xs theme-text-secondary">
-                {tournament.competition_name} · {tournament.current_players}/{tournament.max_players} joueurs
-                {tournament.participant_role === 'captain' && (
-                  <span className="ml-2 text-[#ff9900]">(Capitaine)</span>
+
+      {/* Action 1: Créer un tournoi */}
+      <div className="rounded-xl border-2 border-[#ff9900]/30 overflow-hidden transition-all hover:border-[#ff9900]/60">
+        <button
+          onClick={() => toggleSection('create')}
+          className="w-full p-4 flex items-center gap-4 text-left"
+        >
+          <div className="w-12 h-12 bg-[#ff9900]/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <Trophy className="w-6 h-6 text-[#ff9900]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold theme-text">Créer un tournoi</p>
+            <p className="text-sm theme-text-secondary truncate">
+              {totalCreationCredits > 0 ? getCreateSummary() : 'Quota atteint'}
+            </p>
+          </div>
+          <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'create' ? 'rotate-90' : ''}`} />
+        </button>
+
+        {/* Détails Créer */}
+        {expandedSection === 'create' && (
+          <div className="px-4 pb-4 space-y-2 border-t theme-border pt-3">
+            {/* Free-Kick - Toujours affiché */}
+            <Link
+              href={freeCreationSlots > 0 ? "/vestiaire?type=free" : "/pricing?product=free-slot"}
+              className="flex items-center justify-between p-3 rounded-lg theme-bg hover:bg-blue-500/10 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/icons/free-tour.svg" alt="" className="w-5 h-5 icon-filter-blue" />
+                <div>
+                  <span className="theme-text">Free-Kick</span>
+                  {freeCreationSlots === 0 && (
+                    <p className="text-xs theme-text-secondary">Quota de {data.free_tournaments_max} atteint</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {freeCreationSlots > 0 ? (
+                  <>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
+                      {freeCreationSlots} dispo
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">Gratuit</span>
+                  </>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">0,99€</span>
                 )}
+                <ChevronRight className="w-4 h-4 text-blue-500 opacity-0 group-hover:opacity-100 transition" />
+              </div>
+            </Link>
+
+            {/* One-Shot - Toujours affiché */}
+            <Link
+              href={(data.credits?.oneshot || 0) > 0 ? "/vestiaire?type=oneshot&use_credit=true" : "/pricing?buy=oneshot"}
+              className="flex items-center justify-between p-3 rounded-lg theme-bg hover:bg-green-500/10 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/icons/on-shot-tour.svg" alt="" className="w-5 h-5 icon-filter-green" />
+                <span className="theme-text">One-Shot</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {(data.credits?.oneshot || 0) > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
+                    {data.credits?.oneshot} crédit{(data.credits?.oneshot || 0) > 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">4,99€</span>
+                )}
+                <ChevronRight className="w-4 h-4 text-green-500 opacity-0 group-hover:opacity-100 transition" />
+              </div>
+            </Link>
+
+            {/* Elite Team - Toujours affiché */}
+            <Link
+              href={(data.credits?.elite || 0) > 0 ? "/vestiaire?type=elite&use_credit=true" : "/pricing?buy=elite"}
+              className="flex items-center justify-between p-3 rounded-lg theme-bg hover:bg-orange-500/10 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/icons/team-elite-tour.svg" alt="" className="w-5 h-5 icon-filter-orange" />
+                <span className="theme-text">Elite Team</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {(data.credits?.elite || 0) > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">
+                    {data.credits?.elite} crédit{(data.credits?.elite || 0) > 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">9,99€</span>
+                )}
+                <ChevronRight className="w-4 h-4 text-[#ff9900] opacity-0 group-hover:opacity-100 transition" />
+              </div>
+            </Link>
+
+            {/* Platinium - Toujours affiché */}
+            <Link
+              href={((data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)) > 0 ? "/vestiaire?type=platinium&use_credit=true" : "/pricing?buy=platinium"}
+              className="flex items-center justify-between p-3 rounded-lg theme-bg hover:bg-yellow-500/10 transition group"
+            >
+              <div className="flex items-center gap-3">
+                <img src="/images/icons/premium-tour.svg" alt="" className="w-5 h-5 icon-filter-yellow" />
+                <span className="theme-text">Platinium</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {((data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)) > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
+                    {(data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)} crédit{((data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)) > 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">6,99€</span>
+                )}
+                <ChevronRight className="w-4 h-4 text-yellow-500 opacity-0 group-hover:opacity-100 transition" />
+              </div>
+            </Link>
+
+            {/* Lien + d'infos */}
+            <div className="pt-2 text-center">
+              <Link
+                href="/pricing"
+                className="text-xs theme-text-secondary hover-accent hover-underline transition"
+              >
+                + d'infos sur les offres
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action 2: Rejoindre un tournoi */}
+      <div className="rounded-xl border-2 border-green-500/30 overflow-hidden transition-all hover:border-green-500/60">
+        <Link
+          href="/rejoindre"
+          className="w-full p-4 flex items-center gap-4 text-left"
+        >
+          <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <Users className="w-6 h-6 text-green-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold theme-text">Rejoindre un tournoi</p>
+            <p className="text-sm theme-text-secondary truncate">
+              {getJoinSummary()}
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 theme-text-secondary" />
+        </Link>
+      </div>
+
+      {/* Action 3: Voir mes tournois */}
+      {data.total_active_tournaments > 0 && (
+        <div className="rounded-xl border-2 border-blue-500/30 overflow-hidden transition-all hover:border-blue-500/60">
+          <button
+            onClick={() => toggleSection('tournaments')}
+            className="w-full p-4 flex items-center gap-4 text-left"
+          >
+            <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Eye className="w-6 h-6 text-blue-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold theme-text">Mes tournois actifs</p>
+              <p className="text-sm theme-text-secondary">
+                {data.total_active_tournaments} tournoi{data.total_active_tournaments > 1 ? 's' : ''}
+                {data.total_as_captain > 0 && ` · ${data.total_as_captain} en capitaine`}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                tournament.status === 'active'
-                  ? 'bg-green-500/20 text-green-600 dark:text-green-400'
-                  : tournament.status === 'warmup'
-                  ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-                  : tournament.status === 'pending'
-                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                  : 'bg-gray-500/20 theme-text-secondary'
-              }`}>
-                {tournament.status === 'active' ? 'En cours' : tournament.status === 'warmup' ? 'Échauffement' : tournament.status === 'pending' ? 'En attente' : tournament.status}
-              </span>
-              <ChevronRight className="w-4 h-4 theme-text-secondary" />
+            <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'tournaments' ? 'rotate-90' : ''}`} />
+          </button>
+
+          {/* Liste des tournois */}
+          {expandedSection === 'tournaments' && (
+            <div className="px-4 pb-4 space-y-2 border-t theme-border pt-3">
+              {data.tournaments.map((tournament) => (
+                <Link
+                  key={tournament.id}
+                  href={`/vestiaire/${tournament.slug}`}
+                  className="flex items-center justify-between p-3 rounded-lg theme-bg hover:opacity-80 transition group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={`/images/icons/${
+                        tournament.tournament_type === 'free' ? 'free-tour' :
+                        tournament.tournament_type === 'oneshot' ? 'on-shot-tour' :
+                        tournament.tournament_type === 'elite' ? 'team-elite-tour' :
+                        'premium-tour'
+                      }.svg`}
+                      alt=""
+                      className={`w-4 h-4 ${
+                        tournament.tournament_type === 'free' ? 'icon-filter-blue' :
+                        tournament.tournament_type === 'oneshot' ? 'icon-filter-green' :
+                        tournament.tournament_type === 'elite' ? 'icon-filter-orange' :
+                        'icon-filter-yellow'
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <p className="theme-text text-sm font-medium truncate">{tournament.name}</p>
+                      <p className="text-xs theme-text-secondary">
+                        {tournament.current_players}/{tournament.max_players} joueurs
+                        {tournament.participant_role === 'captain' && (
+                          <span className="text-[#ff9900] ml-1">· Capitaine</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      tournament.status === 'active'
+                        ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                        : tournament.status === 'warmup'
+                        ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+                        : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                    }`}>
+                      {tournament.status === 'active' ? 'En cours' :
+                       tournament.status === 'warmup' ? 'Échauffement' : 'En attente'}
+                    </span>
+                    <ChevronRight className="w-4 h-4 theme-text-secondary opacity-0 group-hover:opacity-100 transition" />
+                  </div>
+                </Link>
+              ))}
             </div>
-          </Link>
-        ))}
+          )}
+        </div>
+      )}
+
+      {/* Action 4: Mes crédits */}
+      <div className="rounded-xl border-2 border-purple-500/30 overflow-hidden transition-all hover:border-purple-500/60">
+        <button
+          onClick={() => toggleSection('credits')}
+          className="w-full p-4 flex items-center gap-4 text-left"
+        >
+          <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center flex-shrink-0">
+            <Wallet className="w-6 h-6 text-purple-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold theme-text">Mes crédits</p>
+            <p className="text-sm theme-text-secondary">
+              {getTotalCredits()} crédit{getTotalCredits() > 1 ? 's' : ''} disponible{getTotalCredits() > 1 ? 's' : ''}
+            </p>
+          </div>
+          <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'credits' ? 'rotate-90' : ''}`} />
+        </button>
+
+        {/* Détails Crédits */}
+        {expandedSection === 'credits' && (
+          <div className="px-4 pb-4 space-y-3 border-t theme-border pt-3">
+            {/* Crédits de création */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Création de tournoi</p>
+
+              {/* Free-Kick slots */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
+                  <div>
+                    <span className="text-sm theme-text">Free-Kick</span>
+                    <p className="text-xs theme-text-secondary">Max {data.free_tournaments_max} actifs</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {freeCreationSlots > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
+                        {freeCreationSlots} dispo
+                      </span>
+                      <Link href="/vestiaire?type=free" className="text-xs text-blue-500 hover:underline">
+                        Créer
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* One-Shot */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/on-shot-tour.svg" alt="" className="w-4 h-4 icon-filter-green" />
+                  <span className="text-sm theme-text">One-Shot</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(data.credits?.oneshot || 0) > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
+                        {data.credits?.oneshot} crédit{(data.credits?.oneshot || 0) > 1 ? 's' : ''}
+                      </span>
+                      <Link href="/vestiaire?type=oneshot&use_credit=true" className="text-xs text-green-500 hover:underline">
+                        Créer
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Elite */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/team-elite-tour.svg" alt="" className="w-4 h-4 icon-filter-orange" />
+                  <span className="text-sm theme-text">Elite Team</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(data.credits?.elite || 0) > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">
+                        {data.credits?.elite} crédit{(data.credits?.elite || 0) > 1 ? 's' : ''}
+                      </span>
+                      <Link href="/vestiaire?type=elite&use_credit=true" className="text-xs text-[#ff9900] hover:underline">
+                        Créer
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Platinium Solo */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
+                  <span className="text-sm theme-text">Platinium Solo</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(data.credits?.platinium_solo || 0) > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
+                        {data.credits?.platinium_solo} crédit{(data.credits?.platinium_solo || 0) > 1 ? 's' : ''}
+                      </span>
+                      <Link href="/vestiaire?type=platinium&use_credit=true" className="text-xs text-yellow-500 hover:underline">
+                        Créer
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Platinium Groupe */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
+                  <span className="text-sm theme-text">Platinium Groupe (11 places)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(data.credits?.platinium_group || 0) > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
+                        {data.credits?.platinium_group} crédit{(data.credits?.platinium_group || 0) > 1 ? 's' : ''}
+                      </span>
+                      <Link href="/vestiaire?type=platinium&use_credit=true&group=true" className="text-xs text-yellow-500 hover:underline">
+                        Créer
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Crédits pour rejoindre */}
+            <div className="space-y-2 pt-2 border-t theme-border">
+              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Rejoindre un tournoi</p>
+
+              {/* Invitation gratuite premium */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-green-500" />
+                  <div>
+                    <span className="text-sm theme-text">Invitation gratuite</span>
+                    <p className="text-xs theme-text-secondary">1 par tournoi premium</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {data.can_join_premium_free ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
+                        1 dispo
+                      </span>
+                      <Link href="/rejoindre" className="text-xs text-green-500 hover:underline">
+                        Rejoindre
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Utilisée
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Slots invités payés */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-500" />
+                  <div>
+                    <span className="text-sm theme-text">Slots invités achetés</span>
+                    <p className="text-xs theme-text-secondary">Pour rejoindre des tournois payants</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(data.credits?.slot_invite || 0) > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-500">
+                        {data.credits?.slot_invite} dispo
+                      </span>
+                      <Link href="/rejoindre" className="text-xs text-purple-500 hover:underline">
+                        Rejoindre
+                      </Link>
+                    </>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Séparateur */}
+      <div className="border-t theme-border my-6"></div>
+
+      {/* CTA Acheter */}
+      <Link
+        href="/pricing"
+        className="flex items-center justify-center gap-2 w-full p-4 rounded-xl bg-gradient-to-r from-[#ff9900] to-[#e68a00] text-black font-semibold hover:brightness-110 transition"
+      >
+        <PlusCircle className="w-5 h-5" />
+        Acheter des crédits
+      </Link>
+
+      {/* Note explicative */}
+      <p className="text-xs theme-text-secondary text-center">
+        Les extensions de tournoi sont disponibles depuis la page de chaque tournoi
+      </p>
     </div>
   )
 }
