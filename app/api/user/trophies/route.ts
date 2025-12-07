@@ -157,10 +157,13 @@ export async function PUT(request: Request) {
       }
     })
 
+    // Helper pour extraire les données de jointure Supabase (peut être tableau ou objet)
+    const getJoinedData = (data: any) => Array.isArray(data) ? data[0] : data
+
     // Map des tournois avec leurs infos
     const tournamentsMap: Record<string, any> = {}
     userTournaments.forEach(t => {
-      tournamentsMap[t.tournament_id] = t.tournaments
+      tournamentsMap[t.tournament_id] = getJoinedData(t.tournaments)
     })
 
     // Grouper les participants par tournoi
@@ -379,10 +382,10 @@ export async function PUT(request: Request) {
 
     // --- TROPHÉE: tournament_winner ---
     if (!existingTrophyTypes.has('tournament_winner')) {
-      const finishedTournaments = userTournaments.filter(t => t.tournaments.status === 'finished')
+      const finishedTournaments = userTournaments.filter(t => getJoinedData(t.tournaments)?.status === 'finished')
 
       for (const t of finishedTournaments) {
-        const tournament = t.tournaments
+        const tournament = getJoinedData(t.tournaments)
         const participants = participantsByTournament[t.tournament_id] || []
         if (participants.length === 0) continue
 
