@@ -177,7 +177,9 @@ export async function PUT(request: Request) {
     const matchesByJourney: Record<string, any[]> = {}
 
     allPredictions?.forEach(pred => {
-      const match = pred.imported_matches
+      // imported_matches peut être un tableau ou un objet selon Supabase
+      const matchData = pred.imported_matches
+      const match = Array.isArray(matchData) ? matchData[0] : matchData
       if (!match) return
 
       const key = `${pred.tournament_id}_${match.matchday}`
@@ -244,7 +246,8 @@ export async function PUT(request: Request) {
     let exactScoreDate = ''
 
     userPredictions.forEach(pred => {
-      const match = pred.imported_matches
+      const matchData = pred.imported_matches
+      const match = Array.isArray(matchData) ? matchData[0] : matchData
       if (!match || (match.status !== 'FINISHED' && match.finished !== true)) return
       if (match.home_score === null || match.away_score === null) return
 
@@ -334,7 +337,8 @@ export async function PUT(request: Request) {
         let exactScores = 0
 
         myJourneyPredictions.forEach(pred => {
-          const match = pred.imported_matches
+          const matchData = pred.imported_matches
+          const match = Array.isArray(matchData) ? matchData[0] : matchData
           if (!match) return
 
           const predResult = pred.predicted_home_score > pred.predicted_away_score ? 'HOME' :
