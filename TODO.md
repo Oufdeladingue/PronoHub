@@ -230,6 +230,24 @@ Liste des fonctionnalités et améliorations à développer pour PronoHub.
   - Badge de récompenses
   - Thèmes de maillots personnalisables
 
+- [ ] **Idées bonus en vrac**
+  - Ballon d'or / Ballon de plomb (meilleur/pire pronostiqueur)
+  - Équipe bonus / Choix match bonus individuel
+  - Avantage : voir les pronos des autres (achetable ?)
+
+- [ ] **Stats et données compétitions**
+  - Activer stats et classement des compétitions
+  - Afficher les dernières confrontations (H2H)
+
+---
+
+## 🐛 Bugs & Vérifications
+
+- [ ] **Vérifier extension joueurs Free-Kick**
+  - Tester la possibilité d'étendre à 10 joueurs depuis l'échauffement
+  - Exemple : tournoi "Kombat"
+  - S'assurer que le bouton/option est visible et fonctionnel
+
 ---
 
 ## 📝 Notes
@@ -247,4 +265,4 @@ Pour ajouter un nouveau point à cette TODO liste :
 
 ---
 
-**Dernière mise à jour** : 05/11/2025
+**Dernière mise à jour** : 08/12/2025
