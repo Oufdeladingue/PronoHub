@@ -165,14 +165,17 @@ export async function POST(request: NextRequest) {
         firstPlayableMatchday = (importedCompetition.current_matchday || 0) + 1
       }
 
+      // S'assurer que firstPlayableMatchday est défini (pour TypeScript)
+      const safeFirstPlayableMatchday = firstPlayableMatchday ?? 1
+
       console.log('[START] Competition found:', importedCompetition.name,
         'Current matchday:', importedCompetition.current_matchday,
-        'First fully playable matchday:', firstPlayableMatchday)
+        'First fully playable matchday:', safeFirstPlayableMatchday)
 
       // On stocke firstPlayableMatchday - 1 pour que le calcul startingMatchday = current + 1 donne le bon résultat
       competition = {
         ...importedCompetition,
-        current_matchday: firstPlayableMatchday - 1
+        current_matchday: safeFirstPlayableMatchday - 1
       }
     } else {
       return NextResponse.json(
