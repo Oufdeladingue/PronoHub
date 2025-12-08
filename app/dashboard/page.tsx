@@ -176,9 +176,94 @@ export default async function DashboardPage() {
   // Récupérer les informations sur les journées pour chaque tournoi
   const journeyInfo: Record<string, any> = {}
   for (const tournament of userTournaments || []) {
-    const startMatchday = tournament.starting_matchday
-    const endMatchday = tournament.ending_matchday
+    let startMatchday = tournament.starting_matchday
+    let endMatchday = tournament.ending_matchday
 
+    // Vérifier si c'est un tournoi custom SANS starting/ending_matchday
+    // (les tournois custom avec starting/ending_matchday utilisent la logique standard)
+    const isCustomCompetition = !!tournament.custom_competition_id && (!startMatchday || !endMatchday)
+
+    // Pour les tournois custom sans matchdays définis, récupérer les journées depuis custom_competition_matchdays
+    if (isCustomCompetition) {
+      const { data: customMatchdays, error: customMatchdaysError } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id, matchday_number, start_date, end_date')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .order('matchday_number', { ascending: true })
+
+      console.log(`[DASHBOARD CUSTOM] Tournament ${tournament.name}:`, {
+        custom_competition_id: tournament.custom_competition_id,
+        matchdaysFound: customMatchdays?.length || 0,
+        error: customMatchdaysError?.message || null
+      })
+
+      if (!customMatchdays || customMatchdays.length === 0) {
+        journeyInfo[tournament.id] = {
+          total: 0,
+          completed: 0,
+          currentNumber: 1
+        }
+        continue
+      }
+
+      const totalJourneys = customMatchdays.length
+      const matchdayIds = customMatchdays.map(md => md.id)
+
+      // Récupérer les matchs custom
+      const { data: customMatches } = await supabase
+        .from('custom_competition_matches')
+        .select('custom_matchday_id, status, utc_date')
+        .in('custom_matchday_id', matchdayIds)
+
+      // Créer un mapping ID -> matchday_number
+      const matchdayNumberMap: Record<string, number> = {}
+      for (const md of customMatchdays) {
+        matchdayNumberMap[md.id] = md.matchday_number
+      }
+
+      // Regrouper les matchs par journée
+      const matchdayMap = new Map<number, Array<{ status: string, utc_date: string }>>()
+      for (const match of customMatches || []) {
+        const mdNumber = matchdayNumberMap[match.custom_matchday_id]
+        if (mdNumber !== undefined) {
+          if (!matchdayMap.has(mdNumber)) {
+            matchdayMap.set(mdNumber, [])
+          }
+          matchdayMap.get(mdNumber)!.push(match)
+        }
+      }
+
+      const now = new Date()
+      let pendingJourneys = 0
+      let completedJourneys = 0
+
+      for (const [, matches] of matchdayMap) {
+        const allFinished = matches.every(m => m.status === 'FINISHED')
+        const allPending = matches.every(m => {
+          const matchDate = new Date(m.utc_date)
+          const isScheduled = m.status === 'SCHEDULED' || m.status === 'TIMED'
+          return isScheduled && matchDate > now
+        })
+
+        if (allFinished) {
+          completedJourneys++
+        } else if (allPending) {
+          pendingJourneys++
+        }
+      }
+
+      const notYetImportedJourneys = totalJourneys - matchdayMap.size
+      const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
+
+      journeyInfo[tournament.id] = {
+        total: totalJourneys,
+        completed: completedJourneys,
+        currentNumber: currentNumber
+      }
+      continue
+    }
+
+    // Tournois standards (non-custom)
     if (!startMatchday || !endMatchday) {
       journeyInfo[tournament.id] = {
         total: 0,
@@ -251,20 +336,52 @@ export default async function DashboardPage() {
   const nextMatchDates: Record<string, string | null> = {}
   for (const t of userTournaments || []) {
     if (t.status === 'pending' || t.status === 'warmup') {
-      // Récupérer le prochain match de la compétition (première journée à venir)
-      const { data: matches, error: matchError } = await supabase
-        .from('imported_matches')
-        .select('utc_date, matchday')
-        .eq('competition_id', t.competition_id)
-        .gte('utc_date', new Date().toISOString())
-        .order('matchday', { ascending: true })
-        .order('utc_date', { ascending: true })
-        .limit(1)
+      // Vérifier si c'est un tournoi custom
+      if (t.custom_competition_id) {
+        // Pour les tournois custom, récupérer via les matchdays avec jointure
+        const { data: matchdaysWithMatches } = await supabase
+          .from('custom_competition_matchdays')
+          .select(`
+            id,
+            matchday_number,
+            custom_competition_matches!inner(utc_date)
+          `)
+          .eq('custom_competition_id', t.custom_competition_id)
+          .order('matchday_number', { ascending: true })
 
-      if (!matchError && matches && matches.length > 0) {
-        nextMatchDates[t.id] = matches[0].utc_date
+        // Trouver le premier match à venir
+        let nextMatchDate: string | null = null
+        const now = new Date()
+        for (const md of matchdaysWithMatches || []) {
+          const matches = (md as any).custom_competition_matches || []
+          for (const match of matches) {
+            const matchDate = new Date(match.utc_date)
+            if (matchDate > now) {
+              if (!nextMatchDate || matchDate < new Date(nextMatchDate)) {
+                nextMatchDate = match.utc_date
+              }
+            }
+          }
+          if (nextMatchDate) break // On a trouvé dans la première journée avec match à venir
+        }
+
+        nextMatchDates[t.id] = nextMatchDate
       } else {
-        nextMatchDates[t.id] = null
+        // Récupérer le prochain match de la compétition standard (première journée à venir)
+        const { data: matches, error: matchError } = await supabase
+          .from('imported_matches')
+          .select('utc_date, matchday')
+          .eq('competition_id', t.competition_id)
+          .gte('utc_date', new Date().toISOString())
+          .order('matchday', { ascending: true })
+          .order('utc_date', { ascending: true })
+          .limit(1)
+
+        if (!matchError && matches && matches.length > 0) {
+          nextMatchDates[t.id] = matches[0].utc_date
+        } else {
+          nextMatchDates[t.id] = null
+        }
       }
     }
   }
@@ -301,55 +418,9 @@ export default async function DashboardPage() {
           totalParticipants: finalRankings.length
         }
       } else {
-        // Fallback: Appeler l'API de classement pour récupérer les données correctes
-        try {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-          const rankingsResponse = await fetch(`${baseUrl}/api/tournaments/${t.id}/rankings`, {
-            cache: 'no-store'
-          })
-
-          if (rankingsResponse.ok) {
-            const rankingsData = await rankingsResponse.json()
-            const rankings = rankingsData.rankings || []
-
-            if (rankings.length > 0) {
-              // Le vainqueur est le premier du classement (rang 1)
-              const winner = rankings[0]?.playerName || null
-              // Trouver la position de l'utilisateur connecté
-              const userRanking = rankings.find((r: any) => r.playerId === user.id)
-              const userRank = userRanking?.rank || null
-
-              tournamentRankings[t.id] = {
-                winner,
-                userRank,
-                totalParticipants: rankings.length
-              }
-
-              // Stocker le classement final en BDD pour les prochaines fois
-              const finalRankingsToStore = rankings.map((r: any) => ({
-                user_id: r.playerId,
-                username: r.playerName,
-                avatar: r.avatar,
-                rank: r.rank,
-                total_points: r.totalPoints,
-                exact_scores: r.exactScores,
-                correct_results: r.correctResults
-              }))
-
-              await supabase
-                .from('tournaments')
-                .update({ final_rankings: finalRankingsToStore })
-                .eq('id', t.id)
-            } else {
-              tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
-            }
-          } else {
-            tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
-          }
-        } catch (error) {
-          console.error(`[DASHBOARD] Error fetching rankings for tournament ${t.id}:`, error)
-          tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
-        }
+        // Pas de final_rankings stocké - les données seront calculées quand l'utilisateur
+        // visitera la page du tournoi. Pour le dashboard, on affiche des valeurs par défaut.
+        tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
       }
     }
   }

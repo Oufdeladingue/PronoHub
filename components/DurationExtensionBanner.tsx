@@ -157,10 +157,16 @@ export function DurationExtensionBanner({
                   alt=""
                   className={`w-5 h-5 md:w-4 md:h-4 ${
                     info.hasCredit ? 'icon-filter-blue' : 'icon-filter-orange'
-                  }`}
+                  } ${!info.hasCredit ? 'md:block' : ''}`}
                 />
+                {/* Mobile: afficher le prix si pas de crédit */}
+                {!info.hasCredit && (
+                  <span className="md:hidden text-xs font-bold ml-1">
+                    {info.price}€
+                  </span>
+                )}
                 <span className="hidden md:inline">
-                  {info.hasCredit ? 'Prolonger' : `${info.price}EUR`}
+                  {info.hasCredit ? 'Prolonger' : `${info.price}€`}
                 </span>
               </>
             )}

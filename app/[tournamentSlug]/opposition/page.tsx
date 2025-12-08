@@ -1426,14 +1426,21 @@ export default function OppositionPage() {
   }
 
   const handleScoreChange = (matchId: string, team: 'home' | 'away', value: number) => {
-    setPredictions(prev => ({
-      ...prev,
-      [matchId]: {
-        match_id: matchId,
-        predicted_home_score: team === 'home' ? value : (prev[matchId]?.predicted_home_score ?? null),
-        predicted_away_score: team === 'away' ? value : (prev[matchId]?.predicted_away_score ?? null)
+    setPredictions(prev => {
+      const currentPrediction = prev[matchId]
+      // Si on modifie un score, initialiser l'autre à 0 s'il est null (pour éviter les erreurs de validation)
+      const currentHomeScore = currentPrediction?.predicted_home_score
+      const currentAwayScore = currentPrediction?.predicted_away_score
+
+      return {
+        ...prev,
+        [matchId]: {
+          match_id: matchId,
+          predicted_home_score: team === 'home' ? value : (currentHomeScore ?? 0),
+          predicted_away_score: team === 'away' ? value : (currentAwayScore ?? 0)
+        }
       }
-    }))
+    })
     // Marquer comme modifié si déjà sauvegardé
     if (savedPredictions[matchId]) {
       setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
@@ -1457,7 +1464,8 @@ export default function OppositionPage() {
       if (!user || !tournament) return
 
       const prediction = predictions[matchId]
-      if (prediction.predicted_home_score === null || prediction.predicted_away_score === null) {
+      if (!prediction || prediction.predicted_home_score === null || prediction.predicted_home_score === undefined ||
+          prediction.predicted_away_score === null || prediction.predicted_away_score === undefined) {
         alert('Veuillez renseigner les deux scores')
         return
       }
@@ -2507,9 +2515,7 @@ export default function OppositionPage() {
                                       <button
                                         onClick={() => savePrediction(match.id)}
                                         disabled={savingPrediction === match.id}
-                                        className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed ${
-                                          isModified ? 'animate-pulse-save' : ''
-                                        }`}
+                                        className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed"
                                       >
                                         {savingPrediction === match.id ? (
                                           <>

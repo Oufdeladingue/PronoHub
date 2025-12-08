@@ -104,6 +104,7 @@ function DashboardContent({
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [showParticipations, setShowParticipations] = useState(false)
   const [showQuotaModal, setShowQuotaModal] = useState<'create' | 'join' | null>(null)
   const [showPlatiniumChoice, setShowPlatiniumChoice] = useState(false)
   const [showPlatiniumSlotSelector, setShowPlatiniumSlotSelector] = useState(false)
@@ -282,7 +283,9 @@ function DashboardContent({
         <div className="theme-card mb-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">Mes tournois</h2>
-            <p className="text-sm theme-text-secondary mt-1 flex flex-wrap items-center gap-x-5 gap-y-1">
+
+            {/* Version Desktop - affichage direct */}
+            <p className="hidden md:flex text-sm theme-text-secondary mt-1 flex-wrap items-center gap-x-5 gap-y-1">
               <span className="inline-flex items-center gap-1">
                 <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
                 Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
@@ -306,6 +309,51 @@ function DashboardContent({
                 </span>
               )}
             </p>
+
+            {/* Version Mobile - accordéon */}
+            <div className="md:hidden mt-2">
+              <button
+                onClick={() => setShowParticipations(!showParticipations)}
+                className="w-full flex items-center justify-between py-2 px-3 rounded-lg theme-secondary-bg border theme-border hover-theme-accent-border transition-colors"
+              >
+                <span className="text-sm font-medium theme-text">Participations</span>
+                <svg
+                  className={`w-4 h-4 theme-text-secondary transition-transform duration-200 ${showParticipations ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showParticipations && (
+                <div className="mt-2 p-3 rounded-lg theme-secondary-bg border theme-border space-y-2 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-sm theme-text-secondary">
+                    <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
+                    <span>Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}</span>
+                  </div>
+                  {quotas.oneshotCreated > 0 && (
+                    <div className="flex items-center gap-2 text-sm theme-text-secondary">
+                      <img src="/images/icons/on-shot-tour.svg" alt="" className="w-4 h-4 icon-filter-green" />
+                      <span>Tournois One-Shot : {quotas.oneshotCreated}</span>
+                    </div>
+                  )}
+                  {quotas.eliteCreated > 0 && (
+                    <div className="flex items-center gap-2 text-sm theme-text-secondary">
+                      <img src="/images/icons/team-elite-tour.svg" alt="" className="w-4 h-4 icon-filter-orange" />
+                      <span>Tournois Elite : {quotas.eliteCreated}</span>
+                    </div>
+                  )}
+                  {quotas.platiniumCreated > 0 && (
+                    <div className="flex items-center gap-2 text-sm theme-text-secondary">
+                      <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
+                      <span>Tournois Platinium : {quotas.platiniumCreated}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           {activeTournaments.length === 0 ? (
             <p className="theme-text-secondary text-center py-8">
@@ -551,7 +599,7 @@ function DashboardContent({
                           <a
                             key={tournament.id}
                             href={`/${tournament.slug}/opposition?tab=classement`}
-                            className="archived-card relative flex items-center gap-4 p-3 border theme-border rounded-lg transition-colors"
+                            className="archived-card relative flex items-center gap-4 p-3 border theme-border hover-theme-accent-border rounded-lg transition-colors"
                           >
                             {/* Badge type de tournoi */}
                             <div className="absolute top-1 left-1 z-20">

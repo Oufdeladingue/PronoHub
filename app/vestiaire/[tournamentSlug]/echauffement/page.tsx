@@ -120,12 +120,82 @@ function EchauffementPageContent() {
     fetchTeamsMapping()
     fetchPlayerExtensionInfo()
 
-    // Actualiser l'effectif et les équipes toutes les 5 secondes
+    // Actualiser l'effectif et les équipes toutes les 30 secondes (fallback polling)
     const interval = setInterval(() => {
       fetchPlayers()
       fetchTeamsMapping()
-    }, 5000)
+    }, 30000)
     return () => clearInterval(interval)
+  }, [tournament?.id])
+
+  // =====================================================
+  // OPTIMISATION: Supabase Realtime pour les mises à jour instantanées
+  // Écoute les changements sur tournament_participants et tournament_teams
+  // =====================================================
+  useEffect(() => {
+    if (!tournament?.id) return
+
+    const supabase = createClient()
+
+    // Canal pour écouter les changements de participants
+    const participantsChannel = supabase
+      .channel(`tournament-participants-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_participants',
+          filter: `tournament_id=eq.${tournament.id}`
+        },
+        () => {
+          // Rafraîchir la liste des joueurs quand un participant rejoint/quitte
+          fetchPlayers()
+        }
+      )
+      .subscribe()
+
+    // Canal pour écouter les changements d'équipes
+    const teamsChannel = supabase
+      .channel(`tournament-teams-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_teams',
+          filter: `tournament_id=eq.${tournament.id}`
+        },
+        () => {
+          // Rafraîchir les équipes quand une équipe est créée/modifiée
+          fetchTeamsMapping()
+        }
+      )
+      .subscribe()
+
+    // Canal pour écouter les changements de membres d'équipes
+    const teamMembersChannel = supabase
+      .channel(`team-members-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_team_members'
+        },
+        () => {
+          // Rafraîchir les équipes quand un membre est ajouté/retiré
+          fetchTeamsMapping()
+        }
+      )
+      .subscribe()
+
+    // Cleanup: se désabonner des canaux à la destruction du composant
+    return () => {
+      supabase.removeChannel(participantsChannel)
+      supabase.removeChannel(teamsChannel)
+      supabase.removeChannel(teamMembersChannel)
+    }
   }, [tournament?.id])
 
   // Vérifier si le tournoi a été lancé (pour les participants non-capitaines)

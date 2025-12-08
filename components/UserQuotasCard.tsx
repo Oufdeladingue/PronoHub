@@ -516,57 +516,63 @@ export default function UserQuotasCard() {
               <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Rejoindre un tournoi</p>
 
               {/* Invitation gratuite premium */}
-              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-green-500" />
-                  <div>
-                    <span className="text-sm theme-text">Invitation gratuite</span>
-                    <p className="text-xs theme-text-secondary">1 par tournoi premium</p>
+              <div className="p-2 rounded-lg theme-bg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Users className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-sm theme-text">Invitation gratuite</span>
+                      <p className="text-xs theme-text-secondary hidden sm:block">1 par tournoi premium</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {data.can_join_premium_free ? (
+                      <>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500 whitespace-nowrap">
+                          1 dispo
+                        </span>
+                        <Link href="/rejoindre" className="text-xs text-green-500 hover:underline whitespace-nowrap">
+                          Rejoindre
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                        Utilisée
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {data.can_join_premium_free ? (
-                    <>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
-                        1 dispo
-                      </span>
-                      <Link href="/rejoindre" className="text-xs text-green-500 hover:underline">
-                        Rejoindre
-                      </Link>
-                    </>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Utilisée
-                    </span>
-                  )}
-                </div>
+                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">1 par tournoi premium</p>
               </div>
 
               {/* Slots invités payés */}
-              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-500" />
-                  <div>
-                    <span className="text-sm theme-text">Slots invités achetés</span>
-                    <p className="text-xs theme-text-secondary">Pour rejoindre des tournois payants</p>
+              <div className="p-2 rounded-lg theme-bg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <Users className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <span className="text-sm theme-text">Slots invités achetés</span>
+                      <p className="text-xs theme-text-secondary hidden sm:block">Pour rejoindre des tournois payants</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(data.credits?.slot_invite || 0) > 0 ? (
+                      <>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-500 whitespace-nowrap">
+                          {data.credits?.slot_invite} dispo
+                        </span>
+                        <Link href="/rejoindre" className="text-xs text-purple-500 hover:underline whitespace-nowrap">
+                          Rejoindre
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                        Aucun
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {(data.credits?.slot_invite || 0) > 0 ? (
-                    <>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-500">
-                        {data.credits?.slot_invite} dispo
-                      </span>
-                      <Link href="/rejoindre" className="text-xs text-purple-500 hover:underline">
-                        Rejoindre
-                      </Link>
-                    </>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
-                    </span>
-                  )}
-                </div>
+                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">Pour rejoindre des tournois payants</p>
               </div>
             </div>
           </div>

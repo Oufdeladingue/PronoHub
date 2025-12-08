@@ -560,6 +560,19 @@ input:-moz-autofill:focus {
   border-color: #ff9900 !important;
 }
 
+/* Hover bordure accent - suit le thème actif */
+.hover-theme-accent-border {
+  transition: border-color 0.2s ease;
+}
+
+.hover-theme-accent-border:hover {
+  border-color: var(--accent-secondary) !important; /* Bleu en mode light */
+}
+
+:root[data-theme="dark"] .hover-theme-accent-border:hover {
+  border-color: #ff9900 !important; /* Orange en mode dark */
+}
+
 /* Couleur secondaire #1e293b */
 .theme-secondary-bg {
   background-color: #ffffff;
