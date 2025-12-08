@@ -65,7 +65,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         }
       } catch (err) {
         console.error('Error fetching prices:', err)
-        // Garder les prix par defaut
+        // Garder les prix par défaut
       }
     }
     fetchPrices()
@@ -104,6 +104,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         'elite-team': 'tournament_creation_elite',
         'platinium_solo': 'platinium_participation',
         'platinium_group': 'platinium_group_11',
+        'slot_invite': 'slot_invite',
       }
 
       const purchaseType = purchaseTypeMap[planType]
@@ -128,7 +129,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       }
     } catch (error) {
       console.error('Checkout error:', error)
-      setStripeError('Erreur lors du paiement. Veuillez reessayer.')
+      setStripeError('Erreur lors du paiement. Veuillez réessayer.')
     } finally {
       setLoading(null)
     }
@@ -171,10 +172,10 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
               <ul className="space-y-3 mb-6 flex-grow">
                 <PlanFeature included>2 tournois actifs max</PlanFeature>
-                <PlanFeature included>Competition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Limite a {prices.freeMaxMatchdays} journees</PlanFeature>
+                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
+                <PlanFeature included>Limite à {prices.freeMaxMatchdays} journées</PlanFeature>
                 <PlanFeature included>Max {prices.freeMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Parametrage de bonus</PlanFeature>
+                <PlanFeature included>Paramétrage de bonus</PlanFeature>
               </ul>
 
               {/* Extensions */}
@@ -183,7 +184,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-gray-400">
                     <Plus className="w-4 h-4 text-blue-400" />
-                    <span>Etendre la duree : <span className="text-blue-400 font-medium">{prices.durationExtension.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>Étendre la durée : <span className="text-blue-400 font-medium">{prices.durationExtension.toFixed(2).replace('.', ',')} EUR</span></span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-400">
                     <Plus className="w-4 h-4 text-blue-400" />
@@ -191,7 +192,16 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   </div>
                   <div className="flex items-center gap-2 text-gray-400">
                     <Plus className="w-4 h-4 text-blue-400" />
-                    <span>Slot invite : <span className="text-blue-400 font-medium">{prices.slotInvite.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>Slot invite : <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCheckout('slot_invite')
+                      }}
+                      disabled={loading === 'slot_invite'}
+                      className="text-blue-400 font-medium hover:text-blue-300 hover:underline transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {loading === 'slot_invite' ? '...' : `${prices.slotInvite.toFixed(2).replace('.', ',')} EUR`}
+                    </button></span>
                   </div>
                 </div>
               </div>
@@ -224,11 +234,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
               <ul className="space-y-3 mb-6 flex-grow">
                 <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Competition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Duree illimitee</PlanFeature>
+                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
+                <PlanFeature included>Durée illimitée</PlanFeature>
                 <PlanFeature included>Max {prices.oneshotMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Deblocage de trophees</PlanFeature>
-                <PlanFeature included>Parametrage de bonus</PlanFeature>
+                <PlanFeature included>Déblocage de trophées</PlanFeature>
+                <PlanFeature included>Paramétrage de bonus</PlanFeature>
               </ul>
 
               {/* Extensions */}
@@ -237,7 +247,16 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-gray-400">
                     <Plus className="w-4 h-4 text-green-400" />
-                    <span>Slot invite : <span className="text-green-400 font-medium">{prices.slotInvite.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>Slot invite : <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCheckout('slot_invite')
+                      }}
+                      disabled={loading === 'slot_invite'}
+                      className="text-green-400 font-medium hover:text-green-300 hover:underline transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {loading === 'slot_invite' ? '...' : `${prices.slotInvite.toFixed(2).replace('.', ',')} EUR`}
+                    </button></span>
                   </div>
                 </div>
               </div>
@@ -281,12 +300,12 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
               <ul className="space-y-3 mb-6 flex-grow">
                 <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Competition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Duree illimitee</PlanFeature>
+                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
+                <PlanFeature included>Durée illimitée</PlanFeature>
                 <PlanFeature included>Max {prices.eliteMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Deblocage de trophees</PlanFeature>
-                <PlanFeature included>Parametrage de bonus</PlanFeature>
-                <PlanFeature included>Jeu en equipe</PlanFeature>
+                <PlanFeature included>Déblocage de trophées</PlanFeature>
+                <PlanFeature included>Paramétrage de bonus</PlanFeature>
+                <PlanFeature included>Jeu en équipe</PlanFeature>
               </ul>
 
               {/* Extensions */}
@@ -295,7 +314,16 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-gray-400">
                     <Plus className="w-4 h-4 text-orange-400" />
-                    <span>Slot invite : <span className="text-orange-400 font-medium">{prices.slotInvite.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>Slot invite : <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCheckout('slot_invite')
+                      }}
+                      disabled={loading === 'slot_invite'}
+                      className="text-orange-400 font-medium hover:text-orange-300 hover:underline transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {loading === 'slot_invite' ? '...' : `${prices.slotInvite.toFixed(2).replace('.', ',')} EUR`}
+                    </button></span>
                   </div>
                 </div>
               </div>
@@ -333,12 +361,12 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
               <ul className="space-y-3 mb-6 flex-grow">
                 <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Competition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Duree illimitee</PlanFeature>
-                <PlanFeature included>{prices.platiniumMinPlayers} a {prices.platiniumMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Deblocage de trophees</PlanFeature>
-                <PlanFeature included>Parametrage de bonus</PlanFeature>
-                <PlanFeature included>Jeu en equipe</PlanFeature>
+                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
+                <PlanFeature included>Durée illimitée</PlanFeature>
+                <PlanFeature included>{prices.platiniumMinPlayers} à {prices.platiniumMaxPlayers} joueurs</PlanFeature>
+                <PlanFeature included>Déblocage de trophées</PlanFeature>
+                <PlanFeature included>Paramétrage de bonus</PlanFeature>
+                <PlanFeature included>Jeu en équipe</PlanFeature>
                 <PlanFeature included>Lot pour le vainqueur</PlanFeature>
                 <li className="flex items-center justify-center mt-2">
                   <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-10" />
@@ -444,7 +472,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               <p className="text-gray-300">{stripeError}</p>
               {stripeError.includes('configure') && (
                 <p className="text-sm text-gray-400">
-                  Le systeme de paiement n&apos;est pas disponible en environnement de developpement.
+                  Le système de paiement n&apos;est pas disponible en environnement de développement.
                   Les paiements fonctionneront en production.
                 </p>
               )}
@@ -462,14 +490,18 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       {/* Modal Platinium */}
       {showPlatiniumModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-700">
+          <div className="bg-gray-800 rounded-2xl max-w-4xl w-full">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
                     <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                   </div>
-                  <h2 className="text-xl font-bold text-yellow-400">Lancer un tournoi Platinium</h2>
+                  <div>
+                    <h2 className="text-xl font-bold text-yellow-400">Lancer un tournoi Platinium</h2>
+                    <p className="text-xs text-gray-400">Choisissez votre formule</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowPlatiniumModal(false)}
@@ -480,111 +512,107 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
-              <p className="text-gray-300">
-                Le tournoi Platinium est un format premium avec un lot pour le vainqueur.
-                Choisissez comment vous souhaitez lancer votre tournoi :
-              </p>
-
-              {/* Option 1 : Solo */}
-              <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-yellow-500/50 transition-colors">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">1 place</h3>
-                    <p className="text-xs text-gray-400">Pour rejoindre ou créer un tournoi Platinium</p>
+            {/* Contenu - 2 colonnes sur desktop */}
+            <div className="p-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Option 1 : Solo */}
+                <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 hover:border-yellow-500/50 transition-colors flex flex-col">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">1 place</h3>
+                      <p className="text-xs text-gray-400">Pour rejoindre ou créer</p>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">€</span></p>
                   </div>
-                  <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
-                </div>
-                <ul className="space-y-2 mb-4 text-sm text-gray-300">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Vous payez uniquement votre participation</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Les autres participants paieront chacun {prices.platinium.toFixed(2).replace('.', ',')} EUR pour rejoindre</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Le tournoi demarre a partir de {prices.platiniumMinPlayers} joueurs inscrits</span>
-                  </li>
-                </ul>
-                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-orange-300">
-                    <strong>Important :</strong> Si le tournoi n&apos;atteint pas {prices.platiniumMinPlayers} participants,
-                    votre paiement sera automatiquement converti en un acces One-Shot + 2 slots invites
-                    (pas de remboursement).
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowPlatiniumModal(false)
-                    handleCheckout('platinium_solo')
-                  }}
-                  disabled={loading === 'platinium_solo'}
-                  className="w-full py-3 px-4 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading === 'platinium_solo' ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    `Payer ${prices.platinium.toFixed(2).replace('.', ',')} EUR`
-                  )}
-                </button>
-              </div>
-
-              {/* Option 2 : Groupe */}
-              <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600 hover:border-yellow-500/50 transition-colors relative">
-                <div className="absolute -top-2.5 left-4">
-                  <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                    ÉCONOMISEZ {(prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',')} €
-                  </span>
-                </div>
-                <div className="flex items-start justify-between mb-4 mt-2">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-1">{prices.platiniumGroupSize} places</h3>
-                    <p className="text-xs text-gray-400">Créez votre tournoi pour vous et 10 joueurs</p>
+                  <ul className="space-y-1.5 mb-3 text-sm text-gray-300 flex-grow">
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>Vous payez votre participation</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>Autres participants : {prices.platinium.toFixed(2).replace('.', ',')} € chacun</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>Démarre à partir de {prices.platiniumMinPlayers} joueurs</span>
+                    </li>
+                  </ul>
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 mb-3">
+                    <p className="text-xs text-orange-300">
+                      <strong>Note :</strong> Si moins de {prices.platiniumMinPlayers} participants, conversion en One-Shot + 2 slots invités.
+                    </p>
                   </div>
-                  <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">EUR</span></p>
+                  <button
+                    onClick={() => {
+                      setShowPlatiniumModal(false)
+                      handleCheckout('platinium_solo')
+                    }}
+                    disabled={loading === 'platinium_solo'}
+                    className="w-full py-2.5 px-4 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading === 'platinium_solo' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      `Payer ${prices.platinium.toFixed(2).replace('.', ',')} €`
+                    )}
+                  </button>
                 </div>
-                <ul className="space-y-2 mb-4 text-sm text-gray-300">
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Le tournoi est <strong>garanti</strong> de demarrer immediatement</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{prices.platiniumGroupSize} places deja payees pour vos invites</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{prices.platiniumMaxPlayers - prices.platiniumGroupSize} places supplementaires disponibles (payantes a {prices.platinium.toFixed(2).replace('.', ',')} EUR)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>Vos amis peuvent vous rembourser entre vous</span>
-                  </li>
-                </ul>
-                <button
-                  onClick={() => {
-                    setShowPlatiniumModal(false)
-                    handleCheckout('platinium_group')
-                  }}
-                  disabled={loading === 'platinium_group'}
-                  className="w-full py-3 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading === 'platinium_group' ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    `Payer ${prices.platiniumGroup.toFixed(2).replace('.', ',')} EUR`
-                  )}
-                </button>
+
+                {/* Option 2 : Groupe */}
+                <div className="bg-gray-700/50 rounded-xl p-4 border-2 border-yellow-500/50 hover:border-yellow-500 transition-colors relative flex flex-col">
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                      ÉCONOMISEZ {(prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',')} €
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between mb-3 mt-1">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{prices.platiniumGroupSize} places</h3>
+                      <p className="text-xs text-gray-400">Vous + 10 invités</p>
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">€</span></p>
+                  </div>
+                  <ul className="space-y-1.5 mb-3 text-sm text-gray-300 flex-grow">
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>Tournoi <strong>garanti</strong> de démarrer</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{prices.platiniumGroupSize} places déjà payées</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{prices.platiniumMaxPlayers - prices.platiniumGroupSize} places supplémentaires à {prices.platinium.toFixed(2).replace('.', ',')} €</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>Remboursement entre amis possible</span>
+                    </li>
+                  </ul>
+                  <button
+                    onClick={() => {
+                      setShowPlatiniumModal(false)
+                      handleCheckout('platinium_group')
+                    }}
+                    disabled={loading === 'platinium_group'}
+                    className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading === 'platinium_group' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      `Payer ${prices.platiniumGroup.toFixed(2).replace('.', ',')} €`
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Lot à gagner */}
-              <div className="flex items-center justify-center gap-3 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
-                <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-10" />
-                <p className="text-sm text-yellow-400 font-medium text-center">
-                  Le vainqueur remportera un maillot neuf et authentique de la part de "Le bon maillot"
+              <div className="flex items-center justify-center gap-3 p-3 mt-4 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
+                <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-8" />
+                <p className="text-sm text-yellow-400 font-medium">
+                  Le vainqueur remporte un maillot officiel offert par Le Bon Maillot
                 </p>
               </div>
             </div>

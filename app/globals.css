@@ -429,6 +429,15 @@ input:-moz-autofill:focus {
   border-color: #475569 !important;
 }
 
+/* Dark mode specific stroke colors (for SVG) */
+.dark-stroke-secondary {
+  stroke: #e5e7eb;
+}
+
+:root[data-theme="dark"] .dark-stroke-secondary {
+  stroke: #1e293b !important;
+}
+
 /* Dark mode specific text colors */
 .dark-text-accent {
   color: var(--text-primary);
@@ -484,6 +493,50 @@ input:-moz-autofill:focus {
 
 :root[data-theme="dark"] .theme-accent-bg {
   background-color: #ff9900 !important;
+}
+
+/* Fond icône extension durée: bleu en clair, orange en sombre */
+.duration-icon-bg {
+  background-color: #3b82f6; /* blue-500 */
+}
+
+:root[data-theme="dark"] .duration-icon-bg {
+  background-color: #ff9900 !important;
+}
+
+/* Icône extension durée: blanc en clair, slate-900 en sombre */
+.duration-icon-filter {
+  filter: brightness(0) invert(1); /* blanc */
+}
+
+:root[data-theme="dark"] .duration-icon-filter {
+  filter: invert(8%) sepia(12%) saturate(2048%) hue-rotate(182deg) brightness(97%) contrast(97%) !important; /* #0f172a */
+}
+
+/* Badge tournoi terminé - style cohérent avec les autres badges */
+.badge-finished {
+  background-color: #e2e8f0; /* slate-200 */
+  color: #475569; /* slate-600 */
+  border: 2px solid #94a3b8; /* slate-400 */
+}
+
+:root[data-theme="dark"] .badge-finished {
+  background-color: #334155 !important; /* slate-700 */
+  color: #94a3b8 !important; /* slate-400 */
+  border-color: #64748b !important; /* slate-500 */
+}
+
+/* Badge tournoi quitté - style grisé */
+.badge-left {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #64748b; /* slate-500 */
+  border: 2px solid #cbd5e1; /* slate-300 */
+}
+
+:root[data-theme="dark"] .badge-left {
+  background-color: #1e293b !important; /* slate-800 */
+  color: #64748b !important; /* slate-500 */
+  border-color: #475569 !important; /* slate-600 */
 }
 
 .theme-accent-text {

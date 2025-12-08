@@ -87,6 +87,20 @@ function EchauffementPageContent() {
   const [teamsData, setTeamsData] = useState<{ teamsEnabled: boolean; teams: Array<{ id: string; name: string; members: any[] }> }>({ teamsEnabled: false, teams: [] })
   const [unassignedPlayersWarning, setUnassignedPlayersWarning] = useState<{ show: boolean; count: number }>({ show: false, count: 0 })
 
+  // États pour l'extension de joueurs Free-Kick
+  const [playerExtensionInfo, setPlayerExtensionInfo] = useState<{
+    canExtend: boolean
+    isCaptain: boolean
+    hasCredit: boolean
+    currentMaxPlayers: number
+    newMaxPlayers: number
+    playersExtended: number
+    price: number
+    extensionAmount: number
+  } | null>(null)
+  const [extensionLoading, setExtensionLoading] = useState(false)
+  const [showExtensionModal, setShowExtensionModal] = useState(false)
+
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
 
@@ -104,6 +118,7 @@ function EchauffementPageContent() {
     fetchNextMatchDate()
     fetchRemainingMatchdays()
     fetchTeamsMapping()
+    fetchPlayerExtensionInfo()
 
     // Actualiser l'effectif et les équipes toutes les 5 secondes
     const interval = setInterval(() => {
@@ -430,6 +445,98 @@ function EchauffementPageContent() {
       }
     } catch (err) {
       console.error('Error fetching teams mapping:', err)
+    }
+  }
+
+  // Récupérer les infos d'extension de joueurs pour Free-Kick
+  const fetchPlayerExtensionInfo = async () => {
+    if (!tournament?.id || tournament.tournament_type !== 'free') return
+
+    try {
+      const response = await fetch(`/api/tournaments/extend-players?tournamentId=${tournament.id}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setPlayerExtensionInfo({
+          canExtend: data.canExtend,
+          isCaptain: data.isCaptain,
+          hasCredit: data.hasCredit,
+          currentMaxPlayers: data.currentMaxPlayers,
+          newMaxPlayers: data.newMaxPlayers,
+          playersExtended: data.playersExtended,
+          price: data.price,
+          extensionAmount: data.extensionAmount
+        })
+      }
+    } catch (err) {
+      console.error('Error fetching player extension info:', err)
+    }
+  }
+
+  // Acheter un crédit d'extension
+  const handleBuyExtension = async () => {
+    if (!tournament?.id) return
+
+    setExtensionLoading(true)
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purchaseType: 'player_extension',
+          tournamentId: tournament.id,
+          successUrl: `${window.location.origin}/${tournamentSlug}/echauffement?extension=success`,
+          cancelUrl: `${window.location.origin}/${tournamentSlug}/echauffement?extension=cancelled`
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.error || 'Erreur lors de la création du paiement')
+      }
+    } catch (err: any) {
+      console.error('Error creating checkout session:', err)
+      alert(err.message || 'Erreur lors de la création du paiement')
+    } finally {
+      setExtensionLoading(false)
+    }
+  }
+
+  // Appliquer l'extension avec un crédit existant
+  const handleApplyExtension = async () => {
+    if (!tournament?.id) return
+
+    setExtensionLoading(true)
+    try {
+      const response = await fetch('/api/tournaments/extend-players', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tournamentId: tournament.id })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Mettre à jour le tournoi localement
+        setTournament({ ...tournament, max_players: data.newMaxPlayers })
+        setShowExtensionModal(false)
+        // Rafraîchir les infos d'extension
+        fetchPlayerExtensionInfo()
+        alert(`Extension appliquée ! Vous avez maintenant ${data.newMaxPlayers} places disponibles.`)
+      } else if (data.requiresPayment) {
+        // Rediriger vers le paiement
+        handleBuyExtension()
+      } else {
+        throw new Error(data.error || 'Erreur lors de l\'extension')
+      }
+    } catch (err: any) {
+      console.error('Error applying extension:', err)
+      alert(err.message || 'Erreur lors de l\'extension')
+    } finally {
+      setExtensionLoading(false)
     }
   }
 
@@ -1003,6 +1110,80 @@ function EchauffementPageContent() {
         </div>
       )}
 
+      {/* Modal d'extension de joueurs Free-Kick */}
+      {showExtensionModal && playerExtensionInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-purple-500">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold theme-text mb-2">
+                Renfort du banc
+              </h3>
+              <p className="theme-text-secondary">
+                Étendez votre tournoi Free-Kick de <span className="font-bold text-purple-500">{playerExtensionInfo.currentMaxPlayers}</span> à <span className="font-bold text-purple-500">{playerExtensionInfo.newMaxPlayers}</span> joueurs
+              </p>
+            </div>
+
+            <div className="bg-purple-500/10 border-l-4 border-purple-500 p-4 mb-6 rounded">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-purple-400 font-semibold">
+                    +{playerExtensionInfo.extensionAmount} places supplémentaires
+                  </p>
+                  <p className="text-xs theme-text-secondary mt-1">
+                    Extension unique par tournoi
+                  </p>
+                </div>
+                <div className="text-2xl font-bold text-purple-500">
+                  {playerExtensionInfo.price}€
+                </div>
+              </div>
+            </div>
+
+            {playerExtensionInfo.hasCredit && (
+              <div className="bg-green-500/10 border-l-4 border-green-500 p-4 mb-6 rounded">
+                <p className="text-sm text-green-400">
+                  <strong>Crédit disponible !</strong> Vous avez un crédit d'extension non utilisé.
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExtensionModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
+                disabled={extensionLoading}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={playerExtensionInfo.hasCredit ? handleApplyExtension : handleBuyExtension}
+                disabled={extensionLoading}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition font-semibold disabled:opacity-50"
+              >
+                {extensionLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Chargement...
+                  </span>
+                ) : playerExtensionInfo.hasCredit ? (
+                  'Utiliser mon crédit'
+                ) : (
+                  `Acheter pour ${playerExtensionInfo.price}€`
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <Navigation
         username={username}
@@ -1315,6 +1496,22 @@ function EchauffementPageContent() {
                       <span className="dark-text-accent">Supprimer une place</span>
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Bouton Extension de joueurs pour Free-Kick (visible pour tous) */}
+              {tournament.tournament_type === 'free' && playerExtensionInfo?.canExtend && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowExtensionModal(true)}
+                    className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white transition font-semibold"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>Étendre à {playerExtensionInfo.newMaxPlayers} joueurs (+{playerExtensionInfo.extensionAmount})</span>
+                    <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-sm">{playerExtensionInfo.price}€</span>
+                  </button>
                 </div>
               )}
 

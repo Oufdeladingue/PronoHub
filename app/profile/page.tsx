@@ -13,6 +13,107 @@ import UserQuotasCard from '@/components/UserQuotasCard'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 
+// Composant jauge en demi-cercle avec couleur dynamique
+function SemiCircleGauge({
+  percentage,
+  label,
+  subLabel,
+  invertColors = false
+}: {
+  percentage: number
+  label: string
+  subLabel?: string
+  invertColors?: boolean
+}) {
+  // Calcul de la couleur en fonction du pourcentage
+  // Normal: rouge (0%) -> orange (50%) -> vert (100%)
+  // Inversé: vert (0%) -> orange (50%) -> rouge (100%)
+  const getColor = (pct: number, invert: boolean) => {
+    const p = invert ? 100 - pct : pct
+    if (p <= 33) {
+      // Rouge vers orange
+      const ratio = p / 33
+      const r = 239
+      const g = Math.round(68 + (146 - 68) * ratio)
+      const b = Math.round(68 + (0 - 68) * ratio)
+      return `rgb(${r}, ${g}, ${b})`
+    } else if (p <= 66) {
+      // Orange vers jaune-vert
+      const ratio = (p - 33) / 33
+      const r = Math.round(239 - (239 - 132) * ratio)
+      const g = Math.round(146 + (204 - 146) * ratio)
+      const b = Math.round(0 + (22 - 0) * ratio)
+      return `rgb(${r}, ${g}, ${b})`
+    } else {
+      // Jaune-vert vers vert
+      const ratio = (p - 66) / 34
+      const r = Math.round(132 - (132 - 34) * ratio)
+      const g = Math.round(204 - (204 - 197) * ratio)
+      const b = Math.round(22 + (94 - 22) * ratio)
+      return `rgb(${r}, ${g}, ${b})`
+    }
+  }
+
+  const color = getColor(percentage, invertColors)
+
+  // L'arc fait 180 degrés (demi-cercle)
+  // strokeDasharray = circonférence du demi-cercle
+  // strokeDashoffset = partie non remplie
+  const radius = 45
+  const circumference = Math.PI * radius // Demi-cercle
+  const strokeDashoffset = circumference - (percentage / 100) * circumference
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-28 h-16">
+        <svg
+          viewBox="0 0 100 55"
+          className="w-full h-full"
+        >
+          {/* Arc de fond (gris) */}
+          <path
+            d="M 5 50 A 45 45 0 0 1 95 50"
+            fill="none"
+            strokeWidth="8"
+            strokeLinecap="round"
+            className="stroke-gray-200 dark-stroke-secondary"
+          />
+          {/* Arc de progression (coloré) */}
+          <path
+            d="M 5 50 A 45 45 0 0 1 95 50"
+            fill="none"
+            stroke={color}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            style={{
+              transition: 'stroke-dashoffset 0.5s ease-out, stroke 0.3s ease'
+            }}
+          />
+        </svg>
+        {/* Pourcentage au centre */}
+        <div className="absolute inset-0 flex items-end justify-center pb-0">
+          <span
+            className="text-2xl font-bold"
+            style={{ color }}
+          >
+            {percentage}%
+          </span>
+        </div>
+      </div>
+      <div className="text-sm font-medium theme-text mt-2 text-center">
+        {label}
+      </div>
+      {subLabel && (
+        <div className="text-xs theme-text-secondary text-center">
+          {subLabel}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProfileContent() {
   const { refreshUserData } = useUser()
   const [activeTab, setActiveTab] = useState('profil')
@@ -900,38 +1001,27 @@ function ProfileContent() {
                     <h3 className="text-lg font-semibold theme-text mb-4">Mes pronostics</h3>
                     {stats.totalFinishedMatches > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="stat-card border-orange-200 bg-orange-50">
-                          <div className="stat-number text-orange-600">
-                            {stats.correctResultsPercentage}%
-                          </div>
-                          <div className="text-sm theme-text-secondary mt-1">
-                            Bons résultats
-                          </div>
-                          <div className="text-xs theme-text-secondary mt-2">
-                            Sur {stats.totalFinishedMatches} matchs terminés
-                          </div>
+                        <div className="stat-card border-transparent">
+                          <SemiCircleGauge
+                            percentage={stats.correctResultsPercentage}
+                            label="Bons résultats"
+                            subLabel={`Sur ${stats.totalFinishedMatches} matchs`}
+                          />
                         </div>
-                        <div className="stat-card border-yellow-200 bg-yellow-50">
-                          <div className="stat-number text-yellow-600">
-                            {stats.exactScoresPercentage}%
-                          </div>
-                          <div className="text-sm theme-text-secondary mt-1">
-                            Scores exacts
-                          </div>
-                          <div className="text-xs theme-text-secondary mt-2">
-                            Sur {stats.totalFinishedMatches} matchs terminés
-                          </div>
+                        <div className="stat-card border-transparent">
+                          <SemiCircleGauge
+                            percentage={stats.exactScoresPercentage}
+                            label="Scores exacts"
+                            subLabel={`Sur ${stats.totalFinishedMatches} matchs`}
+                          />
                         </div>
-                        <div className="stat-card border-red-200 bg-red-50">
-                          <div className="stat-number text-red-600">
-                            {stats.defaultPredictionsPercentage}%
-                          </div>
-                          <div className="text-sm theme-text-secondary mt-1">
-                            Non renseignés
-                          </div>
-                          <div className="text-xs theme-text-secondary mt-2">
-                            Pronos par défaut (0-0)
-                          </div>
+                        <div className="stat-card border-transparent">
+                          <SemiCircleGauge
+                            percentage={stats.defaultPredictionsPercentage}
+                            label="Non renseignés"
+                            subLabel="Pronos par défaut"
+                            invertColors={true}
+                          />
                         </div>
                       </div>
                     ) : (

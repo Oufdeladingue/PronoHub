@@ -16,6 +16,8 @@ interface Competition {
   name: string
   code: string
   emblem: string | null
+  custom_emblem_white?: string | null
+  custom_emblem_color?: string | null
   area_name: string
   current_matchday: number
   remaining_matchdays: number
@@ -167,7 +169,8 @@ export default function TableauNoirPage() {
 
     switch (selectedTournamentType) {
       case 'free':
-        newMaxLimit = pricingLimits.freeMaxPlayers
+        // Free-Kick est limité à 5 joueurs max (la limite peut être étendue à 10 via achat)
+        newMaxLimit = Math.min(pricingLimits.freeMaxPlayers, 5)
         break
       case 'oneshot':
         newMaxLimit = pricingLimits.oneshotMaxPlayers
@@ -180,7 +183,7 @@ export default function TableauNoirPage() {
         newMinLimit = pricingLimits.platiniumMinPlayers
         break
       default:
-        newMaxLimit = pricingLimits.freeMaxPlayers
+        newMaxLimit = Math.min(pricingLimits.freeMaxPlayers, 5)
     }
 
     setMaxPlayersLimit(newMaxLimit)
@@ -194,6 +197,25 @@ export default function TableauNoirPage() {
       setMaxPlayers(newMinLimit)
     }
   }, [selectedTournamentType, pricingLimits])
+
+  // Mettre à jour le nombre de journées quand le type de tournoi change
+  useEffect(() => {
+    if (!competition) return
+
+    // Calculer la limite de journées selon le type
+    const maxMatchdaysForType = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
+      ? Math.min(pricingLimits.freeMaxMatchdays, competition.remaining_matchdays)
+      : competition.remaining_matchdays
+
+    // Ajuster numMatchdays si hors limites
+    if (numMatchdays > maxMatchdaysForType) {
+      setNumMatchdays(maxMatchdaysForType)
+    }
+    // Désactiver "tous restants" si on passe à free et que la limite est dépassée
+    if (allMatchdays && selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays && competition.remaining_matchdays > pricingLimits.freeMaxMatchdays) {
+      setNumMatchdays(maxMatchdaysForType)
+    }
+  }, [selectedTournamentType, pricingLimits, competition])
 
   const fetchCompetitionDetails = async () => {
     setLoading(true)
@@ -215,8 +237,11 @@ export default function TableauNoirPage() {
       if (!comp) throw new Error('Compétition non trouvée')
 
       setCompetition(comp)
-      // Initialiser le nombre de journées au maximum disponible
-      setNumMatchdays(comp.remaining_matchdays || 1)
+      // Initialiser le nombre de journées (respecter la limite Free-Kick si applicable)
+      const maxForFreeKick = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
+        ? Math.min(pricingLimits.freeMaxMatchdays, comp.remaining_matchdays || 1)
+        : comp.remaining_matchdays || 1
+      setNumMatchdays(maxForFreeKick)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -394,7 +419,8 @@ export default function TableauNoirPage() {
         userAvatar={userAvatar || 'avatar1'}
         creationContext={{
           competitionName: competition.name,
-          competitionLogo: competition.emblem,
+          competitionLogo: competition.custom_emblem_color || competition.emblem,
+          competitionLogoWhite: competition.custom_emblem_white,
           remainingMatchdays: competition.remaining_matchdays
         }}
       />
@@ -452,7 +478,7 @@ export default function TableauNoirPage() {
                   <span className={`font-medium ${selectedTournamentType === 'free' ? 'text-blue-400' : 'text-gray-300'}`}>
                     Free-Kick
                   </span>
-                  <span className="text-xs text-gray-500">Max {pricingLimits.freeMaxPlayers} joueurs</span>
+                  <span className="text-xs text-gray-500">Max 5 joueurs</span>
                   <span className="text-xs text-green-400">Gratuit</span>
                 </div>
               </button>
@@ -658,62 +684,81 @@ export default function TableauNoirPage() {
 
             {/* Nombre de journées */}
             <div>
-              <label className="block text-lg font-semibold theme-text mb-2 text-center">
-                Nombre de journées
-              </label>
-              <p className="text-sm theme-text-secondary mb-4 text-center">
-                Le tournoi se déroulera sur :
-              </p>
-              <div className="flex items-start justify-center gap-3 mb-3">
-                <button
-                  onClick={() => setNumMatchdays(Math.max(1, numMatchdays - 1))}
-                  disabled={numMatchdays <= 1 || allMatchdays}
-                  className="btn-counter"
-                >
-                  −
-                </button>
-                <div className="flex flex-col items-center">
-                  <input
-                    type="number"
-                    min="1"
-                    max={competition.remaining_matchdays}
-                    value={allMatchdays ? competition.remaining_matchdays : numMatchdays}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value)
-                      if (!isNaN(val) && val >= 1 && val <= competition.remaining_matchdays) {
-                        setNumMatchdays(val)
+              {(() => {
+                // Calcul de la limite max de journées selon le type de tournoi
+                const maxMatchdaysForType = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
+                  ? Math.min(pricingLimits.freeMaxMatchdays, competition.remaining_matchdays)
+                  : competition.remaining_matchdays
+                const isFreeKickLimited = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays && pricingLimits.freeMaxMatchdays < competition.remaining_matchdays
+                const effectiveNumMatchdays = allMatchdays ? maxMatchdaysForType : Math.min(numMatchdays, maxMatchdaysForType)
+
+                return (
+                  <>
+                    <label className="block text-lg font-semibold theme-text mb-2 text-center">
+                      Nombre de journées
+                    </label>
+                    <p className="text-sm theme-text-secondary mb-4 text-center">
+                      {isFreeKickLimited
+                        ? `Limité à ${pricingLimits.freeMaxMatchdays} journées en Free-Kick`
+                        : 'Le tournoi se déroulera sur :'
                       }
-                    }}
-                    disabled={allMatchdays}
-                    className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                  <span className="text-xs theme-text-secondary mt-1">journées</span>
-                </div>
-                <button
-                  onClick={() => setNumMatchdays(Math.min(competition.remaining_matchdays, numMatchdays + 1))}
-                  disabled={numMatchdays >= competition.remaining_matchdays || allMatchdays}
-                  className="btn-counter"
-                >
-                  +
-                </button>
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <label className="text-sm theme-text">
-                  Tous restants ({competition.remaining_matchdays})
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAllMatchdays(!allMatchdays)
-                    if (!allMatchdays) {
-                      setNumMatchdays(competition.remaining_matchdays)
-                    }
-                  }}
-                  className={`toggle-switch ${allMatchdays ? 'active' : ''}`}
-                >
-                  <span className="toggle-switch-knob" />
-                </button>
-              </div>
+                    </p>
+                    <div className="flex items-start justify-center gap-3 mb-3">
+                      <button
+                        onClick={() => setNumMatchdays(Math.max(1, numMatchdays - 1))}
+                        disabled={numMatchdays <= 1 || allMatchdays}
+                        className="btn-counter"
+                      >
+                        −
+                      </button>
+                      <div className="flex flex-col items-center">
+                        <input
+                          type="number"
+                          min="1"
+                          max={maxMatchdaysForType}
+                          value={effectiveNumMatchdays}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value)
+                            if (!isNaN(val) && val >= 1 && val <= maxMatchdaysForType) {
+                              setNumMatchdays(val)
+                            }
+                          }}
+                          disabled={allMatchdays}
+                          className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className="text-xs theme-text-secondary mt-1">journées</span>
+                      </div>
+                      <button
+                        onClick={() => setNumMatchdays(Math.min(maxMatchdaysForType, numMatchdays + 1))}
+                        disabled={numMatchdays >= maxMatchdaysForType || allMatchdays}
+                        className="btn-counter"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-center gap-2">
+                      <label className="text-sm theme-text">
+                        {isFreeKickLimited
+                          ? `Maximum (${maxMatchdaysForType})`
+                          : `Tous restants (${maxMatchdaysForType})`
+                        }
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAllMatchdays(!allMatchdays)
+                          if (!allMatchdays) {
+                            setNumMatchdays(maxMatchdaysForType)
+                          }
+                        }}
+                        className={`toggle-switch ${allMatchdays ? 'active' : ''}`}
+                      >
+                        <span className="toggle-switch-knob" />
+                      </button>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
 
@@ -744,7 +789,7 @@ export default function TableauNoirPage() {
                 Prime d'avant-match
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center flex-1">
-                1 point supplémentaire si tous les pronos sont renseignés avant le début du premier match<br />(aide à lutter contre les forfaits)
+                1 point supplémentaire si tous les pronos sont renseignés avant le début de la journée de compétition<br />(aide à lutter contre les forfaits)
               </p>
               <div className="flex justify-center">
                 <button

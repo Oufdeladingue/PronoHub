@@ -271,7 +271,7 @@ export default function UserQuotasCard() {
       {/* Action 2: Rejoindre un tournoi */}
       <div className="rounded-xl border-2 border-green-500/30 overflow-hidden transition-all hover:border-green-500/60">
         <Link
-          href="/rejoindre"
+          href="/dashboard?action=join"
           className="w-full p-4 flex items-center gap-4 text-left"
         >
           <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center flex-shrink-0">

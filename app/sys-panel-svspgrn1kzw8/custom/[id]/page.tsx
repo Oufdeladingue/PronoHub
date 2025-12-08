@@ -90,6 +90,43 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
     return sunday
   }
 
+  // Trouver la première semaine disponible (non assignée) après la dernière journée
+  function getFirstAvailableWeek(): { start: string; end: string } {
+    if (matchdays.length === 0) {
+      // Pas de journées existantes, proposer la semaine courante
+      return {
+        start: getMonday(new Date()).toISOString().split('T')[0],
+        end: getSunday(new Date()).toISOString().split('T')[0]
+      }
+    }
+
+    // Trouver la dernière semaine assignée (week_end le plus tardif)
+    const sortedMatchdays = [...matchdays].sort((a, b) =>
+      new Date(b.week_end).getTime() - new Date(a.week_end).getTime()
+    )
+    const lastWeekEnd = new Date(sortedMatchdays[0].week_end)
+
+    // La semaine suivante commence le lundi après cette date
+    const nextMonday = new Date(lastWeekEnd)
+    nextMonday.setDate(nextMonday.getDate() + 1) // Jour après le dimanche = lundi
+
+    // S'assurer qu'on est bien sur un lundi
+    const monday = getMonday(nextMonday)
+    const sunday = getSunday(monday)
+
+    return {
+      start: monday.toISOString().split('T')[0],
+      end: sunday.toISOString().split('T')[0]
+    }
+  }
+
+  // Ouvrir le modal de création avec la bonne semaine par défaut
+  function openCreateModal() {
+    const availableWeek = getFirstAvailableWeek()
+    setSelectedWeek(availableWeek)
+    setShowCreateModal(true)
+  }
+
   function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('fr-FR', {
       weekday: 'short',
@@ -370,7 +407,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                 </p>
               </div>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={openCreateModal}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
               >
                 <Plus className="w-5 h-5" />
@@ -403,7 +440,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">Aucune journée créée</p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={openCreateModal}
                 className="text-purple-600 hover:text-purple-700 font-medium"
               >
                 Créer la première journée

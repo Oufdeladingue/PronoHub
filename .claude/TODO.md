@@ -6,8 +6,8 @@ Ce fichier doit être lu au début de chaque session de travail.
 
 ### Platinium
 - [x] Implémentation des slots payés en Platinium
-- [ ] Implémentation du cadeau dans les règles du Platinium
-- [ ] Remise Platinium codée en dur et non récupérée depuis l'admin (à corriger)
+- [x] Implémentation du cadeau dans les règles du Platinium
+- [x] Remise Platinium codée en dur et non récupérée depuis l'admin (à corriger)
 
 ### Nouveaux types de tournois
 - [x] Création de tournoi "Les plus belles affiches"
@@ -34,9 +34,9 @@ Ce fichier doit être lu au début de chaque session de travail.
 - [x] Accélération chargement stats
 
 ### Fonctionnalités diverses
-- [ ] Accès aux tournois terminés
+- [x] Accès aux tournois terminés
 - [ ] Gestion des rappels mails
 
 ---
 
-*Dernière mise à jour : 5 décembre 2024*
+*Dernière mise à jour : 8 décembre 2024*

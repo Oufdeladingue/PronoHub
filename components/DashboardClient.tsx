@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
@@ -18,6 +18,17 @@ function formatMatchDate(dateString: string) {
   const minutes = date.getMinutes().toString().padStart(2, '0')
 
   return `${day}/${month} à ${hours}h${minutes}`
+}
+
+// Fonction pour formater la date de fin au format "dd/mm/yyyy"
+function formatEndDate(dateString: string) {
+  const date = new Date(dateString)
+
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}/${month}/${year}`
 }
 
 interface QuotasInfo {
@@ -87,6 +98,7 @@ function DashboardContent({
   adminPath = 'admin'
 }: DashboardClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
@@ -114,6 +126,16 @@ function DashboardContent({
   } | null>(null)
   const [isUsingSlot, setIsUsingSlot] = useState(false)
 
+  // Ouvrir le champ de jointure si ?action=join dans l'URL
+  useEffect(() => {
+    const action = searchParams.get('action')
+    if (action === 'join') {
+      setShowJoinInput(true)
+      // Nettoyer l'URL sans recharger la page
+      router.replace('/dashboard', { scroll: false })
+    }
+  }, [searchParams, router])
+
   // Fonction pour rediriger vers Stripe checkout
   const handleCheckout = async (purchaseType: string) => {
     setIsCheckoutLoading(purchaseType)
@@ -137,8 +159,15 @@ function DashboardContent({
   }
 
   // Séparer les tournois actifs/en attente des tournois terminés
-  const activeTournaments = tournaments.filter(t => t.status !== 'finished')
-  const finishedTournaments = tournaments.filter(t => t.status === 'finished')
+  const activeTournaments = tournaments.filter(t => t.status !== 'finished' && t.status !== 'completed')
+  // Trier les tournois terminés par date du dernier match (plus récent en premier)
+  const finishedTournaments = tournaments
+    .filter(t => t.status === 'finished' || t.status === 'completed')
+    .sort((a, b) => {
+      const dateA = a.lastMatchDate ? new Date(a.lastMatchDate).getTime() : 0
+      const dateB = b.lastMatchDate ? new Date(b.lastMatchDate).getTime() : 0
+      return dateB - dateA // Décroissant (plus récent en premier)
+    })
   const hasArchivedTournaments = finishedTournaments.length > 0 || leftTournaments.length > 0
 
   const handleJoinTournament = async () => {
@@ -383,7 +412,7 @@ function DashboardContent({
                               En cours
                             </>
                           )}
-                          {tournament.status === 'finished' && 'Terminé'}
+                          {(tournament.status === 'finished' || tournament.status === 'completed') && 'Terminé'}
                         </span>
                       </div>
 
@@ -463,7 +492,7 @@ function DashboardContent({
                               En cours
                             </>
                           )}
-                          {tournament.status === 'finished' && 'Terminé'}
+                          {(tournament.status === 'finished' || tournament.status === 'completed') && 'Terminé'}
                         </span>
                         <p className="text-xs theme-text-secondary mt-1">
                           {tournament.status === 'pending' || tournament.status === 'warmup'
@@ -521,7 +550,7 @@ function DashboardContent({
                         {finishedTournaments.map((tournament) => (
                           <a
                             key={tournament.id}
-                            href={`/${tournament.slug}/opposition`}
+                            href={`/${tournament.slug}/opposition?tab=classement`}
                             className="archived-card relative flex items-center gap-4 p-3 border theme-border rounded-lg transition-colors"
                           >
                             {/* Badge type de tournoi */}
@@ -557,15 +586,36 @@ function DashboardContent({
 
                             {/* Informations du tournoi */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium theme-text text-sm truncate">{tournament.name}</h4>
+                              <h4 className="font-medium theme-text text-sm truncate">
+                                {tournament.name}
+                                {tournament.userRank && tournament.totalParticipants > 0 && (
+                                  <span className="theme-text-secondary font-normal">
+                                    {' '}({tournament.userRank === 1 ? '1er' : `${tournament.userRank}ème`}/{tournament.totalParticipants})
+                                  </span>
+                                )}
+                              </h4>
                               <p className="text-xs theme-text-secondary">{tournament.competition_name}</p>
+                              {tournament.lastMatchDate && (
+                                <p className="text-xs theme-text-secondary mt-0.5">
+                                  Terminé le {formatEndDate(tournament.lastMatchDate)}
+                                </p>
+                              )}
                             </div>
 
-                            {/* Badge "Terminé" */}
-                            <div className="flex-shrink-0">
-                              <span className="badge-finished px-2 py-1 rounded text-[10px] font-bold uppercase">
+                            {/* Badge "Terminé" + Vainqueur */}
+                            <div className="flex-shrink-0 text-right">
+                              <span className="badge-finished px-2 py-1 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
                                 Terminé
                               </span>
+                              {tournament.winner && (
+                                <p className="text-[10px] theme-text-secondary mt-1 flex items-center justify-end gap-1">
+                                  <img src="/images/icons/king.svg" alt="" className="w-3 h-3 icon-filter-yellow" />
+                                  Vainqueur : {tournament.winner}
+                                </p>
+                              )}
                             </div>
                           </a>
                         ))}
@@ -622,7 +672,12 @@ function DashboardContent({
 
                             {/* Badge "Quitté" */}
                             <div className="flex-shrink-0">
-                              <span className="badge-left px-2 py-1 rounded text-[10px] font-bold uppercase">
+                              <span className="badge-left px-2 py-1 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                  <polyline points="16 17 21 12 16 7"/>
+                                  <line x1="21" y1="12" x2="9" y2="12"/>
+                                </svg>
                                 Quitté
                               </span>
                             </div>

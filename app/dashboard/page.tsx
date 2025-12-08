@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
 import { isSuperAdmin } from '@/lib/auth-helpers'
@@ -268,6 +269,130 @@ export default async function DashboardPage() {
     }
   }
 
+  // Récupérer la date du dernier match et les infos de classement pour les tournois terminés
+  const lastMatchDates: Record<string, string | null> = {}
+  const tournamentRankings: Record<string, { winner: string | null, userRank: number | null, totalParticipants: number }> = {}
+
+  for (const t of userTournaments || []) {
+    if (t.status === 'finished' || t.status === 'completed') {
+      // Vérifier si le classement final est déjà stocké en BDD
+      const { data: tournamentWithRankings } = await supabase
+        .from('tournaments')
+        .select('final_rankings')
+        .eq('id', t.id)
+        .single()
+
+      if (tournamentWithRankings?.final_rankings && Array.isArray(tournamentWithRankings.final_rankings) && tournamentWithRankings.final_rankings.length > 0) {
+        // Utiliser le classement final stocké
+        const finalRankings = tournamentWithRankings.final_rankings as Array<{
+          user_id: string
+          username: string
+          rank: number
+          total_points: number
+        }>
+
+        const winner = finalRankings[0]?.username || null
+        const userRanking = finalRankings.find(r => r.user_id === user.id)
+        const userRank = userRanking?.rank || null
+
+        tournamentRankings[t.id] = {
+          winner,
+          userRank,
+          totalParticipants: finalRankings.length
+        }
+      } else {
+        // Fallback: Appeler l'API de classement pour récupérer les données correctes
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+          const rankingsResponse = await fetch(`${baseUrl}/api/tournaments/${t.id}/rankings`, {
+            cache: 'no-store'
+          })
+
+          if (rankingsResponse.ok) {
+            const rankingsData = await rankingsResponse.json()
+            const rankings = rankingsData.rankings || []
+
+            if (rankings.length > 0) {
+              // Le vainqueur est le premier du classement (rang 1)
+              const winner = rankings[0]?.playerName || null
+              // Trouver la position de l'utilisateur connecté
+              const userRanking = rankings.find((r: any) => r.playerId === user.id)
+              const userRank = userRanking?.rank || null
+
+              tournamentRankings[t.id] = {
+                winner,
+                userRank,
+                totalParticipants: rankings.length
+              }
+
+              // Stocker le classement final en BDD pour les prochaines fois
+              const finalRankingsToStore = rankings.map((r: any) => ({
+                user_id: r.playerId,
+                username: r.playerName,
+                avatar: r.avatar,
+                rank: r.rank,
+                total_points: r.totalPoints,
+                exact_scores: r.exactScores,
+                correct_results: r.correctResults
+              }))
+
+              await supabase
+                .from('tournaments')
+                .update({ final_rankings: finalRankingsToStore })
+                .eq('id', t.id)
+            } else {
+              tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
+            }
+          } else {
+            tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
+          }
+        } catch (error) {
+          console.error(`[DASHBOARD] Error fetching rankings for tournament ${t.id}:`, error)
+          tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
+        }
+      }
+    }
+  }
+
+  for (const t of userTournaments || []) {
+    if (t.status === 'finished' || t.status === 'completed') {
+      // Pour les compétitions custom, chercher dans custom_matches
+      if (t.custom_competition_id) {
+        const { data: customMatches, error: customMatchError } = await supabase
+          .from('custom_matches')
+          .select('utc_date')
+          .eq('custom_competition_id', t.custom_competition_id)
+          .order('utc_date', { ascending: false })
+          .limit(1)
+
+        if (!customMatchError && customMatches && customMatches.length > 0) {
+          lastMatchDates[t.id] = customMatches[0].utc_date
+        } else {
+          lastMatchDates[t.id] = null
+        }
+      } else {
+        // Pour les compétitions standard, chercher dans imported_matches
+        const startMatchday = t.starting_matchday || 1
+        const endMatchday = t.ending_matchday || 38
+
+        const { data: matches, error: matchError } = await supabase
+          .from('imported_matches')
+          .select('utc_date')
+          .eq('competition_id', t.competition_id)
+          .gte('matchday', startMatchday)
+          .lte('matchday', endMatchday)
+          .order('utc_date', { ascending: false })
+          .limit(1)
+
+        if (!matchError && matches && matches.length > 0) {
+          lastMatchDates[t.id] = matches[0].utc_date
+        } else {
+          lastMatchDates[t.id] = null
+        }
+      }
+    }
+  }
+
   // Formater les données pour un accès plus facile
   const tournaments = (userTournaments || []).map((t: any) => {
     // Créer le slug complet : nom-du-tournoi_CODE
@@ -302,7 +427,12 @@ export default async function DashboardPage() {
       isCaptain: t.creator_id === user.id,
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null,
-      tournament_type: t.tournament_type || 'free'
+      lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés
+      tournament_type: t.tournament_type || 'free',
+      // Infos de classement pour tournois terminés
+      winner: tournamentRankings[t.id]?.winner || null,
+      userRank: tournamentRankings[t.id]?.userRank || null,
+      totalParticipants: tournamentRankings[t.id]?.totalParticipants || 0
     }
 
     console.log(`[DASHBOARD] Tournament ${t.name}:`, {
@@ -349,33 +479,35 @@ export default async function DashboardPage() {
         userAvatar={profile?.avatar || 'avatar1'}
         context="app"
       />
-      <DashboardClient
-        username={profile?.username || 'utilisateur'}
-        avatar={profile?.avatar || 'avatar1'}
-        isSuper={isSuper}
-        canCreateTournament={canCreateTournament}
-        hasSubscription={hasSubscription}
-        quotas={{
-          freeTournaments: freeTournamentsParticipating,
-          freeTournamentsMax: FREE_KICK_MAX,
-          canCreateFree,
-          canJoinFree,
-          // Compteurs par type de tournoi créé
-          oneshotCreated,
-          eliteCreated,
-          platiniumCreated,
-          // Legacy (à garder pour compatibilité)
-          premiumTournaments: premiumTournamentsCreated,
-          premiumTournamentsMax: hasSubscription ? 5 : 0,
-          oneshotSlotsAvailable: oneshotSlotsAvailable || 0,
-          canCreatePremium,
-          canCreateOneshot,
-        }}
-        credits={credits}
-        tournaments={tournaments}
-        leftTournaments={leftTournamentsList}
-        adminPath={getAdminPath()}
-      />
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div></div>}>
+        <DashboardClient
+          username={profile?.username || 'utilisateur'}
+          avatar={profile?.avatar || 'avatar1'}
+          isSuper={isSuper}
+          canCreateTournament={canCreateTournament}
+          hasSubscription={hasSubscription}
+          quotas={{
+            freeTournaments: freeTournamentsParticipating,
+            freeTournamentsMax: FREE_KICK_MAX,
+            canCreateFree,
+            canJoinFree,
+            // Compteurs par type de tournoi créé
+            oneshotCreated,
+            eliteCreated,
+            platiniumCreated,
+            // Legacy (à garder pour compatibilité)
+            premiumTournaments: premiumTournamentsCreated,
+            premiumTournamentsMax: hasSubscription ? 5 : 0,
+            oneshotSlotsAvailable: oneshotSlotsAvailable || 0,
+            canCreatePremium,
+            canCreateOneshot,
+          }}
+          credits={credits}
+          tournaments={tournaments}
+          leftTournaments={leftTournamentsList}
+          adminPath={getAdminPath()}
+        />
+      </Suspense>
     </div>
   )
 }

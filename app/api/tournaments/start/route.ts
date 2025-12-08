@@ -118,8 +118,62 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      competition = importedCompetition
-      console.log('[START] Competition found:', importedCompetition.name, 'Current matchday:', importedCompetition.current_matchday)
+      // Trouver la première journée COMPLÈTEMENT jouable
+      // Une journée est jouable si TOUS ses matchs ne sont pas encore clôturés (30min avant le premier match)
+      const now = new Date()
+      const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
+      const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
+
+      // Récupérer tous les matchs futurs groupés par journée
+      const { data: allFutureMatches } = await supabase
+        .from('imported_matches')
+        .select('matchday, utc_date')
+        .eq('competition_id', tournament.competition_id)
+        .order('matchday', { ascending: true })
+
+      // Trouver la première journée où TOUS les matchs sont encore jouables
+      let firstPlayableMatchday: number | null = null
+
+      if (allFutureMatches && allFutureMatches.length > 0) {
+        // Grouper les matchs par journée
+        const matchesByMatchday: Record<number, string[]> = {}
+        allFutureMatches.forEach(match => {
+          if (!matchesByMatchday[match.matchday]) {
+            matchesByMatchday[match.matchday] = []
+          }
+          matchesByMatchday[match.matchday].push(match.utc_date)
+        })
+
+        // Trouver la première journée où le premier match n'est pas encore clôturé
+        const sortedMatchdays = Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b)
+
+        for (const matchday of sortedMatchdays) {
+          const matchDates = matchesByMatchday[matchday]
+          // Trier les dates pour trouver le premier match de la journée
+          const firstMatchDate = matchDates.sort()[0]
+
+          // Si le premier match de cette journée n'est pas encore clôturé, c'est la journée de départ
+          if (firstMatchDate > closingTime) {
+            firstPlayableMatchday = matchday
+            break
+          }
+        }
+      }
+
+      // Fallback sur current_matchday si aucune journée trouvée
+      if (!firstPlayableMatchday) {
+        firstPlayableMatchday = (importedCompetition.current_matchday || 0) + 1
+      }
+
+      console.log('[START] Competition found:', importedCompetition.name,
+        'Current matchday:', importedCompetition.current_matchday,
+        'First fully playable matchday:', firstPlayableMatchday)
+
+      // On stocke firstPlayableMatchday - 1 pour que le calcul startingMatchday = current + 1 donne le bon résultat
+      competition = {
+        ...importedCompetition,
+        current_matchday: firstPlayableMatchday - 1
+      }
     } else {
       return NextResponse.json(
         { error: 'Tournament has no competition associated' },

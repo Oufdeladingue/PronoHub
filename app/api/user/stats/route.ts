@@ -51,7 +51,7 @@ export async function GET(request: Request) {
 
     const totalTournaments = tournaments.length
     const activeTournaments = tournaments.filter((t: any) => t.tournaments.status === 'active').length
-    const finishedTournaments = tournaments.filter((t: any) => t.tournaments.status === 'finished').length
+    const finishedTournaments = tournaments.filter((t: any) => t.tournaments.status === 'finished' || t.tournaments.status === 'completed').length
 
     // ============================================
     // ÉTAPE 3 : Calculer les stats de pronostics (optimisé - plus de requête supplémentaire)
@@ -105,7 +105,7 @@ export async function GET(request: Request) {
 
     let firstPlacesFinal = 0
     const finishedTournamentIds = tournaments
-      .filter((t: any) => t.tournaments.status === 'finished')
+      .filter((t: any) => t.tournaments.status === 'finished' || t.tournaments.status === 'completed')
       .map((t: any) => t.tournament_id)
 
     if (finishedTournamentIds.length > 0) {

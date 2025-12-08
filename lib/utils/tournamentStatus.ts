@@ -26,7 +26,7 @@ export function getTournamentStatus(
   const { status, current_participants, max_players, current_matchday = 0, num_matchdays } = tournament
 
   // Remise des trophées (tournoi terminé)
-  if (status === 'finished') {
+  if (status === 'finished' || status === 'completed') {
     return {
       type: 'awards',
       label: 'Remise des trophées',

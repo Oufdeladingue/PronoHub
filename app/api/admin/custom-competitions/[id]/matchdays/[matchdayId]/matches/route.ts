@@ -93,6 +93,7 @@ export async function GET(
     // Utiliser les données de imported_matches via football_data_match_id, sinon fallback sur le cache
     const formattedMatches = (matches || []).map(match => {
       const im = importedMatchesMap[match.football_data_match_id]
+      const utcDate = im?.utc_date || match.cached_utc_date
       return {
         id: match.id,
         custom_matchday_id: match.custom_matchday_id,
@@ -106,7 +107,14 @@ export async function GET(
         away_team: im?.away_team_name || match.cached_away_team,
         home_logo: im?.home_team_crest || match.cached_home_logo,
         away_logo: im?.away_team_crest || match.cached_away_logo,
-        utc_date: im?.utc_date || match.cached_utc_date,
+        utc_date: utcDate,
+        // Aussi retourner les noms cached_ pour compatibilité avec le frontend
+        cached_home_team: im?.home_team_name || match.cached_home_team,
+        cached_away_team: im?.away_team_name || match.cached_away_team,
+        cached_home_logo: im?.home_team_crest || match.cached_home_logo,
+        cached_away_logo: im?.away_team_crest || match.cached_away_logo,
+        cached_utc_date: utcDate,
+        cached_competition_name: im?.competitions?.name || match.cached_competition_name,
         status: im?.status || 'SCHEDULED',
         home_score: im?.home_score,
         away_score: im?.away_score,

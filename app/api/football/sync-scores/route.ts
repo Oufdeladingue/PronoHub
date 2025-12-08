@@ -1,7 +1,77 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
+
+/**
+ * Vérifie si les tournois actifs sont terminés et les passe en statut "completed"
+ * Un tournoi est terminé quand TOUS les matchs de TOUTES ses journées sont FINISHED
+ * (gère le cas des matchs décalés sur des journées antérieures)
+ */
+async function checkAndFinishTournaments(
+  supabase: SupabaseClient,
+  competitionIds: number[]
+): Promise<{ id: string; name: string }[]> {
+  const finishedTournaments: { id: string; name: string }[] = []
+
+  try {
+    // Récupérer les tournois actifs pour ces compétitions
+    const { data: activeTournaments, error: tournamentsError } = await supabase
+      .from('tournaments')
+      .select('id, name, competition_id, starting_matchday, ending_matchday')
+      .eq('status', 'active')
+      .in('competition_id', competitionIds)
+
+    if (tournamentsError || !activeTournaments || activeTournaments.length === 0) {
+      return finishedTournaments
+    }
+
+    // Pour chaque tournoi actif, vérifier si TOUTES les journées sont terminées
+    for (const tournament of activeTournaments) {
+      if (!tournament.starting_matchday || !tournament.ending_matchday) continue
+
+      // Récupérer TOUS les matchs du tournoi (de starting_matchday à ending_matchday)
+      const { data: allTournamentMatches, error: matchesError } = await supabase
+        .from('imported_matches')
+        .select('id, matchday, status, finished')
+        .eq('competition_id', tournament.competition_id)
+        .gte('matchday', tournament.starting_matchday)
+        .lte('matchday', tournament.ending_matchday)
+
+      if (matchesError || !allTournamentMatches || allTournamentMatches.length === 0) {
+        continue
+      }
+
+      // Vérifier si TOUS les matchs de TOUTES les journées sont terminés
+      const allMatchesFinished = allTournamentMatches.every(
+        match => match.status === 'FINISHED' || match.finished === true
+      )
+
+      if (allMatchesFinished) {
+        // Passer le tournoi en statut "completed"
+        const { error: updateError } = await supabase
+          .from('tournaments')
+          .update({
+            status: 'completed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', tournament.id)
+
+        if (!updateError) {
+          console.log(`[SYNC] Tournament "${tournament.name}" (${tournament.id}) marked as completed - all ${allTournamentMatches.length} matches finished`)
+          finishedTournaments.push({ id: tournament.id, name: tournament.name })
+        } else {
+          console.error(`[SYNC] Failed to finish tournament ${tournament.id}:`, updateError)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[SYNC] Error checking tournaments to finish:', error)
+  }
+
+  return finishedTournaments
+}
 
 /**
  * API pour synchroniser les scores des matchs en cours et terminés
@@ -127,11 +197,15 @@ export async function GET(request: Request) {
       }
     }
 
-    // 4. Retourner le résultat
+    // 4. Vérifier et mettre à jour les tournois terminés
+    const finishedTournaments = await checkAndFinishTournaments(supabase, competitionsToSync)
+
+    // 5. Retourner le résultat
     return NextResponse.json({
       success: true,
       message: `Synchronized ${totalUpdated} match(es)`,
       updatedMatches: totalUpdated,
+      finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
       errors: totalErrors > 0 ? errors : undefined,
       competitionsSync: competitionsToSync.length
     })

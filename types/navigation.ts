@@ -32,6 +32,7 @@ export interface AdminNavContext {
 export interface CreationNavContext {
   competitionName: string
   competitionLogo?: string | null
+  competitionLogoWhite?: string | null
   remainingMatchdays: number
 }
 

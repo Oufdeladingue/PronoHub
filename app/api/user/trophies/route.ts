@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { calculatePoints, type PointsSettings } from '@/lib/scoring'
 
 // GET - Lecture simple des trophées depuis la BDD (rapide)
 export async function GET(request: Request) {
@@ -63,7 +64,7 @@ export async function PUT(request: Request) {
       existingTrophiesResult,
       bonusMatchesResult
     ] = await Promise.all([
-      // Tous les tournois de l'utilisateur avec détails
+      // Tous les tournois de l'utilisateur avec détails (incluant scoring settings)
       supabase
         .from('tournament_participants')
         .select(`
@@ -71,7 +72,8 @@ export async function PUT(request: Request) {
           user_id,
           total_points,
           tournaments!inner(
-            id, status, starting_matchday, ending_matchday, competition_id
+            id, status, starting_matchday, ending_matchday, competition_id,
+            scoring_exact_score, scoring_correct_winner, scoring_default_prediction_max
           )
         `)
         .eq('user_id', user.id),
@@ -131,7 +133,8 @@ export async function PUT(request: Request) {
     const { data: allPredictions } = await supabase
       .from('predictions')
       .select(`
-        user_id, points_earned, tournament_id, match_id,
+        user_id, tournament_id, match_id,
+        predicted_home_score, predicted_away_score, is_default_prediction,
         imported_matches!inner(
           id, matchday, status, finished, home_score, away_score, utc_date, competition_id
         )
@@ -150,10 +153,15 @@ export async function PUT(request: Request) {
 
     // Map des matchs bonus par tournament_id
     const bonusMatchIds = new Set<string>()
+    const bonusMatchesByTournament: Record<string, Set<string>> = {}
     const tournamentIdSet = new Set(tournamentIds)
     allBonusMatches.forEach(bm => {
       if (tournamentIdSet.has(bm.tournament_id)) {
         bonusMatchIds.add(bm.match_id)
+        if (!bonusMatchesByTournament[bm.tournament_id]) {
+          bonusMatchesByTournament[bm.tournament_id] = new Set()
+        }
+        bonusMatchesByTournament[bm.tournament_id].add(bm.match_id)
       }
     })
 
@@ -216,7 +224,13 @@ export async function PUT(request: Request) {
     }
 
     // Helper pour calculer le classement d'une journée
-    const getJourneyRanking = (predictions: any[], participants: any[]) => {
+    // Calcule les points réels avec calculatePoints au lieu de lire points_earned
+    const getJourneyRanking = (
+      predictions: any[],
+      participants: any[],
+      tournamentSettings: PointsSettings,
+      bonusMatchIdsForTournament: Set<string>
+    ) => {
       const userPoints: Record<string, number> = {}
 
       // Initialiser tous les participants à 0
@@ -224,11 +238,34 @@ export async function PUT(request: Request) {
         userPoints[p.user_id] = 0
       })
 
-      // Ajouter les points des pronostics
+      // Calculer les points pour chaque pronostic
       predictions.forEach(pred => {
-        if (userPoints[pred.user_id] !== undefined) {
-          userPoints[pred.user_id] += pred.points_earned || 0
-        }
+        if (userPoints[pred.user_id] === undefined) return
+
+        const matchData = pred.imported_matches
+        const match = Array.isArray(matchData) ? matchData[0] : matchData
+        if (!match) return
+        if (match.home_score === null || match.away_score === null) return
+        if (match.status !== 'FINISHED' && match.finished !== true) return
+
+        const isBonusMatch = bonusMatchIdsForTournament.has(pred.match_id)
+        const isDefaultPrediction = pred.is_default_prediction || false
+
+        const result = calculatePoints(
+          {
+            predictedHomeScore: pred.predicted_home_score,
+            predictedAwayScore: pred.predicted_away_score
+          },
+          {
+            homeScore: match.home_score,
+            awayScore: match.away_score
+          },
+          tournamentSettings,
+          isBonusMatch,
+          isDefaultPrediction
+        )
+
+        userPoints[pred.user_id] += result.points
       })
 
       return userPoints
@@ -295,6 +332,15 @@ export async function PUT(request: Request) {
       const participants = participantsByTournament[tournamentId] || []
       if (participants.length === 0) continue
 
+      // Créer les paramètres de scoring pour ce tournoi
+      const tournamentSettings: PointsSettings = {
+        exactScore: tournament.scoring_exact_score || 3,
+        correctResult: tournament.scoring_correct_winner || 1,
+        incorrectResult: 0,
+        drawWithDefaultPrediction: tournament.scoring_default_prediction_max || 1
+      }
+      const bonusMatchIdsForTournament = bonusMatchesByTournament[tournamentId] || new Set()
+
       let consecutiveWins = 0
 
       for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
@@ -307,7 +353,7 @@ export async function PUT(request: Request) {
           continue
         }
 
-        const userPoints = getJourneyRanking(journeyPredictions, participants)
+        const userPoints = getJourneyRanking(journeyPredictions, participants, tournamentSettings, bonusMatchIdsForTournament)
         const maxPoints = Math.max(...Object.values(userPoints))
         const myPoints = userPoints[user.id] || 0
         const latestDate = getLatestDate(journeyMatches)
@@ -382,7 +428,10 @@ export async function PUT(request: Request) {
 
     // --- TROPHÉE: tournament_winner ---
     if (!existingTrophyTypes.has('tournament_winner')) {
-      const finishedTournaments = userTournaments.filter(t => getJoinedData(t.tournaments)?.status === 'finished')
+      const finishedTournaments = userTournaments.filter(t => {
+        const status = getJoinedData(t.tournaments)?.status
+        return status === 'finished' || status === 'completed'
+      })
 
       for (const t of finishedTournaments) {
         const tournament = getJoinedData(t.tournaments)
@@ -402,18 +451,43 @@ export async function PUT(request: Request) {
 
         if (!allMatchesComplete) continue
 
-        // Vérifier si l'utilisateur est premier
-        const sortedParticipants = [...participants].sort((a, b) => b.total_points - a.total_points)
-        if (sortedParticipants[0]?.user_id === user.id) {
-          // Pas d'égalité avec le 2ème
-          if (sortedParticipants.length === 1 ||
-              sortedParticipants[0].total_points !== sortedParticipants[1].total_points) {
-            // Trouver la date du dernier match
-            const lastKey = `${t.tournament_id}_${tournament.ending_matchday}`
-            const lastMatches = matchesByJourney[lastKey] || []
-            trophiesToUnlock['tournament_winner'] = getLatestDate(lastMatches)
-            break
+        // Calculer les points totaux de chaque participant (calcul dynamique)
+        const tournamentSettings: PointsSettings = {
+          exactScore: tournament.scoring_exact_score || 3,
+          correctResult: tournament.scoring_correct_winner || 1,
+          incorrectResult: 0,
+          drawWithDefaultPrediction: tournament.scoring_default_prediction_max || 1
+        }
+        const bonusMatchIdsForTournament = bonusMatchesByTournament[t.tournament_id] || new Set()
+
+        // Accumuler les points sur toutes les journées
+        const totalPointsByUser: Record<string, number> = {}
+        participants.forEach(p => { totalPointsByUser[p.user_id] = 0 })
+
+        for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
+          const key = `${t.tournament_id}_${matchday}`
+          const journeyPredictions = predictionsByJourney[key] || []
+          const userPoints = getJourneyRanking(journeyPredictions, participants, tournamentSettings, bonusMatchIdsForTournament)
+
+          for (const [uId, pts] of Object.entries(userPoints)) {
+            totalPointsByUser[uId] = (totalPointsByUser[uId] || 0) + pts
           }
+        }
+
+        // Trier les participants par points calculés
+        const sortedByPoints = Object.entries(totalPointsByUser)
+          .sort(([, a], [, b]) => b - a)
+
+        const [firstUserId, firstPoints] = sortedByPoints[0] || []
+        const [, secondPoints] = sortedByPoints[1] || [null, -1]
+
+        // Vérifier si l'utilisateur est premier sans égalité
+        if (firstUserId === user.id && firstPoints > secondPoints) {
+          // Trouver la date du dernier match
+          const lastKey = `${t.tournament_id}_${tournament.ending_matchday}`
+          const lastMatches = matchesByJourney[lastKey] || []
+          trophiesToUnlock['tournament_winner'] = getLatestDate(lastMatches)
+          break
         }
       }
     }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +12,7 @@ import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
 import Footer from '@/components/Footer'
+import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
 
 interface Tournament {
   id: string
@@ -67,14 +68,22 @@ const isMatchFinished = (match: Match): boolean => {
 
 export default function OppositionPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const tournamentSlug = params.tournamentSlug as string
+
+  // Lire le paramètre ?tab= de l'URL pour déterminer l'onglet initial
+  const tabParam = searchParams.get('tab')
+  const validTabs = ['pronostics', 'classement', 'equipes', 'regles', 'tchat'] as const
+  const initialTab = tabParam && validTabs.includes(tabParam as any)
+    ? (tabParam as 'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat')
+    : 'pronostics'
 
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(null)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>('pronostics')
+  const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>(initialTab)
   const [username, setUsername] = useState<string>('utilisateur')
   const [userAvatar, setUserAvatar] = useState<string>('avatar1')
   const [userId, setUserId] = useState<string | null>(null)
@@ -97,7 +106,7 @@ export default function OppositionPage() {
   const [savedPredictions, setSavedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos sauvegardés
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos modifiés
   const [lockedPredictions, setLockedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos verrouillés
-  const [loadingMatches, setLoadingMatches] = useState(false) // Loader lors du changement de journée
+  const [loadingMatches, setLoadingMatches] = useState(true) // Loader lors du changement de journée (true par défaut pour éviter flash "aucun match")
 
   // États pour le classement
   const [rankingsView, setRankingsView] = useState<'general' | number>('general')
@@ -115,6 +124,9 @@ export default function OppositionPage() {
 
   // État pour les points totaux de la journée
   const [matchdayTotalPoints, setMatchdayTotalPoints] = useState<number>(0)
+
+  // État pour savoir si le bonus d'avant-match a été obtenu pour cette journée
+  const [hasEarlyBonus, setHasEarlyBonus] = useState<boolean>(false)
 
   // États pour les accordéons de pronostics des autres
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
@@ -145,13 +157,26 @@ export default function OppositionPage() {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
+  // États pour l'extension des journées (tournois custom non free-kick)
+  const [canExtendMatchdays, setCanExtendMatchdays] = useState(false)
+  const [availableToAdd, setAvailableToAdd] = useState(0)
+  const [showExtendModal, setShowExtendModal] = useState(false)
+  const [matchdaysToAdd, setMatchdaysToAdd] = useState(1)
+  const [extendLoading, setExtendLoading] = useState(false)
+
+  // État pour le pseudo du capitaine
+  const [captainUsername, setCaptainUsername] = useState<string | null>(null)
+
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
 
   useEffect(() => {
-    fetchCurrentUser()
-    fetchTournamentData()
-    fetchPointsSettings()
+    // Lancer les 3 requêtes en parallèle pour un chargement plus rapide
+    Promise.all([
+      fetchCurrentUser(),
+      fetchTournamentData(),
+      fetchPointsSettings()
+    ])
   }, [tournamentSlug])
 
   // Charger le compteur de messages non lus au chargement et quand le tournoi change
@@ -168,6 +193,13 @@ export default function OppositionPage() {
     }
   }, [tournament?.id, tournament?.teams_enabled, tournament?.status])
 
+  // Vérifier si le tournoi peut être étendu (tournois custom non free-kick uniquement)
+  useEffect(() => {
+    if (tournament?.id && tournament?.custom_competition_id && tournament?.status === 'active') {
+      checkExtendMatchdays()
+    }
+  }, [tournament?.id, tournament?.custom_competition_id, tournament?.status, userId])
+
   useEffect(() => {
     if (tournament?.competition_id || tournament?.custom_competition_id) {
       fetchCompetitionLogo()
@@ -176,17 +208,14 @@ export default function OppositionPage() {
     }
   }, [tournament?.competition_id, tournament?.custom_competition_id])
 
-  // Recalculer les journées disponibles une fois que allMatches est chargé
+  // Recalculer les journées disponibles et charger les prédictions une fois que allMatches est chargé
   useEffect(() => {
     if (tournament && allMatches.length > 0) {
-      fetchAvailableMatchdays()
-    }
-  }, [tournament, allMatches.length])
-
-  // Charger toutes les prédictions de l'utilisateur une fois que allMatches est chargé
-  useEffect(() => {
-    if (tournament && allMatches.length > 0) {
-      fetchAllUserPredictions()
+      // Lancer les deux en parallèle
+      Promise.all([
+        fetchAvailableMatchdays(),
+        fetchAllUserPredictions()
+      ])
     }
   }, [tournament, allMatches.length])
 
@@ -195,12 +224,14 @@ export default function OppositionPage() {
       // Activer le loader lors du changement de journée
       setLoadingMatches(true)
 
-      // Charger d'abord les prédictions utilisateur, puis les matchs
+      // Charger les données en parallèle pour un chargement plus rapide
       const loadData = async () => {
         try {
-          await fetchUserPredictions()
-          await fetchMatches()
-          await fetchMatchPoints()
+          await Promise.all([
+            fetchUserPredictions(),
+            fetchMatches(),
+            fetchMatchPoints()
+          ])
         } finally {
           setLoadingMatches(false)
         }
@@ -248,31 +279,49 @@ export default function OppositionPage() {
 
       if (tournamentError) throw new Error('Tournoi non trouvé')
 
-      // Récupérer le nom de la compétition (importée ou custom)
-      let competitionName = 'Compétition'
-
-      if (tournamentData.custom_competition_id) {
-        // Compétition custom
-        const { data: customCompData } = await supabase
-          .from('custom_competitions')
-          .select('name')
-          .eq('id', tournamentData.custom_competition_id)
-          .single()
-        competitionName = customCompData?.name || 'Compétition Custom'
-      } else if (tournamentData.competition_id) {
-        // Compétition importée
-        const { data: competitionData } = await supabase
-          .from('competitions')
-          .select('name')
-          .eq('id', tournamentData.competition_id)
-          .single()
-        competitionName = competitionData?.name || 'Compétition'
-      }
+      // Lancer en parallèle : nom de la compétition + pseudo du capitaine
+      const [competitionName, captainProfile] = await Promise.all([
+        // Requête compétition
+        (async () => {
+          if (tournamentData.custom_competition_id) {
+            const { data: customCompData } = await supabase
+              .from('custom_competitions')
+              .select('name')
+              .eq('id', tournamentData.custom_competition_id)
+              .single()
+            return customCompData?.name || 'Compétition Custom'
+          } else if (tournamentData.competition_id) {
+            const { data: competitionData } = await supabase
+              .from('competitions')
+              .select('name')
+              .eq('id', tournamentData.competition_id)
+              .single()
+            return competitionData?.name || 'Compétition'
+          }
+          return 'Compétition'
+        })(),
+        // Requête capitaine
+        (async () => {
+          if (tournamentData.creator_id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', tournamentData.creator_id)
+              .single()
+            return profile
+          }
+          return null
+        })()
+      ])
 
       setTournament({
         ...tournamentData,
         competition_name: competitionName
       })
+
+      if (captainProfile?.username) {
+        setCaptainUsername(captainProfile.username)
+      }
     } catch (err: any) {
       console.error('Erreur lors du chargement du tournoi:', err)
       setError(err.message)
@@ -345,6 +394,60 @@ export default function OppositionPage() {
       console.log('Error fetching teams:', err)
     } finally {
       setLoadingTeams(false)
+    }
+  }
+
+  // Vérifier si le tournoi peut être étendu (capitaine uniquement, tournoi custom non free-kick)
+  const checkExtendMatchdays = async () => {
+    if (!tournament?.id || !userId) return
+
+    try {
+      const response = await fetch(`/api/tournaments/extend-matchdays?tournamentId=${tournament.id}`)
+      if (!response.ok) return
+
+      const data = await response.json()
+      if (data.success && data.canExtend) {
+        setCanExtendMatchdays(true)
+        setAvailableToAdd(data.availableToAdd || 0)
+      } else {
+        setCanExtendMatchdays(false)
+        setAvailableToAdd(0)
+      }
+    } catch (err) {
+      console.error('Error checking extend matchdays:', err)
+    }
+  }
+
+  // Étendre le tournoi avec le nombre de journées choisi
+  const extendTournament = async () => {
+    if (!tournament?.id || matchdaysToAdd < 1) return
+
+    setExtendLoading(true)
+    try {
+      const response = await fetch('/api/tournaments/extend-matchdays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          additionalMatchdays: matchdaysToAdd
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Fermer la modal et rafraîchir les données
+        setShowExtendModal(false)
+        setMatchdaysToAdd(1)
+        // Recharger les données du tournoi et les journées
+        window.location.reload()
+      } else {
+        alert(data.error || 'Erreur lors de l\'extension du tournoi')
+      }
+    } catch (err) {
+      console.error('Error extending tournament:', err)
+      alert('Erreur lors de l\'extension du tournoi')
+    } finally {
+      setExtendLoading(false)
     }
   }
 
@@ -497,6 +600,8 @@ export default function OppositionPage() {
       if (!tournament) return
 
       // Utiliser les journées enregistrées au démarrage du tournoi
+      // Ces journées sont calculées correctement lors du lancement (API /start)
+      // et incluent uniquement les journées jouables
       const startMatchday = tournament.starting_matchday
       const endMatchday = tournament.ending_matchday
 
@@ -505,30 +610,10 @@ export default function OppositionPage() {
         return
       }
 
-      // Construire la liste des journées potentielles
-      let matchdays: number[] = []
+      // Construire la liste des journées du tournoi
+      const matchdays: number[] = []
       for (let i = startMatchday; i <= endMatchday; i++) {
         matchdays.push(i)
-      }
-
-      // Si le tournoi a une date de lancement et que nous avons tous les matchs,
-      // filtrer pour ne garder que les journées jouables
-      if (tournament.start_date && allMatches.length > 0) {
-        const tournamentStartDate = new Date(tournament.start_date)
-
-        matchdays = matchdays.filter(matchday => {
-          // Récupérer les matchs de cette journée
-          const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
-          if (matchdayMatches.length === 0) return true // Garder si pas de matchs trouvés (sécurité)
-
-          // Vérifier si au moins un match n'était pas encore clôturé à la date de lancement
-          // Un match est clôturé 30min avant son coup d'envoi
-          return matchdayMatches.some(match => {
-            const matchDate = new Date(match.utc_date)
-            const closingTime = new Date(matchDate.getTime() - 30 * 60 * 1000) // 30min avant le match
-            return closingTime > tournamentStartDate // Le match n'était pas encore clôturé
-          })
-        })
       }
 
       setAvailableMatchdays(matchdays)
@@ -1188,9 +1273,14 @@ export default function OppositionPage() {
           // Ajouter +1 point si tous les pronostics ont été faits à temps
           if (allPredictionsOnTime) {
             totalPoints += 1
+            setHasEarlyBonus(true)
             console.log('[fetchMatchPoints] Bonus prime d\'avant-match: +1 point')
+          } else {
+            setHasEarlyBonus(false)
           }
         }
+      } else {
+        setHasEarlyBonus(false)
       }
 
       setMatchdayTotalPoints(totalPoints)
@@ -1348,6 +1438,8 @@ export default function OppositionPage() {
     if (savedPredictions[matchId]) {
       setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
     }
+    // Marquer comme "en attente d'enregistrement" (pour déclencher l'animation pulse)
+    setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
   }
 
   const unlockPrediction = (matchId: string) => {
@@ -1740,6 +1832,17 @@ export default function OppositionPage() {
           }}
         />
 
+        {/* Banner d'extension de durée pour les tournois Free-Kick actifs */}
+        {tournament.tournament_type === 'free' && tournament.status === 'active' && (
+          <div className="max-w-7xl mx-auto px-2 md:px-4">
+            <DurationExtensionBanner
+              tournamentId={tournament.id}
+              tournamentType={tournament.tournament_type}
+              tournamentStatus={tournament.status}
+            />
+          </div>
+        )}
+
         {/* Navigation par onglets */}
         <div className="max-w-7xl mx-auto px-2 md:px-4 mt-3 md:mt-6">
           <div className="flex justify-between md:justify-start md:gap-2 border-b theme-border">
@@ -1932,6 +2035,23 @@ export default function OppositionPage() {
                           </button>
                         )
                       })}
+
+                      {/* Bouton d'extension du tournoi (capitaine uniquement, tournois custom non free-kick) */}
+                      {canExtendMatchdays && availableToAdd > 0 && (
+                        <button
+                          onClick={() => {
+                            setMatchdaysToAdd(1)
+                            setShowExtendModal(true)
+                          }}
+                          className="px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] flex-shrink-0 bg-green-600 hover:bg-green-500 text-white border-2 border-dashed border-green-400"
+                          title="De nouvelles journées sont disponibles"
+                        >
+                          <span className="text-lg md:text-xl">+{availableToAdd}</span>
+                          <span className="text-[10px] md:text-xs mt-1 font-medium text-green-100">
+                            Étendre
+                          </span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Flèche droite */}
@@ -1980,9 +2100,31 @@ export default function OppositionPage() {
                                   <>
                                     <span className="hidden md:inline">
                                       Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
+                                      {hasEarlyBonus && (
+                                        <>
+                                          {' '}dont{' '}
+                                          <button
+                                            onClick={() => setActiveTab('regles')}
+                                            className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                                          >
+                                            1 de bonus★
+                                          </button>
+                                        </>
+                                      )}
                                     </span>
                                     <span className="md:hidden">
                                       Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
+                                      {hasEarlyBonus && (
+                                        <>
+                                          {' '}dont{' '}
+                                          <button
+                                            onClick={() => setActiveTab('regles')}
+                                            className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                                          >
+                                            1 de bonus★
+                                          </button>
+                                        </>
+                                      )}
                                     </span>
                                   </>
                                 ) : hasFirstMatchStarted() ? (
@@ -2070,6 +2212,20 @@ export default function OppositionPage() {
                                   }
                                   .bonus-badge {
                                     animation: pulse-bonus 2s ease-in-out infinite;
+                                  }
+                                  @keyframes pulse-save {
+                                    0%, 100% {
+                                      transform: scale(1);
+                                      box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.8);
+                                    }
+                                    50% {
+                                      transform: scale(1.08);
+                                      box-shadow: 0 0 12px 4px rgba(255, 153, 0, 0.6);
+                                    }
+                                  }
+                                  .animate-pulse-save {
+                                    animation: pulse-save 0.8s ease-in-out infinite;
+                                    transform-origin: right center;
                                   }
                                 `}</style>
 
@@ -2351,7 +2507,9 @@ export default function OppositionPage() {
                                       <button
                                         onClick={() => savePrediction(match.id)}
                                         disabled={savingPrediction === match.id}
-                                        className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                        className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed ${
+                                          isModified ? 'animate-pulse-save' : ''
+                                        }`}
                                       >
                                         {savingPrediction === match.id ? (
                                           <>
@@ -2636,11 +2794,9 @@ export default function OppositionPage() {
                                         <button
                                           onClick={() => savePrediction(match.id)}
                                           disabled={savingPrediction === match.id}
-                                          className={`px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs ${
-                                            isModified
-                                              ? 'bg-orange-500 dark:bg-orange-600 text-white hover:bg-orange-600 dark:hover:bg-orange-700'
-                                              : 'bg-[#ff9900] text-[#111] hover:bg-[#e68a00]'
-                                          } disabled:bg-gray-400 disabled:cursor-not-allowed`}
+                                          className={`px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed ${
+                                            isModified ? 'animate-pulse-save' : ''
+                                          }`}
                                         >
                                           {savingPrediction === match.id ? (
                                             <>
@@ -2649,13 +2805,6 @@ export default function OppositionPage() {
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                               </svg>
                                               <span className="hidden xl:inline">Envoi...</span>
-                                            </>
-                                          ) : isModified ? (
-                                            <>
-                                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                              </svg>
-                                              <span className="hidden xl:inline">Modifier</span>
                                             </>
                                           ) : (
                                             <span className="hidden xl:inline">Enregistrer</span>
@@ -2917,7 +3066,12 @@ export default function OppositionPage() {
 
           {activeTab === 'regles' && (
             <div className="theme-card">
-              <h2 className="text-2xl font-bold theme-accent-text mb-4">Règles du tournoi</h2>
+              <h2 className="text-2xl font-bold theme-accent-text mb-2">Règles du tournoi</h2>
+              {captainUsername && (
+                <p className="theme-text-secondary mb-4">
+                  Capitaine du tournoi : <span className="font-semibold theme-text">{captainUsername}</span>
+                </p>
+              )}
               <div className="space-y-4 theme-text-secondary">
                 <div>
                   <h3 className="font-semibold theme-text mb-2">Système de points</h3>
@@ -3045,6 +3199,77 @@ export default function OppositionPage() {
 
         {/* Footer */}
         <Footer />
+
+        {/* Modal d'extension du tournoi */}
+        {showExtendModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div className="theme-card w-full max-w-md rounded-xl shadow-xl p-6">
+              <h3 className="text-xl font-bold theme-text mb-4 text-center">
+                Étendre le tournoi
+              </h3>
+
+              <p className="theme-text-secondary text-center mb-6">
+                De nouvelles journées sont disponibles dans cette compétition.
+                Combien de journées souhaitez-vous ajouter ?
+              </p>
+
+              {/* Sélecteur +/- */}
+              <div className="flex items-center justify-center gap-4 mb-6">
+                <button
+                  onClick={() => setMatchdaysToAdd(prev => Math.max(1, prev - 1))}
+                  disabled={matchdaysToAdd <= 1}
+                  className="w-12 h-12 rounded-full bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:opacity-50 text-white text-2xl font-bold flex items-center justify-center transition-colors"
+                >
+                  -
+                </button>
+                <div className="w-20 h-16 flex items-center justify-center">
+                  <span className="text-4xl font-bold text-[#ff9900]">{matchdaysToAdd}</span>
+                </div>
+                <button
+                  onClick={() => setMatchdaysToAdd(prev => Math.min(availableToAdd, prev + 1))}
+                  disabled={matchdaysToAdd >= availableToAdd}
+                  className="w-12 h-12 rounded-full bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:opacity-50 text-white text-2xl font-bold flex items-center justify-center transition-colors"
+                >
+                  +
+                </button>
+              </div>
+
+              <p className="text-sm theme-text-secondary text-center mb-6">
+                {availableToAdd} journée{availableToAdd > 1 ? 's' : ''} disponible{availableToAdd > 1 ? 's' : ''}
+              </p>
+
+              {/* Boutons d'action */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowExtendModal(false)
+                    setMatchdaysToAdd(1)
+                  }}
+                  disabled={extendLoading}
+                  className="flex-1 px-4 py-3 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-semibold transition-colors disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={extendTournament}
+                  disabled={extendLoading}
+                  className="flex-1 px-4 py-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {extendLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      En cours...
+                    </>
+                  ) : (
+                    <>
+                      Confirmer
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ThemeProvider>
   )

@@ -150,12 +150,31 @@ export default function NavBar({
 
             {/* COLONNE CENTRALE (33%) - Infos compétition */}
             <div className="flex items-center justify-center gap-4">
-              {creationContext.competitionLogo && (
-                <img
-                  src={creationContext.competitionLogo}
-                  alt={creationContext.competitionName}
-                  className="w-16 h-16 object-contain icon-filter-white"
-                />
+              {(creationContext.competitionLogo || creationContext.competitionLogoWhite) && (
+                <div className="w-16 h-16 flex items-center justify-center flex-shrink-0">
+                  {/* Logo blanc en mode sombre, logo couleur en mode clair */}
+                  {theme === 'dark' ? (
+                    creationContext.competitionLogoWhite ? (
+                      <img
+                        src={creationContext.competitionLogoWhite}
+                        alt={creationContext.competitionName}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={creationContext.competitionLogo || ''}
+                        alt={creationContext.competitionName}
+                        className="w-full h-full object-contain brightness-0 invert"
+                      />
+                    )
+                  ) : (
+                    <img
+                      src={creationContext.competitionLogo || creationContext.competitionLogoWhite || ''}
+                      alt={creationContext.competitionName}
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
               )}
               <div className="text-left">
                 <h2 className="text-2xl font-bold theme-text">{creationContext.competitionName}</h2>
