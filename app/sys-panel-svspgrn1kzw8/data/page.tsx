@@ -3,6 +3,16 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 
+// Helper pour formater une date au format jj/mm/aa
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  })
+}
+
 interface Competition {
   id: number
   name: string
@@ -22,7 +32,45 @@ interface Competition {
   lastUpdatedAt?: string
 }
 
-type TabType = 'active' | 'available'
+type TabType = 'active' | 'finished' | 'available' | 'update-settings'
+
+// Interface pour le système de MAJ intelligent
+interface SmartCronSettings {
+  // Sync quotidienne
+  dailySyncEnabled: boolean
+  dailySyncHour: string
+  delayBetweenCompetitions: number
+
+  // Mode temps réel
+  realtimeEnabled: boolean
+  smartModeEnabled: boolean
+  realtimeFrequency: number
+  marginBeforeKickoff: number
+  marginAfterMatch: number
+
+  // Mode fallback
+  fallbackInterval: number
+  fallbackTimeStart: string
+  fallbackTimeEnd: string
+
+  // Quotas API
+  minDelayBetweenCalls: number
+}
+
+const defaultSmartSettings: SmartCronSettings = {
+  dailySyncEnabled: true,
+  dailySyncHour: '06:00',
+  delayBetweenCompetitions: 5,
+  realtimeEnabled: false,
+  smartModeEnabled: true,
+  realtimeFrequency: 2,
+  marginBeforeKickoff: 5,
+  marginAfterMatch: 30,
+  fallbackInterval: 15,
+  fallbackTimeStart: '14:00',
+  fallbackTimeEnd: '23:59',
+  minDelayBetweenCalls: 6
+}
 
 export default function AdminDataPage() {
   const [activeTab, setActiveTab] = useState<TabType>('active')
@@ -35,6 +83,20 @@ export default function AdminDataPage() {
   const [togglingEvent, setTogglingEvent] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // État pour les réglages de MAJ auto (système intelligent)
+  const [smartSettings, setSmartSettings] = useState<SmartCronSettings>(defaultSmartSettings)
+  const [loadingSettings, setLoadingSettings] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [testingCron, setTestingCron] = useState(false)
+  const [generatingWindows, setGeneratingWindows] = useState(false)
+  const [pgCronConfigured, setPgCronConfigured] = useState(true)
+  const [cronLogs, setCronLogs] = useState<any[]>([])
+  const [matchWindows, setMatchWindows] = useState<any[]>([])
+  const [apiCallsToday, setApiCallsToday] = useState(0)
+  const [lastRun, setLastRun] = useState<string | null>(null)
+  const [cronStatus, setCronStatus] = useState<any>(null)
+  const [lastUpdateResults, setLastUpdateResults] = useState<any[] | null>(null)
 
   // Charger uniquement les compétitions déjà importées (depuis la base locale)
   const fetchImportedCompetitions = async () => {
@@ -150,9 +212,138 @@ export default function AdminDataPage() {
     }
   }
 
+  // Charger les paramètres du système intelligent
+  const fetchSmartSettings = async () => {
+    setLoadingSettings(true)
+    try {
+      const response = await fetch('/api/admin/smart-cron')
+      if (response.ok) {
+        const data = await response.json()
+        setPgCronConfigured(data.configured !== false)
+        if (data.settings) {
+          setSmartSettings(data.settings)
+        }
+        if (data.cronStatus) {
+          setCronStatus(data.cronStatus)
+        }
+        if (data.logs) {
+          setCronLogs(data.logs)
+        }
+        if (data.matchWindows) {
+          setMatchWindows(data.matchWindows)
+        }
+        setApiCallsToday(data.apiCallsToday || 0)
+        setLastRun(data.lastRun || null)
+      }
+    } catch (err: any) {
+      console.error('Error fetching smart settings:', err)
+    } finally {
+      setLoadingSettings(false)
+    }
+  }
+
+  // Sauvegarder les paramètres du système intelligent
+  const saveSmartSettings = async () => {
+    setSavingSettings(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const response = await fetch('/api/admin/smart-cron', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: smartSettings }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.configured === false) {
+          setPgCronConfigured(false)
+        }
+        throw new Error(data.error || 'Failed to save settings')
+      }
+
+      setSuccess(data.message || 'Paramètres sauvegardés avec succès')
+      setPgCronConfigured(data.configured !== false)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  // Générer les fenêtres de matchs
+  const generateMatchWindows = async () => {
+    setGeneratingWindows(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/admin/smart-cron', {
+        method: 'PUT',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate windows')
+      }
+
+      setSuccess(data.message || 'Fenêtres générées')
+      await fetchSmartSettings()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setGeneratingWindows(false)
+    }
+  }
+
+  // Exécuter une MAJ manuelle
+  const runManualUpdate = async () => {
+    setTestingCron(true)
+    setError(null)
+    setSuccess(null)
+    setLastUpdateResults(null)
+    try {
+      const response = await fetch('/api/admin/smart-cron', {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || 'Failed to run manual update')
+
+      const result = data.result || {}
+
+      // Stocker les résultats détaillés
+      if (result.results) {
+        setLastUpdateResults(result.results)
+      }
+
+      const failedCount = result.failureCount || 0
+      if (failedCount > 0) {
+        setSuccess(`Mise à jour terminée : ${result.successCount || 0} OK, ${failedCount} erreurs (voir détails ci-dessous)`)
+      } else {
+        setSuccess(`Mise à jour terminée : ${result.successCount || 0} compétitions mises à jour`)
+      }
+      await fetchSmartSettings()
+      // Rafraîchir la liste des compétitions pour mettre à jour les dates
+      await fetchImportedCompetitions()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setTestingCron(false)
+    }
+  }
+
   useEffect(() => {
     fetchImportedCompetitions()
   }, [])
+
+  // Charger les paramètres de MAJ quand on passe à l'onglet
+  useEffect(() => {
+    if (activeTab === 'update-settings') {
+      fetchSmartSettings()
+    }
+  }, [activeTab])
 
   // Charger les compétitions disponibles quand on passe à l'onglet
   useEffect(() => {
@@ -161,7 +352,13 @@ export default function AdminDataPage() {
     }
   }, [activeTab])
 
-  const activeCompetitions = competitions.filter(c => c.isActive)
+  // Séparer les compétitions actives des saisons terminées
+  const today = new Date()
+  const isSeasonFinished = (comp: Competition) =>
+    comp.currentSeason?.endDate && new Date(comp.currentSeason.endDate) < today
+
+  const activeCompetitions = competitions.filter(c => c.isActive && !isSeasonFinished(c))
+  const finishedCompetitions = competitions.filter(c => c.isActive && isSeasonFinished(c))
   const inactiveCompetitions = competitions.filter(c => !c.isActive)
 
   return (
@@ -202,6 +399,24 @@ export default function AdminDataPage() {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('finished')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'finished'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Saisons terminées
+              {finishedCompetitions.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full">
+                  {finishedCompetitions.length}
+                </span>
+              )}
+              {activeTab === 'finished' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('available')}
               className={`px-6 py-3 font-medium text-sm transition-colors relative ${
                 activeTab === 'available'
@@ -211,6 +426,24 @@ export default function AdminDataPage() {
             >
               Autres compétitions
               {activeTab === 'available' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('update-settings')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'update-settings'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Réglages des MAJ
+              {(smartSettings.dailySyncEnabled || smartSettings.realtimeEnabled) && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">
+                  Actif
+                </span>
+              )}
+              {activeTab === 'update-settings' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
               )}
             </button>
@@ -299,6 +532,47 @@ export default function AdminDataPage() {
             </div>
           )}
 
+          {/* Onglet Saisons terminées */}
+          {activeTab === 'finished' && (
+            <div>
+              {loading ? (
+                <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+                  Chargement des compétitions...
+                </div>
+              ) : finishedCompetitions.length === 0 ? (
+                <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+                  <p className="mb-2">Aucune saison terminée</p>
+                  <p className="text-sm text-gray-400">
+                    Les compétitions dont la date de fin de saison est passée apparaîtront ici.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <strong>Info :</strong> Ces compétitions ne sont plus mises à jour automatiquement car leur saison est terminée.
+                      Elles restent visibles pour l'historique des tournois passés.
+                    </p>
+                  </div>
+                  <div className="competitions-grid">
+                    {finishedCompetitions.map((comp) => (
+                      <CompetitionCard
+                        key={comp.id}
+                        competition={comp}
+                        importing={importing}
+                        toggling={toggling}
+                        togglingEvent={togglingEvent}
+                        onImport={importCompetition}
+                        onToggleActive={toggleActive}
+                        onToggleEvent={toggleEvent}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Onglet Autres compétitions */}
           {activeTab === 'available' && (
             <div>
@@ -357,7 +631,7 @@ export default function AdminDataPage() {
                       {/* Saison */}
                       {comp.currentSeason && (
                         <div className="text-xs text-gray-500 text-center mb-2">
-                          Saison: {comp.currentSeason.startDate} → {comp.currentSeason.endDate}
+                          Saison: {formatDate(comp.currentSeason.startDate)} → {formatDate(comp.currentSeason.endDate)}
                         </div>
                       )}
 
@@ -383,6 +657,422 @@ export default function AdminDataPage() {
                   localement pour éviter de consommer l'API inutilement.
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Onglet Réglages des MAJ */}
+          {activeTab === 'update-settings' && (
+            <div className="space-y-6">
+              {loadingSettings ? (
+                <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+                  Chargement des paramètres...
+                </div>
+              ) : (
+                <>
+                  {/* Avertissement si pg_cron non configuré */}
+                  {!pgCronConfigured && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-900">
+                        <strong>Configuration requise :</strong> pg_cron n'est pas encore configuré dans Supabase.
+                        Exécutez les scripts SQL dans l'ordre :
+                        <br />1. <code className="bg-red-100 px-1 rounded">20241209_pg_cron_setup.sql</code>
+                        <br />2. <code className="bg-red-100 px-1 rounded">20241209_smart_cron_setup.sql</code>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Statut global et quotas */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900">Statut du système</h2>
+                        <p className="text-sm text-gray-500">Aperçu des mises à jour automatiques</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Appels API aujourd'hui</p>
+                          <p className="text-lg font-bold text-gray-900">{apiCallsToday} <span className="text-sm font-normal text-gray-500">/ ~1440</span></p>
+                        </div>
+                        <div className={`w-3 h-3 rounded-full ${(smartSettings.dailySyncEnabled || smartSettings.realtimeEnabled) ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      </div>
+                    </div>
+                    <div className="flex gap-6 text-sm">
+                      <div>
+                        <span className="text-gray-600 font-medium">Dernière MAJ :</span>
+                        <span className="ml-2 font-semibold text-gray-900">{lastRun ? new Date(lastRun).toLocaleString('fr-FR') : 'Jamais'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 font-medium">Fenêtres actives :</span>
+                        <span className="ml-2 font-semibold text-gray-900">{matchWindows.filter(w => new Date(w.window_start) <= new Date() && new Date(w.window_end) >= new Date()).length}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* === SECTION 1: MAJ QUOTIDIENNE === */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-md font-semibold text-gray-900">MAJ Quotidienne (Calendrier)</h3>
+                        <p className="text-sm text-gray-500">Synchronisation des horaires et nouveaux matchs</p>
+                      </div>
+                      <button
+                        onClick={() => setSmartSettings(prev => ({ ...prev, dailySyncEnabled: !prev.dailySyncEnabled }))}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                          smartSettings.dailySyncEnabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                          smartSettings.dailySyncEnabled ? 'translate-x-8' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {smartSettings.dailySyncEnabled && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Heure d'exécution</label>
+                          <input
+                            type="time"
+                            value={smartSettings.dailySyncHour}
+                            onChange={(e) => setSmartSettings(prev => ({ ...prev, dailySyncHour: e.target.value }))}
+                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Délai entre compétitions (sec)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="30"
+                            value={smartSettings.delayBetweenCompetitions}
+                            onChange={(e) => setSmartSettings(prev => ({ ...prev, delayBetweenCompetitions: parseInt(e.target.value) || 5 }))}
+                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* === SECTION 2: MAJ TEMPS RÉEL === */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-md font-semibold text-gray-900">MAJ en temps réel</h3>
+                        <p className="text-sm text-gray-500">Mise à jour des scores pendant les matchs</p>
+                      </div>
+                      <button
+                        onClick={() => setSmartSettings(prev => ({ ...prev, realtimeEnabled: !prev.realtimeEnabled }))}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                          smartSettings.realtimeEnabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                          smartSettings.realtimeEnabled ? 'translate-x-8' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {smartSettings.realtimeEnabled && (
+                      <div className="space-y-4 pt-4 border-t border-gray-100">
+                        {/* Mode intelligent */}
+                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                          <div>
+                            <span className="font-medium text-purple-900">Mode calendrier intelligent</span>
+                            <p className="text-xs text-purple-700">N'actualise que pendant les fenêtres de matchs</p>
+                          </div>
+                          <button
+                            onClick={() => setSmartSettings(prev => ({ ...prev, smartModeEnabled: !prev.smartModeEnabled }))}
+                            className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors ${
+                              smartSettings.smartModeEnabled ? 'bg-purple-600' : 'bg-gray-300'
+                            }`}
+                          >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                              smartSettings.smartModeEnabled ? 'translate-x-7' : 'translate-x-1'
+                            }`} />
+                          </button>
+                        </div>
+
+                        {smartSettings.smartModeEnabled ? (
+                          /* Options mode intelligent */
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Fréquence pendant match (min)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                max="15"
+                                value={smartSettings.realtimeFrequency}
+                                onChange={(e) => setSmartSettings(prev => ({ ...prev, realtimeFrequency: parseInt(e.target.value) || 2 }))}
+                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Marge avant kickoff (min)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="30"
+                                value={smartSettings.marginBeforeKickoff}
+                                onChange={(e) => setSmartSettings(prev => ({ ...prev, marginBeforeKickoff: parseInt(e.target.value) || 5 }))}
+                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Marge après 90 min</label>
+                              <input
+                                type="number"
+                                min="15"
+                                max="60"
+                                value={smartSettings.marginAfterMatch}
+                                onChange={(e) => setSmartSettings(prev => ({ ...prev, marginAfterMatch: parseInt(e.target.value) || 30 }))}
+                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          /* Options mode fallback */
+                          <div className="space-y-4">
+                            <div className="p-3 bg-amber-50 rounded-lg">
+                              <p className="text-sm text-amber-800">
+                                <strong>Mode fallback :</strong> MAJ à intervalle fixe, sans tenir compte du calendrier des matchs.
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Intervalle (minutes)</label>
+                                <input
+                                  type="number"
+                                  min="5"
+                                  max="60"
+                                  value={smartSettings.fallbackInterval}
+                                  onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackInterval: parseInt(e.target.value) || 15 }))}
+                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Plage horaire début</label>
+                                <input
+                                  type="time"
+                                  value={smartSettings.fallbackTimeStart}
+                                  onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackTimeStart: e.target.value }))}
+                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Plage horaire fin</label>
+                                <input
+                                  type="time"
+                                  value={smartSettings.fallbackTimeEnd}
+                                  onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackTimeEnd: e.target.value }))}
+                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* === SECTION 3: QUOTAS API === */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h3 className="text-md font-semibold text-gray-900 mb-4">Protection des quotas API</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Délai minimum entre appels (sec)</label>
+                        <input
+                          type="number"
+                          min="3"
+                          max="30"
+                          value={smartSettings.minDelayBetweenCalls}
+                          onChange={(e) => setSmartSettings(prev => ({ ...prev, minDelayBetweenCalls: parseInt(e.target.value) || 6 }))}
+                          className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">Football-Data API: max 10 appels/minute</p>
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={generateMatchWindows}
+                          disabled={generatingWindows}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
+                        >
+                          {generatingWindows ? 'Génération...' : 'Regénérer les fenêtres de matchs'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* === BOUTONS D'ACTION === */}
+                  <div className="flex gap-4">
+                    <button
+                      onClick={saveSmartSettings}
+                      disabled={savingSettings}
+                      className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {savingSettings ? 'Enregistrement...' : 'Enregistrer les paramètres'}
+                    </button>
+                    <button
+                      onClick={runManualUpdate}
+                      disabled={testingCron}
+                      className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {testingCron ? 'Exécution...' : 'Exécuter maintenant'}
+                    </button>
+                  </div>
+
+                  {/* === RÉSULTATS DÉTAILLÉS DE LA DERNIÈRE MAJ === */}
+                  {lastUpdateResults && lastUpdateResults.length > 0 && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-md font-semibold text-gray-900">Détails de la dernière exécution</h3>
+                        <button
+                          onClick={() => setLastUpdateResults(null)}
+                          className="text-gray-400 hover:text-gray-600 text-sm"
+                        >
+                          Masquer
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {lastUpdateResults.map((r: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-lg border ${
+                              r.success
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-red-50 border-red-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${r.success ? 'bg-green-500' : 'bg-red-500'}`} />
+                                <span className="font-medium text-gray-900">{r.name}</span>
+                                {r.code && <span className="text-xs text-gray-500">({r.code})</span>}
+                              </div>
+                              {r.success ? (
+                                <span className="text-sm text-green-700">{r.matchesCount} matchs</span>
+                              ) : (
+                                <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded">Erreur</span>
+                              )}
+                            </div>
+                            {!r.success && r.error && (
+                              <p className="mt-2 text-sm text-red-700 pl-4">{r.error}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* === FENÊTRES DE MATCHS === */}
+                  {matchWindows.length > 0 && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-md font-semibold text-gray-900 mb-4">Prochaines fenêtres de matchs</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Compétition</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Début</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Fin</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Matchs</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Statut</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {matchWindows.slice(0, 5).map((window: any) => {
+                              const now = new Date()
+                              const start = new Date(window.window_start)
+                              const end = new Date(window.window_end)
+                              const isActive = now >= start && now <= end
+                              const isPast = now > end
+                              return (
+                                <tr key={window.id} className="border-b border-gray-100">
+                                  <td className="py-2 px-3 font-medium text-gray-900">{window.competitions?.name || `ID ${window.competition_id}`}</td>
+                                  <td className="py-2 px-3 text-gray-800">
+                                    {start.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                  <td className="py-2 px-3 text-gray-800">
+                                    {end.toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </td>
+                                  <td className="py-2 px-3 font-medium text-gray-900">{window.matches_count}</td>
+                                  <td className="py-2 px-3">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                      isActive ? 'bg-green-100 text-green-700' : isPast ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {isActive ? 'En cours' : isPast ? 'Terminé' : 'À venir'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* === LOGS === */}
+                  {cronLogs.length > 0 && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <h3 className="text-md font-semibold text-gray-900 mb-4">Dernières exécutions</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Date</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Type</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Statut</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">Message</th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-800">MAJ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {cronLogs.slice(0, 10).map((log: any) => (
+                              <tr key={log.id} className="border-b border-gray-100">
+                                <td className="py-2 px-3 text-gray-800">
+                                  {new Date(log.created_at).toLocaleString('fr-FR', {
+                                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="py-2 px-3">
+                                  <span className={`px-2 py-0.5 rounded text-xs ${
+                                    log.job_name === 'daily-sync' ? 'bg-blue-100 text-blue-700' :
+                                    log.job_name === 'manual-update' ? 'bg-purple-100 text-purple-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {log.job_name === 'daily-sync' ? 'Quotidien' :
+                                     log.job_name === 'manual-update' ? 'Manuel' : 'Temps réel'}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    log.status === 'success' ? 'bg-green-100 text-green-700' :
+                                    log.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {log.status}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3 text-gray-800 max-w-xs truncate">{log.message}</td>
+                                <td className="py-2 px-3 font-medium text-gray-900">{log.competitions_updated || 0}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Note explicative */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-900">
+                      <strong>Mode intelligent :</strong> Le système calcule des "fenêtres de matchs" basées sur le calendrier.
+                      Les MAJ ne s'exécutent que pendant ces fenêtres, économisant les appels API.
+                      La sync quotidienne met à jour le calendrier et regénère automatiquement les fenêtres.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </main>
@@ -457,24 +1147,79 @@ function CompetitionCard({
       {/* Saison */}
       {comp.currentSeason && (
         <div className="text-xs text-gray-500 text-center mb-2">
-          Saison: {comp.currentSeason.startDate} → {comp.currentSeason.endDate}
+          Saison: {formatDate(comp.currentSeason.startDate)} → {formatDate(comp.currentSeason.endDate)}
+        </div>
+      )}
+
+      {/* Badge Saison terminée */}
+      {comp.currentSeason?.endDate && new Date(comp.currentSeason.endDate) < new Date() && (
+        <div className="mb-2 text-center">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+            Saison terminée
+          </span>
         </div>
       )}
 
       {/* Journée actuelle */}
-      {comp.currentSeason && (
+      {comp.currentSeason && (comp.currentSeason.currentMatchday || comp.currentSeason.totalMatchdays) && (
         <div className="text-sm font-medium text-gray-700 mb-3">
-          Journée actuelle: {comp.currentSeason.currentMatchday}
-          {comp.currentSeason.totalMatchdays && `/${comp.currentSeason.totalMatchdays}`}
+          Journée actuelle: {comp.currentSeason.currentMatchday || 0}
+          {comp.currentSeason.totalMatchdays && (
+            <span>/{comp.currentSeason.totalMatchdays}</span>
+          )}
         </div>
       )}
 
       {/* Date dernière MAJ */}
-      {comp.lastUpdatedAt && (
-        <div className="text-xs text-gray-500 mb-3 text-center">
-          MAJ: le {new Date(comp.lastUpdatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })} à {new Date(comp.lastUpdatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-        </div>
-      )}
+      <div className="mb-3 text-center">
+        {comp.lastUpdatedAt ? (
+          (() => {
+            const lastUpdate = new Date(comp.lastUpdatedAt)
+            const now = new Date()
+            const diffMs = now.getTime() - lastUpdate.getTime()
+            const diffMins = Math.floor(diffMs / 60000)
+            const diffHours = Math.floor(diffMins / 60)
+            const diffDays = Math.floor(diffHours / 24)
+
+            let timeAgo = ''
+            let freshness: 'fresh' | 'recent' | 'old' = 'old'
+
+            if (diffMins < 60) {
+              timeAgo = `il y a ${diffMins} min`
+              freshness = 'fresh'
+            } else if (diffHours < 24) {
+              timeAgo = `il y a ${diffHours}h`
+              freshness = diffHours < 6 ? 'fresh' : 'recent'
+            } else {
+              timeAgo = `il y a ${diffDays}j`
+              freshness = 'old'
+            }
+
+            return (
+              <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+                freshness === 'fresh' ? 'bg-green-100 text-green-700' :
+                freshness === 'recent' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-gray-100 text-gray-600'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  freshness === 'fresh' ? 'bg-green-500' :
+                  freshness === 'recent' ? 'bg-yellow-500' :
+                  'bg-gray-400'
+                }`} />
+                <span>MAJ {timeAgo}</span>
+                <span className="text-gray-400">
+                  ({lastUpdate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} {lastUpdate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })})
+                </span>
+              </div>
+            )
+          })()
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs bg-red-100 text-red-600">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span>Jamais mise à jour</span>
+          </div>
+        )}
+      </div>
 
       {/* Toggle Événement */}
       <div className="mb-3 flex items-center justify-center gap-2">

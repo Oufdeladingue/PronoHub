@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+// Mapping du nombre total de journées pour les compétitions avec phases knockout
+// Calculé depuis COMPETITION_KNOCKOUT_MATCHDAYS (max des clés de knockout)
+const COMPETITION_TOTAL_MATCHDAYS: Record<string, number> = {
+  'CL': 17,   // 8 journées ligue + 9 knockout (jusqu'à finale)
+  'EL': 17,   // 8 journées ligue + 9 knockout
+  'ECL': 17,  // 8 journées ligue + 9 knockout
+  'WC': 7,    // 3 journées groupes + 4 knockout
+  'EC': 7,    // 3 journées groupes + 4 knockout
+  'COPA': 6,  // 3 journées groupes + 3 knockout
+  'CDL': 6,   // 6 tours (coupe directe)
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -19,27 +31,53 @@ export async function GET() {
       )
     }
 
-    // Formater les compétitions en utilisant total_matchdays de la table competitions
-    const formattedCompetitions = competitions?.map((comp) => {
-      return {
-        id: comp.id,
-        name: comp.name,
-        code: comp.code,
-        emblem: comp.emblem,
-        area: comp.area_name,
-        currentSeason: {
-          startDate: comp.current_season_start_date,
-          endDate: comp.current_season_end_date,
-          currentMatchday: comp.current_matchday,
-          totalMatchdays: comp.total_matchdays
-        },
-        isImported: true,
-        isActive: comp.is_active,
-        isEvent: comp.is_event || false,
-        importedAt: comp.imported_at,
-        lastUpdatedAt: comp.last_updated_at
-      }
-    }) || []
+    // Pour chaque compétition, calculer le nombre réel de journées
+    const formattedCompetitions = await Promise.all(
+      (competitions || []).map(async (comp) => {
+        // Récupérer tous les matchdays distincts depuis imported_matches
+        const { data: matchdaysData } = await supabase
+          .from('imported_matches')
+          .select('matchday')
+          .eq('competition_id', comp.id)
+          .not('matchday', 'is', null)
+
+        // Compter les journées distinctes importées
+        const distinctMatchdays = new Set(matchdaysData?.map(m => m.matchday) || [])
+        const importedMatchdaysCount = distinctMatchdays.size
+
+        // Pour les compétitions avec phases knockout, utiliser le mapping prédéfini
+        // Sinon utiliser le max entre: journées importées, total_matchdays de la table
+        let totalMatchdays: number | null = null
+
+        // 1. Vérifier si on a un mapping knockout pour cette compétition
+        if (comp.code && COMPETITION_TOTAL_MATCHDAYS[comp.code]) {
+          totalMatchdays = COMPETITION_TOTAL_MATCHDAYS[comp.code]
+        }
+        // 2. Sinon utiliser le max entre journées importées et total_matchdays
+        else if (importedMatchdaysCount > 0 || comp.total_matchdays) {
+          totalMatchdays = Math.max(importedMatchdaysCount, comp.total_matchdays || 0)
+        }
+
+        return {
+          id: comp.id,
+          name: comp.name,
+          code: comp.code,
+          emblem: comp.emblem,
+          area: comp.area_name,
+          currentSeason: {
+            startDate: comp.current_season_start_date,
+            endDate: comp.current_season_end_date,
+            currentMatchday: comp.current_matchday,
+            totalMatchdays: totalMatchdays
+          },
+          isImported: true,
+          isActive: comp.is_active,
+          isEvent: comp.is_event || false,
+          importedAt: comp.imported_at,
+          lastUpdatedAt: comp.last_updated_at
+        }
+      })
+    )
 
     return NextResponse.json({
       competitions: formattedCompetitions,

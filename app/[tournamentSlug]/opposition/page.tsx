@@ -241,6 +241,26 @@ export default function OppositionPage() {
     }
   }, [selectedMatchday, tournament])
 
+  // Précharger les pronostics de tous les adversaires quand la journée est clôturée
+  useEffect(() => {
+    // Ne précharger que si :
+    // - Les matchs sont chargés (loadingMatches = false)
+    // - Il y a des matchs
+    // - L'utilisateur est connecté
+    // - Les pronostics sont clôturés (30min avant le premier match)
+    if (!loadingMatches && matches.length > 0 && userId && tournament) {
+      // Vérifier si les pronostics sont clôturés
+      const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+      const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000)
+      const isClosed = new Date() >= closingTime
+
+      if (isClosed) {
+        // Précharger les pronostics pour tous les matchs en arrière-plan
+        preloadMatchdayPredictions(matches)
+      }
+    }
+  }, [loadingMatches, matches.length, userId, tournament?.id])
+
   const fetchCurrentUser = async () => {
     try {
       const supabase = createClient()
@@ -1388,6 +1408,121 @@ export default function OppositionPage() {
       }))
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics des autres:', err)
+    }
+  }
+
+  // Fonction pour précharger TOUS les pronostics d'une journée en une seule requête
+  const preloadMatchdayPredictions = async (matchesToPreload: Match[]) => {
+    try {
+      if (!tournament || !userId || matchesToPreload.length === 0) return
+
+      // Récupérer les IDs de tous les matchs
+      const matchIds = matchesToPreload.map(m => m.id).join(',')
+
+      // Appeler l'API batch
+      const response = await fetch(
+        `/api/tournaments/${tournament.id}/matchday-predictions?matchIds=${matchIds}`
+      )
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du préchargement des pronostics')
+      }
+
+      const data = await response.json()
+      const allPredictionsByMatch = data.predictions
+
+      if (!allPredictionsByMatch) return
+
+      // Créer un Map des matchs pour accéder aux scores rapidement
+      const matchesMap = new Map(matchesToPreload.map(m => [m.id, m]))
+
+      // Transformer et stocker les pronostics pour chaque match
+      const processedPredictions: Record<string, any[]> = {}
+
+      for (const matchId of Object.keys(allPredictionsByMatch)) {
+        const predictions = allPredictionsByMatch[matchId]
+        const match = matchesMap.get(matchId)
+
+        const playersPredictions = predictions
+          .filter((p: any) => p.user_id !== userId) // Exclure l'utilisateur actuel
+          .map((prediction: any) => {
+            const username = prediction.username
+
+            if (!prediction.has_prediction) {
+              return {
+                username,
+                avatar: prediction.avatar || 'avatar1',
+                predictedHome: 0,
+                predictedAway: 0,
+                isDefaultPrediction: false,
+                hasPronostic: false,
+                points: 0,
+                isExact: false,
+                isCorrect: false
+              }
+            }
+
+            // Calculer les points si le match a un score
+            let points = 0
+            let isExact = false
+            let isCorrect = false
+
+            if (match && match.home_score !== null && match.home_score !== undefined &&
+                match.away_score !== null && match.away_score !== undefined) {
+              const homeScore = match.home_score
+              const awayScore = match.away_score
+
+              if (prediction.is_default_prediction) {
+                const realOutcome = homeScore > awayScore ? 'H' : (homeScore < awayScore ? 'A' : 'D')
+                if (realOutcome === 'D') {
+                  points = 1
+                  isCorrect = true
+                }
+              } else {
+                isExact = prediction.predicted_home_score === homeScore && prediction.predicted_away_score === awayScore
+                const predOutcome = prediction.predicted_home_score > prediction.predicted_away_score ? 'H' :
+                  (prediction.predicted_home_score < prediction.predicted_away_score ? 'A' : 'D')
+                const realOutcome = homeScore > awayScore ? 'H' : (homeScore < awayScore ? 'A' : 'D')
+                isCorrect = predOutcome === realOutcome
+
+                if (isExact) {
+                  points = pointsSettings.exactScore
+                } else if (isCorrect) {
+                  points = pointsSettings.correctResult
+                } else {
+                  points = pointsSettings.incorrectResult
+                }
+
+                // Doubler si match bonus
+                if (bonusMatchIds.has(matchId)) {
+                  points *= 2
+                }
+              }
+            }
+
+            return {
+              username,
+              avatar: prediction.avatar || 'avatar1',
+              predictedHome: prediction.predicted_home_score,
+              predictedAway: prediction.predicted_away_score,
+              isDefaultPrediction: prediction.is_default_prediction || false,
+              hasPronostic: true,
+              points,
+              isExact,
+              isCorrect
+            }
+          })
+
+        processedPredictions[matchId] = playersPredictions
+      }
+
+      // Mettre à jour l'état en une seule fois
+      setAllPlayersPredictions(prev => ({
+        ...prev,
+        ...processedPredictions
+      }))
+    } catch (err) {
+      console.error('Erreur lors du préchargement des pronostics:', err)
     }
   }
 

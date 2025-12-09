@@ -4,6 +4,260 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
+// Type pour le résultat de la mise à jour
+export interface AutoUpdateResult {
+  success: boolean
+  message: string
+  totalCompetitions?: number
+  successCount?: number
+  failureCount?: number
+  finishedTournaments?: { id: string; name: string }[]
+  results?: any[]
+  error?: string
+}
+
+/**
+ * Fonction exportée pour exécuter la mise à jour des compétitions
+ * Peut être appelée directement depuis d'autres routes API
+ */
+// Fonction helper pour logger les appels API
+async function logApiCall(
+  supabase: SupabaseClient,
+  callType: string,
+  competitionId: number | null,
+  success: boolean,
+  responseTimeMs?: number
+) {
+  try {
+    await supabase.from('api_calls_log').insert({
+      api_name: 'football-data',
+      call_type: callType,
+      competition_id: competitionId,
+      success,
+      response_time_ms: responseTimeMs
+    })
+  } catch {
+    // Ignore logging errors
+  }
+}
+
+export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY
+
+  if (!apiKey) {
+    return {
+      success: false,
+      message: 'Football Data API key not configured',
+      error: 'Football Data API key not configured'
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Récupérer uniquement les compétitions actives dont la saison n'est pas terminée
+  const today = new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
+  const { data: activeCompetitions, error: fetchError } = await supabase
+    .from('competitions')
+    .select('id, name, code, current_season_end_date')
+    .eq('is_active', true)
+    .or(`current_season_end_date.is.null,current_season_end_date.gte.${today}`)
+
+  if (fetchError) {
+    console.error('Error fetching active competitions:', fetchError)
+    return {
+      success: false,
+      message: 'Failed to fetch active competitions',
+      error: fetchError.message
+    }
+  }
+
+  if (!activeCompetitions || activeCompetitions.length === 0) {
+    return {
+      success: true,
+      message: 'No active competitions to update',
+      successCount: 0,
+      results: []
+    }
+  }
+
+  const results = []
+
+  // Délai entre les compétitions (en ms) pour respecter le rate limit API (10 appels/min)
+  // Chaque compétition = 2 appels (détails + matchs), donc 12s entre chaque = ~5 compétitions/min max
+  const DELAY_BETWEEN_COMPETITIONS_MS = 12000
+
+  // Mettre à jour chaque compétition active
+  for (let i = 0; i < activeCompetitions.length; i++) {
+    const competition = activeCompetitions[i]
+
+    // Attendre entre les compétitions (sauf pour la première)
+    if (i > 0) {
+      console.log(`[AUTO-UPDATE] Waiting ${DELAY_BETWEEN_COMPETITIONS_MS/1000}s before next competition...`)
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_COMPETITIONS_MS))
+    }
+
+    try {
+      // 1. Récupérer les détails de la compétition
+      const compStartTime = Date.now()
+      const compResponse = await fetch(
+        `${FOOTBALL_DATA_API}/competitions/${competition.id}`,
+        {
+          headers: { 'X-Auth-Token': apiKey },
+        }
+      )
+      const compResponseTime = Date.now() - compStartTime
+
+      // Logger l'appel API (compétition)
+      await logApiCall(supabase, 'manual', competition.id, compResponse.ok, compResponseTime)
+
+      if (!compResponse.ok) {
+        console.error(`Failed to fetch competition ${competition.code}: ${compResponse.statusText}`)
+        results.push({
+          competitionId: competition.id,
+          name: competition.name,
+          success: false,
+          error: `API error: ${compResponse.statusText}`
+        })
+        continue
+      }
+
+      const compData = await compResponse.json()
+
+      // 2. Mettre à jour la compétition
+      const { error: compError } = await supabase.from('competitions').update({
+        name: compData.name,
+        emblem: compData.emblem,
+        area_name: compData.area?.name,
+        current_season_start_date: compData.currentSeason?.startDate,
+        current_season_end_date: compData.currentSeason?.endDate,
+        current_matchday: compData.currentSeason?.currentMatchday,
+        last_updated_at: new Date().toISOString(),
+      }).eq('id', competition.id)
+
+      if (compError) {
+        console.error(`Error updating competition ${competition.code}:`, compError)
+        results.push({
+          competitionId: competition.id,
+          name: competition.name,
+          success: false,
+          error: compError.message
+        })
+        continue
+      }
+
+      // 3. Récupérer tous les matchs de la compétition
+      const matchesStartTime = Date.now()
+      const matchesResponse = await fetch(
+        `${FOOTBALL_DATA_API}/competitions/${competition.id}/matches`,
+        {
+          headers: { 'X-Auth-Token': apiKey },
+        }
+      )
+      const matchesResponseTime = Date.now() - matchesStartTime
+
+      // Logger l'appel API (matchs)
+      await logApiCall(supabase, 'manual', competition.id, matchesResponse.ok, matchesResponseTime)
+
+      if (!matchesResponse.ok) {
+        console.error(`Failed to fetch matches for ${competition.code}: ${matchesResponse.statusText}`)
+        results.push({
+          competitionId: competition.id,
+          name: competition.name,
+          success: false,
+          error: `Failed to fetch matches: ${matchesResponse.statusText}`
+        })
+        continue
+      }
+
+      const matchesData = await matchesResponse.json()
+
+      // 4. Calculer le nombre total de journées
+      const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
+      const totalMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
+
+      // 5. Mettre à jour le nombre total de journées dans la compétition
+      if (totalMatchdays) {
+        await supabase.from('competitions').update({
+          total_matchdays: totalMatchdays
+        }).eq('id', competition.id)
+      }
+
+      // 6. Mettre à jour les matchs (filtrer ceux sans équipes définies - TBD)
+      const validMatches = matchesData.matches.filter((match: any) =>
+        match.homeTeam?.id && match.awayTeam?.id
+      )
+
+      const matchesToUpsert = validMatches.map((match: any) => ({
+        football_data_match_id: match.id,
+        competition_id: competition.id,
+        matchday: match.matchday,
+        stage: match.stage || null,
+        utc_date: match.utcDate,
+        status: match.status,
+        home_team_id: match.homeTeam.id,
+        home_team_name: match.homeTeam.name,
+        home_team_crest: match.homeTeam.crest,
+        away_team_id: match.awayTeam.id,
+        away_team_name: match.awayTeam.name,
+        away_team_crest: match.awayTeam.crest,
+        home_score: match.score?.fullTime?.home,
+        away_score: match.score?.fullTime?.away,
+      }))
+
+      const { error: matchesError } = await supabase
+        .from('imported_matches')
+        .upsert(matchesToUpsert, {
+          onConflict: 'football_data_match_id',
+        })
+
+      if (matchesError) {
+        console.error(`Error updating matches for ${competition.code}:`, matchesError)
+        results.push({
+          competitionId: competition.id,
+          name: competition.name,
+          success: false,
+          error: `Failed to update matches: ${matchesError.message}`
+        })
+        continue
+      }
+
+      results.push({
+        competitionId: competition.id,
+        name: competition.name,
+        code: competition.code,
+        success: true,
+        matchesCount: matchesToUpsert.length
+      })
+
+    } catch (error: any) {
+      console.error(`Error processing competition ${competition.code}:`, error)
+      results.push({
+        competitionId: competition.id,
+        name: competition.name,
+        success: false,
+        error: error.message
+      })
+    }
+  }
+
+  const successCount = results.filter(r => r.success).length
+  const failureCount = results.filter(r => !r.success).length
+
+  // Vérifier et terminer les tournois dont toutes les journées sont complétées
+  const competitionIds = activeCompetitions.map(c => c.id)
+  const finishedTournaments = await checkAndFinishTournaments(supabase, competitionIds)
+
+  return {
+    success: true,
+    message: `Auto-update completed: ${successCount} successful, ${failureCount} failed`,
+    totalCompetitions: activeCompetitions.length,
+    successCount,
+    failureCount,
+    finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
+    results
+  }
+}
+
 /**
  * Vérifie si les tournois actifs sont terminés et les passe en statut "completed"
  * Un tournoi est terminé quand TOUS les matchs de TOUTES ses journées sont FINISHED
@@ -73,191 +327,18 @@ async function checkAndFinishTournaments(
   return finishedTournaments
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const apiKey = process.env.FOOTBALL_DATA_API_KEY
+    const result = await executeAutoUpdate()
 
-    if (!apiKey) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Football Data API key not configured' },
+        { error: result.error || result.message },
         { status: 500 }
       )
     }
 
-    const supabase = await createClient()
-
-    // Récupérer uniquement les compétitions actives
-    const { data: activeCompetitions, error: fetchError } = await supabase
-      .from('competitions')
-      .select('id, name, code')
-      .eq('is_active', true)
-
-    if (fetchError) {
-      console.error('Error fetching active competitions:', fetchError)
-      return NextResponse.json(
-        { error: 'Failed to fetch active competitions' },
-        { status: 500 }
-      )
-    }
-
-    if (!activeCompetitions || activeCompetitions.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'No active competitions to update',
-        updated: []
-      })
-    }
-
-    const results = []
-
-    // Mettre à jour chaque compétition active
-    for (const competition of activeCompetitions) {
-      try {
-        // 1. Récupérer les détails de la compétition
-        const compResponse = await fetch(
-          `${FOOTBALL_DATA_API}/competitions/${competition.id}`,
-          {
-            headers: { 'X-Auth-Token': apiKey },
-          }
-        )
-
-        if (!compResponse.ok) {
-          console.error(`Failed to fetch competition ${competition.code}: ${compResponse.statusText}`)
-          results.push({
-            competitionId: competition.id,
-            name: competition.name,
-            success: false,
-            error: `API error: ${compResponse.statusText}`
-          })
-          continue
-        }
-
-        const compData = await compResponse.json()
-
-        // 2. Mettre à jour la compétition
-        const { error: compError } = await supabase.from('competitions').update({
-          name: compData.name,
-          emblem: compData.emblem,
-          area_name: compData.area?.name,
-          current_season_start_date: compData.currentSeason?.startDate,
-          current_season_end_date: compData.currentSeason?.endDate,
-          current_matchday: compData.currentSeason?.currentMatchday,
-          last_updated_at: new Date().toISOString(),
-        }).eq('id', competition.id)
-
-        if (compError) {
-          console.error(`Error updating competition ${competition.code}:`, compError)
-          results.push({
-            competitionId: competition.id,
-            name: competition.name,
-            success: false,
-            error: compError.message
-          })
-          continue
-        }
-
-        // 3. Récupérer tous les matchs de la compétition
-        const matchesResponse = await fetch(
-          `${FOOTBALL_DATA_API}/competitions/${competition.id}/matches`,
-          {
-            headers: { 'X-Auth-Token': apiKey },
-          }
-        )
-
-        if (!matchesResponse.ok) {
-          console.error(`Failed to fetch matches for ${competition.code}: ${matchesResponse.statusText}`)
-          results.push({
-            competitionId: competition.id,
-            name: competition.name,
-            success: false,
-            error: `Failed to fetch matches: ${matchesResponse.statusText}`
-          })
-          continue
-        }
-
-        const matchesData = await matchesResponse.json()
-
-        // 4. Calculer le nombre total de journées
-        const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
-        const totalMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
-
-        // 5. Mettre à jour le nombre total de journées dans la compétition
-        if (totalMatchdays) {
-          await supabase.from('competitions').update({
-            total_matchdays: totalMatchdays
-          }).eq('id', competition.id)
-        }
-
-        // 6. Mettre à jour les matchs
-        const matchesToUpsert = matchesData.matches.map((match: any) => ({
-          football_data_match_id: match.id,
-          competition_id: competition.id,
-          matchday: match.matchday,
-          stage: match.stage || null, // Phase de compétition (GROUP_STAGE, LAST_16, QUARTER_FINALS, etc.)
-          utc_date: match.utcDate,
-          status: match.status,
-          home_team_id: match.homeTeam.id,
-          home_team_name: match.homeTeam.name,
-          home_team_crest: match.homeTeam.crest,
-          away_team_id: match.awayTeam.id,
-          away_team_name: match.awayTeam.name,
-          away_team_crest: match.awayTeam.crest,
-          home_score: match.score?.fullTime?.home,
-          away_score: match.score?.fullTime?.away,
-        }))
-
-        const { error: matchesError } = await supabase
-          .from('imported_matches')
-          .upsert(matchesToUpsert, {
-            onConflict: 'football_data_match_id',
-          })
-
-        if (matchesError) {
-          console.error(`Error updating matches for ${competition.code}:`, matchesError)
-          results.push({
-            competitionId: competition.id,
-            name: competition.name,
-            success: false,
-            error: `Failed to update matches: ${matchesError.message}`
-          })
-          continue
-        }
-
-        results.push({
-          competitionId: competition.id,
-          name: competition.name,
-          code: competition.code,
-          success: true,
-          matchesCount: matchesToUpsert.length
-        })
-
-      } catch (error: any) {
-        console.error(`Error processing competition ${competition.code}:`, error)
-        results.push({
-          competitionId: competition.id,
-          name: competition.name,
-          success: false,
-          error: error.message
-        })
-      }
-    }
-
-    const successCount = results.filter(r => r.success).length
-    const failureCount = results.filter(r => !r.success).length
-
-    // Vérifier et terminer les tournois dont toutes les journées sont complétées
-    const competitionIds = activeCompetitions.map(c => c.id)
-    const finishedTournaments = await checkAndFinishTournaments(supabase, competitionIds)
-
-    return NextResponse.json({
-      success: true,
-      message: `Auto-update completed: ${successCount} successful, ${failureCount} failed`,
-      totalCompetitions: activeCompetitions.length,
-      successCount,
-      failureCount,
-      finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
-      results
-    })
+    return NextResponse.json(result)
 
   } catch (error: any) {
     console.error('Error in auto-update:', error)

@@ -14,11 +14,13 @@ export async function GET() {
       )
     }
 
-    // Récupérer les compétitions importées actives
+    // Récupérer les compétitions importées actives dont la saison n'est pas terminée
+    const today = new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
     const { data: competitions, error } = await supabase
       .from('competitions')
       .select('*')
       .eq('is_active', true)
+      .or(`current_season_end_date.is.null,current_season_end_date.gte.${today}`)
       .order('name')
 
     // Récupérer les compétitions personnalisées actives
