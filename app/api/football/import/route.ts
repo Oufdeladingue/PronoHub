@@ -163,8 +163,16 @@ async function importFromApiFootball(leagueId: number) {
       throw compError
     }
 
-    // 6. Transformer les fixtures vers format interne
-    const transformedMatches = transformFixturesToMatches(fixtures, leagueId)
+    // 6. Transformer les fixtures vers format interne (avec matchs knockout sans équipes)
+    const transformedMatches = transformFixturesToMatches(fixtures, leagueId, { keepKnockoutWithoutTeams: true })
+
+    // Log des phases détectées
+    const stagesCounts = transformedMatches.reduce((acc: Record<string, number>, m) => {
+      const stage = m.stage || 'REGULAR_SEASON'
+      acc[stage] = (acc[stage] || 0) + 1
+      return acc
+    }, {})
+    console.log('[IMPORT API-Football] Phases détectées:', stagesCounts)
 
     console.log(`🔄 Insertion de ${transformedMatches.length} matchs...`)
 
@@ -325,27 +333,61 @@ async function importFromFootballData(competitionId: number) {
   }
 
   // 7. Préparer les matchs pour l'insertion
-  // Filtrer les matchs qui n'ont pas encore d'équipes assignées (matchs futurs dépendant de résultats)
-  const matchesToInsert = matchesData.matches
-    .filter((match: any) => match.homeTeam?.id && match.awayTeam?.id)
-    .map((match: any) => ({
-      football_data_match_id: match.id,
-      competition_id: competitionId,
-      matchday: match.matchday,
-      stage: match.stage || null, // Phase de compétition (LEAGUE_STAGE, PLAYOFFS, QUARTER_FINALS, etc.)
-      utc_date: match.utcDate,
-      status: match.status,
-      home_team_id: match.homeTeam.id,
-      home_team_name: match.homeTeam.name,
-      home_team_crest: match.homeTeam.crest,
-      away_team_id: match.awayTeam.id,
-      away_team_name: match.awayTeam.name,
-      away_team_crest: match.awayTeam.crest,
-      home_score: match.score?.fullTime?.home,
-      away_score: match.score?.fullTime?.away,
-    }))
+  // Pour les matchs knockout sans équipes, on les garde avec des placeholders
+  const knockoutStages = ['LAST_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL', 'PLAYOFFS']
 
-  const skippedMatches = matchesData.matches.length - matchesToInsert.length
+  const matchesToInsert = matchesData.matches
+    .filter((match: any) => {
+      // Filtrer les matchs sans matchday (contrainte NOT NULL en base)
+      if (match.matchday === null || match.matchday === undefined) {
+        return false
+      }
+
+      const hasTeams = match.homeTeam?.id && match.awayTeam?.id
+      if (hasTeams) return true
+
+      // Garder les matchs knockout même sans équipes définies
+      if (match.stage && knockoutStages.includes(match.stage)) {
+        return true
+      }
+      return false
+    })
+    .map((match: any) => {
+      const hasHomeTeam = match.homeTeam?.id
+      const hasAwayTeam = match.awayTeam?.id
+
+      return {
+        football_data_match_id: match.id,
+        competition_id: competitionId,
+        matchday: match.matchday,
+        stage: match.stage || null, // Phase de compétition (LEAGUE_STAGE, PLAYOFFS, QUARTER_FINALS, etc.)
+        utc_date: match.utcDate,
+        status: match.status,
+        home_team_id: hasHomeTeam ? match.homeTeam.id : 0,
+        home_team_name: hasHomeTeam ? match.homeTeam.name : 'À déterminer',
+        home_team_crest: hasHomeTeam ? match.homeTeam.crest : '',
+        away_team_id: hasAwayTeam ? match.awayTeam.id : 0,
+        away_team_name: hasAwayTeam ? match.awayTeam.name : 'À déterminer',
+        away_team_crest: hasAwayTeam ? match.awayTeam.crest : '',
+        home_score: match.score?.fullTime?.home,
+        away_score: match.score?.fullTime?.away,
+      }
+    })
+
+  // Compter les matchs ignorés (sans équipes et hors knockout)
+  const skippedMatches = matchesData.matches.filter((match: any) => {
+    const hasTeams = match.homeTeam?.id && match.awayTeam?.id
+    const isKnockout = match.stage && knockoutStages.includes(match.stage)
+    return !hasTeams && !isKnockout
+  }).length
+
+  // Log des phases détectées
+  const stagesCounts = matchesToInsert.reduce((acc: Record<string, number>, m: any) => {
+    const stage = m.stage || 'REGULAR_SEASON'
+    acc[stage] = (acc[stage] || 0) + 1
+    return acc
+  }, {})
+  console.log('[IMPORT] Phases détectées:', stagesCounts)
 
   // 8. Insérer ou mettre à jour les matchs
   const { error: matchesError } = await supabase

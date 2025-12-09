@@ -36,21 +36,27 @@ export default function JoinTournamentButton() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ inviteCode: code }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Erreur lors de la tentative de rejoindre le tournoi')
+        // Gestion des erreurs de quota
+        if (data.quotaExceeded) {
+          setError(`Quota atteint (${data.currentCount}/${data.maxCount}). ${data.message || 'Passez à une offre supérieure.'}`)
+        } else if (data.requiresPayment && data.isEventTournament) {
+          setError(`${data.error} ${data.message || ''}`)
+        } else {
+          setError(data.error || 'Erreur lors de la tentative de rejoindre le tournoi')
+        }
         setIsLoading(false)
         return
       }
 
       // Rediriger vers la page d'échauffement du tournoi
       if (data.tournament) {
-        const tournamentSlug = `${data.tournament.name.toLowerCase().replace(/\s+/g, '-')}_${data.tournament.slug || data.tournament.invite_code}`
-        router.push(`/vestiaire/${tournamentSlug}/echauffement`)
+        router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
       }
     } catch (err) {
       setError('Erreur de connexion au serveur')

@@ -41,6 +41,8 @@ interface QuotasInfo {
   oneshotCreated: number
   eliteCreated: number
   platiniumCreated: number
+  // Tournois événement (compétitions occasionnelles)
+  eventTournaments: number
   // Legacy
   premiumTournaments: number
   premiumTournamentsMax: number
@@ -308,6 +310,12 @@ function DashboardContent({
                   Tournois Platinium : {quotas.platiniumCreated}
                 </span>
               )}
+              {quotas.eventTournaments > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
+                  Tournois Événement : {quotas.eventTournaments}
+                </span>
+              )}
             </p>
 
             {/* Version Mobile - accordéon */}
@@ -351,6 +359,12 @@ function DashboardContent({
                       <span>Tournois Platinium : {quotas.platiniumCreated}</span>
                     </div>
                   )}
+                  {quotas.eventTournaments > 0 && (
+                    <div className="flex items-center gap-2 text-sm theme-text-secondary">
+                      <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
+                      <span>Tournois Événement : {quotas.eventTournaments}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -381,7 +395,7 @@ function DashboardContent({
                   >
                     {/* Badge type de tournoi - coin inférieur droit sur mobile, supérieur gauche sur desktop */}
                     <div className="absolute bottom-1 right-1 md:top-1 md:left-1 md:bottom-auto md:right-auto z-20 tournament-badge-hover">
-                      <TournamentTypeBadge type={tournament.tournament_type || 'free'} size="sm" />
+                      <TournamentTypeBadge type={tournament.is_event ? 'event' : (tournament.tournament_type || 'free')} size="sm" />
                     </div>
 
                     {/* Fond orange qui arrive de la gauche au survol - uniquement sur desktop */}
@@ -395,6 +409,11 @@ function DashboardContent({
                           {tournament.name}
                           {tournament.isCaptain && (
                             <span className="captain-label font-normal text-sm"> (capitaine)</span>
+                          )}
+                          {tournament.pendingTeamRequests > 0 && (
+                            <span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold bg-[#ff9900] text-[#111] rounded-full" title="Demandes d'équipe en attente">
+                              {tournament.pendingTeamRequests}
+                            </span>
                           )}
                         </h3>
                         <p className="text-xs theme-text-secondary whitespace-nowrap">
@@ -515,6 +534,11 @@ function DashboardContent({
                           {tournament.name}
                           {tournament.isCaptain && (
                             <span className="captain-label font-normal text-base"> (capitaine)</span>
+                          )}
+                          {tournament.pendingTeamRequests > 0 && (
+                            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold bg-[#ff9900] text-[#111] rounded-full" title="Demandes d'équipe en attente">
+                              {tournament.pendingTeamRequests}
+                            </span>
                           )}
                         </h3>
                         <p className="text-base theme-text-secondary">{tournament.competition_name}</p>

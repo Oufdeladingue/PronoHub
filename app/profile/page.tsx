@@ -233,11 +233,26 @@ function ProfileContent() {
 
     loadProfile()
     loadAvatars()
+    loadTrophiesForAvatars() // Charger les trophées pour les avatars débloqués
     updateVisibleAvatarsCount()
 
     window.addEventListener('resize', updateVisibleAvatarsCount)
     return () => window.removeEventListener('resize', updateVisibleAvatarsCount)
   }, [router, supabase])
+
+  // Fonction pour charger les trophées (uniquement pour affichage des avatars, pas de recalcul)
+  async function loadTrophiesForAvatars() {
+    try {
+      const response = await fetch('/api/user/trophies')
+      const data = await response.json()
+      if (data.success) {
+        setTrophies(data.trophies)
+        setHasNewTrophies(data.hasNewTrophies)
+      }
+    } catch (error) {
+      console.error('Error loading trophies for avatars:', error)
+    }
+  }
 
   const handleSave = async () => {
     setSaving(true)
@@ -505,6 +520,48 @@ function ProfileContent() {
           name: 'L\'Optimisateur',
           description: 'Un score exact sur un match Bonus',
           image: '/trophy/optimisateur.png'
+        }
+      case 'ultra_dominator':
+        return {
+          name: 'L\'Ultra-dominateur',
+          description: 'Premier à chaque journée d\'un tournoi',
+          image: '/trophy/dominateur.png'
+        }
+      case 'lantern':
+        return {
+          name: 'La Lanterne-rouge',
+          description: 'Dernier au classement d\'une journée de tournoi',
+          image: '/trophy/lanterne.png'
+        }
+      case 'downward_spiral':
+        return {
+          name: 'La Spirale infernale',
+          description: 'Dernier deux journées de suite lors d\'un même tournoi',
+          image: '/trophy/spirale.png'
+        }
+      case 'abyssal':
+        return {
+          name: 'L\'Abyssal',
+          description: 'Dernier au classement final d\'un tournoi',
+          image: '/trophy/abyssal.png'
+        }
+      case 'poulidor':
+        return {
+          name: 'Le Poulidor',
+          description: 'Aucune première place sur toutes les journées d\'un tournoi',
+          image: '/trophy/poulidor.png'
+        }
+      case 'cursed':
+        return {
+          name: 'Le Maudit',
+          description: 'Aucun bon résultat sur une journée de tournoi',
+          image: '/trophy/maudit.png'
+        }
+      case 'legend':
+        return {
+          name: 'La Légende',
+          description: 'Vainqueur d\'un tournoi comptant plus de 10 participants',
+          image: '/trophy/LEGENDE.png'
         }
       default:
         return {
@@ -888,6 +945,43 @@ function ProfileContent() {
                     ))}
                 </div>
               )}
+
+              {/* Section Avatars Trophées - affichée seulement si l'utilisateur a des trophées */}
+              {trophies.length > 0 && (
+                <div className="mt-6 pt-4 border-t theme-border">
+                  <p className="text-sm theme-text-secondary text-center mb-4">
+                    Avatars trophées débloqués :
+                  </p>
+                  <div className="flex justify-center gap-2 flex-wrap">
+                    {trophies.map((trophy) => {
+                      const trophyAvatarId = `trophy_${trophy.trophy_type}`
+                      const trophyInfo = getTrophyInfo(trophy.trophy_type)
+                      const isSelected = selectedAvatar === trophyAvatarId
+                      return (
+                        <button
+                          key={trophy.id}
+                          type="button"
+                          onClick={() => setSelectedAvatar(trophyAvatarId)}
+                          className={`relative w-16 h-16 rounded-full overflow-hidden border-2 transition-all hover:scale-105 flex-shrink-0 ${
+                            isSelected
+                              ? 'border-[#ff9900] ring-2 ring-[#ff9900]/50'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-[#ff9900]/50'
+                          }`}
+                          title={trophyInfo.name}
+                        >
+                          <Image
+                            src={trophyInfo.image}
+                            alt={trophyInfo.name}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -1102,7 +1196,7 @@ function ProfileContent() {
 
               {/* Message si nouveaux trophées trouvés */}
               {lastRefreshMessage && (
-                <div className="p-3 rounded-lg text-sm text-center bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                <div className="p-3 rounded-lg text-sm text-center bg-[#ff9900] text-white font-medium">
                   🎉 {lastRefreshMessage}
                 </div>
               )}
@@ -1174,7 +1268,7 @@ function ProfileContent() {
                   <div className="mt-8">
                     <h3 className="text-lg font-semibold theme-text mb-4">Trophées à débloquer</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['king_of_day', 'correct_result', 'exact_score', 'tournament_winner', 'double_king', 'opportunist', 'nostradamus', 'bonus_profiteer', 'bonus_optimizer']
+                      {['king_of_day', 'correct_result', 'exact_score', 'tournament_winner', 'double_king', 'opportunist', 'nostradamus', 'bonus_profiteer', 'bonus_optimizer', 'ultra_dominator', 'lantern', 'downward_spiral', 'abyssal', 'poulidor', 'cursed', 'legend']
                         .filter(type => !trophies.some(t => t.trophy_type === type))
                         .map((trophyType) => {
                           const trophyInfo = getTrophyInfo(trophyType)

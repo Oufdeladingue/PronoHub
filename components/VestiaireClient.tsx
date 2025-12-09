@@ -15,6 +15,7 @@ interface Competition {
   current_season_start_date: string
   current_season_end_date: string
   is_active: boolean
+  is_event?: boolean
   remaining_matchdays?: number
   remaining_matches?: number
   tournaments_count?: number
@@ -241,10 +242,24 @@ export default function VestiaireClient() {
           </div>
         ) : (
           <div className="flex flex-wrap justify-center gap-6 px-5">
-            {competitions.map((comp) => (
+            {/* Trier: compétitions actives en premier, terminées à la fin */}
+            {[...competitions]
+              .sort((a, b) => {
+                const aFinished = (a.remaining_matchdays ?? 1) === 0
+                const bFinished = (b.remaining_matchdays ?? 1) === 0
+                if (aFinished && !bFinished) return 1
+                if (!aFinished && bFinished) return -1
+                return 0
+              })
+              .map((comp) => {
+              const isFinished = (comp.remaining_matchdays ?? 1) === 0
+              return (
               <div
                 key={comp.id}
                 onClick={() => {
+                  // Ne pas permettre de cliquer sur une compétition terminée
+                  if (isFinished) return
+
                   // Construire les query params
                   const params = new URLSearchParams()
                   if (tournamentType) params.set('type', tournamentType)
@@ -257,10 +272,10 @@ export default function VestiaireClient() {
                     router.push(`/vestiaire/create/${comp.id}${queryString}`)
                   }
                 }}
-                className={`group competition-badge ${comp.is_custom ? 'custom-competition' : ''}`}
+                className={`group competition-badge ${comp.is_custom ? 'custom-competition' : ''} ${isFinished ? 'competition-finished' : ''}`}
               >
                 {/* Badge "Plus populaire" */}
-                {comp.is_most_popular && (
+                {comp.is_most_popular && !comp.is_event && (
                   <div
                     className="popular-star absolute top-3 right-3 z-20 rounded-full p-2 shadow-lg group/star transition-colors duration-300"
                     title="Compétition la plus populaire"
@@ -270,6 +285,25 @@ export default function VestiaireClient() {
                     </svg>
                     <span className="popular-tooltip absolute -bottom-10 right-0 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
                       Compétition la plus populaire
+                    </span>
+                  </div>
+                )}
+
+                {/* Badge "Événement" */}
+                {comp.is_event && (
+                  <div
+                    className="event-badge absolute top-3 right-3 z-20 flex flex-col items-center gap-1 group/event"
+                    title="Compétition événementielle"
+                  >
+                    <div className="event-icon-container rounded-full p-2 shadow-lg animate-pulse-subtle">
+                      <img
+                        src="/images/icons/event.svg"
+                        alt="Événement"
+                        className="w-5 h-5 event-icon"
+                      />
+                    </div>
+                    <span className="event-label text-[10px] font-bold uppercase tracking-wide">
+                      Événement
                     </span>
                   </div>
                 )}
@@ -284,7 +318,11 @@ export default function VestiaireClient() {
                 <div className="relative z-10 w-full">
                   {/* Journées restantes - Badge en haut à gauche (toujours présent pour l'alignement) */}
                   <div className="text-left mb-2 min-h-[26px]">
-                    {comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
+                    {isFinished ? (
+                      <span className="finished-badge inline-block text-xs font-semibold px-3 py-1 rounded-full bg-gray-600/50 text-gray-400">
+                        Saison terminée
+                      </span>
+                    ) : comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
                         {comp.remaining_matchdays === 1
                           ? '1 journée restante'
@@ -352,7 +390,7 @@ export default function VestiaireClient() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </main>

@@ -1,13 +1,23 @@
-// Stripe est désactivé temporairement - à réactiver quand Stripe sera configuré
-// import { loadStripe, Stripe } from '@stripe/stripe-js'
+import { loadStripe, Stripe } from '@stripe/stripe-js'
 
-// let stripePromise: Promise<Stripe | null>
+let stripePromise: Promise<Stripe | null>
 
-// Instance Stripe pour le client (navigateur) - désactivé temporairement
+// Vérifier si on est en mode test ou live
+export const isStripeTestMode = () => {
+  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+  return key.startsWith('pk_test_')
+}
+
+// Instance Stripe pour le client (navigateur)
 export const getStripe = () => {
-  // if (!stripePromise) {
-  //   stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
-  // }
-  // return stripePromise
-  return Promise.resolve(null)
+  if (!stripePromise) {
+    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+    if (!key) {
+      console.warn('[Stripe Client] No publishable key configured')
+      return Promise.resolve(null)
+    }
+    console.log(`[Stripe Client] Initializing in ${isStripeTestMode() ? 'TEST' : 'LIVE'} mode`)
+    stripePromise = loadStripe(key)
+  }
+  return stripePromise
 }

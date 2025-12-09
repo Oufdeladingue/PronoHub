@@ -20,7 +20,7 @@ export async function GET() {
     // Après: 3 requêtes max en parallèle
     // =====================================================
 
-    const [participationsResult, creditsResult, allParticipantsCountResult] = await Promise.all([
+    const [participationsResult, creditsResult, allParticipantsCountResult, eventSlotsResult, eventCompetitionsResult] = await Promise.all([
       // 1. Récupérer tous les tournois où l'utilisateur participe
       supabase
         .from('tournament_participants')
@@ -39,7 +39,8 @@ export async function GET() {
             max_players,
             competition_name,
             is_legacy,
-            creator_id
+            creator_id,
+            competition_id
           )
         `)
         .eq('user_id', user.id),
@@ -55,7 +56,19 @@ export async function GET() {
       // On récupère tous les participants des tournois où l'utilisateur participe
       supabase
         .from('tournament_participants')
-        .select('tournament_id')
+        .select('tournament_id'),
+
+      // 4. Récupérer les slots événement de l'utilisateur
+      supabase
+        .from('event_tournament_slots')
+        .select('id, status, purchased_at, used_at, tournament_id')
+        .eq('user_id', user.id),
+
+      // 5. Récupérer les IDs des compétitions événement (séparément car pas de FK)
+      supabase
+        .from('competitions')
+        .select('id')
+        .eq('is_event', true)
     ])
 
     const participations = participationsResult.data || []
@@ -68,6 +81,9 @@ export async function GET() {
         { status: 500 }
       )
     }
+
+    // Extraire les IDs des compétitions événement
+    const eventCompetitionIds = (eventCompetitionsResult.data || []).map((c: any) => c.id)
 
     // Extraire les IDs des tournois de l'utilisateur
     const userTournamentIds = participations
@@ -89,6 +105,8 @@ export async function GET() {
       .filter((p: any) => p.tournaments && p.tournaments.status !== 'completed')
       .map((p: any) => {
         const isCaptain = p.participant_role === 'captain' || p.tournaments.creator_id === user.id
+        // Vérifier si le tournoi est sur une compétition événement
+        const isEventTournament = eventCompetitionIds.includes(p.tournaments.competition_id)
         return {
           id: p.tournaments.id,
           name: p.tournaments.name,
@@ -101,13 +119,31 @@ export async function GET() {
           max_players: p.tournaments.max_players || 5,
           competition_name: p.tournaments.competition_name || 'N/A',
           is_legacy: p.tournaments.is_legacy || false,
+          is_event: isEventTournament,
         }
       })
 
     // Calculer les quotas
+    // Exclure les tournois événement du comptage Free-Kick
     const freeTournamentsActive = activeTournaments.filter(
-      (t: any) => t.tournament_type === 'free' || !t.tournament_type
+      (t: any) => (t.tournament_type === 'free' || !t.tournament_type) && !t.is_event
     ).length
+
+    // Tournois événement actifs
+    const eventTournamentsActive = activeTournaments.filter(
+      (t: any) => t.is_event === true
+    ).length
+
+    // Slots événement disponibles (achetés mais non utilisés)
+    const eventSlots = eventSlotsResult.data || []
+    const eventSlotsAvailable = eventSlots.filter((s: any) => s.status === 'available').length
+    const eventSlotsUsed = eventSlots.filter((s: any) => s.status === 'used').length
+
+    // L'utilisateur peut rejoindre un tournoi événement si:
+    // - Il n'a pas encore utilisé son slot gratuit (eventTournamentsActive < 1)
+    // - OU il a des slots événement achetés disponibles
+    const canJoinEventFree = eventTournamentsActive < 1
+    const canJoinEventWithSlot = eventSlotsAvailable > 0
 
     const premiumInvitesActive = activeTournaments.filter(
       (t: any) =>
@@ -173,6 +209,14 @@ export async function GET() {
       // Slots payants
       paid_slots_used: paidSlotsUsed,
       paid_slots_total: paidSlotsTotal,
+
+      // Événement
+      event_tournaments_active: eventTournamentsActive,
+      event_tournaments_max: 1, // 1 gratuit
+      event_slots_available: eventSlotsAvailable,
+      event_slots_used: eventSlotsUsed,
+      can_join_event_free: canJoinEventFree,
+      can_join_event_with_slot: canJoinEventWithSlot,
 
       // Crédits disponibles
       credits,

@@ -48,16 +48,35 @@ export default async function DashboardPage() {
   // Pour les tournois gratuits, c'est le nombre de participations qui compte (pas la création)
   const { data: participatedTournaments } = await supabase
     .from('tournaments')
-    .select('id, tournament_type')
+    .select('id, tournament_type, competition_id')
     .in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000'])
     .neq('status', 'completed')
 
+  // Récupérer les IDs des compétitions événement pour identifier les tournois événement
+  const participatedCompetitionIds = participatedTournaments?.map(t => t.competition_id).filter(Boolean) || []
+  let eventCompetitionIds: string[] = []
+  if (participatedCompetitionIds.length > 0) {
+    const { data: eventCompetitions } = await supabase
+      .from('competitions')
+      .select('id')
+      .in('id', participatedCompetitionIds)
+      .eq('is_event', true)
+    eventCompetitionIds = eventCompetitions?.map(c => c.id) || []
+  }
+
   // Compter par type de tournoi parmi ceux auxquels l'utilisateur participe encore (non terminés)
-  const freeTournamentsParticipating = participatedTournaments?.filter(t => t.tournament_type === 'free' || !t.tournament_type).length || 0
+  const freeTournamentsParticipating = participatedTournaments?.filter(t =>
+    (t.tournament_type === 'free' || !t.tournament_type) &&
+    !eventCompetitionIds.includes(t.competition_id)
+  ).length || 0
   const oneshotCreated = participatedTournaments?.filter(t => t.tournament_type === 'oneshot').length || 0
   const eliteCreated = participatedTournaments?.filter(t => t.tournament_type === 'elite').length || 0
   const platiniumCreated = participatedTournaments?.filter(t => t.tournament_type === 'platinium').length || 0
   const premiumTournamentsCreated = participatedTournaments?.filter(t => t.tournament_type === 'premium').length || 0
+  // Compter les tournois événement (compétitions avec is_event = true)
+  const eventTournamentsParticipating = participatedTournaments?.filter(t =>
+    eventCompetitionIds.includes(t.competition_id)
+  ).length || 0
 
   // Compter les slots one-shot disponibles (legacy)
   const { count: oneshotSlotsAvailable } = await supabase
@@ -386,6 +405,27 @@ export default async function DashboardPage() {
     }
   }
 
+  // Récupérer le nombre de demandes d'équipe en attente pour les tournois dont l'utilisateur est capitaine
+  const pendingTeamRequests: Record<string, number> = {}
+  const userCreatedTournamentIds = (userTournaments || [])
+    .filter((t: any) => t.creator_id === user.id && t.status === 'pending')
+    .map((t: any) => t.id)
+
+  if (userCreatedTournamentIds.length > 0) {
+    const { data: teamRequests } = await supabase
+      .from('team_requests')
+      .select('tournament_id')
+      .in('tournament_id', userCreatedTournamentIds)
+      .eq('status', 'pending')
+
+    // Compter les demandes par tournoi
+    if (teamRequests) {
+      for (const request of teamRequests) {
+        pendingTeamRequests[request.tournament_id] = (pendingTeamRequests[request.tournament_id] || 0) + 1
+      }
+    }
+  }
+
   // Récupérer la date du dernier match et les infos de classement pour les tournois terminés
   const lastMatchDates: Record<string, string | null> = {}
   const tournamentRankings: Record<string, { winner: string | null, userRank: number | null, totalParticipants: number }> = {}
@@ -480,6 +520,9 @@ export default async function DashboardPage() {
       custom_emblem_color: customCompetitionData.custom_emblem_color
     } : competitionData
 
+    // Déterminer si c'est un tournoi événement
+    const isEventTournament = eventCompetitionIds.includes(t.competition_id)
+
     const tournamentData = {
       id: t.id,
       name: t.name,
@@ -500,10 +543,13 @@ export default async function DashboardPage() {
       nextMatchDate: nextMatchDates[t.id] || null,
       lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés
       tournament_type: t.tournament_type || 'free',
+      is_event: isEventTournament, // Tournoi sur une compétition événement
       // Infos de classement pour tournois terminés
       winner: tournamentRankings[t.id]?.winner || null,
       userRank: tournamentRankings[t.id]?.userRank || null,
-      totalParticipants: tournamentRankings[t.id]?.totalParticipants || 0
+      totalParticipants: tournamentRankings[t.id]?.totalParticipants || 0,
+      // Demandes d'équipe en attente (pour le capitaine)
+      pendingTeamRequests: pendingTeamRequests[t.id] || 0
     }
 
     console.log(`[DASHBOARD] Tournament ${t.name}:`, {
@@ -528,6 +574,9 @@ export default async function DashboardPage() {
       custom_emblem_color: customCompetitionData.custom_emblem_color
     } : competitionData
 
+    // Déterminer si c'est un tournoi événement
+    const isEventTournament = eventCompetitionIds.includes(t.competition_id)
+
     return {
       id: t.id,
       name: t.name,
@@ -538,6 +587,7 @@ export default async function DashboardPage() {
       custom_emblem_white: emblemData.custom_emblem_white,
       custom_emblem_color: emblemData.custom_emblem_color,
       tournament_type: t.tournament_type || 'free',
+      is_event: isEventTournament, // Tournoi sur une compétition événement
       status: t.status,
       hasLeft: true // Marqueur pour indiquer que l'utilisateur a quitté ce tournoi
     }
@@ -566,6 +616,8 @@ export default async function DashboardPage() {
             oneshotCreated,
             eliteCreated,
             platiniumCreated,
+            // Tournois événement (compétitions occasionnelles)
+            eventTournaments: eventTournamentsParticipating,
             // Legacy (à garder pour compatibilité)
             premiumTournaments: premiumTournamentsCreated,
             premiumTournamentsMax: hasSubscription ? 5 : 0,

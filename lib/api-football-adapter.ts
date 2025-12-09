@@ -195,11 +195,84 @@ export interface InternalMatch {
 // ============================================
 
 /**
+ * Parse le stage (phase) depuis le round string d'API-Football
+ * Exemples:
+ * - "Regular Season - 15" → null (saison régulière)
+ * - "Group A - 1" → GROUP_STAGE
+ * - "Round of 16" → ROUND_OF_16
+ * - "Quarter-finals" → QUARTER_FINALS
+ * - "Semi-finals" → SEMI_FINALS
+ * - "Final" → FINAL
+ * - "3rd Place Final" → THIRD_PLACE
+ * - "League Stage - 1" → LEAGUE_STAGE (nouveau format Champions League)
+ */
+export function parseStageFromRound(round: string): string | null {
+  const roundLower = round.toLowerCase()
+
+  // Phase de poule (World Cup, Euro, etc.)
+  if (roundLower.includes('group')) {
+    return 'GROUP_STAGE'
+  }
+
+  // Phase de ligue (nouveau format Champions League)
+  if (roundLower.includes('league stage')) {
+    return 'LEAGUE_STAGE'
+  }
+
+  // Tour préliminaire
+  if (roundLower.includes('preliminary') || roundLower.includes('qualifying')) {
+    return 'PRELIMINARY_ROUND'
+  }
+
+  // Barrages / Playoffs
+  if (roundLower.includes('playoff') || roundLower.includes('play-off')) {
+    return 'PLAYOFFS'
+  }
+
+  // 32èmes de finale
+  if (roundLower.includes('round of 32') || roundLower.includes('last 32')) {
+    return 'LAST_32'
+  }
+
+  // 16èmes / 8èmes de finale
+  if (roundLower.includes('round of 16') || roundLower.includes('last 16')) {
+    return 'ROUND_OF_16'
+  }
+
+  // Quarts de finale
+  if (roundLower.includes('quarter')) {
+    return 'QUARTER_FINALS'
+  }
+
+  // Demi-finales
+  if (roundLower.includes('semi')) {
+    return 'SEMI_FINALS'
+  }
+
+  // Petite finale (3ème place)
+  if (roundLower.includes('3rd place') || roundLower.includes('third place')) {
+    return 'THIRD_PLACE'
+  }
+
+  // Finale (doit être après les autres pour éviter les faux positifs)
+  if (roundLower.includes('final') && !roundLower.includes('quarter') && !roundLower.includes('semi')) {
+    return 'FINAL'
+  }
+
+  // Saison régulière ou non reconnu
+  return null
+}
+
+/**
  * Parse le numéro de journée depuis le round string d'API-Football
+ * Pour les phases de poule: numéro de journée dans la poule
+ * Pour les phases knockout: numéro du leg (1 = aller, 2 = retour) ou 1 si match unique
  * Exemples:
  * - "Regular Season - 15" → 15
- * - "1st Round" → 1
- * - "Round of 16 - 1/2" → calcul spécial
+ * - "Group A - 1" → 1
+ * - "League Stage - 3" → 3
+ * - "Round of 16" → 1 (match unique ou aller)
+ * - "Quarter-finals - 2nd Leg" → 2
  */
 export function parseMatchdayFromRound(round: string): number {
   // Cas standard: "Regular Season - 15"
@@ -208,18 +281,36 @@ export function parseMatchdayFromRound(round: string): number {
     return parseInt(regularMatch[1], 10)
   }
 
+  // Phase de ligue: "League Stage - 3"
+  const leagueStageMatch = round.match(/League Stage - (\d+)/)
+  if (leagueStageMatch) {
+    return parseInt(leagueStageMatch[1], 10)
+  }
+
+  // Phase de poule: "Group A - 1", "Group B - 2", etc.
+  const groupMatch = round.match(/Group [A-Z] - (\d+)/)
+  if (groupMatch) {
+    return parseInt(groupMatch[1], 10)
+  }
+
+  // Matchs aller-retour knockout: "Round of 16 - 1st Leg" ou "Quarter-finals - 2"
+  const legMatch = round.match(/- (\d+)(?:st|nd|rd|th)?\s*(?:Leg)?$/i)
+  if (legMatch) {
+    return parseInt(legMatch[1], 10)
+  }
+
+  // Cas spéciaux pour tournois à élimination (match unique)
+  // On retourne 1 par défaut pour les phases knockout
+  const stage = parseStageFromRound(round)
+  if (stage && ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'THIRD_PLACE', 'LAST_32', 'PLAYOFFS'].includes(stage)) {
+    return 1
+  }
+
   // Cas générique avec numéro
   const genericMatch = round.match(/(\d+)/)
   if (genericMatch) {
     return parseInt(genericMatch[1], 10)
   }
-
-  // Cas spéciaux pour tournois à élimination
-  if (round.includes('Final')) return 1
-  if (round.includes('Semi-finals')) return 2
-  if (round.includes('Quarter-finals')) return 3
-  if (round.includes('Round of 16')) return 4
-  if (round.includes('Round of 32')) return 5
 
   // Par défaut
   return 1
@@ -270,7 +361,7 @@ export function transformFixtureToMatch(
     football_data_match_id: apiFixture.fixture.id,
     competition_id: competitionId,
     matchday: parseMatchdayFromRound(apiFixture.league.round),
-    stage: null, // API-Football n'utilise pas le champ "stage" de la même manière
+    stage: parseStageFromRound(apiFixture.league.round),
     utc_date: apiFixture.fixture.date,
     status: transformStatus(apiFixture.fixture.status.short),
     home_team_id: apiFixture.teams.home.id,
@@ -286,17 +377,55 @@ export function transformFixtureToMatch(
 
 /**
  * Transforme une liste de fixtures
+ * Pour les matchs knockout sans équipes définies, on garde le match avec des placeholders
  */
 export function transformFixturesToMatches(
   apiFixtures: ApiFootballFixture[],
-  competitionId: number
+  competitionId: number,
+  options?: { keepKnockoutWithoutTeams?: boolean }
 ): InternalMatch[] {
+  const keepKnockout = options?.keepKnockoutWithoutTeams ?? true
+
   return apiFixtures
     .filter(fixture => {
-      // Filtrer les matchs sans équipes valides
-      return fixture.teams.home.id && fixture.teams.away.id
+      const hasTeams = fixture.teams.home.id && fixture.teams.away.id
+
+      // Si les équipes sont définies, on garde le match
+      if (hasTeams) return true
+
+      // Si on veut garder les matchs knockout sans équipes
+      if (keepKnockout) {
+        const stage = parseStageFromRound(fixture.league.round)
+        // Garder les matchs des phases finales même sans équipes
+        if (stage && ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'THIRD_PLACE', 'LAST_32', 'PLAYOFFS'].includes(stage)) {
+          return true
+        }
+      }
+
+      return false
     })
-    .map(fixture => transformFixtureToMatch(fixture, competitionId))
+    .map(fixture => {
+      // Pour les matchs sans équipes, utiliser des placeholders
+      const hasHomeTeam = fixture.teams.home?.id
+      const hasAwayTeam = fixture.teams.away?.id
+
+      return {
+        football_data_match_id: fixture.fixture.id,
+        competition_id: competitionId,
+        matchday: parseMatchdayFromRound(fixture.league.round),
+        stage: parseStageFromRound(fixture.league.round),
+        utc_date: fixture.fixture.date,
+        status: transformStatus(fixture.fixture.status.short),
+        home_team_id: hasHomeTeam ? fixture.teams.home.id : 0,
+        home_team_name: hasHomeTeam ? fixture.teams.home.name : 'À déterminer',
+        home_team_crest: hasHomeTeam ? fixture.teams.home.logo : '',
+        away_team_id: hasAwayTeam ? fixture.teams.away.id : 0,
+        away_team_name: hasAwayTeam ? fixture.teams.away.name : 'À déterminer',
+        away_team_crest: hasAwayTeam ? fixture.teams.away.logo : '',
+        home_score: fixture.goals.home,
+        away_score: fixture.goals.away
+      }
+    })
 }
 
 /**

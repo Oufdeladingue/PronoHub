@@ -11,6 +11,7 @@ import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
+import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
 
@@ -719,6 +720,7 @@ export default function OppositionPage() {
                 home_score,
                 away_score,
                 finished,
+                stage,
                 competition_id,
                 competitions (
                   id,
@@ -760,7 +762,7 @@ export default function OppositionPage() {
               finished: im?.finished || false,
               home_score: im?.home_score ?? null,
               away_score: im?.away_score ?? null,
-              stage: null,
+              stage: im?.stage || null,
               // Infos de la compétition source pour les tournois custom
               competition_name: comp?.name || match.cached_competition_name || null,
               competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
@@ -794,6 +796,8 @@ export default function OppositionPage() {
           stagesByMatchday[match.matchday] = match.stage || null
         }
       })
+      console.log('[fetchAllMatches] Stages by matchday:', stagesByMatchday)
+      console.log('[fetchAllMatches] Sample match stages:', matchesData.slice(0, 3).map((m: any) => ({ matchday: m.matchday, stage: m.stage })))
       setMatchdayStages(stagesByMatchday)
     } catch (err) {
       console.error('Erreur lors du chargement de tous les matchs:', err)
@@ -856,7 +860,7 @@ export default function OppositionPage() {
               .from('imported_matches')
               .select(`
                 id, football_data_match_id, home_team_name, away_team_name, home_team_crest, away_team_crest,
-                utc_date, status, home_score, away_score, finished, competition_id,
+                utc_date, status, home_score, away_score, finished, stage, competition_id,
                 competitions (id, name, emblem, custom_emblem_white, custom_emblem_color)
               `)
               .in('football_data_match_id', footballDataIds)
@@ -890,7 +894,7 @@ export default function OppositionPage() {
               finished: im?.finished || false,
               home_score: im?.home_score ?? null,
               away_score: im?.away_score ?? null,
-              stage: null,
+              stage: im?.stage || null,
               // Infos de la compétition source pour les tournois custom
               competition_name: comp?.name || null,
               competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
@@ -2004,7 +2008,9 @@ export default function OppositionPage() {
                         const isInProgress = matchdayStatus === 'En cours'
                         const isActive = selectedMatchday === matchday
                         const stage = matchdayStages[matchday]
-                        const matchdayLabel = getStageShortLabel(stage, matchday)
+                        // Vérifier si des matchs existent pour cette journée
+                        const hasMatchesForMatchday = allMatches.some((m: any) => m.matchday === matchday)
+                        const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday)
                         const showWarning = shouldShowMatchdayWarning(matchday)
                         return (
                           <button
@@ -2277,13 +2283,13 @@ export default function OppositionPage() {
                                       {match.home_team_crest && (
                                         <img
                                           src={match.home_team_crest}
-                                          alt={match.home_team_name}
+                                          alt={translateTeamName(match.home_team_name)}
                                           className="w-10 h-10 object-contain flex-shrink-0"
                                         />
                                       )}
                                       {/* Nom équipe */}
                                       <span className="theme-text font-medium text-center text-xs leading-tight">
-                                        {match.home_team_name}
+                                        {translateTeamName(match.home_team_name)}
                                       </span>
                                     </div>
 
@@ -2374,13 +2380,13 @@ export default function OppositionPage() {
                                       {match.away_team_crest && (
                                         <img
                                           src={match.away_team_crest}
-                                          alt={match.away_team_name}
+                                          alt={translateTeamName(match.away_team_name)}
                                           className="w-10 h-10 object-contain flex-shrink-0"
                                         />
                                       )}
                                       {/* Nom équipe */}
                                       <span className="theme-text font-medium text-center text-xs leading-tight">
-                                        {match.away_team_name}
+                                        {translateTeamName(match.away_team_name)}
                                       </span>
                                     </div>
                                   </div>
@@ -2624,12 +2630,12 @@ export default function OppositionPage() {
                                         {/* Partie gauche: Équipe domicile + Logo */}
                                         <div className="flex items-center gap-2 justify-end">
                                           <span className="theme-text font-medium text-right truncate">
-                                            {match.home_team_name}
+                                            {translateTeamName(match.home_team_name)}
                                           </span>
                                           {match.home_team_crest && (
                                             <img
                                               src={match.home_team_crest}
-                                              alt={match.home_team_name}
+                                              alt={translateTeamName(match.home_team_name)}
                                               className="w-8 h-8 object-contain flex-shrink-0"
                                             />
                                           )}
@@ -2736,12 +2742,12 @@ export default function OppositionPage() {
                                           {match.away_team_crest && (
                                             <img
                                               src={match.away_team_crest}
-                                              alt={match.away_team_name}
+                                              alt={translateTeamName(match.away_team_name)}
                                               className="w-8 h-8 object-contain flex-shrink-0"
                                             />
                                           )}
                                           <span className="theme-text font-medium text-left truncate">
-                                            {match.away_team_name}
+                                            {translateTeamName(match.away_team_name)}
                                           </span>
                                         </div>
                                       </div>

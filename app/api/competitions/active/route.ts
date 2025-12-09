@@ -55,44 +55,87 @@ export async function GET() {
     // Pour chaque compétition, compter les journées restantes et la popularité
     const competitionsWithStats = await Promise.all(
       (competitions || []).map(async (comp) => {
-        // Utiliser total_matchdays de la base de données (qui inclut les matchs à élimination)
-        const totalMatchdays = comp.total_matchdays || 0
+        const now = new Date()
 
-        // Si current_matchday est null ou 0, utiliser 1 comme valeur par défaut
-        let currentMatchday = comp.current_matchday || 1
-
-        // Vérifier si le premier match de la journée actuelle commence dans moins de 2 heures
-        const { data: firstMatch } = await supabase
+        // Récupérer tous les matchdays distincts avec leur statut
+        const { data: allMatches } = await supabase
           .from('imported_matches')
-          .select('utc_date')
+          .select('matchday, status, utc_date')
           .eq('competition_id', comp.id)
-          .eq('matchday', currentMatchday)
-          .order('utc_date', { ascending: true })
-          .limit(1)
-          .single()
+          .order('matchday', { ascending: true })
 
-        if (firstMatch?.utc_date) {
-          const now = new Date()
-          const matchTime = new Date(firstMatch.utc_date)
-          const hoursUntilMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+        // Grouper les matchs par matchday
+        const matchdayStats: Record<number, {
+          total: number,
+          finished: number,
+          firstMatchDate: Date | null,
+          allFinished: boolean
+        }> = {}
 
-          // Si le premier match commence dans moins de 2 heures, exclure cette journée
-          if (hoursUntilMatch < 2) {
-            currentMatchday = currentMatchday + 1
+        ;(allMatches || []).forEach((match: any) => {
+          if (!matchdayStats[match.matchday]) {
+            matchdayStats[match.matchday] = {
+              total: 0,
+              finished: 0,
+              firstMatchDate: null,
+              allFinished: true
+            }
           }
-        }
+          matchdayStats[match.matchday].total++
+          if (match.status === 'FINISHED') {
+            matchdayStats[match.matchday].finished++
+          } else {
+            matchdayStats[match.matchday].allFinished = false
+          }
+          // Garder la date du premier match
+          const matchDate = new Date(match.utc_date)
+          if (!matchdayStats[match.matchday].firstMatchDate ||
+              matchDate < matchdayStats[match.matchday].firstMatchDate!) {
+            matchdayStats[match.matchday].firstMatchDate = matchDate
+          }
+        })
 
-        // Calculer les journées restantes: total - journée de départ + 1 (inclure la journée de départ)
-        const remainingMatchdays = totalMatchdays > 0
-          ? Math.max(0, totalMatchdays - currentMatchday + 1)
-          : 0
+        // Compter les journées terminées (tous les matchs finis)
+        const finishedMatchdaysCount = Object.values(matchdayStats)
+          .filter(stats => stats.allFinished).length
 
-        // Compter les matchs restants (seulement ceux qui ont été importés)
-        const { count } = await supabase
-          .from('imported_matches')
-          .select('*', { count: 'exact', head: true })
-          .eq('competition_id', comp.id)
-          .gte('matchday', currentMatchday)
+        // Compter les journées en cours ou imminentes (commencent dans moins de 2h)
+        const startingMatchdaysCount = Object.values(matchdayStats)
+          .filter(stats => {
+            if (stats.allFinished) return false
+            if (stats.firstMatchDate) {
+              const hoursUntilMatch = (stats.firstMatchDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+              return hoursUntilMatch < 2
+            }
+            return false
+          }).length
+
+        // Total des matchdays dans la base de données
+        const importedMatchdaysCount = Object.keys(matchdayStats).length
+
+        // Utiliser total_matchdays de la compétition si disponible (inclut les phases knockout pas encore importées)
+        // Sinon, utiliser le nombre de matchdays importés
+        const totalMatchdays = comp.total_matchdays || importedMatchdaysCount
+
+        // Journées restantes = total - terminées - en cours/imminentes
+        // Si des phases knockout ne sont pas encore importées, elles seront comptées via total_matchdays
+        const remainingMatchdays = Math.max(0, totalMatchdays - finishedMatchdaysCount - startingMatchdaysCount)
+
+        // Compter les matchs restants (non terminés et pas imminents)
+        const remainingMatchdaysList = Object.entries(matchdayStats)
+          .filter(([_, stats]) => {
+            if (stats.allFinished) return false
+            if (stats.firstMatchDate) {
+              const hoursUntilMatch = (stats.firstMatchDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+              if (hoursUntilMatch < 2) return false
+            }
+            return true
+          })
+          .map(([matchday]) => parseInt(matchday))
+
+        const remainingMatches = (allMatches || []).filter(
+          (m: any) => m.status !== 'FINISHED' && remainingMatchdaysList.includes(m.matchday)
+        ).length
 
         // Compter le nombre de tournois utilisant cette compétition
         const { count: tournamentsCount } = await supabase
@@ -103,7 +146,7 @@ export async function GET() {
         return {
           ...comp,
           remaining_matchdays: remainingMatchdays,
-          remaining_matches: count || 0,
+          remaining_matches: remainingMatches,
           tournaments_count: tournamentsCount || 0
         }
       })

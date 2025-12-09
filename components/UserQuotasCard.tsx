@@ -15,6 +15,7 @@ interface UserTournament {
   current_players: number
   max_players: number
   competition_name: string
+  is_event?: boolean
 }
 
 interface Credits {
@@ -34,6 +35,13 @@ interface ZoneVIPData {
   can_join_premium_free: boolean
   paid_slots_used: number
   paid_slots_total: number
+  // Événement
+  event_tournaments_active: number
+  event_tournaments_max: number
+  event_slots_available: number
+  event_slots_used: number
+  can_join_event_free: boolean
+  can_join_event_with_slot: boolean
   credits?: Credits
   tournaments: UserTournament[]
   total_active_tournaments: number
@@ -255,6 +263,32 @@ export default function UserQuotasCard() {
               </div>
             </Link>
 
+            {/* Événement - Affiché avec quota spécial */}
+            <div className="flex items-center justify-between p-3 rounded-lg theme-bg hover:bg-pink-500/10 transition group">
+              <div className="flex items-center gap-3">
+                <img src="/images/icons/event.svg" alt="" className="w-5 h-5 icon-filter-rose" />
+                <div>
+                  <span className="theme-text">Événement</span>
+                  <p className="text-xs theme-text-secondary">Compétitions spéciales</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {data.can_join_event_free ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
+                    1 gratuit
+                  </span>
+                ) : data.event_slots_available > 0 ? (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
+                    {data.event_slots_available} slot{data.event_slots_available > 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                    Quota atteint
+                  </span>
+                )}
+              </div>
+            </div>
+
             {/* Lien + d'infos */}
             <div className="pt-2 text-center">
               <Link
@@ -319,6 +353,7 @@ export default function UserQuotasCard() {
                   <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={`/images/icons/${
+                        tournament.is_event ? 'event' :
                         tournament.tournament_type === 'free' ? 'free-tour' :
                         tournament.tournament_type === 'oneshot' ? 'on-shot-tour' :
                         tournament.tournament_type === 'elite' ? 'team-elite-tour' :
@@ -326,6 +361,7 @@ export default function UserQuotasCard() {
                       }.svg`}
                       alt=""
                       className={`w-4 h-4 ${
+                        tournament.is_event ? 'icon-filter-rose' :
                         tournament.tournament_type === 'free' ? 'icon-filter-blue' :
                         tournament.tournament_type === 'oneshot' ? 'icon-filter-green' :
                         tournament.tournament_type === 'elite' ? 'icon-filter-orange' :
@@ -505,6 +541,32 @@ export default function UserQuotasCard() {
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
                       Aucun
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Événement */}
+              <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                <div className="flex items-center gap-2">
+                  <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
+                  <div>
+                    <span className="text-sm theme-text">Événement</span>
+                    <p className="text-xs theme-text-secondary">1 participation gratuite</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {data.can_join_event_free ? (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
+                      1 gratuit
+                    </span>
+                  ) : data.event_slots_available > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
+                      {data.event_slots_available} slot{data.event_slots_available > 1 ? 's' : ''}
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
+                      Utilisé
                     </span>
                   )}
                 </div>

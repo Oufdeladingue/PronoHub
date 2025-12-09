@@ -317,13 +317,18 @@ export async function PUT(request: Request) {
       trophiesToUnlock['exact_score'] = exactScoreDate
     }
 
-    // --- TROPHÉES PAR JOURNÉE: king_of_day, double_king, opportunist, nostradamus, bonus ---
+    // --- TROPHÉES PAR JOURNÉE: king_of_day, double_king, opportunist, nostradamus, bonus, lantern, downward_spiral, cursed ---
     let hasKingOfDay = existingTrophyTypes.has('king_of_day')
     let hasDoubleKing = existingTrophyTypes.has('double_king')
     let hasOpportunist = existingTrophyTypes.has('opportunist')
     let hasNostradamus = existingTrophyTypes.has('nostradamus')
     let hasBonusProfiteer = existingTrophyTypes.has('bonus_profiteer')
     let hasBonusOptimizer = existingTrophyTypes.has('bonus_optimizer')
+    let hasLantern = existingTrophyTypes.has('lantern')
+    let hasDownwardSpiral = existingTrophyTypes.has('downward_spiral')
+    let hasCursed = existingTrophyTypes.has('cursed')
+    let hasUltraDominator = existingTrophyTypes.has('ultra_dominator')
+    let hasPoulidor = existingTrophyTypes.has('poulidor')
 
     for (const tournamentId of tournamentIds) {
       const tournament = tournamentsMap[tournamentId]
@@ -342,6 +347,9 @@ export async function PUT(request: Request) {
       const bonusMatchIdsForTournament = bonusMatchesByTournament[tournamentId] || new Set()
 
       let consecutiveWins = 0
+      let consecutiveLosses = 0 // Pour downward_spiral
+      let totalCompletedJourneys = 0 // Pour ultra_dominator et poulidor
+      let firstPlaceCount = 0 // Pour ultra_dominator et poulidor
 
       for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
         const key = `${tournamentId}_${matchday}`
@@ -350,11 +358,15 @@ export async function PUT(request: Request) {
 
         if (!isJourneyComplete(journeyMatches)) {
           consecutiveWins = 0
+          consecutiveLosses = 0
           continue
         }
 
+        totalCompletedJourneys++
+
         const userPoints = getJourneyRanking(journeyPredictions, participants, tournamentSettings, bonusMatchIdsForTournament)
         const maxPoints = Math.max(...Object.values(userPoints))
+        const minPoints = Math.min(...Object.values(userPoints))
         const myPoints = userPoints[user.id] || 0
         const latestDate = getLatestDate(journeyMatches)
 
@@ -362,6 +374,11 @@ export async function PUT(request: Request) {
         const isFirst = myPoints === maxPoints
         const usersWithMax = Object.values(userPoints).filter(pts => pts === maxPoints).length
         const isSoleLeader = isFirst && (maxPoints > 0 || usersWithMax === 1)
+
+        // Vérifier si l'utilisateur est dernier
+        const isLast = myPoints === minPoints
+        const usersWithMin = Object.values(userPoints).filter(pts => pts === minPoints).length
+        const isSoleLast = isLast && usersWithMin === 1 && participants.length > 1
 
         // King of Day
         if (!hasKingOfDay && isSoleLeader) {
@@ -372,6 +389,7 @@ export async function PUT(request: Request) {
         // Double King
         if (isSoleLeader) {
           consecutiveWins++
+          firstPlaceCount++
           if (!hasDoubleKing && consecutiveWins >= 2) {
             trophiesToUnlock['double_king'] = latestDate
             hasDoubleKing = true
@@ -380,7 +398,24 @@ export async function PUT(request: Request) {
           consecutiveWins = 0
         }
 
-        // Opportunist & Nostradamus & Bonus (analyser les pronostics de l'utilisateur pour cette journée)
+        // Lantern (dernier d'une journée)
+        if (!hasLantern && isSoleLast) {
+          trophiesToUnlock['lantern'] = latestDate
+          hasLantern = true
+        }
+
+        // Downward Spiral (dernier 2 journées de suite)
+        if (isSoleLast) {
+          consecutiveLosses++
+          if (!hasDownwardSpiral && consecutiveLosses >= 2) {
+            trophiesToUnlock['downward_spiral'] = latestDate
+            hasDownwardSpiral = true
+          }
+        } else {
+          consecutiveLosses = 0
+        }
+
+        // Opportunist & Nostradamus & Bonus & Cursed (analyser les pronostics de l'utilisateur pour cette journée)
         const myJourneyPredictions = journeyPredictions.filter(p => p.user_id === user.id)
         let correctResults = 0
         let exactScores = 0
@@ -423,11 +458,44 @@ export async function PUT(request: Request) {
           trophiesToUnlock['nostradamus'] = latestDate
           hasNostradamus = true
         }
+
+        // Cursed (aucun bon résultat sur une journée - uniquement si au moins 1 match pronostiqué)
+        if (!hasCursed && myJourneyPredictions.length > 0 && correctResults === 0) {
+          trophiesToUnlock['cursed'] = latestDate
+          hasCursed = true
+        }
+      }
+
+      // Ultra-dominator (premier à chaque journée du tournoi terminé)
+      // Vérifier seulement si le tournoi est terminé
+      const tournamentStatus = tournament.status
+      const isTournamentFinished = tournamentStatus === 'finished' || tournamentStatus === 'completed'
+      const totalJourneys = tournament.ending_matchday - tournament.starting_matchday + 1
+
+      if (!hasUltraDominator && isTournamentFinished && totalCompletedJourneys === totalJourneys && firstPlaceCount === totalJourneys && totalJourneys >= 2) {
+        // Trouver la date du dernier match
+        const lastKey = `${tournamentId}_${tournament.ending_matchday}`
+        const lastMatches = matchesByJourney[lastKey] || []
+        trophiesToUnlock['ultra_dominator'] = getLatestDate(lastMatches)
+        hasUltraDominator = true
+      }
+
+      // Poulidor (aucune première place sur toutes les journées d'un tournoi terminé)
+      if (!hasPoulidor && isTournamentFinished && totalCompletedJourneys === totalJourneys && firstPlaceCount === 0 && totalJourneys >= 2) {
+        const lastKey = `${tournamentId}_${tournament.ending_matchday}`
+        const lastMatches = matchesByJourney[lastKey] || []
+        trophiesToUnlock['poulidor'] = getLatestDate(lastMatches)
+        hasPoulidor = true
       }
     }
 
-    // --- TROPHÉE: tournament_winner ---
-    if (!existingTrophyTypes.has('tournament_winner')) {
+    // --- TROPHÉES DE FIN DE TOURNOI: tournament_winner, legend, abyssal ---
+    let hasTournamentWinner = existingTrophyTypes.has('tournament_winner')
+    let hasLegend = existingTrophyTypes.has('legend')
+    let hasAbyssal = existingTrophyTypes.has('abyssal')
+
+    // Continuer seulement si au moins un trophée n'est pas encore débloqué
+    if (!hasTournamentWinner || !hasLegend || !hasAbyssal) {
       const finishedTournaments = userTournaments.filter(t => {
         const status = getJoinedData(t.tournaments)?.status
         return status === 'finished' || status === 'completed'
@@ -479,16 +547,35 @@ export async function PUT(request: Request) {
           .sort(([, a], [, b]) => b - a)
 
         const [firstUserId, firstPoints] = sortedByPoints[0] || []
-        const [, secondPoints] = sortedByPoints[1] || [null, -1]
+        const [secondUserId, secondPoints] = sortedByPoints[1] || [null, -1]
+        const [lastUserId, lastPoints] = sortedByPoints[sortedByPoints.length - 1] || []
+        const [secondLastUserId, secondLastPoints] = sortedByPoints[sortedByPoints.length - 2] || [null, Infinity]
 
-        // Vérifier si l'utilisateur est premier sans égalité
-        if (firstUserId === user.id && firstPoints > secondPoints) {
-          // Trouver la date du dernier match
-          const lastKey = `${t.tournament_id}_${tournament.ending_matchday}`
-          const lastMatches = matchesByJourney[lastKey] || []
-          trophiesToUnlock['tournament_winner'] = getLatestDate(lastMatches)
-          break
+        // Trouver la date du dernier match
+        const lastKey = `${t.tournament_id}_${tournament.ending_matchday}`
+        const lastMatches = matchesByJourney[lastKey] || []
+        const latestDate = getLatestDate(lastMatches)
+
+        // Tournament Winner (premier sans égalité)
+        if (!hasTournamentWinner && firstUserId === user.id && firstPoints > secondPoints) {
+          trophiesToUnlock['tournament_winner'] = latestDate
+          hasTournamentWinner = true
         }
+
+        // Legend (vainqueur d'un tournoi avec plus de 10 participants)
+        if (!hasLegend && firstUserId === user.id && firstPoints > secondPoints && participants.length > 10) {
+          trophiesToUnlock['legend'] = latestDate
+          hasLegend = true
+        }
+
+        // Abyssal (dernier au classement final sans égalité)
+        if (!hasAbyssal && lastUserId === user.id && lastPoints < secondLastPoints && participants.length > 1) {
+          trophiesToUnlock['abyssal'] = latestDate
+          hasAbyssal = true
+        }
+
+        // Si tous les trophées sont débloqués, on peut arrêter
+        if (hasTournamentWinner && hasLegend && hasAbyssal) break
       }
     }
 

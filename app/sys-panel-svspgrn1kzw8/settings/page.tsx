@@ -1,44 +1,90 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
-import { msToMinutes, minutesToMs, formatTimeUntilRefresh } from '@/lib/auto-refresh-utils'
+import { Euro, Save, AlertCircle, CheckCircle, Users, Calendar, Zap, Crown } from 'lucide-react'
+
+// ============= INTERFACES =============
 
 interface Settings {
-  auto_refresh_enabled: string
-  auto_refresh_interval: string
-  auto_refresh_smart_mode: string
-  auto_refresh_pause_inactive: string
   points_exact_score: string
   points_correct_result: string
   points_incorrect_result: string
 }
 
+interface PricingItem {
+  id: string
+  config_key: string
+  config_value: number
+  config_type: string
+  label: string
+  description: string
+  category: string
+  sort_order: number
+}
+
+interface GroupedPricing {
+  tournament_creation: PricingItem[]
+  extensions: PricingItem[]
+  limits: PricingItem[]
+  platinium: PricingItem[]
+}
+
+type TabType = 'configuration' | 'tarifs'
+
+const categoryLabels: Record<string, { title: string, description: string, icon: React.ReactNode }> = {
+  tournament_creation: {
+    title: 'Prix de création des tournois',
+    description: 'Prix pour créer un nouveau tournoi selon le type',
+    icon: <Crown className="w-5 h-5 text-yellow-500" />
+  },
+  extensions: {
+    title: 'Extensions Free-Kick',
+    description: 'Prix des extensions pour les tournois gratuits',
+    icon: <Zap className="w-5 h-5 text-blue-500" />
+  },
+  limits: {
+    title: 'Limites des tournois',
+    description: 'Configuration des limites de joueurs et journées',
+    icon: <Users className="w-5 h-5 text-green-500" />
+  },
+  platinium: {
+    title: 'Options Platinium',
+    description: 'Configuration spécifique au mode Platinium',
+    icon: <Calendar className="w-5 h-5 text-purple-500" />
+  }
+}
+
+// ============= COMPOSANT PRINCIPAL =============
+
 export default function AdminSettingsPage() {
-  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<TabType>('configuration')
+
+  // ===== ÉTATS CONFIGURATION =====
   const [settings, setSettings] = useState<Settings>({
-    auto_refresh_enabled: 'true',
-    auto_refresh_interval: '300000',
-    auto_refresh_smart_mode: 'true',
-    auto_refresh_pause_inactive: 'true',
     points_exact_score: '3',
     points_correct_result: '1',
     points_incorrect_result: '0'
   })
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [configLoading, setConfigLoading] = useState(true)
+  const [configSaving, setConfigSaving] = useState(false)
+  const [configError, setConfigError] = useState<string | null>(null)
+  const [configSuccess, setConfigSuccess] = useState<string | null>(null)
 
-  // Charger les paramètres
-  useEffect(() => {
-    fetchSettings()
-  }, [])
+  // ===== ÉTATS TARIFS =====
+  const [pricing, setPricing] = useState<PricingItem[]>([])
+  const [grouped, setGrouped] = useState<GroupedPricing | null>(null)
+  const [pricingLoading, setPricingLoading] = useState(true)
+  const [pricingSaving, setPricingSaving] = useState(false)
+  const [pricingError, setPricingError] = useState<string | null>(null)
+  const [pricingSuccess, setPricingSuccess] = useState<string | null>(null)
+  const [pricingChanges, setPricingChanges] = useState<Record<string, number>>({})
+
+  // ===== FONCTIONS CONFIGURATION =====
 
   const fetchSettings = async () => {
-    setLoading(true)
-    setError(null)
+    setConfigLoading(true)
+    setConfigError(null)
     try {
       const response = await fetch('/api/admin/settings')
       if (!response.ok) throw new Error('Erreur lors du chargement des paramètres')
@@ -46,26 +92,22 @@ export default function AdminSettingsPage() {
       const data = await response.json()
       if (data.success && data.settings) {
         setSettings({
-          auto_refresh_enabled: data.settings.auto_refresh_enabled ?? 'true',
-          auto_refresh_interval: data.settings.auto_refresh_interval ?? '300000',
-          auto_refresh_smart_mode: data.settings.auto_refresh_smart_mode ?? 'true',
-          auto_refresh_pause_inactive: data.settings.auto_refresh_pause_inactive ?? 'true',
           points_exact_score: data.settings.points_exact_score ?? '3',
           points_correct_result: data.settings.points_correct_result ?? '1',
           points_incorrect_result: data.settings.points_incorrect_result ?? '0'
         })
       }
     } catch (err: any) {
-      setError(err.message)
+      setConfigError(err.message)
     } finally {
-      setLoading(false)
+      setConfigLoading(false)
     }
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
+  const handleSaveConfig = async () => {
+    setConfigSaving(true)
+    setConfigError(null)
+    setConfigSuccess(null)
     try {
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
@@ -79,288 +121,437 @@ export default function AdminSettingsPage() {
         throw new Error(data.error || 'Erreur lors de la sauvegarde')
       }
 
-      setSuccess('Paramètres sauvegardés avec succès!')
-      setTimeout(() => setSuccess(null), 3000)
+      setConfigSuccess('Paramètres sauvegardés avec succès!')
+      setTimeout(() => setConfigSuccess(null), 3000)
     } catch (err: any) {
-      setError(err.message)
+      setConfigError(err.message)
     } finally {
-      setSaving(false)
+      setConfigSaving(false)
     }
   }
 
-  const intervalMinutes = msToMinutes(parseInt(settings.auto_refresh_interval || '300000'))
-  const intervalMs = parseInt(settings.auto_refresh_interval || '300000')
+  // ===== FONCTIONS TARIFS =====
 
-  if (loading) {
+  const fetchPricing = async () => {
+    setPricingLoading(true)
+    setPricingError(null)
+    try {
+      const response = await fetch('/api/admin/pricing')
+      if (!response.ok) throw new Error('Erreur lors du chargement des prix')
+
+      const data = await response.json()
+      if (data.success) {
+        setPricing(data.pricing || [])
+        setGrouped(data.grouped || null)
+      }
+    } catch (err: any) {
+      setPricingError(err.message)
+    } finally {
+      setPricingLoading(false)
+    }
+  }
+
+  const handleValueChange = (configKey: string, value: string) => {
+    const numValue = parseFloat(value)
+    if (!isNaN(numValue)) {
+      setPricingChanges(prev => ({
+        ...prev,
+        [configKey]: numValue
+      }))
+    }
+  }
+
+  const getCurrentValue = (item: PricingItem) => {
+    if (pricingChanges[item.config_key] !== undefined) {
+      return pricingChanges[item.config_key]
+    }
+    return item.config_value
+  }
+
+  const hasPricingChanges = Object.keys(pricingChanges).length > 0
+
+  const handleSavePricing = async () => {
+    if (!hasPricingChanges) return
+
+    setPricingSaving(true)
+    setPricingError(null)
+    setPricingSuccess(null)
+
+    try {
+      const updates = Object.entries(pricingChanges).map(([config_key, config_value]) => ({
+        config_key,
+        config_value
+      }))
+
+      const response = await fetch('/api/admin/pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde')
+      }
+
+      setPricingSuccess('Prix mis à jour avec succès!')
+      setPricingChanges({})
+      await fetchPricing()
+      setTimeout(() => setPricingSuccess(null), 3000)
+    } catch (err: any) {
+      setPricingError(err.message)
+    } finally {
+      setPricingSaving(false)
+    }
+  }
+
+  const renderPricingInput = (item: PricingItem) => {
+    const value = getCurrentValue(item)
+    const isModified = pricingChanges[item.config_key] !== undefined
+
     return (
-      <AdminLayout currentPage="settings">
-        <div className="min-h-screen bg-gray-50">
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <div className="text-center py-12 text-gray-500">
-              Chargement des paramètres...
-            </div>
-          </main>
+      <div key={item.config_key} className="bg-gray-50 p-4 rounded-lg">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              {item.label}
+              {isModified && (
+                <span className="ml-2 text-xs text-orange-500 font-normal">(modifié)</span>
+              )}
+            </label>
+            {item.description && (
+              <p className="text-xs text-gray-500 mb-2">{item.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              step={item.config_type === 'price' ? '0.01' : '1'}
+              min="0"
+              value={value}
+              onChange={(e) => handleValueChange(item.config_key, e.target.value)}
+              className={`w-24 px-3 py-2 border rounded-md text-right font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                isModified
+                  ? 'border-orange-400 bg-orange-50 text-orange-700'
+                  : 'border-gray-300 text-gray-900'
+              }`}
+            />
+            {item.config_type === 'price' && (
+              <span className="text-gray-500 font-medium">EUR</span>
+            )}
+            {item.config_type === 'percentage' && (
+              <span className="text-gray-500 font-medium">%</span>
+            )}
+          </div>
         </div>
-      </AdminLayout>
+      </div>
     )
   }
+
+  // ===== EFFETS =====
+
+  useEffect(() => {
+    if (activeTab === 'configuration') {
+      fetchSettings()
+    } else {
+      fetchPricing()
+    }
+  }, [activeTab])
+
+  // ===== RENDU =====
 
   return (
     <AdminLayout currentPage="settings">
       <div className="min-h-screen bg-gray-50">
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Réglages</h1>
-
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-            <strong>Erreur:</strong> {error}
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Réglages</h1>
+            <p className="text-gray-600">Configuration de l'application et gestion des tarifs</p>
           </div>
-        )}
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-            <strong>Succès:</strong> {success}
+          {/* Sous-onglets */}
+          <div className="flex gap-2 mb-6 border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('configuration')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'configuration'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Configuration
+              {activeTab === 'configuration' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('tarifs')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'tarifs'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Tarifs
+              {activeTab === 'tarifs' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
           </div>
-        )}
 
-        <div className="space-y-6">
-          {/* Rafraîchissement automatique */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Rafraîchissement automatique des matchs
-            </h2>
-
-            <div className="space-y-6">
-              {/* Activer/Désactiver */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-1">
-                    Activer le rafraîchissement automatique
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    Les résultats des matchs seront actualisés automatiquement
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSettings(prev => ({
-                    ...prev,
-                    auto_refresh_enabled: prev.auto_refresh_enabled === 'true' ? 'false' : 'true'
-                  }))}
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition ${
-                    settings.auto_refresh_enabled === 'true' ? 'bg-green-600' : 'bg-red-600'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition flex items-center justify-center text-xs font-bold ${
-                      settings.auto_refresh_enabled === 'true'
-                        ? 'translate-x-9 text-green-600'
-                        : 'translate-x-1 text-red-600'
-                    }`}
-                  >
-                    {settings.auto_refresh_enabled === 'true' ? '✓' : '✗'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Intervalle */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Intervalle de rafraîchissement: {intervalMinutes} minute{intervalMinutes > 1 ? 's' : ''}
-                </label>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600">1 min</span>
-                  <input
-                    type="range"
-                    min="60000"
-                    max="1800000"
-                    step="60000"
-                    value={intervalMs}
-                    onChange={(e) => setSettings(prev => ({
-                      ...prev,
-                      auto_refresh_interval: e.target.value
-                    }))}
-                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                    disabled={settings.auto_refresh_enabled === 'false'}
-                  />
-                  <span className="text-sm text-gray-600">30 min</span>
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Temps entre chaque actualisation automatique
-                </p>
-              </div>
-
-              {/* Mode intelligent */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-1">
-                    Mode intelligent
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    Rafraîchit plus souvent pendant les matchs en cours
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSettings(prev => ({
-                    ...prev,
-                    auto_refresh_smart_mode: prev.auto_refresh_smart_mode === 'true' ? 'false' : 'true'
-                  }))}
-                  disabled={settings.auto_refresh_enabled === 'false'}
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition ${
-                    settings.auto_refresh_smart_mode === 'true' ? 'bg-green-600' : 'bg-gray-400'
-                  } ${settings.auto_refresh_enabled === 'false' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition flex items-center justify-center text-xs font-bold ${
-                      settings.auto_refresh_smart_mode === 'true'
-                        ? 'translate-x-9 text-green-600'
-                        : 'translate-x-1 text-gray-600'
-                    }`}
-                  >
-                    {settings.auto_refresh_smart_mode === 'true' ? '✓' : '✗'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Pause quand inactif */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <label className="text-sm font-medium text-gray-900 block mb-1">
-                    Pause quand l'onglet est inactif
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    Économise les ressources quand vous n'êtes pas sur la page
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSettings(prev => ({
-                    ...prev,
-                    auto_refresh_pause_inactive: prev.auto_refresh_pause_inactive === 'true' ? 'false' : 'true'
-                  }))}
-                  disabled={settings.auto_refresh_enabled === 'false'}
-                  className={`relative inline-flex h-8 w-16 items-center rounded-full transition ${
-                    settings.auto_refresh_pause_inactive === 'true' ? 'bg-green-600' : 'bg-gray-400'
-                  } ${settings.auto_refresh_enabled === 'false' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`inline-block h-6 w-6 transform rounded-full bg-white transition flex items-center justify-center text-xs font-bold ${
-                      settings.auto_refresh_pause_inactive === 'true'
-                        ? 'translate-x-9 text-green-600'
-                        : 'translate-x-1 text-gray-600'
-                    }`}
-                  >
-                    {settings.auto_refresh_pause_inactive === 'true' ? '✓' : '✗'}
-                  </span>
-                </button>
-              </div>
-
-              {/* Aperçu */}
-              {settings.auto_refresh_enabled === 'true' && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-900">
-                    <strong>Aperçu:</strong> Les matchs seront actualisés automatiquement toutes les{' '}
-                    <strong>{intervalMinutes} minute{intervalMinutes > 1 ? 's' : ''}</strong>
-                    {settings.auto_refresh_smart_mode === 'true' && (
-                      <> (plus souvent pendant les matchs en cours)</>
-                    )}
-                  </p>
+          {/* ===== ONGLET CONFIGURATION ===== */}
+          {activeTab === 'configuration' && (
+            <>
+              {configError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                  <strong>Erreur:</strong> {configError}
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Configuration API */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Configuration API</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Clé API Football-Data
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                  placeholder="Votre clé API"
-                  defaultValue={process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY || ''}
-                  disabled
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Configurée via les variables d'environnement (.env.local)
-                </p>
-              </div>
-            </div>
-          </div>
+              {configSuccess && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                  <strong>Succès:</strong> {configSuccess}
+                </div>
+              )}
 
-          {/* Paramètres des tournois (points par defaut) */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Systeme de points par defaut</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Ces valeurs sont utilisees comme valeurs par defaut lors de la creation d'un tournoi.
-              Chaque tournoi peut avoir ses propres reglages.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points pour score exact
-                </label>
-                <input
-                  type="number"
-                  value={settings.points_exact_score}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    points_exact_score: e.target.value
-                  }))}
-                  min="0"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                />
-              </div>
+              {configLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chargement des paramètres...
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Configuration API */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Configuration API</h2>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Clé API Football-Data
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900 bg-gray-50"
+                          placeholder="Votre clé API"
+                          defaultValue={process.env.NEXT_PUBLIC_FOOTBALL_DATA_API_KEY || ''}
+                          disabled
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Configurée via les variables d'environnement (.env.local)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points pour bon résultat
-                </label>
-                <input
-                  type="number"
-                  value={settings.points_correct_result}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    points_correct_result: e.target.value
-                  }))}
-                  min="0"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                />
-              </div>
+                  {/* Paramètres des tournois (points par défaut) */}
+                  <div className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Système de points par défaut</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Ces valeurs sont utilisées comme valeurs par défaut lors de la création d'un tournoi.
+                      Chaque tournoi peut avoir ses propres réglages.
+                    </p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Points pour score exact
+                        </label>
+                        <input
+                          type="number"
+                          value={settings.points_exact_score}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            points_exact_score: e.target.value
+                          }))}
+                          min="0"
+                          max="20"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Points pour mauvais résultat
-                </label>
-                <input
-                  type="number"
-                  value={settings.points_incorrect_result}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    points_incorrect_result: e.target.value
-                  }))}
-                  min="0"
-                  max="20"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
-                />
-              </div>
-            </div>
-          </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Points pour bon résultat
+                        </label>
+                        <input
+                          type="number"
+                          value={settings.points_correct_result}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            points_correct_result: e.target.value
+                          }))}
+                          min="0"
+                          max="20"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                        />
+                      </div>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {saving ? 'Sauvegarde en cours...' : 'Sauvegarder les réglages'}
-          </button>
-        </div>
-      </main>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Points pour mauvais résultat
+                        </label>
+                        <input
+                          type="number"
+                          value={settings.points_incorrect_result}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            points_incorrect_result: e.target.value
+                          }))}
+                          min="0"
+                          max="20"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSaveConfig}
+                    disabled={configSaving}
+                    className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {configSaving ? 'Sauvegarde en cours...' : 'Sauvegarder les réglages'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ===== ONGLET TARIFS ===== */}
+          {activeTab === 'tarifs' && (
+            <>
+              {pricingError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span><strong>Erreur:</strong> {pricingError}</span>
+                </div>
+              )}
+
+              {pricingSuccess && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
+                  <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  <span>{pricingSuccess}</span>
+                </div>
+              )}
+
+              {hasPricingChanges && (
+                <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-center gap-3 text-orange-800">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span>Vous avez {Object.keys(pricingChanges).length} modification(s) non sauvegardée(s)</span>
+                </div>
+              )}
+
+              {pricingLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chargement des tarifs...
+                </div>
+              ) : (
+                <>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <Euro className="w-8 h-8 text-purple-600" />
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Gestion des Tarifs</h2>
+                        <p className="text-gray-500 text-sm">Configurez les prix et limites des offres</p>
+                      </div>
+                    </div>
+                    {hasPricingChanges && (
+                      <button
+                        onClick={handleSavePricing}
+                        disabled={pricingSaving}
+                        className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        <Save className="w-5 h-5" />
+                        {pricingSaving ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Catégories de prix */}
+                  <div className="space-y-8">
+                    {grouped && Object.entries(grouped).map(([category, items]) => {
+                      const categoryInfo = categoryLabels[category]
+                      if (!items || items.length === 0) return null
+
+                      return (
+                        <div key={category} className="bg-white rounded-lg shadow overflow-hidden">
+                          {/* Header de catégorie */}
+                          <div className="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                            <div className="flex items-center gap-3">
+                              {categoryInfo?.icon}
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {categoryInfo?.title || category}
+                                </h3>
+                                <p className="text-sm text-gray-500">
+                                  {categoryInfo?.description}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Liste des prix */}
+                          <div className="p-6">
+                            <div className="space-y-4">
+                              {items.map((item: PricingItem) => renderPricingInput(item))}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Aperçu du prix groupe Platinium */}
+                  {grouped?.tournament_creation && grouped?.platinium && (
+                    <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6">
+                      <h3 className="text-lg font-semibold text-yellow-800 mb-2">Aperçu: Prix Groupe Platinium</h3>
+                      <p className="text-sm text-yellow-700">
+                        Avec les paramètres actuels, le prix du pack groupe sera de:{' '}
+                        <strong className="text-xl">
+                          {(() => {
+                            const platiniumPrice = getCurrentValue(
+                              grouped.tournament_creation.find(p => p.config_key === 'platinium_creation_price') ||
+                              { config_key: '', config_value: 6.99 } as PricingItem
+                            )
+                            const groupSize = getCurrentValue(
+                              grouped.platinium.find(p => p.config_key === 'platinium_group_size') ||
+                              { config_key: '', config_value: 11 } as PricingItem
+                            )
+                            const discount = getCurrentValue(
+                              grouped.platinium.find(p => p.config_key === 'platinium_group_discount') ||
+                              { config_key: '', config_value: 0 } as PricingItem
+                            )
+                            const total = platiniumPrice * groupSize * (1 - discount / 100)
+                            return total.toFixed(2)
+                          })()}{' '}
+                          EUR
+                        </strong>
+                        {' '}pour {getCurrentValue(
+                          grouped.platinium.find(p => p.config_key === 'platinium_group_size') ||
+                          { config_key: '', config_value: 11 } as PricingItem
+                        )} places
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Bouton de sauvegarde en bas */}
+                  {hasPricingChanges && (
+                    <div className="mt-8 flex justify-end">
+                      <button
+                        onClick={handleSavePricing}
+                        disabled={pricingSaving}
+                        className="flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-medium"
+                      >
+                        <Save className="w-6 h-6" />
+                        {pricingSaving ? 'Sauvegarde en cours...' : 'Sauvegarder toutes les modifications'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </main>
       </div>
     </AdminLayout>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -13,8 +13,48 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
+  const [loadingPercent, setLoadingPercent] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
+
+  // Phrases de chargement aléatoires
+  const loadingMessages = [
+    'On chauffe les crampons…',
+    'Le ballon est encore chez l\'arbitre, on va le récupérer…',
+    'On vérifie si la VAR valide le chargement…',
+    'Le serveur s\'est pris un petit pont, il revient…',
+    'On fait un changement… chargement incoming.',
+    'On cherche la connexion… elle s\'est cachée derrière la défense.',
+    'On temporise… comme Giroud dos au jeu.',
+    'Réchauffage : nos serveurs tirent des coups francs.',
+    'On attend que le gardien arrête de chambrer.',
+    'On prépare une occasion… faut juste cadrer le chargement.',
+    'On repasse par derrière… ça charge mieux.',
+    'Le match reprend dans un instant… promesse d\'arbitre.',
+    'Système en place : 4-4-2… 4 secondes, 4 infos, 2 cafés.',
+    'On fait circuler les données… tiki-taka de chargement.'
+  ]
+
+  // Animation du pourcentage de chargement
+  useEffect(() => {
+    if (redirecting) {
+      // Choisir une phrase aléatoire au début
+      setLoadingMessage(loadingMessages[Math.floor(Math.random() * loadingMessages.length)])
+
+      const interval = setInterval(() => {
+        setLoadingPercent(prev => {
+          // Accélérer progressivement jusqu'à 90%, puis ralentir
+          if (prev < 60) return prev + 3
+          if (prev < 85) return prev + 2
+          if (prev < 95) return prev + 0.5
+          return prev
+        })
+      }, 50)
+      return () => clearInterval(interval)
+    }
+  }, [redirecting])
 
   // Gestion de l'authentification OAuth Google
   const handleGoogleSignIn = async () => {
@@ -65,13 +105,58 @@ export default function LoginPage() {
       // Rafraîchir la session côté client
       await supabase.auth.refreshSession()
 
+      // Afficher le loader de redirection
+      setLoading(false)
+      setRedirecting(true)
+
       router.push('/dashboard')
       router.refresh()
     } catch (err: any) {
       setError(err.message)
-    } finally {
       setLoading(false)
     }
+  }
+
+  // Afficher un loader plein écran pendant la redirection vers le dashboard
+  if (redirecting) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+        <div className="flex flex-col items-center gap-6">
+          {/* Logo avec effet de remplissage de bas en haut */}
+          <div className="relative w-24 h-24">
+            {/* Logo grisé en fond */}
+            <Image
+              src="/images/logo.svg"
+              alt="PronoHub"
+              width={96}
+              height={96}
+              className="w-24 h-24 opacity-20 grayscale"
+            />
+            {/* Logo coloré qui se remplit de bas en haut */}
+            <div
+              className="absolute inset-0 overflow-hidden"
+              style={{
+                clipPath: `inset(${100 - loadingPercent}% 0 0 0)`
+              }}
+            >
+              <Image
+                src="/images/logo.svg"
+                alt="PronoHub"
+                width={96}
+                height={96}
+                className="w-24 h-24"
+              />
+            </div>
+          </div>
+
+          {/* Pourcentage */}
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[#ff9900] text-2xl font-bold">{Math.round(loadingPercent)}%</span>
+            <span className="text-gray-400 text-sm text-center px-4">{loadingMessage}</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

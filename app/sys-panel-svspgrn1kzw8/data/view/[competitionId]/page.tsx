@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
-import { useAutoRefresh } from '@/hooks/useAutoRefresh'
+import { getStageShortLabel, getStageLabel, type StageType } from '@/lib/stage-formatter'
 
 interface Match {
   id: string
   football_data_match_id: number
   matchday: number
+  stage?: string | null
   utc_date: string
   status: string
   home_team_id: number
@@ -40,6 +41,8 @@ interface CompetitionData {
   matchesByMatchday: Record<number, Match[]>
   totalMatches: number
   matchdays: number[]
+  stagesByMatchday?: Record<number, string | null>
+  matchdaysByStage?: Record<string, number[]>
 }
 
 export default function ViewCompetitionPage() {
@@ -51,6 +54,7 @@ export default function ViewCompetitionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedMatchday, setSelectedMatchday] = useState<number | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const fetchCompetitionData = async () => {
     setLoading(true)
@@ -68,19 +72,19 @@ export default function ViewCompetitionPage() {
       } else if (result.matchdays.length > 0) {
         setSelectedMatchday(result.matchdays[0])
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
-  // Hook de rafraîchissement automatique
-  const autoRefresh = useAutoRefresh({
-    matches: data?.matches || [],
-    onRefresh: fetchCompetitionData,
-    enabled: !!data
-  })
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchCompetitionData()
+    setIsRefreshing(false)
+  }
 
   useEffect(() => {
     fetchCompetitionData()
@@ -116,7 +120,7 @@ export default function ViewCompetitionPage() {
 
   if (loading) {
     return (
-      <AdminLayout currentPage="import">
+      <AdminLayout currentPage="data">
         <div className="min-h-screen bg-gray-50">
           <main className="max-w-7xl mx-auto px-4 py-8">
             <div className="text-center py-12">
@@ -130,7 +134,7 @@ export default function ViewCompetitionPage() {
 
   if (error || !data) {
     return (
-      <AdminLayout currentPage="import">
+      <AdminLayout currentPage="data">
         <div className="min-h-screen bg-gray-50">
           <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
@@ -151,7 +155,7 @@ export default function ViewCompetitionPage() {
   const currentMatches = selectedMatchday ? data.matchesByMatchday[selectedMatchday] || [] : []
 
   return (
-    <AdminLayout currentPage="import">
+    <AdminLayout currentPage="data">
       <div className="min-h-screen bg-gray-50">
 
       <main className="max-w-7xl mx-auto px-4 py-8">
@@ -186,68 +190,49 @@ export default function ViewCompetitionPage() {
           </div>
         </div>
 
-        {/* Indicateur de rafraîchissement automatique */}
-        {autoRefresh.isActive && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${autoRefresh.isRefreshing ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`}></div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Rafraîchissement automatique actif
-                  </p>
-                  {autoRefresh.timeUntilRefresh && !autoRefresh.isRefreshing && (
-                    <p className="text-xs text-gray-600">
-                      Prochaine mise à jour dans {autoRefresh.timeUntilRefresh}
-                    </p>
-                  )}
-                  {autoRefresh.isRefreshing && (
-                    <p className="text-xs text-green-600 font-medium">
-                      Actualisation en cours...
-                    </p>
-                  )}
-                  {autoRefresh.lastRefreshTime && (
-                    <p className="text-xs text-gray-500">
-                      Dernière MAJ: {autoRefresh.lastRefreshTime.toLocaleTimeString('fr-FR')}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={autoRefresh.manualRefresh}
-                disabled={autoRefresh.isRefreshing}
-                className="px-4 py-2 bg-white border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <svg className={`w-4 h-4 ${autoRefresh.isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Actualiser maintenant
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Bouton de rafraîchissement manuel */}
+        <div className="mb-6 flex justify-end">
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {isRefreshing ? 'Actualisation...' : 'Actualiser les données'}
+          </button>
+        </div>
 
-        {/* Onglets des journées */}
+        {/* Onglets des journées avec phases */}
         <div className="mb-6 border-b border-gray-200">
           <div className="flex flex-wrap gap-2 pb-2">
-            {data.matchdays.map((matchday) => (
-              <button
-                key={matchday}
-                onClick={() => setSelectedMatchday(matchday)}
-                className={`px-4 py-2 rounded-t-lg font-medium transition ${
-                  selectedMatchday === matchday
-                    ? 'bg-white border border-b-0 border-gray-200 text-purple-600'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Journée {matchday}
-                {matchday === data.competition.current_matchday && (
-                  <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                    En cours
-                  </span>
-                )}
-              </button>
-            ))}
+            {data.matchdays.map((matchday) => {
+              const stage = data.stagesByMatchday?.[matchday] as StageType | null
+              const matchdayLabel = getStageShortLabel(stage, matchday)
+              const isKnockout = stage && ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'THIRD_PLACE', 'LAST_32', 'PLAYOFFS'].includes(stage)
+
+              return (
+                <button
+                  key={matchday}
+                  onClick={() => setSelectedMatchday(matchday)}
+                  className={`px-4 py-2 rounded-t-lg font-medium transition ${
+                    selectedMatchday === matchday
+                      ? 'bg-white border border-b-0 border-gray-200 text-purple-600'
+                      : isKnockout
+                        ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {matchdayLabel}
+                  {matchday === data.competition.current_matchday && (
+                    <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                      En cours
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -255,7 +240,7 @@ export default function ViewCompetitionPage() {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 className="text-lg font-semibold text-gray-900">
-              Journée {selectedMatchday} - {currentMatches.length} match{currentMatches.length > 1 ? 's' : ''}
+              {getStageLabel(data.stagesByMatchday?.[selectedMatchday!] as StageType | null, selectedMatchday!)} - {currentMatches.length} match{currentMatches.length > 1 ? 's' : ''}
             </h2>
           </div>
 

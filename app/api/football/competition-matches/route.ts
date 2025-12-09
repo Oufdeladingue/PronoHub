@@ -54,12 +54,32 @@ export async function GET(request: NextRequest) {
       return acc
     }, {}) || {}
 
+    // Extraire le stage pour chaque journée
+    const stagesByMatchday: Record<number, string | null> = {}
+    matches?.forEach((match: any) => {
+      if (match.matchday && !stagesByMatchday[match.matchday]) {
+        stagesByMatchday[match.matchday] = match.stage || null
+      }
+    })
+
+    // Grouper les journées par stage pour une meilleure navigation
+    const matchdaysByStage: Record<string, number[]> = {}
+    Object.entries(stagesByMatchday).forEach(([matchday, stage]) => {
+      const stageKey = stage || 'REGULAR_SEASON'
+      if (!matchdaysByStage[stageKey]) {
+        matchdaysByStage[stageKey] = []
+      }
+      matchdaysByStage[stageKey].push(parseInt(matchday))
+    })
+
     return NextResponse.json({
       competition,
       matches: matches || [],
       matchesByMatchday,
       totalMatches: matches?.length || 0,
-      matchdays: Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b)
+      matchdays: Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b),
+      stagesByMatchday,
+      matchdaysByStage
     })
   } catch (error: any) {
     console.error('Error in competition-matches route:', error)

@@ -101,8 +101,17 @@ export function getStageLabel(stage: StageType, matchday?: number): string {
 
 /**
  * Retourne le nom français court d'un stage (pour les onglets)
+ * @param stage Le stage de la compétition (peut être null si pas encore connu)
+ * @param matchday Le numéro de journée
+ * @param hasMatches Indique si des matchs existent pour cette journée (optionnel)
  */
-export function getStageShortLabel(stage: StageType, matchday?: number): string {
+export function getStageShortLabel(stage: StageType, matchday?: number, hasMatches?: boolean): string {
+  // Si pas de stage et pas de matchs pour cette journée, afficher "-"
+  // (journée future dont le stage n'est pas encore connu)
+  if (!stage && hasMatches === false) {
+    return '-'
+  }
+
   // Si pas de stage ou REGULAR_SEASON, c'est un championnat classique avec numéro de journée
   if (!stage || stage === 'REGULAR_SEASON') {
     return matchday ? `J${matchday}` : 'Journée'

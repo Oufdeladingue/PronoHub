@@ -22,12 +22,12 @@ interface TournamentTypeResult {
   reason: string;
 }
 
-// Vérifier si l'utilisateur peut créer un tournoi FREE
+// Vérifier si l'utilisateur peut créer un tournoi FREE (non-événement)
 async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
   canCreate: boolean;
   currentCount: number;
 }> {
-  // Compter les tournois FREE actifs (non legacy) où l'utilisateur participe avec slot gratuit
+  // Compter les tournois FREE actifs (non legacy, non événement) où l'utilisateur participe avec slot gratuit
   const { data: participations } = await supabase
     .from('tournament_participants')
     .select(`
@@ -37,7 +37,12 @@ async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
         id,
         tournament_type,
         status,
-        is_legacy
+        is_legacy,
+        competition_id,
+        competitions (
+          id,
+          is_event
+        )
       )
     `)
     .eq('user_id', userId)
@@ -47,7 +52,9 @@ async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
     (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
     ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
     !p.tournaments.is_legacy &&
-    (p.invite_type === 'free' || !p.invite_type)
+    (p.invite_type === 'free' || !p.invite_type) &&
+    // Exclure les tournois événement du comptage free-kick
+    p.tournaments.competitions?.is_event !== true
   ).length
 
   return {

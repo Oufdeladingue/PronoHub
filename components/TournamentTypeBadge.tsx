@@ -1,6 +1,6 @@
 'use client'
 
-type TournamentType = 'free' | 'oneshot' | 'elite' | 'platinium' | 'premium' | 'enterprise'
+type TournamentType = 'free' | 'oneshot' | 'elite' | 'platinium' | 'premium' | 'enterprise' | 'event'
 
 interface TournamentTypeBadgeProps {
   type: TournamentType
@@ -39,6 +39,11 @@ const BADGE_CONFIG: Record<TournamentType, { color: string; label: string; toolt
     color: '#a855f7', // Violet
     label: 'ENTREPRISE',
     tooltip: 'Tournoi entreprise'
+  },
+  event: {
+    color: '#ec4899', // Rose (pink-500)
+    label: 'ÉVÉNEMENT',
+    tooltip: 'Tournoi Événement'
   }
 }
 
@@ -119,6 +124,13 @@ const EnterpriseTourIcon = ({ size, color }: { size: number; color: string }) =>
   </svg>
 )
 
+// Icône Événement (calendrier avec étoile)
+const EventTourIcon = ({ size, color }: { size: number; color: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm7 4l-2.5 5h1.75l.75-1.5h2l.75 1.5h1.75L14 12h-2zm-.5 2.5l.5-1 .5 1h-1z"/>
+  </svg>
+)
+
 export function TournamentTypeBadge({ type, size = 'md', className = '' }: TournamentTypeBadgeProps) {
   const config = BADGE_CONFIG[type] || BADGE_CONFIG.free
   const iconSize = SIZE_CONFIG[size]
@@ -138,6 +150,8 @@ export function TournamentTypeBadge({ type, size = 'md', className = '' }: Tourn
         return <PremiumTourIcon size={iconSize} color={color} />
       case 'enterprise':
         return <EnterpriseTourIcon size={iconSize} color={color} />
+      case 'event':
+        return <EventTourIcon size={iconSize} color={color} />
       default:
         return <FreeTourIcon size={iconSize} color={color} />
     }

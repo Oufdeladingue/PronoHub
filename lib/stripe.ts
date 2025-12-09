@@ -3,8 +3,16 @@ import Stripe from 'stripe'
 // Vérifier si Stripe est configuré
 export const isStripeEnabled = !!process.env.STRIPE_SECRET_KEY
 
+// Vérifier si on est en mode test ou live (côté serveur)
+export const isStripeTestMode = () => {
+  const key = process.env.STRIPE_SECRET_KEY || ''
+  return key.startsWith('sk_test_')
+}
+
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn('STRIPE_SECRET_KEY is not defined - Stripe payments will not work')
+  console.warn('[Stripe Server] STRIPE_SECRET_KEY is not defined - Stripe payments will not work')
+} else {
+  console.log(`[Stripe Server] Configured in ${isStripeTestMode() ? 'TEST' : 'LIVE'} mode`)
 }
 
 // Créer l'instance Stripe seulement si la clé est disponible

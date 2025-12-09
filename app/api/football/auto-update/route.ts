@@ -193,6 +193,7 @@ export async function POST(request: Request) {
           football_data_match_id: match.id,
           competition_id: competition.id,
           matchday: match.matchday,
+          stage: match.stage || null, // Phase de compétition (GROUP_STAGE, LAST_16, QUARTER_FINALS, etc.)
           utc_date: match.utcDate,
           status: match.status,
           home_team_id: match.homeTeam.id,

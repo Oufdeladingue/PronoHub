@@ -802,6 +802,16 @@ input:-moz-autofill:focus {
   filter: brightness(0) saturate(100%) invert(83%) sepia(46%) saturate(747%) hue-rotate(359deg) brightness(103%) contrast(97%);
 }
 
+/* Amber (#f59e0b / amber-500) */
+.icon-filter-amber {
+  filter: brightness(0) saturate(100%) invert(67%) sepia(63%) saturate(1058%) hue-rotate(357deg) brightness(99%) contrast(96%);
+}
+
+/* Rose (#ec4899 / pink-500) - pour Événement */
+.icon-filter-rose {
+  filter: brightness(0) saturate(100%) invert(45%) sepia(98%) saturate(1653%) hue-rotate(314deg) brightness(96%) contrast(92%);
+}
+
 /* Purple (#a855f7) */
 .icon-filter-purple {
   filter: invert(47%) sepia(94%) saturate(1352%) hue-rotate(249deg) brightness(100%) contrast(94%);
@@ -1367,6 +1377,148 @@ input[type="number"] {
   background-color: #ffffff;
 }
 :root[data-theme="light"] .competition-badge:hover .popular-star svg {
+  color: #0055FF;
+}
+
+/* Badge "Événement" - Thème sombre (défaut) */
+.competition-badge .event-badge {
+  transition: all 0.3s ease;
+}
+
+.competition-badge .event-icon-container {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+}
+
+.competition-badge .event-icon {
+  filter: brightness(0);
+  transition: transform 0.3s ease;
+}
+
+.competition-badge .event-label {
+  color: #f59e0b;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+}
+
+/* ========================================
+   Compétitions terminées (grisées)
+   ======================================== */
+.competition-badge.competition-finished {
+  border-color: #4b5563;
+  background: #1f2937;
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(70%);
+}
+
+.competition-badge.competition-finished:hover {
+  background: #1f2937;
+  box-shadow: none;
+  transform: none;
+}
+
+.competition-badge.competition-finished .badge-title {
+  color: #6b7280;
+}
+
+.competition-badge.competition-finished .badge-text {
+  color: #6b7280;
+}
+
+.competition-badge.competition-finished .logo-white {
+  opacity: 0.5;
+}
+
+.competition-badge.competition-finished:hover .logo-white {
+  opacity: 0.5;
+}
+
+.competition-badge.competition-finished:hover .logo-color {
+  opacity: 0;
+}
+
+/* Thème clair - Compétitions terminées */
+:root[data-theme="light"] .competition-badge.competition-finished {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  opacity: 0.7;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished:hover {
+  background: #f3f4f6;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished .badge-title {
+  color: #9ca3af;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished .badge-text {
+  color: #9ca3af;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished .logo-color {
+  opacity: 0.5;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished:hover .logo-color {
+  opacity: 0.5;
+}
+
+:root[data-theme="light"] .competition-badge.competition-finished:hover .logo-white {
+  opacity: 0;
+}
+
+/* Animation de clignotement subtil */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Badge Événement - Hover */
+.competition-badge:hover .event-icon-container {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.6);
+}
+
+.competition-badge:hover .event-icon {
+  transform: rotate(5deg);
+}
+
+.competition-badge:hover .event-label {
+  color: #fbbf24;
+}
+
+/* Badge Événement - Thème clair */
+:root[data-theme="light"] .competition-badge .event-icon-container {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 0 15px rgba(234, 88, 12, 0.3);
+}
+
+:root[data-theme="light"] .competition-badge .event-label {
+  color: #ea580c;
+  text-shadow: none;
+}
+
+:root[data-theme="light"] .competition-badge:hover .event-icon-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 0 20px rgba(0, 85, 255, 0.3);
+}
+
+:root[data-theme="light"] .competition-badge:hover .event-icon {
+  filter: brightness(0) saturate(100%) invert(24%) sepia(98%) saturate(1906%) hue-rotate(212deg) brightness(96%) contrast(105%);
+}
+
+:root[data-theme="light"] .competition-badge:hover .event-label {
   color: #0055FF;
 }
 
