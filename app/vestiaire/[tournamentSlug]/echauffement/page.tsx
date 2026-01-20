@@ -895,15 +895,10 @@ function EchauffementPageContent() {
     alert('Lien d\'invitation copié !')
   }
 
+  // Pas de loader séparé - le NavigationLoader global gère l'affichage pendant la navigation
+  // On retourne null pendant le chargement pour éviter le double loader
   if (loading) {
-    return (
-      <div className="min-h-screen theme-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <p className="theme-text-secondary">Chargement...</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   if (error || !tournament) {

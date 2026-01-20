@@ -1929,17 +1929,10 @@ export default function OppositionPage() {
     }
   }, [tournament?.id, userId, activeTab])
 
+  // Pas de loader séparé - le NavigationLoader global gère l'affichage pendant la navigation
+  // On retourne null pendant le chargement pour éviter le double loader
   if (loading) {
-    return (
-      <ThemeProvider>
-        <div className="min-h-screen theme-bg flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff9900] mx-auto"></div>
-            <p className="mt-4 theme-text">Chargement du tournoi...</p>
-          </div>
-        </div>
-      </ThemeProvider>
-    )
+    return null
   }
 
   if (error || !tournament) {
