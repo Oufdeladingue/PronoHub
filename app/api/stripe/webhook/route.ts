@@ -79,11 +79,23 @@ async function handleCheckoutCompleted(session: any) {
   const purchaseType = session.metadata?.purchase_type
 
   if (!userId || !purchaseType) {
-    console.error('Missing metadata in checkout session:', session.id)
+    console.error('[Stripe] Missing metadata in checkout session')
     return
   }
 
-  console.log(`Processing payment for user ${userId}, type: ${purchaseType}`)
+  // Vérification d'idempotence - éviter les doubles traitements
+  const { data: existingPurchase } = await supabaseAdmin
+    .from('tournament_purchases')
+    .select('status')
+    .eq('stripe_checkout_session_id', session.id)
+    .single()
+
+  if (existingPurchase?.status === 'completed') {
+    console.log('[Stripe] Webhook already processed, skipping')
+    return
+  }
+
+  console.log(`[Stripe] Processing ${purchaseType}`)
 
   // Envoyer alerte email admin pour la transaction
   try {
@@ -107,9 +119,9 @@ async function handleCheckoutCompleted(session: any) {
     })
 
     await sendEmail(ADMIN_EMAIL, subject, html, text)
-    console.log('Transaction alert email sent to admin')
+    console.log('[Stripe] Transaction alert email sent')
   } catch (emailError) {
-    console.error('Failed to send transaction alert email:', emailError)
+    console.error('[Stripe] Failed to send transaction alert email')
     // On ne bloque pas le flux si l'email échoue
   }
 
@@ -133,7 +145,7 @@ async function handleCheckoutCompleted(session: any) {
   } else if (purchaseType === 'slot_invite') {
     // Le slot est déjà enregistré, rien à faire de plus
     // L'utilisateur peut maintenant rejoindre/créer un tournoi avec ce slot
-    console.log('Slot invite purchased for user:', userId)
+    console.log('[Stripe] Slot invite purchased')
   } else if (purchaseType === 'platinium_participation') {
     await handlePlatiniumParticipation(session)
   } else if (purchaseType === 'duration_extension') {
@@ -154,7 +166,7 @@ async function handleCheckoutExpired(session: any) {
     })
     .eq('stripe_checkout_session_id', session.id)
 
-  console.log('Checkout session expired:', session.id)
+  console.log('[Stripe] Checkout session expired')
 }
 
 // Créer un tournoi après paiement
@@ -164,11 +176,17 @@ async function handleTournamentCreation(session: any) {
   const tournamentDataStr = session.metadata?.tournament_data
 
   if (!tournamentDataStr) {
-    console.error('No tournament data in metadata')
+    console.error('[Stripe] No tournament data in metadata')
     return
   }
 
-  const tournamentData = JSON.parse(tournamentDataStr)
+  let tournamentData
+  try {
+    tournamentData = JSON.parse(tournamentDataStr)
+  } catch (e) {
+    console.error('[Stripe] Invalid tournament data JSON')
+    return
+  }
 
   // Déterminer le type de tournoi
   let tournamentType: TournamentType = 'free'
@@ -211,7 +229,7 @@ async function handleTournamentCreation(session: any) {
     .single()
 
   if (tournamentError) {
-    console.error('Error creating tournament:', tournamentError)
+    console.error('[Stripe] Error creating tournament')
     return
   }
 
@@ -247,7 +265,7 @@ async function handleTournamentCreation(session: any) {
     .update({ tournament_id: tournament.id })
     .eq('stripe_checkout_session_id', session.id)
 
-  console.log('Tournament created:', tournament.id, 'Type:', tournamentType)
+  console.log('[Stripe] Tournament created')
 }
 
 // Rejoindre un tournoi Platinium après paiement
@@ -256,7 +274,7 @@ async function handlePlatiniumParticipation(session: any) {
   const inviteCode = session.metadata?.invite_code
 
   if (!inviteCode) {
-    console.error('No invite code in metadata')
+    console.error('[Stripe] No invite code in metadata')
     return
   }
 
@@ -268,7 +286,7 @@ async function handlePlatiniumParticipation(session: any) {
     .single()
 
   if (!tournament) {
-    console.error('Tournament not found:', inviteCode)
+    console.error('[Stripe] Tournament not found for Platinium join')
     return
   }
 
@@ -290,7 +308,7 @@ async function handlePlatiniumParticipation(session: any) {
     .update({ tournament_id: tournament.id })
     .eq('stripe_checkout_session_id', session.id)
 
-  console.log('User', userId, 'joined Platinium tournament:', tournament.id)
+  console.log('[Stripe] User joined Platinium tournament')
 }
 
 // Extension de durée
@@ -298,7 +316,7 @@ async function handleDurationExtension(session: any) {
   const tournamentId = session.metadata?.tournament_id
 
   if (!tournamentId) {
-    console.error('No tournament_id in metadata')
+    console.error('[Stripe] No tournament_id in metadata')
     return
   }
 
@@ -310,7 +328,7 @@ async function handleDurationExtension(session: any) {
     })
     .eq('id', tournamentId)
 
-  console.log('Duration extended for tournament:', tournamentId)
+  console.log('[Stripe] Duration extended')
 }
 
 // Extension de joueurs (+5)
@@ -318,7 +336,7 @@ async function handlePlayerExtension(session: any) {
   const tournamentId = session.metadata?.tournament_id
 
   if (!tournamentId) {
-    console.error('No tournament_id in metadata')
+    console.error('[Stripe] No tournament_id in metadata')
     return
   }
 
@@ -330,7 +348,7 @@ async function handlePlayerExtension(session: any) {
     .single()
 
   if (!tournament) {
-    console.error('Tournament not found:', tournamentId)
+    console.error('[Stripe] Tournament not found for extension')
     return
   }
 
@@ -343,5 +361,5 @@ async function handlePlayerExtension(session: any) {
     })
     .eq('id', tournamentId)
 
-  console.log('Players extended for tournament:', tournamentId)
+  console.log('[Stripe] Players extended')
 }

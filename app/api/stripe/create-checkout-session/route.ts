@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { stripe, isStripeEnabled, STRIPE_PRODUCTS, StripePurchaseType, getBaseUrl } from '@/lib/stripe'
+import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 
 interface CheckoutRequest {
   purchaseType: StripePurchaseType
@@ -49,6 +50,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Vous devez etre connecte pour effectuer un achat' },
         { status: 401 }
+      )
+    }
+
+    // Rate limiting - protection contre le flooding
+    const rateLimitResult = checkRateLimit(`checkout:${user.id}`, RATE_LIMITS.checkout)
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+        { status: 429 }
       )
     }
 

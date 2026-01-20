@@ -1,8 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting - protection contre les attaques par force brute
+    const clientIP = getClientIP(request)
+    const rateLimitResult = checkRateLimit(`login:${clientIP}`, RATE_LIMITS.login)
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives de connexion. Réessayez dans quelques minutes.' },
+        { status: 429 }
+      )
+    }
+
     const { identifier, password } = await request.json()
 
     if (!identifier || !password) {

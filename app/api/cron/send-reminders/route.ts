@@ -10,8 +10,14 @@ const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
 export async function GET(request: NextRequest) {
   // Vérifier le secret CRON pour sécuriser l'endpoint
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[CRON] CRON_SECRET is not configured')
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
   const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

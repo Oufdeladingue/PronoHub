@@ -73,11 +73,14 @@ async function handleCronRequest(request: Request, isManual: boolean) {
 
     // Vérification du secret pour les appels Vercel cron
     if (!isManual) {
-      const authHeader = request.headers.get('authorization')
       const cronSecret = process.env.CRON_SECRET
+      if (!cronSecret) {
+        console.error('[CRON] CRON_SECRET is not configured')
+        return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+      }
 
-      // Si CRON_SECRET est configuré, vérifier l'authentification
-      if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader !== `Bearer ${cronSecret}`) {
         console.log('[CRON] Unauthorized cron request')
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
