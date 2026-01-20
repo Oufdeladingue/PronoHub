@@ -716,7 +716,7 @@ function ProfileContent() {
         </div>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 md:pb-24">
+      <main id="main-content" className="max-w-2xl mx-auto px-4 py-8 md:pb-24">
         {/* Onglets de navigation */}
         <div className="flex justify-between md:justify-start md:gap-1 border-b theme-border mb-6">
             <button

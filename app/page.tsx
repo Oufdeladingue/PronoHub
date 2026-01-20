@@ -9,12 +9,12 @@ import Footer from '@/components/Footer'
 function ComingSoonPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
-      <main className="flex-1 flex items-center justify-center">
+      <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
             <Image
               src="/images/king.svg"
-              alt="Couronne"
+              alt="Couronne dorée PronoHub"
               width={200}
               height={200}
               className="h-auto mb-2 drop-shadow-[0_0_80px_rgba(255,220,150,0.8)]"
@@ -22,7 +22,7 @@ function ComingSoonPage() {
             />
             <Image
               src="/images/logo.svg"
-              alt="PronoHub"
+              alt="PronoHub - Tournois de pronostics entre amis"
               width={200}
               height={200}
               className="h-32 w-auto drop-shadow-[0_0_120px_rgba(255,220,150,0.7)]"
@@ -32,7 +32,7 @@ function ComingSoonPage() {
           <h1 className="text-4xl font-bold text-white drop-shadow-lg">
             Fais-toi plaisir,<br />deviens le roi du prono.
           </h1>
-          <p className="text-lg text-gray-300">
+          <p className="text-lg text-gray-200">
             PronoHub : tournois de pronostics entre amis
           </p>
 
@@ -43,7 +43,7 @@ function ComingSoonPage() {
             </span>
           </div>
 
-          <p className="text-gray-400 text-sm max-w-md mx-auto">
+          <p className="text-gray-300 text-sm max-w-md mx-auto">
             Nous préparons quelque chose d'exceptionnel pour toi. Reviens bientôt !
           </p>
         </div>
@@ -84,31 +84,33 @@ function NormalHomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
-      <main className="flex-1 flex items-center justify-center">
+      <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
             <Image
               src="/images/king.svg"
-              alt="Couronne"
+              alt="Couronne dorée PronoHub"
               width={200}
               height={200}
               className="h-auto mb-2 drop-shadow-[0_0_80px_rgba(255,220,150,0.8)]"
               style={{ width: logoWidth > 0 ? `${logoWidth}px` : 'auto' }}
+              priority
             />
             <div ref={logoRef}>
               <Image
                 src="/images/logo.svg"
-                alt="PronoHub"
+                alt="PronoHub - Tournois de pronostics entre amis"
                 width={200}
                 height={200}
                 className="h-32 w-auto drop-shadow-[0_0_120px_rgba(255,220,150,0.7)]"
+                priority
               />
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white drop-shadow-lg">
             Fais-toi plaisir,<br />deviens le roi du prono.
           </h1>
-          <p className="text-lg text-gray-300">
+          <p className="text-lg text-gray-200">
             PronoHub : tournois de pronostics entre amis
           </p>
           <div className="flex justify-center items-center gap-3 flex-wrap mt-8">
