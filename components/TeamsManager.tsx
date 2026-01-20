@@ -508,9 +508,17 @@ export default function TeamsManager({
       {/* Contenu si active */}
       {teamsEnabled && (
         <>
-          {/* Liste des equipes */}
+          {/* Liste des equipes - l'équipe de l'utilisateur actuel en premier */}
           <div className="space-y-4 mb-4">
-            {teams.map(team => (
+            {[...teams]
+              .sort((a, b) => {
+                const aHasUser = a.members.some(m => m.userId === currentUserId)
+                const bHasUser = b.members.some(m => m.userId === currentUserId)
+                if (aHasUser && !bHasUser) return -1
+                if (!aHasUser && bHasUser) return 1
+                return 0
+              })
+              .map(team => (
               <div
                 key={team.id}
                 className={`rounded-lg p-3 border-2 ${canEdit ? 'dark-bg-primary dark-border-primary' : 'team-card-viewer'}`}
