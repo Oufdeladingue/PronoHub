@@ -16,6 +16,8 @@ export default function NavigationLoader() {
   }, [pathname, searchParams])
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+
     // Écouter les clics sur les liens de navigation
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
@@ -30,6 +32,11 @@ export default function NavigationLoader() {
           setTimeout(() => {
             setIsVisible(true)
           }, 100)
+          // Timeout de sécurité : cacher le loader après 10 secondes si la navigation n'a pas abouti
+          timeoutId = setTimeout(() => {
+            setIsLoading(false)
+            setIsVisible(false)
+          }, 10000)
         }
       }
     }
@@ -43,6 +50,11 @@ export default function NavigationLoader() {
         setTimeout(() => {
           setIsVisible(true)
         }, 100)
+        // Timeout de sécurité pour les formulaires aussi
+        timeoutId = setTimeout(() => {
+          setIsLoading(false)
+          setIsVisible(false)
+        }, 10000)
       }
     }
 
@@ -52,6 +64,7 @@ export default function NavigationLoader() {
     return () => {
       document.removeEventListener('click', handleClick)
       document.removeEventListener('submit', handleSubmit)
+      if (timeoutId) clearTimeout(timeoutId)
     }
   }, [pathname])
 

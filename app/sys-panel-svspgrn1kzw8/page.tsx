@@ -108,7 +108,7 @@ export default async function AdminPage() {
             </p>
           </div>
 
-          <Link href={getAdminUrl('tournaments')}>
+          <Link href={getAdminUrl('usage')}>
             <div className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-600 uppercase">Tournois</h3>
@@ -148,7 +148,7 @@ export default async function AdminPage() {
 
         {/* Actions rapides */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Link href={getAdminUrl('import')}>
+          <Link href={getAdminUrl('data')}>
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
               <div className="flex items-center gap-3 mb-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
@@ -160,7 +160,7 @@ export default async function AdminPage() {
             </div>
           </Link>
 
-          <Link href={getAdminUrl('tournaments')}>
+          <Link href={getAdminUrl('usage')}>
             <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
               <div className="flex items-center gap-3 mb-3">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
