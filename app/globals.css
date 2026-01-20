@@ -455,6 +455,15 @@ input:-moz-autofill:focus {
   color: #ffffff !important;
 }
 
+/* Titre PronoHub - "Prono" blanc en mode sombre, orange en mode clair */
+.prono-title-white {
+  color: #ff9900;
+}
+
+:root[data-theme="dark"] .prono-title-white {
+  color: #ffffff;
+}
+
 /* Numéros de maillot - gris foncé en thème clair */
 .jersey-number {
   color: #374151;
