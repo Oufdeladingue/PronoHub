@@ -30,7 +30,7 @@ const nextConfig = {
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://pronohub.club https://www.pronohub.club",
               "upgrade-insecure-requests",
             ].join('; ')
           },
