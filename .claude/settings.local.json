@@ -32,7 +32,8 @@
       "Bash(grep:*)",
       "Bash(where:*)",
       "Bash(choco install:*)",
-      "Bash(/c/stripe/stripe.exe:*)"
+      "Bash(/c/stripe/stripe.exe:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
