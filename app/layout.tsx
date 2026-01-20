@@ -69,6 +69,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning className={inter.variable}>
       <head>
+        {/* Preconnect aux origines critiques pour réduire la latence */}
+        <link rel="preconnect" href="https://txpmihreaxmtsxlgmdko.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://txpmihreaxmtsxlgmdko.supabase.co" />
+        {/* Preload du logo LCP pour le chargement initial */}
+        <link rel="preload" href="/images/logo.svg" as="image" type="image/svg+xml" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

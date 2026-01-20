@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions",
+    "iOS >= 15",
+    "Android >= 10"
+  ],
   "scripts": {
     "dev": "next dev -p 3100",
     "dev:clean": "rmdir /s /q .next 2>nul & next dev -p 3100",
