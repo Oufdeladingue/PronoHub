@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
+import { getAvatarUrl } from '@/lib/avatars'
 
 // ============= INTERFACES =============
 
@@ -950,7 +951,7 @@ export default function AdminUsagePage() {
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={`/avatars/${user.avatar || 'avatar1'}.png`}
+                                  src={getAvatarUrl(user.avatar || 'avatar1')}
                                   alt={user.username}
                                   className="w-8 h-8 rounded-full"
                                   onError={(e) => {
