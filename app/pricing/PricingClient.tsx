@@ -262,7 +262,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   {loading === 'slot_invite' ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    `Acheter un slot (${prices.slotInvite.toFixed(2).replace('.', ',')} €)`
+                    'Acheter un slot'
                   )}
                 </button>
               ) : (
