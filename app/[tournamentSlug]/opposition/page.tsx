@@ -2637,7 +2637,7 @@ export default function OppositionPage() {
                                         </div>
                                         <button
                                           onClick={() => unlockPrediction(match.id)}
-                                          className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                                          className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-gray-600 dark:hover:text-gray-200 transition"
                                           title="Modifier le pronostic"
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
