@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-// import { sendEmail } from '@/lib/email/send'
-// import { getDetailedReminderTemplate } from '@/lib/email/templates'
+import { sendDetailedReminderEmail } from '@/lib/email/send'
 
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'emails à traiter par exécution
 
-// IMPORTANT: Cette route est désactivée pour ne pas consommer le quota Resend
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
@@ -114,14 +112,23 @@ export async function GET(request: NextRequest) {
 
       const userIds = participants.map(p => p.user_id)
 
-      // Récupérer les préférences de notification
-      const { data: preferences } = await supabase
-        .from('user_notification_preferences')
-        .select('user_id, reminder_enabled, reminder_hours_before, quiet_hours_start, quiet_hours_end')
-        .in('user_id', userIds)
-        .eq('reminder_enabled', true)
+      // Récupérer les préférences de notification depuis les profils
+      const { data: userProfiles } = await supabase
+        .from('profiles')
+        .select('id, notification_preferences')
+        .in('id', userIds)
 
-      if (!preferences || preferences.length === 0) continue
+      // Filtrer les utilisateurs qui ont activé les rappels
+      const preferences = (userProfiles || [])
+        .filter(p => p.notification_preferences?.email_reminder === true)
+        .map(p => ({
+          user_id: p.id,
+          reminder_enabled: true,
+          quiet_hours_start: '22:00',
+          quiet_hours_end: '08:00'
+        }))
+
+      if (preferences.length === 0) continue
 
       // Pour chaque match, vérifier qui n'a pas pronostiqué
       for (const match of tournamentMatches) {
@@ -205,8 +212,7 @@ export async function GET(request: NextRequest) {
             continue
           }
 
-          // TODO: Décommenter pour activer l'envoi réel d'emails
-          /*
+          // Envoi de l'email de rappel
           try {
             const tournamentSlug = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug}`
             const matchDate = new Date(match.utc_date)
@@ -218,7 +224,7 @@ export async function GET(request: NextRequest) {
               minute: '2-digit'
             })
 
-            const emailHtml = getPredictionReminderTemplate({
+            const result = await sendDetailedReminderEmail(userEmail, {
               username: userProfile?.username || 'Joueur',
               tournamentName: tournament.name,
               tournamentSlug,
@@ -233,21 +239,19 @@ export async function GET(request: NextRequest) {
               defaultPredictionMaxPoints: 1
             })
 
-            await sendEmail({
-              to: userEmail,
-              subject: `⚽ Rappel: ${match.home_team_name} vs ${match.away_team_name} - ${tournament.name}`,
-              html: emailHtml
-            })
+            if (result.success) {
+              // Mettre à jour le log
+              await supabase
+                .from('notification_logs')
+                .update({ status: 'sent', sent_at: new Date().toISOString() })
+                .eq('user_id', userPref.user_id)
+                .eq('notification_type', 'reminder')
+                .eq('match_id', match.id)
 
-            // Mettre à jour le log
-            await supabase
-              .from('notification_logs')
-              .update({ status: 'sent', sent_at: new Date().toISOString() })
-              .eq('user_id', userPref.user_id)
-              .eq('notification_type', 'reminder')
-              .eq('match_id', match.id)
-
-            processed++
+              processed++
+            } else {
+              throw new Error(result.error || 'Erreur inconnue')
+            }
           } catch (emailError: any) {
             await supabase
               .from('notification_logs')
@@ -258,17 +262,6 @@ export async function GET(request: NextRequest) {
 
             errors.push(`Email error for ${userPref.user_id}: ${emailError.message}`)
           }
-          */
-
-          // Pour l'instant, on marque comme "skipped" car l'envoi est désactivé
-          await supabase
-            .from('notification_logs')
-            .update({ status: 'skipped', error_message: 'Email sending disabled' })
-            .eq('user_id', userPref.user_id)
-            .eq('notification_type', 'reminder')
-            .eq('match_id', match.id)
-
-          processed++
         }
       }
     }
