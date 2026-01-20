@@ -950,7 +950,7 @@ export default function AdminUsagePage() {
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={`/images/avatars/${user.avatar || 'avatar1'}.svg`}
+                                  src={`/avatars/${user.avatar || 'avatar1'}.png`}
                                   alt={user.username}
                                   className="w-8 h-8 rounded-full"
                                 />
