@@ -61,10 +61,12 @@ export default function LoginPage() {
     setGoogleLoading(true)
     setError(null)
     try {
+      // Utiliser l'URL canonique sans www pour le callback OAuth
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${baseUrl}/auth/callback`,
         },
       })
 
@@ -109,7 +111,7 @@ export default function LoginPage() {
       setLoading(false)
       setRedirecting(true)
 
-      router.push('/dashboard')
+      const redirectPath = data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard'; router.push(redirectPath)
       router.refresh()
     } catch (err: any) {
       setError(err.message)

@@ -49,7 +49,18 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ success: true, user: data.user })
+    // Récupérer le rôle de l'utilisateur
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
+
+    return NextResponse.json({
+      success: true,
+      user: data.user,
+      role: profile?.role || 'user'
+    })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(

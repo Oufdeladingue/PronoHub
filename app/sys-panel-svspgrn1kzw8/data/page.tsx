@@ -1012,7 +1012,7 @@ export default function AdminDataPage() {
                   )}
 
                   {/* === LOGS === */}
-                  {cronLogs.length > 0 && (
+                  {cronLogs.filter((log: any) => log.status !== 'skipped').length > 0 && (
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-md font-semibold text-gray-900 mb-4">Dernières exécutions</h3>
                       <div className="overflow-x-auto">
@@ -1027,7 +1027,10 @@ export default function AdminDataPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {cronLogs.slice(0, 10).map((log: any) => (
+                            {cronLogs
+                              .filter((log: any) => log.status !== 'skipped')
+                              .slice(0, 10)
+                              .map((log: any) => (
                               <tr key={log.id} className="border-b border-gray-100">
                                 <td className="py-2 px-3 text-gray-800">
                                   {new Date(log.created_at).toLocaleString('fr-FR', {
@@ -1047,7 +1050,6 @@ export default function AdminDataPage() {
                                 <td className="py-2 px-3">
                                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                     log.status === 'success' ? 'bg-green-100 text-green-700' :
-                                    log.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' :
                                     'bg-red-100 text-red-700'
                                   }`}>
                                     {log.status}

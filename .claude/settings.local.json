@@ -25,7 +25,14 @@
       "Bash(timeout:*)",
       "Bash(git grep:*)",
       "Bash(netstat:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(start chrome http://localhost:3000)",
+      "Bash(start chrome http://localhost:3100)",
+      "Bash(start chrome http://localhost:3100/auth/login)",
+      "Bash(grep:*)",
+      "Bash(where:*)",
+      "Bash(choco install:*)",
+      "Bash(/c/stripe/stripe.exe:*)"
     ],
     "deny": [],
     "ask": []

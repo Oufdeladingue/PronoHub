@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
@@ -20,16 +20,16 @@ export interface AutoUpdateResult {
  * Fonction exportée pour exécuter la mise à jour des compétitions
  * Peut être appelée directement depuis d'autres routes API
  */
-// Fonction helper pour logger les appels API
+// Fonction helper pour logger les appels API (utilise admin client pour bypass RLS)
 async function logApiCall(
-  supabase: SupabaseClient,
   callType: string,
   competitionId: number | null,
   success: boolean,
   responseTimeMs?: number
 ) {
   try {
-    await supabase.from('api_calls_log').insert({
+    const adminClient = createAdminClient()
+    await adminClient.from('api_calls_log').insert({
       api_name: 'football-data',
       call_type: callType,
       competition_id: competitionId,
@@ -108,7 +108,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
       const compResponseTime = Date.now() - compStartTime
 
       // Logger l'appel API (compétition)
-      await logApiCall(supabase, 'manual', competition.id, compResponse.ok, compResponseTime)
+      await logApiCall('manual', competition.id, compResponse.ok, compResponseTime)
 
       if (!compResponse.ok) {
         console.error(`Failed to fetch competition ${competition.code}: ${compResponse.statusText}`)
@@ -156,7 +156,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
       const matchesResponseTime = Date.now() - matchesStartTime
 
       // Logger l'appel API (matchs)
-      await logApiCall(supabase, 'manual', competition.id, matchesResponse.ok, matchesResponseTime)
+      await logApiCall('manual', competition.id, matchesResponse.ok, matchesResponseTime)
 
       if (!matchesResponse.ok) {
         console.error(`Failed to fetch matches for ${competition.code}: ${matchesResponse.statusText}`)
@@ -328,8 +328,25 @@ async function checkAndFinishTournaments(
 }
 
 export async function POST() {
+  const startTime = Date.now()
+
   try {
     const result = await executeAutoUpdate()
+    const executionTimeMs = Date.now() - startTime
+
+    // Logger le résultat dans cron_logs (utilise admin client pour bypass RLS)
+    try {
+      const adminClient = createAdminClient()
+      await adminClient.from('cron_logs').insert({
+        job_name: 'daily-sync',
+        status: result.success ? 'success' : 'error',
+        message: result.message,
+        competitions_updated: result.successCount || 0,
+        execution_time_ms: executionTimeMs
+      })
+    } catch (logError) {
+      console.error('Failed to log cron result:', logError)
+    }
 
     if (!result.success) {
       return NextResponse.json(
@@ -342,6 +359,22 @@ export async function POST() {
 
   } catch (error: any) {
     console.error('Error in auto-update:', error)
+    const executionTimeMs = Date.now() - startTime
+
+    // Logger l'erreur dans cron_logs (utilise admin client pour bypass RLS)
+    try {
+      const adminClient = createAdminClient()
+      await adminClient.from('cron_logs').insert({
+        job_name: 'daily-sync',
+        status: 'error',
+        message: error.message,
+        competitions_updated: 0,
+        execution_time_ms: executionTimeMs
+      })
+    } catch (logError) {
+      console.error('Failed to log cron error:', logError)
+    }
+
     return NextResponse.json(
       { error: error.message },
       { status: 500 }

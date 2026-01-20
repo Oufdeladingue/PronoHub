@@ -15,7 +15,7 @@ Ce fichier doit être lu au début de chaque session de travail.
 - [ ] Création des tournois ponctuels type Coupe du Monde
 
 ### Compétitions et données
-- [ ] Implémentation des mises à jour auto des compétitions (simplifications et cron)
+- [x] Implémentation des mises à jour auto des compétitions (simplifications et cron)
 
 ### Règles et scoring
 - [ ] Nouvelles règles bonus
