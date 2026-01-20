@@ -6,6 +6,16 @@ import DashboardClient from '@/components/DashboardClient'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { getAdminPath } from '@/lib/admin-path'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Tableau de bord - PronoHub',
+  description: 'Gérez vos tournois de pronostics, consultez vos performances et rejoignez de nouvelles compétitions sur PronoHub.',
+  robots: {
+    index: false, // Page privée, pas d'indexation
+    follow: false,
+  },
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()

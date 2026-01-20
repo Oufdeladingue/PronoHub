@@ -11,7 +11,13 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
+          // COOP: Isolation de l'origine pour prévenir les attaques cross-origin
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          // COEP: Isolation des ressources cross-origin
+          { key: 'Cross-Origin-Embedder-Policy', value: 'credentialless' },
+          // CORP: Protection des ressources
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
           {
             key: 'Content-Security-Policy',
             value: [
@@ -25,6 +31,7 @@ const nextConfig = {
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
+              "upgrade-insecure-requests",
             ].join('; ')
           },
         ],
