@@ -181,28 +181,31 @@ export default async function DashboardPage() {
     }
   }
 
-  // Compter les participants réels pour chaque tournoi
+  // Compter les participants réels pour chaque tournoi (en parallèle)
   const participantCounts: Record<string, number> = {}
-  for (const tournamentId of tournamentIds) {
-    const { count } = await supabase
-      .from('tournament_participants')
-      .select('*', { count: 'exact', head: true })
-      .eq('tournament_id', tournamentId)
-
-    participantCounts[tournamentId] = count || 0
+  if (tournamentIds.length > 0) {
+    const participantCountPromises = tournamentIds.map(async (tournamentId) => {
+      const { count } = await supabase
+        .from('tournament_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+      return { tournamentId, count: count || 0 }
+    })
+    const participantResults = await Promise.all(participantCountPromises)
+    for (const { tournamentId, count } of participantResults) {
+      participantCounts[tournamentId] = count
+    }
   }
 
-  // Récupérer les informations sur les journées pour chaque tournoi
+  // Récupérer les informations sur les journées pour chaque tournoi (en parallèle)
   const journeyInfo: Record<string, any> = {}
-  for (const tournament of userTournaments || []) {
-    let startMatchday = tournament.starting_matchday
-    let endMatchday = tournament.ending_matchday
 
-    // Vérifier si c'est un tournoi custom SANS starting/ending_matchday
-    // (les tournois custom avec starting/ending_matchday utilisent la logique standard)
+  // Fonction helper pour calculer les infos de journée d'un tournoi
+  const calculateJourneyInfo = async (tournament: any) => {
+    const startMatchday = tournament.starting_matchday
+    const endMatchday = tournament.ending_matchday
     const isCustomCompetition = !!tournament.custom_competition_id && (!startMatchday || !endMatchday)
 
-    // Pour les tournois custom sans matchdays définis, récupérer les journées depuis custom_competition_matchdays
     if (isCustomCompetition) {
       const { data: customMatchdays, error: customMatchdaysError } = await supabase
         .from('custom_competition_matchdays')
@@ -217,86 +220,57 @@ export default async function DashboardPage() {
       })
 
       if (!customMatchdays || customMatchdays.length === 0) {
-        journeyInfo[tournament.id] = {
-          total: 0,
-          completed: 0,
-          currentNumber: 1
-        }
-        continue
+        return { tournamentId: tournament.id, info: { total: 0, completed: 0, currentNumber: 1 } }
       }
 
       const totalJourneys = customMatchdays.length
       const matchdayIds = customMatchdays.map(md => md.id)
 
-      // Récupérer les matchs custom
       const { data: customMatches } = await supabase
         .from('custom_competition_matches')
         .select('custom_matchday_id, status, utc_date')
         .in('custom_matchday_id', matchdayIds)
 
-      // Créer un mapping ID -> matchday_number
       const matchdayNumberMap: Record<string, number> = {}
       for (const md of customMatchdays) {
         matchdayNumberMap[md.id] = md.matchday_number
       }
 
-      // Regrouper les matchs par journée
       const matchdayMap = new Map<number, Array<{ status: string, utc_date: string }>>()
       for (const match of customMatches || []) {
         const mdNumber = matchdayNumberMap[match.custom_matchday_id]
         if (mdNumber !== undefined) {
-          if (!matchdayMap.has(mdNumber)) {
-            matchdayMap.set(mdNumber, [])
-          }
+          if (!matchdayMap.has(mdNumber)) matchdayMap.set(mdNumber, [])
           matchdayMap.get(mdNumber)!.push(match)
         }
       }
 
       const now = new Date()
-      let pendingJourneys = 0
-      let completedJourneys = 0
+      let pendingJourneys = 0, completedJourneys = 0
 
       for (const [, matches] of matchdayMap) {
         const allFinished = matches.every(m => m.status === 'FINISHED')
         const allPending = matches.every(m => {
           const matchDate = new Date(m.utc_date)
-          const isScheduled = m.status === 'SCHEDULED' || m.status === 'TIMED'
-          return isScheduled && matchDate > now
+          return (m.status === 'SCHEDULED' || m.status === 'TIMED') && matchDate > now
         })
-
-        if (allFinished) {
-          completedJourneys++
-        } else if (allPending) {
-          pendingJourneys++
-        }
+        if (allFinished) completedJourneys++
+        else if (allPending) pendingJourneys++
       }
 
       const notYetImportedJourneys = totalJourneys - matchdayMap.size
       const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
 
-      journeyInfo[tournament.id] = {
-        total: totalJourneys,
-        completed: completedJourneys,
-        currentNumber: currentNumber
-      }
-      continue
+      return { tournamentId: tournament.id, info: { total: totalJourneys, completed: completedJourneys, currentNumber } }
     }
 
     // Tournois standards (non-custom)
     if (!startMatchday || !endMatchday) {
-      journeyInfo[tournament.id] = {
-        total: 0,
-        completed: 0,
-        currentNumber: 1
-      }
-      continue
+      return { tournamentId: tournament.id, info: { total: 0, completed: 0, currentNumber: 1 } }
     }
 
-    // Nombre total de journées du tournoi
-    // Le calcul starting/ending_matchday est le plus fiable car mis à jour au démarrage
     const totalJourneys = endMatchday - startMatchday + 1
 
-    // Récupérer tous les matchs de la compétition dans la plage du tournoi
     const { data: allMatches } = await supabase
       .from('imported_matches')
       .select('matchday, status, finished, utc_date')
@@ -304,90 +278,67 @@ export default async function DashboardPage() {
       .gte('matchday', startMatchday)
       .lte('matchday', endMatchday)
 
-    // Regrouper les matchs par journée
     const matchdayMap = new Map<number, Array<{ status: string, finished: boolean, utc_date: string }>>()
     for (const match of allMatches || []) {
-      if (!matchdayMap.has(match.matchday)) {
-        matchdayMap.set(match.matchday, [])
-      }
+      if (!matchdayMap.has(match.matchday)) matchdayMap.set(match.matchday, [])
       matchdayMap.get(match.matchday)!.push(match)
     }
 
-    // Calculer le statut des journées basé sur les matchs :
-    // - "pending" : aucun match n'a commencé (tous SCHEDULED/TIMED avec date future)
-    // - "active" : au moins un match a débuté mais pas tous terminés
-    // - "completed" : tous les matchs sont terminés (FINISHED)
     const now = new Date()
-    let pendingJourneys = 0
-    let completedJourneys = 0
+    let pendingJourneys = 0, completedJourneys = 0
 
     for (const [, matches] of matchdayMap) {
       const allFinished = matches.every(m => m.status === 'FINISHED' || m.finished === true)
       const allPending = matches.every(m => {
         const matchDate = new Date(m.utc_date)
-        const isScheduled = m.status === 'SCHEDULED' || m.status === 'TIMED'
-        return isScheduled && matchDate > now
+        return (m.status === 'SCHEDULED' || m.status === 'TIMED') && matchDate > now
       })
-
-      if (allFinished) {
-        completedJourneys++
-      } else if (allPending) {
-        pendingJourneys++
-      }
-      // Sinon c'est "active" (en cours) - on ne compte pas
+      if (allFinished) completedJourneys++
+      else if (allPending) pendingJourneys++
     }
 
-    // Journées non encore importées (pour compétitions à élimination directe)
-    // = total du tournoi - journées avec matchs importés
     const notYetImportedJourneys = totalJourneys - matchdayMap.size
-
-    // La journée actuelle = total - journées à venir (pending + non importées)
     const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
 
-    journeyInfo[tournament.id] = {
-      total: totalJourneys,
-      completed: completedJourneys,
-      currentNumber: currentNumber
+    return { tournamentId: tournament.id, info: { total: totalJourneys, completed: completedJourneys, currentNumber } }
+  }
+
+  // Exécuter toutes les requêtes de journées en parallèle
+  if (userTournaments && userTournaments.length > 0) {
+    const journeyResults = await Promise.all(userTournaments.map(calculateJourneyInfo))
+    for (const { tournamentId, info } of journeyResults) {
+      journeyInfo[tournamentId] = info
     }
   }
 
-  // Récupérer le temps restant avant la prochaine journée pour les tournois en attente
+  // Récupérer le temps restant avant la prochaine journée pour les tournois en attente (en parallèle)
   const nextMatchDates: Record<string, string | null> = {}
-  for (const t of userTournaments || []) {
-    if (t.status === 'pending' || t.status === 'warmup') {
-      // Vérifier si c'est un tournoi custom
+  const pendingWarmupTournaments = (userTournaments || []).filter(t => t.status === 'pending' || t.status === 'warmup')
+
+  if (pendingWarmupTournaments.length > 0) {
+    const nextMatchPromises = pendingWarmupTournaments.map(async (t) => {
       if (t.custom_competition_id) {
-        // Pour les tournois custom, récupérer via les matchdays avec jointure
         const { data: matchdaysWithMatches } = await supabase
           .from('custom_competition_matchdays')
-          .select(`
-            id,
-            matchday_number,
-            custom_competition_matches!inner(utc_date)
-          `)
+          .select(`id, matchday_number, custom_competition_matches!inner(utc_date)`)
           .eq('custom_competition_id', t.custom_competition_id)
           .order('matchday_number', { ascending: true })
 
-        // Trouver le premier match à venir
         let nextMatchDate: string | null = null
         const now = new Date()
         for (const md of matchdaysWithMatches || []) {
           const matches = (md as any).custom_competition_matches || []
           for (const match of matches) {
             const matchDate = new Date(match.utc_date)
-            if (matchDate > now) {
-              if (!nextMatchDate || matchDate < new Date(nextMatchDate)) {
-                nextMatchDate = match.utc_date
-              }
+            if (matchDate > now && (!nextMatchDate || matchDate < new Date(nextMatchDate))) {
+              nextMatchDate = match.utc_date
             }
           }
-          if (nextMatchDate) break // On a trouvé dans la première journée avec match à venir
+          if (nextMatchDate) break
         }
-
-        nextMatchDates[t.id] = nextMatchDate
+        return { tournamentId: t.id, date: nextMatchDate }
       } else {
-        // Récupérer le prochain match de la compétition standard (première journée à venir)
-        const { data: matches, error: matchError } = await supabase
+        const { data: matches } = await supabase
           .from('imported_matches')
           .select('utc_date, matchday')
           .eq('competition_id', t.competition_id)
@@ -395,13 +346,12 @@ export default async function DashboardPage() {
           .order('matchday', { ascending: true })
           .order('utc_date', { ascending: true })
           .limit(1)
-
-        if (!matchError && matches && matches.length > 0) {
-          nextMatchDates[t.id] = matches[0].utc_date
-        } else {
-          nextMatchDates[t.id] = null
-        }
+        return { tournamentId: t.id, date: matches?.[0]?.utc_date || null }
       }
+    })
+    const nextMatchResults = await Promise.all(nextMatchPromises)
+    for (const { tournamentId, date } of nextMatchResults) {
+      nextMatchDates[tournamentId] = date
     }
   }
 
@@ -426,67 +376,47 @@ export default async function DashboardPage() {
     }
   }
 
-  // Récupérer la date du dernier match et les infos de classement pour les tournois terminés
+  // Récupérer la date du dernier match et les infos de classement pour les tournois terminés (en parallèle)
   const lastMatchDates: Record<string, string | null> = {}
   const tournamentRankings: Record<string, { winner: string | null, userRank: number | null, totalParticipants: number }> = {}
+  const completedTournaments = (userTournaments || []).filter(t => t.status === 'finished' || t.status === 'completed')
 
-  for (const t of userTournaments || []) {
-    if (t.status === 'finished' || t.status === 'completed') {
-      // Vérifier si le classement final est déjà stocké en BDD
+  if (completedTournaments.length > 0) {
+    // Récupérer rankings et lastMatchDates en parallèle pour chaque tournoi terminé
+    const completedTournamentsPromises = completedTournaments.map(async (t) => {
+      // Récupérer le classement final
       const { data: tournamentWithRankings } = await supabase
         .from('tournaments')
         .select('final_rankings')
         .eq('id', t.id)
         .single()
 
+      let ranking = { winner: null as string | null, userRank: null as number | null, totalParticipants: 0 }
       if (tournamentWithRankings?.final_rankings && Array.isArray(tournamentWithRankings.final_rankings) && tournamentWithRankings.final_rankings.length > 0) {
-        // Utiliser le classement final stocké
         const finalRankings = tournamentWithRankings.final_rankings as Array<{
-          user_id: string
-          username: string
-          rank: number
-          total_points: number
+          user_id: string; username: string; rank: number; total_points: number
         }>
-
-        const winner = finalRankings[0]?.username || null
-        const userRanking = finalRankings.find(r => r.user_id === user.id)
-        const userRank = userRanking?.rank || null
-
-        tournamentRankings[t.id] = {
-          winner,
-          userRank,
+        ranking = {
+          winner: finalRankings[0]?.username || null,
+          userRank: finalRankings.find(r => r.user_id === user.id)?.rank || null,
           totalParticipants: finalRankings.length
         }
-      } else {
-        // Pas de final_rankings stocké - les données seront calculées quand l'utilisateur
-        // visitera la page du tournoi. Pour le dashboard, on affiche des valeurs par défaut.
-        tournamentRankings[t.id] = { winner: null, userRank: null, totalParticipants: 0 }
       }
-    }
-  }
 
-  for (const t of userTournaments || []) {
-    if (t.status === 'finished' || t.status === 'completed') {
-      // Pour les compétitions custom, chercher dans custom_matches
+      // Récupérer la date du dernier match
+      let lastMatchDate: string | null = null
       if (t.custom_competition_id) {
-        const { data: customMatches, error: customMatchError } = await supabase
+        const { data: customMatches } = await supabase
           .from('custom_matches')
           .select('utc_date')
           .eq('custom_competition_id', t.custom_competition_id)
           .order('utc_date', { ascending: false })
           .limit(1)
-
-        if (!customMatchError && customMatches && customMatches.length > 0) {
-          lastMatchDates[t.id] = customMatches[0].utc_date
-        } else {
-          lastMatchDates[t.id] = null
-        }
+        lastMatchDate = customMatches?.[0]?.utc_date || null
       } else {
-        // Pour les compétitions standard, chercher dans imported_matches
         const startMatchday = t.starting_matchday || 1
         const endMatchday = t.ending_matchday || 38
-
-        const { data: matches, error: matchError } = await supabase
+        const { data: matches } = await supabase
           .from('imported_matches')
           .select('utc_date')
           .eq('competition_id', t.competition_id)
@@ -494,13 +424,16 @@ export default async function DashboardPage() {
           .lte('matchday', endMatchday)
           .order('utc_date', { ascending: false })
           .limit(1)
-
-        if (!matchError && matches && matches.length > 0) {
-          lastMatchDates[t.id] = matches[0].utc_date
-        } else {
-          lastMatchDates[t.id] = null
-        }
+        lastMatchDate = matches?.[0]?.utc_date || null
       }
+
+      return { tournamentId: t.id, ranking, lastMatchDate }
+    })
+
+    const completedResults = await Promise.all(completedTournamentsPromises)
+    for (const { tournamentId, ranking, lastMatchDate } of completedResults) {
+      tournamentRankings[tournamentId] = ranking
+      lastMatchDates[tournamentId] = lastMatchDate
     }
   }
 
