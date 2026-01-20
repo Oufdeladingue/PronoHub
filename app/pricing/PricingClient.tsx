@@ -71,19 +71,34 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
     fetchPrices()
   }, [])
 
-  // Auto-checkout si paramètre buy présent
+  // Auto-checkout si paramètre buy ou product présent
   useEffect(() => {
     const buyParam = searchParams.get('buy')
-    if (buyParam && isLoggedIn && !autoCheckoutTriggered.current) {
-      autoCheckoutTriggered.current = true
+    const productParam = searchParams.get('product')
+
+    if (isLoggedIn && !autoCheckoutTriggered.current) {
       // Mapper les paramètres buy vers les planTypes
       const buyToPlanMap: Record<string, string> = {
         'oneshot': 'oneshot-premium',
         'elite': 'elite-team',
         'platinium': 'platinium_solo',
       }
-      const planType = buyToPlanMap[buyParam]
+
+      // Mapper les paramètres product vers les planTypes
+      const productToPlanMap: Record<string, string> = {
+        'free-slot': 'slot_invite',
+      }
+
+      let planType: string | undefined
+
+      if (buyParam) {
+        planType = buyToPlanMap[buyParam]
+      } else if (productParam) {
+        planType = productToPlanMap[productParam]
+      }
+
       if (planType) {
+        autoCheckoutTriggered.current = true
         // Petit délai pour que la page soit chargée
         setTimeout(() => handleCheckout(planType), 100)
       }
