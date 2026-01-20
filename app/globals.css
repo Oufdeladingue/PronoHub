@@ -1183,6 +1183,17 @@ input[type="number"] {
   }
 }
 
+/* Animation de rotation lente pour le loader de navigation */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
+}
+
 /* Animation de clignotement pour les icônes d'avertissement (opacité 0% <-> 100% en orange) */
 @keyframes blink-warning {
   0%, 100% {

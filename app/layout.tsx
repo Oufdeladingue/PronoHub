@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import AgeGate from "@/components/AgeGate";
 import { UserProvider } from "@/contexts/UserContext";
+import NavigationLoader from "@/components/NavigationLoader";
 
 export const metadata: Metadata = {
   title: "PronoHub - Tournois de Pronostics Football",
@@ -73,6 +75,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <UserProvider>
+          <Suspense fallback={null}>
+            <NavigationLoader />
+          </Suspense>
           <AgeGate />
           {children}
         </UserProvider>
