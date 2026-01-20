@@ -953,6 +953,9 @@ export default function AdminUsagePage() {
                                   src={`/avatars/${user.avatar || 'avatar1'}.png`}
                                   alt={user.username}
                                   className="w-8 h-8 rounded-full"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/avatars/avatar1.png'
+                                  }}
                                 />
                                 <span className="font-medium text-gray-900">{user.username}</span>
                               </div>
