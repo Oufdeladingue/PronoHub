@@ -1,9 +1,9 @@
 /**
  * Récupère le chemin sécurisé du panel admin
- * Défini dans la variable d'environnement ADMIN_PANEL_PATH
+ * Défini dans la variable d'environnement NEXT_PUBLIC_ADMIN_PANEL_PATH
  */
 export function getAdminPath(): string {
-  return process.env.ADMIN_PANEL_PATH || 'admin'
+  return process.env.NEXT_PUBLIC_ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
 }
 
 /**

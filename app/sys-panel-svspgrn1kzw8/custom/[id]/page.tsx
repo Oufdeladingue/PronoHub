@@ -19,6 +19,7 @@ interface Matchday {
   week_end: string
   status: 'draft' | 'published' | 'completed'
   matchesCount: number
+  allMatchesFinished: boolean
 }
 
 interface Match {
@@ -451,7 +452,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
               {[...matchdays]
                 .sort((a, b) => b.matchday_number - a.matchday_number)
                 .map((matchday) => {
-                  const isCompleted = matchday.status === 'completed'
+                  const isCompleted = matchday.allMatchesFinished
                   return (
                 <div
                   key={matchday.id}

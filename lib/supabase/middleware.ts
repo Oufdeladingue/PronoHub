@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // URL sécurisée du panel admin (définie dans .env.local)
-  const adminPath = process.env.ADMIN_PANEL_PATH || 'admin'
+  const adminPath = process.env.ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
 
   // Redirection automatique pour les super admins
   // Exception: Si le paramètre ?as=user est présent, permettre l'accès au dashboard

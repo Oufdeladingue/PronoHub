@@ -41,10 +41,61 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch matchdays' }, { status: 500 })
     }
 
-    const formattedMatchdays = matchdays?.map(md => ({
-      ...md,
-      matchesCount: md.matches?.[0]?.count || 0
-    })) || []
+    // Pour chaque journée, vérifier si tous les matchs sont terminés
+    const formattedMatchdays = await Promise.all((matchdays || []).map(async (md) => {
+      const matchesCount = md.matches?.[0]?.count || 0
+
+      // Si pas de matchs, ne pas considérer comme terminée
+      if (matchesCount === 0) {
+        return {
+          ...md,
+          matchesCount,
+          allMatchesFinished: false
+        }
+      }
+
+      // Récupérer les matchs de cette journée avec leur statut via imported_matches
+      const { data: customMatches } = await supabase
+        .from('custom_competition_matches')
+        .select('football_data_match_id')
+        .eq('custom_matchday_id', md.id)
+
+      if (!customMatches || customMatches.length === 0) {
+        return {
+          ...md,
+          matchesCount,
+          allMatchesFinished: false
+        }
+      }
+
+      const footballDataIds = customMatches
+        .map(m => m.football_data_match_id)
+        .filter(id => id !== null)
+
+      if (footballDataIds.length === 0) {
+        return {
+          ...md,
+          matchesCount,
+          allMatchesFinished: false
+        }
+      }
+
+      // Vérifier le statut de chaque match
+      const { data: importedMatches } = await supabase
+        .from('imported_matches')
+        .select('status')
+        .in('football_data_match_id', footballDataIds)
+
+      const allFinished = importedMatches &&
+        importedMatches.length === footballDataIds.length &&
+        importedMatches.every(m => m.status === 'FINISHED')
+
+      return {
+        ...md,
+        matchesCount,
+        allMatchesFinished: allFinished || false
+      }
+    }))
 
     return NextResponse.json({
       success: true,
