@@ -36,7 +36,7 @@ export default function DashboardLoading() {
         </div>
         {/* Texte de chargement */}
         <p className="text-[#ff9900] font-semibold text-sm animate-pulse">
-          Chargement du tableau de bord...
+          Déploiement du Tifo en cours...
         </p>
       </div>
     </div>

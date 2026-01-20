@@ -16,7 +16,7 @@ export default function ProfileLoading() {
           </div>
         </div>
         <p className="text-[#ff9900] font-semibold text-sm animate-pulse">
-          Chargement du profil...
+          Déploiement du Tifo en cours...
         </p>
       </div>
     </div>
