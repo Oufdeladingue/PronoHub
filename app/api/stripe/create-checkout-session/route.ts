@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (purchaseType.startsWith('tournament_creation_')) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=creation`
-      cancelUrl = `${baseUrl}/vestiaire/create`
+      cancelUrl = `${baseUrl}/pricing`
     } else if (purchaseType === 'platinium_participation' || purchaseType === 'platinium_group_11') {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=platinium&mode=${purchaseType === 'platinium_group_11' ? 'group' : 'solo'}`
       cancelUrl = `${baseUrl}/pricing`
