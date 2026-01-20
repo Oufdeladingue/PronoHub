@@ -98,7 +98,7 @@ export default function NavigationLoader() {
         </div>
         {/* Texte de chargement */}
         <p className="text-[#ff9900] font-semibold text-sm animate-pulse">
-          Chargement...
+          Déploiement du Tifo en cours...
         </p>
       </div>
     </div>

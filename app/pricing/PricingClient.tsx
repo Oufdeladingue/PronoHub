@@ -9,6 +9,12 @@ interface PricingClientProps {
   isLoggedIn: boolean
 }
 
+interface UserQuotas {
+  free_tournaments_active: number
+  free_tournaments_max: number
+  can_create_tournament: boolean
+}
+
 interface Prices {
   oneshot: number
   elite: number
@@ -53,6 +59,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
   const [prices, setPrices] = useState<Prices>(defaultPrices)
   const autoCheckoutTriggered = useRef(false)
   const [stripeError, setStripeError] = useState<string | null>(null)
+  const [userQuotas, setUserQuotas] = useState<UserQuotas | null>(null)
 
   // Charger les prix depuis l'API
   useEffect(() => {
@@ -70,6 +77,23 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
     }
     fetchPrices()
   }, [])
+
+  // Charger les quotas utilisateur si connecté
+  useEffect(() => {
+    if (!isLoggedIn) return
+    const fetchQuotas = async () => {
+      try {
+        const response = await fetch('/api/user/quotas')
+        const data = await response.json()
+        if (data.success && data.quotas) {
+          setUserQuotas(data.quotas)
+        }
+      } catch (err) {
+        console.error('Error fetching quotas:', err)
+      }
+    }
+    fetchQuotas()
+  }, [isLoggedIn])
 
   // Auto-checkout si paramètre buy ou product présent
   useEffect(() => {
@@ -221,12 +245,34 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 </div>
               </div>
 
-              <button
-                onClick={() => router.push(isLoggedIn ? '/dashboard' : '/auth')}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
-              >
-                {isLoggedIn ? 'Retour au dashboard' : 'Commencer gratuitement'}
-              </button>
+              {/* Bouton conditionnel selon les quotas */}
+              {!isLoggedIn ? (
+                <button
+                  onClick={() => router.push('/auth')}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+                >
+                  Commencer gratuitement
+                </button>
+              ) : userQuotas && userQuotas.free_tournaments_active >= userQuotas.free_tournaments_max ? (
+                <button
+                  onClick={() => handleCheckout('slot_invite')}
+                  disabled={loading === 'slot_invite'}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {loading === 'slot_invite' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    `Acheter un slot (${prices.slotInvite.toFixed(2).replace('.', ',')} €)`
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+                >
+                  Retour au dashboard
+                </button>
+              )}
             </div>
 
             {/* One-Shot */}
