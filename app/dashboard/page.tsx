@@ -16,34 +16,71 @@ export default async function DashboardPage() {
     redirect('/auth/login')
   }
 
-  // Récupérer le profil utilisateur
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  // ========== GROUPE 1: Requêtes parallèles indépendantes ==========
+  // Ces requêtes ne dépendent que de user.id, on les exécute en parallèle
+  const [
+    { data: profile },
+    { data: subscription },
+    { data: participations },
+    { count: oneshotSlotsAvailable },
+    { data: userCredits },
+    { data: pricingConfig }
+  ] = await Promise.all([
+    // Profil utilisateur
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single(),
+    // Abonnement actif
+    supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single(),
+    // Participations aux tournois
+    supabase
+      .from('tournament_participants')
+      .select('tournament_id')
+      .eq('user_id', user.id),
+    // Slots one-shot disponibles (legacy)
+    supabase
+      .from('user_oneshot_purchases')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'available'),
+    // Crédits disponibles
+    supabase
+      .from('user_available_credits')
+      .select('*')
+      .eq('user_id', user.id)
+      .single(),
+    // Limite de tournois Free-Kick
+    supabase
+      .from('pricing_config')
+      .select('config_value')
+      .eq('config_key', 'free_max_tournaments')
+      .eq('is_active', true)
+      .single()
+  ])
 
   const isSuper = isSuperAdmin(profile?.role as UserRole)
-
-  // Récupérer les quotas utilisateur depuis le système de monétisation
-  // Vérifier abonnement actif
-  const { data: subscription } = await supabase
-    .from('user_subscriptions')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .single()
-
   const hasSubscription = subscription?.status === 'active'
-
-  // Récupérer les IDs des tournois auxquels l'utilisateur participe (pour l'affichage)
-  const { data: participations } = await supabase
-    .from('tournament_participants')
-    .select('tournament_id')
-    .eq('user_id', user.id)
-
   const tournamentIds = participations?.map(p => p.tournament_id) || []
+  const FREE_KICK_MAX = pricingConfig?.config_value || 2
 
+  const credits = {
+    oneshot: userCredits?.oneshot_credits || 0,
+    elite: userCredits?.elite_credits || 0,
+    platinium_solo: userCredits?.platinium_solo_credits || 0,
+    platinium_group_slots: userCredits?.platinium_group_slots || 0,
+    slot_invite: userCredits?.slot_invite_credits || 0,
+    duration_extension: userCredits?.duration_extension_credits || 0,
+    player_extension: userCredits?.player_extension_credits || 0,
+  }
+
+  // ========== GROUPE 2: Requêtes dépendant des tournamentIds ==========
   // QUOTAS GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
   // Pour les tournois gratuits, c'est le nombre de participations qui compte (pas la création)
   const { data: participatedTournaments } = await supabase
@@ -78,40 +115,6 @@ export default async function DashboardPage() {
     eventCompetitionIds.includes(t.competition_id)
   ).length || 0
 
-  // Compter les slots one-shot disponibles (legacy)
-  const { count: oneshotSlotsAvailable } = await supabase
-    .from('user_oneshot_purchases')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'available')
-
-  // Récupérer les crédits disponibles depuis la vue user_available_credits
-  const { data: userCredits } = await supabase
-    .from('user_available_credits')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  const credits = {
-    oneshot: userCredits?.oneshot_credits || 0,
-    elite: userCredits?.elite_credits || 0,
-    platinium_solo: userCredits?.platinium_solo_credits || 0,
-    platinium_group_slots: userCredits?.platinium_group_slots || 0,
-    slot_invite: userCredits?.slot_invite_credits || 0,
-    duration_extension: userCredits?.duration_extension_credits || 0,
-    player_extension: userCredits?.player_extension_credits || 0,
-  }
-
-  // Récupérer la limite de tournois Free-Kick depuis pricing_config
-  const { data: pricingConfig } = await supabase
-    .from('pricing_config')
-    .select('config_value')
-    .eq('config_key', 'free_max_tournaments')
-    .eq('is_active', true)
-    .single()
-
-  const FREE_KICK_MAX = pricingConfig?.config_value || 2
-
   // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
   // FREE-KICK (gratuit): basé sur les PARTICIPATIONS - même règle pour créer et rejoindre
   // PREMIUM: basé sur les CRÉATIONS (max 5)
@@ -121,65 +124,77 @@ export default async function DashboardPage() {
   const canCreateOneshot = (oneshotSlotsAvailable || 0) > 0
   const canCreateTournament = canCreateFree || canCreatePremium || canCreateOneshot
 
-  // Récupérer les détails des tournois où l'utilisateur participe
-  const { data: userTournaments } = await supabase
-    .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
-    .in('id', tournamentIds)
-
-  // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté (n'est plus participant)
-  // Ces tournois occupent toujours un slot mais l'utilisateur n'y a plus accès
-  const { data: leftTournaments } = await supabase
-    .from('tournaments')
-    .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
-    .eq('original_creator_id', user.id)
-    .neq('status', 'completed')
-    .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
+  // ========== GROUPE 3: Requêtes tournois en parallèle ==========
+  const [{ data: userTournaments }, { data: leftTournaments }] = await Promise.all([
+    // Récupérer les détails des tournois où l'utilisateur participe
+    supabase
+      .from('tournaments')
+      .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
+      .in('id', tournamentIds),
+    // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté
+    supabase
+      .from('tournaments')
+      .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
+      .eq('original_creator_id', user.id)
+      .neq('status', 'completed')
+      .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
+  ])
 
   // Récupérer les IDs de compétitions (inclure les tournois quittés aussi)
   const allTournamentsForCompetitions = [...(userTournaments || []), ...(leftTournaments || [])]
   const competitionIds = allTournamentsForCompetitions.map((t: any) => t.competition_id).filter(Boolean) || []
   const customCompetitionIds = allTournamentsForCompetitions.map((t: any) => t.custom_competition_id).filter(Boolean) || []
 
-  // Récupérer les emblèmes des compétitions importées (y compris logos personnalisés)
+  // ========== GROUPE 4: Requêtes compétitions en parallèle ==========
+  // Récupérer les emblèmes des compétitions importées et custom en parallèle
   let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
-  if (competitionIds.length > 0) {
-    const { data: competitions } = await supabase
-      .from('competitions')
-      .select('id, emblem, custom_emblem_white, custom_emblem_color')
-      .in('id', competitionIds)
-
-    if (competitions) {
-      competitionsMap = competitions.reduce((acc: any, comp: any) => {
-        acc[comp.id] = {
-          emblem: comp.emblem,
-          custom_emblem_white: comp.custom_emblem_white,
-          custom_emblem_color: comp.custom_emblem_color
-        }
-        return acc
-      }, {})
-    }
-  }
-
-  // Récupérer les emblèmes des compétitions custom (Best of Week, etc.)
   let customCompetitionsMap: Record<string, { name: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
-  if (customCompetitionIds.length > 0) {
-    const { data: customCompetitions } = await supabase
-      .from('custom_competitions')
-      .select('id, name, custom_emblem_white, custom_emblem_color')
-      .in('id', customCompetitionIds)
 
-    if (customCompetitions) {
-      customCompetitionsMap = customCompetitions.reduce((acc: any, comp: any) => {
-        acc[comp.id] = {
-          name: comp.name,
-          custom_emblem_white: comp.custom_emblem_white,
-          custom_emblem_color: comp.custom_emblem_color
-        }
-        return acc
-      }, {})
-    }
+  const competitionPromises: PromiseLike<any>[] = []
+
+  if (competitionIds.length > 0) {
+    competitionPromises.push(
+      supabase
+        .from('competitions')
+        .select('id, emblem, custom_emblem_white, custom_emblem_color')
+        .in('id', competitionIds)
+        .then(({ data: competitions }) => {
+          if (competitions) {
+            competitionsMap = competitions.reduce((acc: any, comp: any) => {
+              acc[comp.id] = {
+                emblem: comp.emblem,
+                custom_emblem_white: comp.custom_emblem_white,
+                custom_emblem_color: comp.custom_emblem_color
+              }
+              return acc
+            }, {})
+          }
+        })
+    )
   }
+
+  if (customCompetitionIds.length > 0) {
+    competitionPromises.push(
+      supabase
+        .from('custom_competitions')
+        .select('id, name, custom_emblem_white, custom_emblem_color')
+        .in('id', customCompetitionIds)
+        .then(({ data: customCompetitions }) => {
+          if (customCompetitions) {
+            customCompetitionsMap = customCompetitions.reduce((acc: any, comp: any) => {
+              acc[comp.id] = {
+                name: comp.name,
+                custom_emblem_white: comp.custom_emblem_white,
+                custom_emblem_color: comp.custom_emblem_color
+              }
+              return acc
+            }, {})
+          }
+        })
+    )
+  }
+
+  await Promise.all(competitionPromises)
 
   // Compter les participants réels pour chaque tournoi (en parallèle)
   const participantCounts: Record<string, number> = {}
