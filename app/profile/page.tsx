@@ -151,6 +151,7 @@ function ProfileContent() {
     email_player_joined: true,       // Quand un joueur rejoint (si capitaine)
   })
   const [savingNotifications, setSavingNotifications] = useState(false)
+  const [notificationSaved, setNotificationSaved] = useState(false)
   const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -296,6 +297,7 @@ function ProfileContent() {
 
     // Sauvegarder automatiquement
     setSavingNotifications(true)
+    setNotificationSaved(false)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -309,6 +311,10 @@ function ProfileContent() {
         console.error('Error saving notification preferences:', error)
         // Reverter en cas d'erreur
         setNotificationPrefs(notificationPrefs)
+      } else {
+        // Afficher la confirmation de sauvegarde
+        setNotificationSaved(true)
+        setTimeout(() => setNotificationSaved(false), 2000)
       }
     } catch (error) {
       console.error('Error saving notification preferences:', error)
@@ -1452,10 +1458,26 @@ function ProfileContent() {
                   </div>
                 </div>
 
-                {savingNotifications && (
-                  <p className="text-xs theme-text-secondary mt-3 text-center">
-                    Enregistrement...
-                  </p>
+                {(savingNotifications || notificationSaved) && (
+                  <div className={`mt-3 py-2 px-3 rounded-lg text-xs text-center flex items-center justify-center gap-2 transition-all ${
+                    notificationSaved
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                  }`}>
+                    {savingNotifications ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        <span>Enregistrement...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Préférence enregistrée</span>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
 
