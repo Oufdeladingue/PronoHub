@@ -396,7 +396,7 @@ export default function NavBar({
           {/* COLONNE CENTRALE (33%) - Titre */}
           <div className="flex flex-col items-center justify-center" style={{ fontFamily: 'Inter, sans-serif' }}>
             <h1 className="text-2xl font-bold text-center">
-              <span className="prono-title-white">Prono</span><span className="text-[#ff9900]">Hub</span>
+              <span className="prono-title-white">Prono</span><span className="hub-title-white">Hub</span>
             </h1>
             <p className="text-sm text-[#ff9900] text-center">
               Tournois de pronostics entre amis
