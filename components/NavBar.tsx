@@ -70,7 +70,12 @@ export default function NavBar({
           {/* Menu de navigation */}
           <nav className="flex space-x-2 py-3">
             {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href))
+              // Pour "Général" (home), vérifier l'égalité exacte uniquement
+              // Pour les autres pages, vérifier si le pathname commence par le href
+              const isHome = item.icon === 'home'
+              const isActive = isHome
+                ? pathname === item.href
+                : pathname === item.href || pathname?.startsWith(item.href + '/')
               return (
                 <Link
                   key={item.href}
