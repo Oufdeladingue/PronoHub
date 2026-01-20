@@ -3,6 +3,8 @@ import { headers } from 'next/headers'
 import { stripe, isStripeEnabled } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import { TOURNAMENT_RULES, TournamentType } from '@/types/monetization'
+import { sendEmail } from '@/lib/email/send'
+import { getTransactionAlertTemplate, ADMIN_EMAIL } from '@/lib/email/admin-templates'
 
 // Client Supabase avec service role pour les webhooks (bypass RLS)
 const supabaseAdmin = createClient(
@@ -82,6 +84,34 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   console.log(`Processing payment for user ${userId}, type: ${purchaseType}`)
+
+  // Envoyer alerte email admin pour la transaction
+  try {
+    // Récupérer les infos de l'utilisateur
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('username')
+      .eq('id', userId)
+      .single()
+
+    const { html, text, subject } = getTransactionAlertTemplate({
+      userEmail: authUser?.user?.email || 'Email inconnu',
+      username: profile?.username,
+      purchaseType,
+      amount: session.amount_total || 0,
+      currency: session.currency || 'eur',
+      stripeSessionId: session.id,
+      tournamentName: session.metadata?.tournament_name,
+      createdAt: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+    })
+
+    await sendEmail(ADMIN_EMAIL, subject, html, text)
+    console.log('Transaction alert email sent to admin')
+  } catch (emailError) {
+    console.error('Failed to send transaction alert email:', emailError)
+    // On ne bloque pas le flux si l'email échoue
+  }
 
   // Mettre à jour le statut de l'achat
   const { error: updateError } = await supabaseAdmin

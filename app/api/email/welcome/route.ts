@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendWelcomeEmail } from '@/lib/email'
+import { sendWelcomeEmail, sendEmail } from '@/lib/email'
+import { getNewUserAlertTemplate, ADMIN_EMAIL } from '@/lib/email/admin-templates'
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,25 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Échec de l\'envoi de l\'email' },
         { status: 500 }
       )
+    }
+
+    // Envoyer alerte admin pour nouvel utilisateur
+    try {
+      // Détecter si c'est une connexion Google OAuth (pas de password)
+      const provider = user.app_metadata?.provider === 'google' ? 'google' : 'email'
+
+      const { html, text, subject } = getNewUserAlertTemplate({
+        email,
+        username,
+        provider,
+        createdAt: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+      })
+
+      await sendEmail(ADMIN_EMAIL, subject, html, text)
+      console.log('New user alert email sent to admin')
+    } catch (alertError) {
+      console.error('Failed to send new user alert:', alertError)
+      // On ne bloque pas le flux si l'alerte échoue
     }
 
     return NextResponse.json({
