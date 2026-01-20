@@ -151,6 +151,7 @@ function ProfileContent() {
     email_player_joined: true,       // Quand un joueur rejoint (si capitaine)
   })
   const [savingNotifications, setSavingNotifications] = useState(false)
+  const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -368,10 +369,11 @@ function ProfileContent() {
       if (updateError) {
         setSecurityMessage('Erreur lors de la mise à jour du mot de passe')
       } else {
-        setSecurityMessage('Mot de passe modifié avec succès')
+        setSecurityMessage('')
         setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
+        setShowPasswordSuccessModal(true)
       }
     } catch (error) {
       setSecurityMessage('Erreur lors de la modification du mot de passe')
@@ -1527,6 +1529,38 @@ function ProfileContent() {
           )}
         </div>
       </main>
+
+      {/* Modale de succès changement de mot de passe */}
+      {showPasswordSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="theme-card max-w-sm w-full p-6 rounded-2xl shadow-2xl text-center animate-fadeIn">
+            {/* Icône de succès */}
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            {/* Titre */}
+            <h3 className="text-xl font-bold theme-text mb-2">
+              Mot de passe modifié
+            </h3>
+
+            {/* Message */}
+            <p className="theme-text-secondary mb-6">
+              Votre mot de passe a été mis à jour avec succès.
+            </p>
+
+            {/* Bouton fermer */}
+            <button
+              onClick={() => setShowPasswordSuccessModal(false)}
+              className="theme-btn-primary w-full"
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <Footer />

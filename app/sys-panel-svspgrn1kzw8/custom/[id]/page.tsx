@@ -448,14 +448,24 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
             </div>
           ) : (
             <div className="space-y-4">
-              {matchdays.map((matchday) => (
+              {[...matchdays]
+                .sort((a, b) => b.matchday_number - a.matchday_number)
+                .map((matchday) => {
+                  const isCompleted = matchday.status === 'completed'
+                  return (
                 <div
                   key={matchday.id}
-                  className="bg-white rounded-lg shadow-md border-2 border-gray-300 overflow-hidden"
+                  className={`bg-white rounded-lg shadow-md border-2 overflow-hidden ${
+                    isCompleted
+                      ? 'border-gray-200 opacity-60'
+                      : 'border-gray-300'
+                  }`}
                 >
                   <div className="p-4 flex items-center justify-between bg-gradient-to-r from-white to-gray-50">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shadow-sm ${
+                        isCompleted ? 'bg-gray-400' : 'bg-purple-600'
+                      }`}>
                         <span className="text-xl font-bold text-white">
                           J{matchday.matchday_number}
                         </span>
@@ -515,7 +525,8 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                     </div>
                   </div>
                 </div>
-              ))}
+                  )
+                })}
             </div>
           )}
 
