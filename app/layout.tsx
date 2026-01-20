@@ -5,9 +5,47 @@ import { UserProvider } from "@/contexts/UserContext";
 
 export const metadata: Metadata = {
   title: "PronoHub - Tournois de Pronostics Football",
-  description: "Créez et participez à des tournois de pronostics sportifs avec vos amis",
+  description: "Créez et participez à des tournois de pronostics sportifs avec vos amis. Défiez vos amis sur la Ligue 1, Premier League, Champions League et plus encore !",
   icons: {
     icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
+  metadataBase: new URL('https://www.pronohub.club'),
+  openGraph: {
+    title: 'PronoHub - Tournois de Pronostics Football',
+    description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis',
+    url: 'https://www.pronohub.club',
+    siteName: 'PronoHub',
+    locale: 'fr_FR',
+    type: 'website',
+    images: [
+      {
+        url: '/images/logo.svg',
+        width: 200,
+        height: 200,
+        alt: 'PronoHub - Tournois de pronostics entre amis',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'PronoHub - Tournois de Pronostics Football',
+    description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis',
+    images: ['/images/logo.svg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: 'https://www.pronohub.club',
   },
 };
 

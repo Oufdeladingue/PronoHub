@@ -9,9 +9,6 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  console.log('[MIDDLEWARE] Supabase URL:', supabaseUrl)
-  console.log('[MIDDLEWARE] Key exists:', !!supabaseKey)
-
   const supabase = createServerClient(
     supabaseUrl,
     supabaseKey,
@@ -65,12 +62,8 @@ export async function updateSession(request: NextRequest) {
 
     // Si pas super admin, rediriger vers dashboard
     if (profile?.role !== 'super_admin') {
-      console.warn(`[SECURITY] Tentative d'accès non autorisée au panel admin par ${user.email}`)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-
-    // Log des accès admin pour la sécurité
-    console.log(`[ADMIN ACCESS] ${user.email} a accédé à ${request.nextUrl.pathname}`)
   }
 
   return supabaseResponse

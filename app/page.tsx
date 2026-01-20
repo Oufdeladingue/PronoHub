@@ -29,9 +29,9 @@ function ComingSoonPage() {
               priority
             />
           </div>
-          <h2 className="text-4xl font-bold text-white drop-shadow-lg">
+          <h1 className="text-4xl font-bold text-white drop-shadow-lg">
             Fais-toi plaisir,<br />deviens le roi du prono.
-          </h2>
+          </h1>
           <p className="text-lg text-gray-300">
             PronoHub : tournois de pronostics entre amis
           </p>
@@ -105,9 +105,9 @@ function NormalHomePage() {
               />
             </div>
           </div>
-          <h2 className="text-4xl font-bold text-white drop-shadow-lg">
+          <h1 className="text-4xl font-bold text-white drop-shadow-lg">
             Fais-toi plaisir,<br />deviens le roi du prono.
-          </h2>
+          </h1>
           <p className="text-lg text-gray-300">
             PronoHub : tournois de pronostics entre amis
           </p>

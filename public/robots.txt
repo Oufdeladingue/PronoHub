@@ -1,0 +1,24 @@
+# Robots.txt pour PronoHub
+# https://www.pronohub.club
+
+User-agent: *
+Allow: /
+
+# Pages publiques
+Allow: /
+Allow: /auth/login
+Allow: /auth/signup
+Allow: /about
+Allow: /cgv
+Allow: /privacy
+Allow: /contact
+Allow: /pricing
+
+# Pages privées (nécessitent authentification)
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /api/
+Disallow: /sys-panel-*
+
+# Sitemap
+Sitemap: https://www.pronohub.club/sitemap.xml
