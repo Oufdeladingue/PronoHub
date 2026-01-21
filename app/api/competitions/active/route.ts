@@ -164,22 +164,11 @@ export async function GET() {
 
     // Formater les compétitions personnalisées
     const customCompetitionsFormatted = customCompetitionsWithMatchdays.map(customComp => {
-      // Compter uniquement les journées restantes (statut différent de 'completed' et 'active')
-      // Status dans la DB: 'draft', 'pending', 'published', 'active', 'completed'
-      const allMatchdays = customComp.custom_competition_matchdays || []
-      const pendingMatchdays = allMatchdays.filter(
-        (md: { id: string; status: string }) => md.status !== 'completed' && md.status !== 'active'
-      ).length
+      // Pour les compétitions custom (Best of Week), on ne compte pas les journées restantes
+      // car elles sont créées au fur et à mesure par les admins
+      // On utilise undefined pour remaining_matchdays afin de ne pas afficher le badge
+      // La compétition reste cliquable tant que is_active = true
 
-      // Pour les compétitions custom (Best of Week), si is_active = true et pas de journées
-      // ou toutes les journées sont terminées/actives, on considère qu'il reste au moins 1 journée
-      // (les journées sont créées au fur et à mesure par les admins)
-      // Une compétition custom n'est "terminée" que si is_active = false
-      const remainingMatchdays = customComp.is_active
-        ? Math.max(pendingMatchdays, 1) // Au moins 1 si la compétition est active
-        : pendingMatchdays
-
-      // Pour les compétitions personnalisées, on utilise le nombre de journées restantes
       return {
         id: `custom_${customComp.id}`,
         name: customComp.name,
@@ -188,10 +177,10 @@ export async function GET() {
         area_name: 'Best of Week',
         current_matchday: customComp.current_matchday || 1,
         current_season_start_date: customComp.created_at,
-        current_season_end_date: customComp.created_at,
+        current_season_end_date: null, // null pour éviter le calcul "saison terminée"
         is_active: customComp.is_active,
-        remaining_matchdays: remainingMatchdays,
-        remaining_matches: remainingMatchdays * (customComp.matches_per_matchday || 8),
+        remaining_matchdays: undefined, // undefined = pas de badge affiché
+        remaining_matches: undefined,
         tournaments_count: 0,
         is_most_popular: false,
         custom_emblem_white: customComp.custom_emblem_white ?? null,
