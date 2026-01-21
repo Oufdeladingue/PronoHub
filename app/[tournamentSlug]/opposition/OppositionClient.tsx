@@ -1676,7 +1676,7 @@ export default function OppositionClient({
 
         {/* Banner d'extension de durée pour les tournois Free-Kick actifs */}
         {tournament.tournament_type === 'free' && tournament.status === 'active' && (
-          <div className="max-w-7xl mx-auto px-2 md:px-4">
+          <div className="w-full max-w-7xl mx-auto px-2 md:px-4">
             <DurationExtensionBanner
               tournamentId={tournament.id}
               tournamentType={tournament.tournament_type}
@@ -1686,7 +1686,7 @@ export default function OppositionClient({
         )}
 
         {/* Navigation par onglets */}
-        <div className="max-w-7xl mx-auto px-2 md:px-4 mt-3 md:mt-6">
+        <div className="w-full max-w-7xl mx-auto px-2 md:px-4 mt-3 md:mt-6">
           <div className="flex justify-between md:justify-start md:gap-2 border-b theme-border">
             <button
               onClick={() => setActiveTab('pronostics')}
@@ -1806,7 +1806,7 @@ export default function OppositionClient({
         </div>
 
         {/* Contenu des onglets - flex-grow pour pousser le footer en bas */}
-        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8 md:pb-20 flex-grow">
+        <main className="w-full max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8 md:pb-20 flex-grow">
           {activeTab === 'pronostics' && (
             <div className="theme-card">
               {/* Menu de navigation des journées */}
