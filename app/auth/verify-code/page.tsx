@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
 
-export default function VerifyCodePage() {
+function VerifyCodeForm() {
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -13,6 +13,8 @@ export default function VerifyCodePage() {
   const [resending, setResending] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
 
   useEffect(() => {
@@ -88,11 +90,11 @@ export default function VerifyCodePage() {
 
       if (verifyError) throw verifyError
 
-      // Nettoyer le sessionStorage
+      // Nettoyer le sessionStorage (garder authRedirectTo pour choose-username)
       sessionStorage.removeItem('pendingEmail')
 
-      // Rediriger vers la page de choix du pseudo
-      router.push('/auth/choose-username')
+      // Rediriger vers la page de choix du pseudo (avec redirectTo si présent)
+      router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
     } catch (err: any) {
       setError(err.message || 'Code invalide ou expiré. Veuillez réessayer.')
     } finally {
@@ -226,7 +228,7 @@ export default function VerifyCodePage() {
               className="h-4 w-auto inline-block"
             />
             ?{' '}
-            <a href="/auth/signup" className="text-[#ffb84d] hover:text-[#ff9900] hover:underline transition-colors duration-200">
+            <a href={redirectTo ? `/auth/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/signup'} className="text-[#ffb84d] hover:text-[#ff9900] hover:underline transition-colors duration-200">
               S'inscrire
             </a>
           </p>
@@ -234,5 +236,17 @@ export default function VerifyCodePage() {
       </div>
       <Footer variant="minimal" />
     </div>
+  )
+}
+
+export default function VerifyCodePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+      </div>
+    }>
+      <VerifyCodeForm />
+    </Suspense>
   )
 }

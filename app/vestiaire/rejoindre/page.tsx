@@ -6,23 +6,35 @@ import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
+import { createClient } from '@/lib/supabase/client'
 
 function RejoindreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const codeFromUrl = searchParams.get('code')?.toUpperCase() || ''
   const { username, userAvatar } = useUser()
+  const supabase = createClient()
 
   const [code, setCode] = useState(codeFromUrl)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [autoJoin, setAutoJoin] = useState(!!codeFromUrl)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [checkingAuth, setCheckingAuth] = useState(true)
 
-  // Auto-join si un code est fourni dans l'URL
+  // Vérifier si l'utilisateur est connecté
   useEffect(() => {
-    if (autoJoin && codeFromUrl && codeFromUrl.length === 8) {
-      handleJoin()
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+      setCheckingAuth(false)
+
+      // Si connecté et code valide, auto-join
+      if (user && codeFromUrl && codeFromUrl.length === 8) {
+        handleJoin()
+      }
     }
+    checkAuth()
   }, [])
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,6 +99,128 @@ function RejoindreContent() {
     handleJoin()
   }
 
+  // Construire l'URL de retour pour après connexion
+  const getRedirectUrl = () => {
+    const currentUrl = `/vestiaire/rejoindre?code=${code || codeFromUrl}`
+    return encodeURIComponent(currentUrl)
+  }
+
+  // Affichage pendant la vérification d'authentification
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen theme-bg flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  // Si non connecté, afficher l'écran de connexion/inscription
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen theme-bg flex flex-col">
+        <Navigation
+          context="app"
+          username="Invité"
+          userAvatar="avatar1"
+        />
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <div className="theme-card rounded-xl shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-8 h-8 text-[#111]" fill="currentColor">
+                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold text-[#111]">Tu es invité !</h1>
+                <p className="text-[#111]/70 mt-2">Connecte-toi pour rejoindre le tournoi</p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Code affiché */}
+                {(code || codeFromUrl) && (
+                  <div className="text-center p-4 rounded-xl theme-secondary-bg">
+                    <p className="text-sm theme-text-secondary mb-1">Code d'invitation</p>
+                    <p className="text-2xl font-bold font-mono tracking-widest theme-accent-text-always">
+                      {code || codeFromUrl}
+                    </p>
+                  </div>
+                )}
+
+                {/* Message d'explication */}
+                <div className="text-center">
+                  <p className="theme-text-secondary text-sm">
+                    Un ami t'a invité à rejoindre un tournoi de pronostics. Connecte-toi ou crée un compte pour participer !
+                  </p>
+                </div>
+
+                {/* Boutons */}
+                <div className="space-y-3">
+                  <Link
+                    href={`/auth/login?redirectTo=${getRedirectUrl()}`}
+                    className="w-full py-4 px-6 bg-[#ff9900] text-[#111] rounded-xl font-bold text-lg hover:bg-[#e68a00] transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Se connecter
+                  </Link>
+
+                  <Link
+                    href={`/auth/signup?redirectTo=${getRedirectUrl()}`}
+                    className="w-full py-4 px-6 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2 border-2 border-[#ff9900] text-[#ff9900] hover:bg-[#ff9900]/10"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Créer un compte
+                  </Link>
+                </div>
+
+                {/* Séparateur */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t theme-border"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 theme-bg theme-text-secondary">ou</span>
+                  </div>
+                </div>
+
+                {/* Input code manuel */}
+                <div>
+                  <label className="block text-sm font-medium theme-text mb-2">
+                    Modifier le code
+                  </label>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={handleCodeChange}
+                    placeholder="ABCD1234"
+                    className="w-full py-3 px-4 border-2 theme-border rounded-xl text-center font-mono text-xl tracking-[0.3em] uppercase theme-input focus:border-[#ff9900] focus:ring-2 focus:ring-[#ff9900]/20 transition"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="mt-6 text-center">
+              <p className="text-sm theme-text-secondary">
+                Après connexion, tu rejoindras automatiquement le tournoi.
+              </p>
+            </div>
+          </div>
+        </main>
+
+        <Footer variant="minimal" />
+      </div>
+    )
+  }
+
+  // Si connecté, afficher le formulaire de join normal
   return (
     <div className="min-h-screen theme-bg flex flex-col">
       <Navigation

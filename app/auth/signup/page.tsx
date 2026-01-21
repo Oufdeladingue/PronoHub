@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 
-export default function SignUpPage() {
+function SignUpForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -19,6 +19,8 @@ export default function SignUpPage() {
   const titleRef = useRef<HTMLHeadingElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
 
   // Ajustement automatique de la taille du titre
@@ -86,10 +88,14 @@ export default function SignUpPage() {
   // Gestion de l'authentification OAuth
   const handleOAuthSignIn = async (provider: 'google') => {
     try {
+      // Passer le redirectTo au callback OAuth si présent
+      const callbackUrl = redirectTo
+        ? `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${window.location.origin}/auth/callback`
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl,
         },
       })
 
@@ -121,15 +127,23 @@ export default function SignUpPage() {
     }
 
     try {
-      // Stocker l'email temporairement
+      // Stocker l'email et le redirectTo temporairement
       sessionStorage.setItem('pendingEmail', email)
+      if (redirectTo) {
+        sessionStorage.setItem('authRedirectTo', redirectTo)
+      }
+
+      // Passer le redirectTo au callback si présent
+      const callbackUrl = redirectTo
+        ? `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${window.location.origin}/auth/callback`
 
       // Créer le compte immédiatement (Supabase enverra l'email OTP automatiquement)
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: callbackUrl,
         },
       })
 
@@ -139,8 +153,8 @@ export default function SignUpPage() {
 
       console.log('Compte créé, email OTP envoyé à:', email)
 
-      // Rediriger vers la page de vérification
-      router.push('/auth/verify-code')
+      // Rediriger vers la page de vérification (avec redirectTo si présent)
+      router.push(redirectTo ? `/auth/verify-code?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/verify-code')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -349,7 +363,7 @@ export default function SignUpPage() {
 
         <p className="text-center mt-[18px] text-sm text-[#888]">
           Déjà un compte ?{' '}
-          <Link href="/auth/login" className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
+          <Link href={redirectTo ? `/auth/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/login'} className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
             Se connecter
           </Link>
         </p>
@@ -357,5 +371,17 @@ export default function SignUpPage() {
       </div>
       <Footer variant="minimal" />
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+      </div>
+    }>
+      <SignUpForm />
+    </Suspense>
   )
 }

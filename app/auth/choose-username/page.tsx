@@ -1,17 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
 
-export default function ChooseUsernamePage() {
+function ChooseUsernameForm() {
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo') || (typeof window !== 'undefined' ? sessionStorage.getItem('authRedirectTo') : null)
   const supabase = createClient()
 
   // Vérifier si l'utilisateur est connecté
@@ -118,8 +120,13 @@ export default function ChooseUsernamePage() {
       // Envoyer l'email de bienvenue (en arrière-plan, on n'attend pas la réponse)
       fetch('/api/email/welcome', { method: 'POST' }).catch(console.error)
 
-      // Rediriger vers le dashboard
-      router.push('/dashboard')
+      // Nettoyer le sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('authRedirectTo')
+      }
+
+      // Rediriger vers redirectTo si présent, sinon vers le dashboard
+      router.push(redirectTo ? decodeURIComponent(redirectTo) : '/dashboard')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -243,5 +250,17 @@ export default function ChooseUsernamePage() {
       </div>
       <Footer variant="minimal" />
     </div>
+  )
+}
+
+export default function ChooseUsernamePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+      </div>
+    }>
+      <ChooseUsernameForm />
+    </Suspense>
   )
 }

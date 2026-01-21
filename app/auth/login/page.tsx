@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
+import { Suspense } from 'react'
 
-export default function LoginPage() {
+function LoginForm() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -17,6 +18,8 @@ export default function LoginPage() {
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
 
   // Phrases de chargement aléatoires
@@ -63,10 +66,14 @@ export default function LoginPage() {
     try {
       // Utiliser l'URL canonique sans www pour le callback OAuth
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+      // Passer le redirectTo au callback OAuth si présent
+      const callbackUrl = redirectTo
+        ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${baseUrl}/auth/callback`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${baseUrl}/auth/callback`,
+          redirectTo: callbackUrl,
         },
       })
 
@@ -111,7 +118,11 @@ export default function LoginPage() {
       setLoading(false)
       setRedirecting(true)
 
-      const redirectPath = data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard'; router.push(redirectPath)
+      // Utiliser redirectTo si présent, sinon rediriger selon le rôle
+      const redirectPath = redirectTo
+        ? decodeURIComponent(redirectTo)
+        : (data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
+      router.push(redirectPath)
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -287,7 +298,7 @@ export default function LoginPage() {
 
         <p className="text-center mt-[18px] text-sm text-[#888]">
           Pas encore de compte ?{' '}
-          <Link href="/auth/signup" className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
+          <Link href={redirectTo ? `/auth/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/signup'} className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
             S'inscrire
           </Link>
         </p>
@@ -295,5 +306,17 @@ export default function LoginPage() {
       </div>
       <Footer variant="minimal" />
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
