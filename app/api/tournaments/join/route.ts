@@ -32,6 +32,18 @@ interface JoinResult {
   availableSlotsCount?: number // Nombre total de slots disponibles
 }
 
+// Helper: Récupérer les slots disponibles d'un utilisateur (factorisé pour éviter duplication)
+async function getAvailableSlots(supabase: any, userId: string) {
+  return supabase
+    .from('tournament_purchases')
+    .select('id', { count: 'exact' })
+    .eq('user_id', userId)
+    .eq('purchase_type', 'slot_invite')
+    .eq('used', false)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: true })
+}
+
 // Vérifier si l'utilisateur peut rejoindre un tournoi
 async function checkJoinEligibility(
   supabase: any,
@@ -52,24 +64,30 @@ async function checkJoinEligibility(
     }
   }
 
-  // Récupérer les participations de l'utilisateur
-  const { data: participations } = await supabase
-    .from('tournament_participants')
-    .select(`
-      tournament_id,
-      invite_type,
-      participant_role,
-      tournaments!inner (
-        id,
-        tournament_type,
-        status,
-        is_legacy
-      )
-    `)
-    .eq('user_id', userId)
+  // OPTIMISATION: Récupérer participations ET slots disponibles en parallèle
+  const [participationsRes, slotsRes] = await Promise.all([
+    supabase
+      .from('tournament_participants')
+      .select(`
+        tournament_id,
+        invite_type,
+        participant_role,
+        tournaments!inner (
+          id,
+          tournament_type,
+          status,
+          is_legacy
+        )
+      `)
+      .eq('user_id', userId),
+    getAvailableSlots(supabase, userId)
+  ])
+
+  const participations = participationsRes.data
+  const availableSlots = slotsRes.data
+  const slotsCount = slotsRes.count
 
   // Compter les tournois FREE-KICK actifs (non legacy)
-  // Cette variable est utilisee pour FREE-KICK, ONE-SHOT et ELITE-TEAM
   const freekickCount = (participations || []).filter((p: any) =>
     p.tournaments &&
     (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
@@ -77,9 +95,20 @@ async function checkJoinEligibility(
     !p.tournaments.is_legacy
   ).length
 
+  // Helper pour retourner le résultat avec slots disponibles
+  const withSlotInfo = (result: JoinResult): JoinResult => {
+    if (availableSlots && availableSlots.length > 0) {
+      return {
+        ...result,
+        hasAvailableSlot: true,
+        availableSlotId: availableSlots[0].id,
+        availableSlotsCount: slotsCount || availableSlots.length
+      }
+    }
+    return result
+  }
+
   // Cas FREE-KICK
-  // Regle: gratuit si freekick_count < 2, sinon 0.99€
-  // SAUF s'il a un slot acheté non utilisé
   if (tournamentType === 'free') {
     if (freekickCount < PRICES.FREE_MAX_TOURNAMENTS) {
       return {
@@ -90,55 +119,26 @@ async function checkJoinEligibility(
         inviteType: 'free',
         reason: 'Slot gratuit disponible'
       }
-    } else {
-      // Vérifier si l'utilisateur a des slots achetés non utilisés
-      const { data: availableSlots, count: slotsCount } = await supabase
-        .from('tournament_purchases')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId)
-        .eq('purchase_type', 'slot_invite')
-        .eq('used', false)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: true })
-
-      if (availableSlots && availableSlots.length > 0) {
-        // L'utilisateur a des slots disponibles
-        return {
-          canJoin: true,
-          requiresPayment: true, // On garde true pour afficher la modale, mais avec l'option d'utiliser le slot
-          paymentAmount: PRICES.SLOT_INVITE,
-          paymentType: 'slot_invite',
-          inviteType: 'paid_slot',
-          reason: `Quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits atteint`,
-          hasAvailableSlot: true,
-          availableSlotId: availableSlots[0].id, // Prendre le premier (le plus ancien)
-          availableSlotsCount: slotsCount || availableSlots.length
-        }
-      }
-
-      return {
-        canJoin: true,
-        requiresPayment: true,
-        paymentAmount: PRICES.SLOT_INVITE,
-        paymentType: 'slot_invite',
-        inviteType: 'paid_slot',
-        reason: `Quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits atteint - slot payant à ${PRICES.SLOT_INVITE}€`
-      }
     }
+    // Quota atteint - vérifier les slots
+    return withSlotInfo({
+      canJoin: true,
+      requiresPayment: true,
+      paymentAmount: PRICES.SLOT_INVITE,
+      paymentType: 'slot_invite',
+      inviteType: 'paid_slot',
+      reason: `Quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits atteint - slot payant à ${PRICES.SLOT_INVITE}€`
+    })
   }
 
   // Cas ONE-SHOT / ELITE-TEAM
-  // Regle: gratuit si l'user n'est pas deja invite dans un tournoi premium actif
-  // Sinon 0.99€ (evite que des users profitent d'invitations gratuites sans jamais payer)
-  // SAUF s'il a un slot acheté non utilisé
   if (tournamentType === 'oneshot' || tournamentType === 'elite') {
-    // Compter les tournois ONE-SHOT/ELITE actifs ou l'user est INVITE (pas createur)
     const premiumGuestCount = (participations || []).filter((p: any) =>
       p.tournaments &&
       ['oneshot', 'elite'].includes(p.tournaments.tournament_type) &&
       ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
       !p.tournaments.is_legacy &&
-      p.participant_role !== 'captain' // Seulement les invites, pas les createurs
+      p.participant_role !== 'captain'
     ).length
 
     if (premiumGuestCount === 0) {
@@ -150,41 +150,16 @@ async function checkJoinEligibility(
         inviteType: 'premium_invite',
         reason: 'Premiere invitation gratuite'
       }
-    } else {
-      // Vérifier si l'utilisateur a des slots achetés non utilisés
-      const { data: availableSlots, count: slotsCount } = await supabase
-        .from('tournament_purchases')
-        .select('id', { count: 'exact' })
-        .eq('user_id', userId)
-        .eq('purchase_type', 'slot_invite')
-        .eq('used', false)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: true })
-
-      if (availableSlots && availableSlots.length > 0) {
-        // L'utilisateur a des slots disponibles
-        return {
-          canJoin: true,
-          requiresPayment: true, // On garde true pour afficher la modale, mais avec l'option d'utiliser le slot
-          paymentAmount: PRICES.SLOT_INVITE,
-          paymentType: 'slot_invite',
-          inviteType: 'paid_slot',
-          reason: `Vous êtes déjà invité dans ${premiumGuestCount} tournoi(s) premium`,
-          hasAvailableSlot: true,
-          availableSlotId: availableSlots[0].id,
-          availableSlotsCount: slotsCount || availableSlots.length
-        }
-      }
-
-      return {
-        canJoin: true,
-        requiresPayment: true,
-        paymentAmount: PRICES.SLOT_INVITE,
-        paymentType: 'slot_invite',
-        inviteType: 'paid_slot',
-        reason: `Vous etes deja invite dans ${premiumGuestCount} tournoi(s) premium - slot payant à ${PRICES.SLOT_INVITE}€`
-      }
     }
+    // Déjà invité - vérifier les slots
+    return withSlotInfo({
+      canJoin: true,
+      requiresPayment: true,
+      paymentAmount: PRICES.SLOT_INVITE,
+      paymentType: 'slot_invite',
+      inviteType: 'paid_slot',
+      reason: `Vous etes deja invite dans ${premiumGuestCount} tournoi(s) premium - slot payant à ${PRICES.SLOT_INVITE}€`
+    })
   }
 
   // Cas PLATINIUM - verifier les places prepayees

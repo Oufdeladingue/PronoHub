@@ -436,6 +436,7 @@ function DashboardContent({
                                 <img
                                   src={tournament.custom_emblem_white || tournament.emblem || ''}
                                   alt={tournament.competition_name}
+                                  loading="lazy"
                                   className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                 />
                                 {/* Logo couleur - au survol en dark, par défaut en light */}
@@ -443,6 +444,7 @@ function DashboardContent({
                                   <img
                                     src={tournament.custom_emblem_color}
                                     alt={tournament.competition_name}
+                                    loading="lazy"
                                     className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                   />
                                 )}

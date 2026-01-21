@@ -213,6 +213,11 @@ export async function GET(
         })
       : finishedMatchesRaw
 
+    // OPTIMISATION: Créer une Map pour accès O(1) au lieu de find() O(n)
+    const finishedMatchesMap = new Map(
+      (finishedMatches || []).map(m => [m.id, m])
+    )
+
     // Détecter s'il y a des matchs en cours
     const hasInProgressMatches = finishedMatches?.some(m =>
       m.status === 'IN_PLAY' || m.status === 'PAUSED'
@@ -329,7 +334,8 @@ export async function GET(
       // Calculer les points pour chaque pronostic (y compris les par défaut)
       if (allPredictions && finishedMatches) {
         for (const prediction of allPredictions) {
-          const match = finishedMatches.find(m => m.id === prediction.match_id)
+          // OPTIMISATION: Utiliser Map O(1) au lieu de find() O(n)
+          const match = finishedMatchesMap.get(prediction.match_id)
           if (!match || match.home_score === null || match.away_score === null) continue
 
           // Vérifier si c'est un pronostic valide
@@ -391,8 +397,9 @@ export async function GET(
           if (!firstMatchTime || matchIdsForDay.length === 0) continue
 
           // Filtrer les matchs terminés de cette journée
+          // OPTIMISATION: Utiliser Map.has() O(1) au lieu de some() O(n)
           const finishedMatchIdsForDay = matchIdsForDay.filter(mId =>
-            finishedMatches?.some(fm => fm.id === mId)
+            finishedMatchesMap.has(mId)
           )
 
           if (finishedMatchIdsForDay.length === 0) continue
