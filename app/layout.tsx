@@ -78,7 +78,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                const theme = localStorage.getItem('theme') || 'dark';
+                var theme = localStorage.getItem('theme');
+                if (!theme) {
+                  theme = 'dark';
+                  localStorage.setItem('theme', 'dark');
+                }
                 document.documentElement.setAttribute('data-theme', theme);
               })();
             `,
