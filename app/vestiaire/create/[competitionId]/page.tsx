@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Crown, Sparkles, Trophy, Users, Award, Zap, Check, Lock, AlertTriangle, X, Info } from 'lucide-react'
+import { Trophy, Users, Award, Zap, Check, Lock, AlertTriangle, X, Info } from 'lucide-react'
 import { TournamentTypeResult } from '@/types/monetization'
-import { TournamentTypeIndicator } from '@/components/UpgradeBanner'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
-import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/contexts/UserContext'
 
 interface Competition {
@@ -45,7 +43,6 @@ export default function TableauNoirPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const competitionId = params.competitionId as string
-  const supabase = createClient()
   const { username, userAvatar } = useUser()
 
   // Type de tournoi force depuis l'URL (apres paiement)
@@ -105,62 +102,89 @@ export default function TableauNoirPage() {
     generateSlug()
   }, [])
 
+  // OPTIMISATION: Charger toutes les données en parallèle
   useEffect(() => {
-    fetchCompetitionDetails()
-    fetchTournamentTypeInfo()
-    fetchCredits()
-    fetchPricingLimits()
-  }, [competitionId])
+    const loadAllData = async () => {
+      setLoading(true)
+      setError(null)
 
-  // Charger les limites de prix depuis l'API
-  const fetchPricingLimits = async () => {
-    try {
-      const response = await fetch('/api/pricing/config')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.prices) {
+      try {
+        // Exécuter TOUS les appels API en parallèle
+        const [compResponse, quotasResponse, creditsResponse, pricingResponse] = await Promise.all([
+          fetch(`/api/competitions/${competitionId}`),
+          fetch('/api/user/quotas', { method: 'POST' }),
+          fetch('/api/user/credits'),
+          fetch('/api/pricing/config')
+        ])
+
+        // Traiter les résultats
+        const [compData, quotasData, creditsData, pricingData] = await Promise.all([
+          compResponse.json(),
+          quotasResponse.ok ? quotasResponse.json() : null,
+          creditsResponse.ok ? creditsResponse.json() : null,
+          pricingResponse.ok ? pricingResponse.json() : null
+        ])
+
+        // 1. Compétition (requis)
+        if (!compResponse.ok || !compData.success) {
+          throw new Error(compData.error || 'Compétition non trouvée')
+        }
+        const comp = compData.competition
+        setCompetition(comp)
+
+        // 2. Pricing limits
+        if (pricingData?.success && pricingData.prices) {
           setPricingLimits({
-            freeMaxPlayers: data.prices.freeMaxPlayers || 5,
-            freeMaxMatchdays: data.prices.freeMaxMatchdays || 10,
-            oneshotMaxPlayers: data.prices.oneshotMaxPlayers || 10,
-            eliteMaxPlayers: data.prices.eliteMaxPlayers || 20,
-            platiniumMinPlayers: data.prices.platiniumMinPlayers || 11,
-            platiniumMaxPlayers: data.prices.platiniumMaxPlayers || 30
+            freeMaxPlayers: pricingData.prices.freeMaxPlayers || 5,
+            freeMaxMatchdays: pricingData.prices.freeMaxMatchdays || 10,
+            oneshotMaxPlayers: pricingData.prices.oneshotMaxPlayers || 10,
+            eliteMaxPlayers: pricingData.prices.eliteMaxPlayers || 20,
+            platiniumMinPlayers: pricingData.prices.platiniumMinPlayers || 11,
+            platiniumMaxPlayers: pricingData.prices.platiniumMaxPlayers || 30
           })
         }
-      }
-    } catch (err) {
-      console.error('Error fetching pricing limits:', err)
-    }
-  }
 
-  // Recuperer les credits disponibles
-  const fetchCredits = async () => {
-    try {
-      const response = await fetch('/api/user/credits')
-      if (response.ok) {
-        const data = await response.json()
-        setCredits(data)
-
-        // Si un type est force depuis l'URL (apres paiement), l'utiliser en priorite
-        if (forcedType) {
-          setSelectedTournamentType(forcedType)
-          return // Les limites seront mises a jour par le useEffect
+        // 3. Quotas utilisateur
+        if (quotasData?.success && quotasData.result) {
+          setTournamentTypeInfo(quotasData.result)
+          if (quotasData.result.max_players) {
+            setMaxPlayersLimit(quotasData.result.max_players)
+          }
         }
 
-        // Sinon, si l'utilisateur a des credits, pre-selectionner le type correspondant
-        if (data.elite_credits > 0) {
-          setSelectedTournamentType('elite')
-        } else if (data.oneshot_credits > 0) {
-          setSelectedTournamentType('oneshot')
-        } else if (data.platinium_group_slots > 0 || data.platinium_solo_credits > 0) {
-          setSelectedTournamentType('platinium')
+        // 4. Crédits utilisateur
+        if (creditsData) {
+          setCredits(creditsData)
+
+          // Si un type est forcé depuis l'URL (après paiement), l'utiliser
+          if (forcedType) {
+            setSelectedTournamentType(forcedType)
+          } else if (creditsData.elite_credits > 0) {
+            setSelectedTournamentType('elite')
+          } else if (creditsData.oneshot_credits > 0) {
+            setSelectedTournamentType('oneshot')
+          } else if (creditsData.platinium_group_slots > 0 || creditsData.platinium_solo_credits > 0) {
+            setSelectedTournamentType('platinium')
+          }
         }
+
+        // Initialiser le nombre de journées
+        const freeMaxMatchdays = pricingData?.prices?.freeMaxMatchdays || 10
+        const maxForFreeKick = selectedTournamentType === 'free' && freeMaxMatchdays
+          ? Math.min(freeMaxMatchdays, comp.remaining_matchdays || 1)
+          : comp.remaining_matchdays || 1
+        setNumMatchdays(maxForFreeKick)
+
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Error fetching credits:', err)
     }
-  }
+
+    loadAllData()
+  }, [competitionId, forcedType])
+
 
   // Mettre a jour les limites de joueurs selon le type selectionne (avec valeurs dynamiques)
   useEffect(() => {
@@ -216,57 +240,6 @@ export default function TableauNoirPage() {
       setNumMatchdays(maxMatchdaysForType)
     }
   }, [selectedTournamentType, pricingLimits, competition])
-
-  const fetchCompetitionDetails = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch('/api/competitions/active')
-      if (!response.ok) throw new Error('Erreur lors du chargement de la compétition')
-
-      const data = await response.json()
-
-      // Vérifier si c'est une compétition personnalisée (id commence par "custom_")
-      let comp: Competition | undefined
-      if (competitionId.startsWith('custom_')) {
-        comp = data.competitions.find((c: Competition) => c.id === competitionId)
-      } else {
-        comp = data.competitions.find((c: Competition) => c.id === parseInt(competitionId))
-      }
-
-      if (!comp) throw new Error('Compétition non trouvée')
-
-      setCompetition(comp)
-      // Initialiser le nombre de journées (respecter la limite Free-Kick si applicable)
-      const maxForFreeKick = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
-        ? Math.min(pricingLimits.freeMaxMatchdays, comp.remaining_matchdays || 1)
-        : comp.remaining_matchdays || 1
-      setNumMatchdays(maxForFreeKick)
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Récupérer le type de tournoi et la limite de joueurs basée sur les quotas utilisateur
-  const fetchTournamentTypeInfo = async () => {
-    try {
-      const response = await fetch('/api/user/quotas', { method: 'POST' })
-      if (!response.ok) return
-
-      const data = await response.json()
-      if (data.success && data.result) {
-        setTournamentTypeInfo(data.result)
-        // Définir la limite max de joueurs selon le type de tournoi
-        if (data.result.max_players) {
-          setMaxPlayersLimit(data.result.max_players)
-        }
-      }
-    } catch (err: any) {
-      console.error('Error fetching tournament type info:', err)
-    }
-  }
 
   const generateSlug = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
