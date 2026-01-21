@@ -121,7 +121,17 @@ export default function OppositionClient({
   const [pointsSettings, setPointsSettings] = useState(serverPointsSettings)
 
   // États pour les pronostics - allMatches et matchdayStages initialisés depuis le server
-  const [availableMatchdays, setAvailableMatchdays] = useState<number[]>([])
+  // Calculer availableMatchdays immédiatement pour éviter le CLS
+  const [availableMatchdays, setAvailableMatchdays] = useState<number[]>(() => {
+    const start = serverTournament.starting_matchday
+    const end = serverTournament.ending_matchday
+    if (!start || !end) return []
+    const matchdays: number[] = []
+    for (let i = start; i <= end; i++) {
+      matchdays.push(i)
+    }
+    return matchdays
+  })
   const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>(serverMatchdayStages as Record<number, StageType | null>)
   const [selectedMatchday, setSelectedMatchday] = useState<number | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
@@ -1648,7 +1658,8 @@ export default function OppositionClient({
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen theme-bg">
+      {/* flex flex-col pour pousser le footer en bas et éviter le CLS */}
+      <div className="min-h-screen theme-bg flex flex-col">
         {/* Header */}
         <Navigation
           username={username}
@@ -1794,8 +1805,8 @@ export default function OppositionClient({
           </div>
         </div>
 
-        {/* Contenu des onglets */}
-        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8 md:pb-20">
+        {/* Contenu des onglets - flex-grow pour pousser le footer en bas */}
+        <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-8 md:pb-20 flex-grow">
           {activeTab === 'pronostics' && (
             <div className="theme-card">
               {/* Menu de navigation des journées */}
