@@ -3,10 +3,32 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
+
+interface TournamentPreview {
+  tournament: {
+    name: string
+    status: string
+    maxPlayers: number
+    currentPlayers: number
+    tournamentType: string
+  }
+  creator: {
+    username: string
+    avatar: string
+  }
+  competition: {
+    name: string
+    emblem: string | null
+    custom_emblem_white?: string | null
+    custom_emblem_color?: string | null
+    is_custom: boolean
+  } | null
+}
 
 function RejoindreContent() {
   const router = useRouter()
@@ -21,6 +43,33 @@ function RejoindreContent() {
   const [autoJoin, setAutoJoin] = useState(!!codeFromUrl)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [tournamentPreview, setTournamentPreview] = useState<TournamentPreview | null>(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
+  // Charger les infos du tournoi si on a un code valide
+  const loadTournamentPreview = async (tournamentCode: string) => {
+    if (tournamentCode.length !== 8) {
+      setTournamentPreview(null)
+      return
+    }
+
+    setLoadingPreview(true)
+    try {
+      const response = await fetch(`/api/tournaments/preview?code=${tournamentCode}`)
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setTournamentPreview(data)
+      } else {
+        setTournamentPreview(null)
+      }
+    } catch (err) {
+      console.error('Error loading tournament preview:', err)
+      setTournamentPreview(null)
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
 
   // Vérifier si l'utilisateur est connecté
   useEffect(() => {
@@ -28,6 +77,11 @@ function RejoindreContent() {
       const { data: { user } } = await supabase.auth.getUser()
       setIsAuthenticated(!!user)
       setCheckingAuth(false)
+
+      // Charger les infos du tournoi si code présent
+      if (codeFromUrl && codeFromUrl.length === 8) {
+        loadTournamentPreview(codeFromUrl)
+      }
 
       // Si connecté et code valide, auto-join
       if (user && codeFromUrl && codeFromUrl.length === 8) {
@@ -42,6 +96,12 @@ function RejoindreContent() {
     if (value.length <= 8 && /^[A-Z0-9]*$/.test(value)) {
       setCode(value)
       setError('')
+      // Charger les infos du tournoi quand le code est complet
+      if (value.length === 8) {
+        loadTournamentPreview(value)
+      } else {
+        setTournamentPreview(null)
+      }
     }
   }
 
@@ -114,8 +174,22 @@ function RejoindreContent() {
     )
   }
 
+  // Fonction pour obtenir le logo de la compétition
+  const getCompetitionLogo = () => {
+    if (!tournamentPreview?.competition) return null
+
+    const comp = tournamentPreview.competition
+    if (comp.is_custom) {
+      // Compétition custom - utiliser custom_emblem_white pour le mode sombre
+      return comp.custom_emblem_white || comp.custom_emblem_color || null
+    }
+    return comp.emblem
+  }
+
   // Si non connecté, afficher l'écran de connexion/inscription
   if (!isAuthenticated) {
+    const competitionLogo = getCompetitionLogo()
+
     return (
       <div className="min-h-screen theme-bg flex flex-col">
         <Navigation
@@ -129,19 +203,90 @@ function RejoindreContent() {
             <div className="theme-card rounded-xl shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-8 h-8 text-[#111]" fill="currentColor">
-                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
-                  </svg>
+                {/* Logo compétition ou icône par défaut */}
+                <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
+                  {loadingPreview ? (
+                    <div className="w-8 h-8 border-3 border-[#111] border-t-transparent rounded-full animate-spin"></div>
+                  ) : competitionLogo ? (
+                    <Image
+                      src={competitionLogo}
+                      alt="Logo compétition"
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-10 h-10 text-[#111]" fill="currentColor">
+                      <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
+                    </svg>
+                  )}
                 </div>
+
+                {/* Titre */}
                 <h1 className="text-2xl font-bold text-[#111]">Tu es invité !</h1>
-                <p className="text-[#111]/70 mt-2">Connecte-toi pour rejoindre le tournoi</p>
+
+                {/* Sous-titre avec infos du tournoi */}
+                {tournamentPreview ? (
+                  <p className="text-[#111]/80 mt-2 font-medium">
+                    {tournamentPreview.creator.username} t'invite à rejoindre
+                  </p>
+                ) : (
+                  <p className="text-[#111]/70 mt-2">Connecte-toi pour rejoindre le tournoi</p>
+                )}
               </div>
 
               {/* Content */}
-              <div className="p-6 space-y-6">
-                {/* Code affiché */}
-                {(code || codeFromUrl) && (
+              <div className="p-6 space-y-5">
+                {/* Infos du tournoi si disponibles */}
+                {tournamentPreview && (
+                  <div className="text-center p-4 rounded-xl theme-secondary-bg space-y-3">
+                    {/* Nom du tournoi */}
+                    <div>
+                      <p className="text-xs theme-text-secondary uppercase tracking-wider mb-1">Tournoi</p>
+                      <p className="text-xl font-bold theme-text">
+                        {tournamentPreview.tournament.name}
+                      </p>
+                    </div>
+
+                    {/* Compétition */}
+                    {tournamentPreview.competition && (
+                      <div className="flex items-center justify-center gap-2 text-sm theme-text-secondary">
+                        {competitionLogo && (
+                          <Image
+                            src={competitionLogo}
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="w-4 h-4 object-contain"
+                          />
+                        )}
+                        <span>{tournamentPreview.competition.name}</span>
+                      </div>
+                    )}
+
+                    {/* Créateur */}
+                    <div className="flex items-center justify-center gap-2 pt-2 border-t theme-border">
+                      <Image
+                        src={`/images/avatars/${tournamentPreview.creator.avatar}.svg`}
+                        alt=""
+                        width={24}
+                        height={24}
+                        className="w-6 h-6 rounded-full"
+                      />
+                      <span className="text-sm theme-text">
+                        Créé par <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
+                      </span>
+                    </div>
+
+                    {/* Participants */}
+                    <div className="text-xs theme-text-secondary">
+                      {tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} participants
+                    </div>
+                  </div>
+                )}
+
+                {/* Code affiché (si pas d'infos tournoi) */}
+                {!tournamentPreview && (code || codeFromUrl) && (
                   <div className="text-center p-4 rounded-xl theme-secondary-bg">
                     <p className="text-sm theme-text-secondary mb-1">Code d'invitation</p>
                     <p className="text-2xl font-bold font-mono tracking-widest theme-accent-text-always">
@@ -149,13 +294,6 @@ function RejoindreContent() {
                     </p>
                   </div>
                 )}
-
-                {/* Message d'explication */}
-                <div className="text-center">
-                  <p className="theme-text-secondary text-sm">
-                    Un ami t'a invité à rejoindre un tournoi de pronostics. Connecte-toi ou crée un compte pour participer !
-                  </p>
-                </div>
 
                 {/* Boutons */}
                 <div className="space-y-3">
@@ -186,14 +324,14 @@ function RejoindreContent() {
                     <div className="w-full border-t theme-border"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 theme-bg theme-text-secondary">ou</span>
+                    <span className="px-2 theme-card theme-text-secondary">ou</span>
                   </div>
                 </div>
 
                 {/* Input code manuel */}
                 <div>
                   <label className="block text-sm font-medium theme-text mb-2">
-                    Modifier le code
+                    Entrer un autre code
                   </label>
                   <input
                     type="text"
@@ -221,6 +359,8 @@ function RejoindreContent() {
   }
 
   // Si connecté, afficher le formulaire de join normal
+  const competitionLogoAuth = getCompetitionLogo()
+
   return (
     <div className="min-h-screen theme-bg flex flex-col">
       <Navigation
@@ -234,13 +374,39 @@ function RejoindreContent() {
           <div className="theme-card rounded-xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-8 h-8 text-[#111]" fill="currentColor">
-                  <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
-                </svg>
+              {/* Logo compétition ou icône par défaut */}
+              <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
+                {loadingPreview ? (
+                  <div className="w-8 h-8 border-3 border-[#111] border-t-transparent rounded-full animate-spin"></div>
+                ) : competitionLogoAuth ? (
+                  <Image
+                    src={competitionLogoAuth}
+                    alt="Logo compétition"
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-10 h-10 text-[#111]" fill="currentColor">
+                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
+                  </svg>
+                )}
               </div>
-              <h1 className="text-2xl font-bold text-[#111]">Rejoindre un tournoi</h1>
-              <p className="text-[#111]/70 mt-2">Entrez le code d'invitation pour rejoindre</p>
+
+              {/* Titre */}
+              {tournamentPreview ? (
+                <>
+                  <h1 className="text-2xl font-bold text-[#111]">{tournamentPreview.tournament.name}</h1>
+                  <p className="text-[#111]/80 mt-2">
+                    Invitation de <span className="font-semibold">{tournamentPreview.creator.username}</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold text-[#111]">Rejoindre un tournoi</h1>
+                  <p className="text-[#111]/70 mt-2">Entrez le code d'invitation pour rejoindre</p>
+                </>
+              )}
             </div>
 
             {/* Content */}
@@ -254,17 +420,60 @@ function RejoindreContent() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Infos du tournoi si disponibles */}
+                  {tournamentPreview && (
+                    <div className="text-center p-4 rounded-xl theme-secondary-bg space-y-3">
+                      {/* Compétition */}
+                      {tournamentPreview.competition && (
+                        <div className="flex items-center justify-center gap-2 text-sm theme-text">
+                          {competitionLogoAuth && (
+                            <Image
+                              src={competitionLogoAuth}
+                              alt=""
+                              width={20}
+                              height={20}
+                              className="w-5 h-5 object-contain"
+                            />
+                          )}
+                          <span className="font-medium">{tournamentPreview.competition.name}</span>
+                        </div>
+                      )}
+
+                      {/* Participants */}
+                      <div className="flex items-center justify-center gap-4 text-sm theme-text-secondary">
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          {tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Image
+                            src={`/images/avatars/${tournamentPreview.creator.avatar}.svg`}
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="w-4 h-4 rounded-full"
+                          />
+                          {tournamentPreview.creator.username}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Input code */}
                   <div>
-                    <label className="block text-sm font-medium theme-text mb-2">
-                      Code d'invitation
-                    </label>
+                    {!tournamentPreview && (
+                      <label className="block text-sm font-medium theme-text mb-2">
+                        Code d'invitation
+                      </label>
+                    )}
                     <input
                       type="text"
                       value={code}
                       onChange={handleCodeChange}
                       placeholder="ABCD1234"
-                      autoFocus
+                      autoFocus={!tournamentPreview}
                       className="w-full py-4 px-4 border-2 theme-border rounded-xl text-center font-mono text-2xl tracking-[0.3em] uppercase theme-input focus:border-[#ff9900] focus:ring-2 focus:ring-[#ff9900]/20 transition"
                       disabled={isLoading}
                     />
