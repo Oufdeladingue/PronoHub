@@ -139,10 +139,9 @@ function RejoindreContent() {
       }
 
       // Rediriger vers la page d'échauffement du tournoi
-      if (data.tournament) {
-        // Construire le slug complet (nom_CODE)
-        const fullSlug = `${data.tournament.name.toLowerCase().replace(/\s+/g, '_')}_${data.tournament.slug}`
-        router.push(`/vestiaire/${fullSlug}/echauffement`)
+      if (data.tournament?.slug) {
+        // Le slug complet est déjà construit côté serveur
+        router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
       }
     } catch (err) {
       setError('Erreur de connexion au serveur')
