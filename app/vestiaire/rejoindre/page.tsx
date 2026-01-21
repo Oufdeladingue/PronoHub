@@ -223,15 +223,11 @@ function RejoindreContent() {
                 </div>
 
                 {/* Titre */}
-                <h1 className="text-2xl font-bold text-[#111]">Tu es invité !</h1>
-
-                {/* Sous-titre avec infos du tournoi */}
+                <p className="text-sm text-[#111]/70 uppercase tracking-wider">Invitation à rejoindre le tournoi</p>
                 {tournamentPreview ? (
-                  <p className="text-[#111]/80 mt-2 font-medium">
-                    {tournamentPreview.creator.username} t'invite à rejoindre
-                  </p>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">{tournamentPreview.tournament.name}</h1>
                 ) : (
-                  <p className="text-[#111]/70 mt-2">Connecte-toi pour rejoindre le tournoi</p>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">Tournoi</h1>
                 )}
               </div>
 
@@ -240,47 +236,51 @@ function RejoindreContent() {
                 {/* Infos du tournoi si disponibles */}
                 {tournamentPreview && (
                   <div className="text-center p-4 rounded-xl theme-secondary-bg space-y-3">
-                    {/* Nom du tournoi */}
-                    <div>
-                      <p className="text-xs theme-text-secondary uppercase tracking-wider mb-1">Tournoi</p>
-                      <p className="text-xl font-bold theme-text">
-                        {tournamentPreview.tournament.name}
-                      </p>
-                    </div>
-
-                    {/* Compétition */}
-                    {tournamentPreview.competition && (
-                      <div className="flex items-center justify-center gap-2 text-sm theme-text-secondary">
-                        {competitionLogo && (
-                          <Image
-                            src={competitionLogo}
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="w-4 h-4 object-contain"
-                          />
-                        )}
-                        <span>{tournamentPreview.competition.name}</span>
-                      </div>
-                    )}
-
                     {/* Créateur */}
-                    <div className="flex items-center justify-center gap-2 pt-2 border-t theme-border">
+                    <div className="flex items-center justify-center gap-2">
                       <Image
-                        src={`/images/avatars/${tournamentPreview.creator.avatar}.svg`}
+                        src={`/avatars/${tournamentPreview.creator.avatar || 'avatar1'}.png`}
                         alt=""
                         width={24}
                         height={24}
                         className="w-6 h-6 rounded-full"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/avatars/avatar1.png'
+                        }}
                       />
                       <span className="text-sm theme-text">
                         Créé par <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
                       </span>
                     </div>
 
-                    {/* Participants */}
-                    <div className="text-xs theme-text-secondary">
-                      {tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} participants
+                    {/* Compétition et participants */}
+                    <div className="flex items-center justify-center gap-4 pt-2 border-t theme-border text-sm theme-text-secondary">
+                      {/* Compétition */}
+                      {tournamentPreview.competition && (
+                        <div className="flex items-center gap-2">
+                          {competitionLogo && (
+                            <Image
+                              src={competitionLogo}
+                              alt=""
+                              width={16}
+                              height={16}
+                              className="w-4 h-4 object-contain"
+                            />
+                          )}
+                          <span>{tournamentPreview.competition.name}</span>
+                        </div>
+                      )}
+                      {/* Séparateur */}
+                      {tournamentPreview.competition && (
+                        <span className="text-gray-400">•</span>
+                      )}
+                      {/* Participants */}
+                      <div className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>{tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} joueurs</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -396,15 +396,13 @@ function RejoindreContent() {
               {/* Titre */}
               {tournamentPreview ? (
                 <>
-                  <h1 className="text-2xl font-bold text-[#111]">{tournamentPreview.tournament.name}</h1>
-                  <p className="text-[#111]/80 mt-2">
-                    Invitation de <span className="font-semibold">{tournamentPreview.creator.username}</span>
-                  </p>
+                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">Invitation à rejoindre le tournoi</p>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">{tournamentPreview.tournament.name}</h1>
                 </>
               ) : (
                 <>
-                  <h1 className="text-2xl font-bold text-[#111]">Rejoindre un tournoi</h1>
-                  <p className="text-[#111]/70 mt-2">Entrez le code d'invitation pour rejoindre</p>
+                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">Rejoindre un tournoi</p>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">Entrez le code d'invitation</h1>
                 </>
               )}
             </div>
@@ -423,40 +421,51 @@ function RejoindreContent() {
                   {/* Infos du tournoi si disponibles */}
                   {tournamentPreview && (
                     <div className="text-center p-4 rounded-xl theme-secondary-bg space-y-3">
-                      {/* Compétition */}
-                      {tournamentPreview.competition && (
-                        <div className="flex items-center justify-center gap-2 text-sm theme-text">
-                          {competitionLogoAuth && (
-                            <Image
-                              src={competitionLogoAuth}
-                              alt=""
-                              width={20}
-                              height={20}
-                              className="w-5 h-5 object-contain"
-                            />
-                          )}
-                          <span className="font-medium">{tournamentPreview.competition.name}</span>
-                        </div>
-                      )}
+                      {/* Créateur */}
+                      <div className="flex items-center justify-center gap-2">
+                        <Image
+                          src={`/avatars/${tournamentPreview.creator.avatar || 'avatar1'}.png`}
+                          alt=""
+                          width={24}
+                          height={24}
+                          className="w-6 h-6 rounded-full"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/avatars/avatar1.png'
+                          }}
+                        />
+                        <span className="text-sm theme-text">
+                          Créé par <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
+                        </span>
+                      </div>
 
-                      {/* Participants */}
-                      <div className="flex items-center justify-center gap-4 text-sm theme-text-secondary">
-                        <span className="flex items-center gap-1">
+                      {/* Compétition et participants */}
+                      <div className="flex items-center justify-center gap-4 pt-2 border-t theme-border text-sm theme-text-secondary">
+                        {/* Compétition */}
+                        {tournamentPreview.competition && (
+                          <div className="flex items-center gap-2">
+                            {competitionLogoAuth && (
+                              <Image
+                                src={competitionLogoAuth}
+                                alt=""
+                                width={16}
+                                height={16}
+                                className="w-4 h-4 object-contain"
+                              />
+                            )}
+                            <span>{tournamentPreview.competition.name}</span>
+                          </div>
+                        )}
+                        {/* Séparateur */}
+                        {tournamentPreview.competition && (
+                          <span className="text-gray-400">•</span>
+                        )}
+                        {/* Participants */}
+                        <div className="flex items-center gap-1">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          {tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Image
-                            src={`/images/avatars/${tournamentPreview.creator.avatar}.svg`}
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="w-4 h-4 rounded-full"
-                          />
-                          {tournamentPreview.creator.username}
-                        </span>
+                          <span>{tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} joueurs</span>
+                        </div>
                       </div>
                     </div>
                   )}
