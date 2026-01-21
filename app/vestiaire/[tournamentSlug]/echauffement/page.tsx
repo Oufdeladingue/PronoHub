@@ -86,6 +86,7 @@ function EchauffementPageContent() {
   const [playerTeams, setPlayerTeams] = useState<Record<string, { teamName: string; teamAvatar: string }>>({})
   const [teamsData, setTeamsData] = useState<{ teamsEnabled: boolean; teams: Array<{ id: string; name: string; members: any[] }> }>({ teamsEnabled: false, teams: [] })
   const [unassignedPlayersWarning, setUnassignedPlayersWarning] = useState<{ show: boolean; count: number }>({ show: false, count: 0 })
+  const [shareModal, setShareModal] = useState<boolean>(false)
 
   // États pour l'extension de joueurs Free-Kick
   const [playerExtensionInfo, setPlayerExtensionInfo] = useState<{
@@ -890,9 +891,74 @@ function EchauffementPageContent() {
   }
 
   const shareUrl = () => {
-    const url = `${window.location.origin}/vestiaire/rejoindre?code=${tournamentCode}`
-    navigator.clipboard.writeText(url)
-    alert('Lien d\'invitation copié !')
+    setShareModal(true)
+  }
+
+  const getInviteUrl = () => `${window.location.origin}/vestiaire/rejoindre?code=${tournamentCode}`
+
+  const copyShareUrl = () => {
+    navigator.clipboard.writeText(getInviteUrl())
+    setCopySuccess(true)
+    setTimeout(() => setCopySuccess(false), 2000)
+  }
+
+  const shareViaEmail = () => {
+    const subject = encodeURIComponent(`Rejoins mon tournoi ${tournament?.name} sur PronoHub !`)
+    const body = encodeURIComponent(`Salut !\n\nJe t'invite à rejoindre mon tournoi de pronostics "${tournament?.name}" sur PronoHub.\n\nClique sur ce lien pour rejoindre :\n${getInviteUrl()}\n\nOu utilise le code : ${tournamentCode}\n\nÀ bientôt sur le terrain !`)
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
+  }
+
+  const shareViaWhatsApp = () => {
+    const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! 🏆\n\n${getInviteUrl()}\n\nCode : ${tournamentCode}`)
+    window.open(`https://wa.me/?text=${text}`, '_blank')
+  }
+
+  const shareViaMessenger = () => {
+    const url = encodeURIComponent(getInviteUrl())
+    window.open(`https://www.facebook.com/dialog/send?link=${url}&app_id=966242223397117&redirect_uri=${encodeURIComponent(window.location.href)}`, '_blank')
+  }
+
+  const shareViaSMS = () => {
+    const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! Code: ${tournamentCode} - ${getInviteUrl()}`)
+    window.open(`sms:?body=${text}`, '_blank')
+  }
+
+  const shareViaTelegram = () => {
+    const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! 🏆`)
+    const url = encodeURIComponent(getInviteUrl())
+    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank')
+  }
+
+  const downloadQRCode = async () => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(getInviteUrl())}`
+    try {
+      const response = await fetch(qrUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `pronohub-${tournament?.name?.replace(/\s+/g, '-').toLowerCase() || 'tournoi'}-qrcode.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error downloading QR code:', err)
+    }
+  }
+
+  const useNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Rejoins mon tournoi ${tournament?.name} sur PronoHub`,
+          text: `Je t'invite à rejoindre mon tournoi de pronostics ! Code: ${tournamentCode}`,
+          url: getInviteUrl()
+        })
+      } catch (err) {
+        console.log('Share cancelled or failed:', err)
+      }
+    }
   }
 
   // Pas de loader séparé - le NavigationLoader global gère l'affichage pendant la navigation
@@ -1244,6 +1310,175 @@ function EchauffementPageContent() {
                   `Acheter pour ${playerExtensionInfo.price}€`
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de partage */}
+      {shareModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="theme-card rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-[#111] flex items-center gap-2">
+                  <img src="/images/icons/share.svg" alt="Partager" className="w-6 h-6" />
+                  Inviter des amis
+                </h3>
+                <button
+                  onClick={() => setShareModal(false)}
+                  className="p-1 rounded-lg hover:bg-black/10 transition"
+                >
+                  <svg className="w-6 h-6 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Lien et code */}
+              <div className="text-center">
+                <p className="text-sm theme-text-secondary mb-2">Code d'invitation</p>
+                <p className="text-3xl font-bold font-mono tracking-wider theme-accent-text-always mb-3">{tournamentCode}</p>
+                <div className="flex items-center gap-2 p-3 rounded-lg theme-secondary-bg">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getInviteUrl()}
+                    className="flex-1 bg-transparent text-sm theme-text truncate outline-none"
+                  />
+                  <button
+                    onClick={copyShareUrl}
+                    className="p-2 rounded-lg bg-[#ff9900] hover:bg-[#e68a00] transition"
+                    title="Copier le lien"
+                  >
+                    {copySuccess ? (
+                      <svg className="w-5 h-5 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Boutons de partage */}
+              <div>
+                <p className="text-sm theme-text-secondary mb-3 text-center">Partager via</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* WhatsApp */}
+                  <button
+                    onClick={shareViaWhatsApp}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-green-500/10 transition group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center group-hover:scale-110 transition">
+                      <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs theme-text">WhatsApp</span>
+                  </button>
+
+                  {/* Messenger */}
+                  <button
+                    onClick={shareViaMessenger}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-blue-500/10 transition group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00B2FF] to-[#006AFF] flex items-center justify-center group-hover:scale-110 transition">
+                      <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.301 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs theme-text">Messenger</span>
+                  </button>
+
+                  {/* Telegram */}
+                  <button
+                    onClick={shareViaTelegram}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-sky-500/10 transition group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-[#0088cc] flex items-center justify-center group-hover:scale-110 transition">
+                      <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                      </svg>
+                    </div>
+                    <span className="text-xs theme-text">Telegram</span>
+                  </button>
+
+                  {/* Email */}
+                  <button
+                    onClick={shareViaEmail}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-500/10 transition group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center group-hover:scale-110 transition">
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs theme-text">Email</span>
+                  </button>
+
+                  {/* SMS */}
+                  <button
+                    onClick={shareViaSMS}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-green-500/10 transition group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center group-hover:scale-110 transition">
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs theme-text">SMS</span>
+                  </button>
+
+                  {/* Partage natif (mobile) */}
+                  {typeof navigator !== 'undefined' && 'share' in navigator && (
+                    <button
+                      onClick={useNativeShare}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-[#ff9900]/10 transition group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#ff9900] flex items-center justify-center group-hover:scale-110 transition">
+                        <svg className="w-7 h-7 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                      </div>
+                      <span className="text-xs theme-text">Plus...</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* QR Code */}
+              <div className="border-t theme-border pt-6">
+                <p className="text-sm theme-text-secondary mb-3 text-center">Ou partager le QR Code</p>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="bg-white p-3 rounded-lg">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(getInviteUrl())}`}
+                      alt="QR Code"
+                      className="w-24 h-24"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <button
+                      onClick={downloadQRCode}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#ff9900] hover:bg-[#e68a00] text-[#111] font-semibold transition"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Télécharger
+                    </button>
+                    <p className="text-xs theme-text-secondary text-center">Format PNG</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
