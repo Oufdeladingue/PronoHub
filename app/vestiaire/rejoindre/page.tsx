@@ -194,7 +194,7 @@ function RejoindreContent() {
               {/* Header */}
               <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
                 {/* Logo app */}
-                <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
+                <div className="w-20 h-20 mx-auto mb-4 bg-[#111] rounded-full flex items-center justify-center p-3 shadow-lg">
                   <Image
                     src="/images/logo.svg"
                     alt="PronoHub"
@@ -350,7 +350,7 @@ function RejoindreContent() {
             {/* Header */}
             <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
               {/* Logo app */}
-              <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
+              <div className="w-20 h-20 mx-auto mb-4 bg-[#111] rounded-full flex items-center justify-center p-3 shadow-lg">
                 <Image
                   src="/images/logo.svg"
                   alt="PronoHub"
