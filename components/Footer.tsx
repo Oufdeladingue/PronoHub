@@ -63,7 +63,8 @@ export default function Footer({ variant = 'full' }: FooterProps) {
   return (
     <>
       {/* Footer MOBILE - Non fixé, en bas de page */}
-      <footer className="md:hidden theme-nav border-t border-[var(--border-color)] mt-8">
+      {/* min-h-[72px] réserve l'espace pour éviter le CLS (layout shift) */}
+      <footer className="md:hidden theme-nav border-t border-[var(--border-color)] mt-8 min-h-[72px]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex flex-col items-center gap-3">
             {/* Logo et copyright */}

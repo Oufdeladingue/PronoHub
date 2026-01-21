@@ -7,6 +7,7 @@ export default function VestiaireLoading() {
             src="/images/logo.svg"
             alt="PronoHub"
             className="w-20 h-20 animate-pulse drop-shadow-[0_0_30px_rgba(255,153,0,0.6)]"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 -m-2">
             <svg className="w-24 h-24 animate-spin-slow" viewBox="0 0 100 100">

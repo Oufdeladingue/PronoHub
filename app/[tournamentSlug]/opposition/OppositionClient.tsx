@@ -1799,8 +1799,9 @@ export default function OppositionClient({
           {activeTab === 'pronostics' && (
             <div className="theme-card">
               {/* Menu de navigation des journées */}
+              {/* min-h-[82px] réserve l'espace pour éviter le CLS pendant le chargement */}
               {availableMatchdays.length > 0 && (
-                <div className="mb-6 pb-6 border-b theme-border">
+                <div className="mb-6 pb-6 border-b theme-border min-h-[82px]">
                   <div className="relative flex items-center">
                     {/* Flèche gauche */}
                     {canScrollLeft && (

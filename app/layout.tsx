@@ -72,6 +72,9 @@ export default function RootLayout({
         {/* Preconnect aux origines critiques pour réduire la latence */}
         <link rel="preconnect" href="https://txpmihreaxmtsxlgmdko.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://txpmihreaxmtsxlgmdko.supabase.co" />
+        {/* Preconnect pour les fonts Google (fallback si next/font ne suffit pas) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Preload du logo LCP pour le chargement initial */}
         <link rel="preload" href="/images/logo.svg" as="image" type="image/svg+xml" />
         <script
