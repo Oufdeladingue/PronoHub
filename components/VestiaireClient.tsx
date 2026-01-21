@@ -18,6 +18,7 @@ interface Competition {
   is_event?: boolean
   remaining_matchdays?: number
   remaining_matches?: number
+  hide_matchdays_badge?: boolean
   tournaments_count?: number
   is_most_popular?: boolean
   custom_emblem_white?: string | null
@@ -322,7 +323,7 @@ export default function VestiaireClient() {
                       <span className="finished-badge inline-block text-xs font-semibold px-3 py-1 rounded-full bg-gray-600/50 text-gray-400">
                         Saison terminée
                       </span>
-                    ) : comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
+                    ) : !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
                         {comp.remaining_matchdays === 1
                           ? '1 journée restante'

@@ -162,10 +162,16 @@ export async function GET() {
 
     // Formater les compétitions personnalisées (matchdays déjà inclus via la requête)
     const customCompetitionsFormatted = (customCompetitions || []).map((customComp: any) => {
-      // Pour les compétitions custom (Best of Week), on ne compte pas les journées restantes
-      // car elles sont créées au fur et à mesure par les admins
-      // On utilise undefined pour remaining_matchdays afin de ne pas afficher le badge
-      // La compétition reste cliquable tant que is_active = true
+      // Compter les journées non terminées pour la page de création de tournoi
+      const matchdays = customComp.custom_competition_matchdays || []
+      const pendingMatchdays = matchdays.filter(
+        (md: { id: string; status: string }) => md.status !== 'completed'
+      ).length
+
+      // Pour les compétitions custom (Best of Week), on utilise le nombre de journées en attente
+      // Si aucune journée n'existe encore, on met une valeur par défaut de 10
+      // Le flag hide_matchdays_badge permet de ne pas afficher le badge sur le vestiaire
+      const remainingMatchdays = pendingMatchdays > 0 ? pendingMatchdays : 10
 
       return {
         id: `custom_${customComp.id}`,
@@ -177,8 +183,9 @@ export async function GET() {
         current_season_start_date: customComp.created_at,
         current_season_end_date: null, // null pour éviter le calcul "saison terminée"
         is_active: customComp.is_active,
-        remaining_matchdays: undefined, // undefined = pas de badge affiché
-        remaining_matches: undefined,
+        remaining_matchdays: remainingMatchdays,
+        remaining_matches: remainingMatchdays * (customComp.matches_per_matchday || 8),
+        hide_matchdays_badge: true, // Ne pas afficher le badge sur le vestiaire
         tournaments_count: 0,
         is_most_popular: false,
         custom_emblem_white: customComp.custom_emblem_white ?? null,
