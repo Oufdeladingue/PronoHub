@@ -165,11 +165,19 @@ export async function GET() {
     // Formater les compétitions personnalisées
     const customCompetitionsFormatted = customCompetitionsWithMatchdays.map(customComp => {
       // Compter uniquement les journées restantes (statut différent de 'completed' et 'active')
-      // Status dans la DB: 'draft', 'pending', 'active', 'completed'
+      // Status dans la DB: 'draft', 'pending', 'published', 'active', 'completed'
       const allMatchdays = customComp.custom_competition_matchdays || []
-      const remainingMatchdays = allMatchdays.filter(
+      const pendingMatchdays = allMatchdays.filter(
         (md: { id: string; status: string }) => md.status !== 'completed' && md.status !== 'active'
       ).length
+
+      // Pour les compétitions custom (Best of Week), si is_active = true et pas de journées
+      // ou toutes les journées sont terminées/actives, on considère qu'il reste au moins 1 journée
+      // (les journées sont créées au fur et à mesure par les admins)
+      // Une compétition custom n'est "terminée" que si is_active = false
+      const remainingMatchdays = customComp.is_active
+        ? Math.max(pendingMatchdays, 1) // Au moins 1 si la compétition est active
+        : pendingMatchdays
 
       // Pour les compétitions personnalisées, on utilise le nombre de journées restantes
       return {
