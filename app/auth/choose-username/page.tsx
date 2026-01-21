@@ -162,10 +162,18 @@ export default function ChooseUsernamePage() {
 
           {/* Maillot avec flocage dynamique */}
           <div className="relative w-48 h-56 mx-auto mb-6">
+            {/* Halo lumineux derrière le maillot */}
+            <div
+              className="absolute inset-0 rounded-full blur-[40px] opacity-60"
+              style={{
+                background: "radial-gradient(circle, rgba(255, 200, 100, 0.6) 0%, rgba(255, 153, 0, 0.3) 50%, transparent 70%)",
+                transform: "scale(1.2)"
+              }}
+            ></div>
             <img
               src="/images/jersey-auth.png"
               alt="Maillot"
-              className="w-full h-full object-contain"
+              className="relative w-full h-full object-contain drop-shadow-[0_0_20px_rgba(255,180,50,0.4)]"
             />
             {/* Texte du flocage */}
             {username && (
