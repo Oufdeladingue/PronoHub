@@ -41,14 +41,14 @@ export default async function DashboardPage() {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single(),
+      .maybeSingle(),
     // Abonnement actif
     supabase
       .from('user_subscriptions')
       .select('*')
       .eq('user_id', user.id)
       .eq('status', 'active')
-      .single(),
+      .maybeSingle(),
     // Participations aux tournois
     supabase
       .from('tournament_participants')
@@ -65,14 +65,14 @@ export default async function DashboardPage() {
       .from('user_available_credits')
       .select('*')
       .eq('user_id', user.id)
-      .single(),
+      .maybeSingle(),
     // Limite de tournois Free-Kick
     supabase
       .from('pricing_config')
       .select('config_value')
       .eq('config_key', 'free_max_tournaments')
       .eq('is_active', true)
-      .single()
+      .maybeSingle()
   ])
 
   const isSuper = isSuperAdmin(profile?.role as UserRole)
