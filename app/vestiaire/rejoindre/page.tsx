@@ -4,9 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
-import { useUser } from '@/contexts/UserContext'
 import { createClient } from '@/lib/supabase/client'
 
 interface TournamentPreview {
@@ -34,7 +32,6 @@ function RejoindreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const codeFromUrl = searchParams.get('code')?.toUpperCase() || ''
-  const { username, userAvatar } = useUser()
   const supabase = createClient()
 
   const [code, setCode] = useState(codeFromUrl)
@@ -189,37 +186,22 @@ function RejoindreContent() {
   // Si non connecté, afficher l'écran de connexion/inscription
   if (!isAuthenticated) {
     const competitionLogo = getCompetitionLogo()
-
     return (
       <div className="min-h-screen theme-bg flex flex-col">
-        <Navigation
-          context="app"
-          username="Invité"
-          userAvatar="avatar1"
-        />
-
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
             <div className="theme-card rounded-xl shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
-                {/* Logo compétition ou icône par défaut */}
+                {/* Logo app */}
                 <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
-                  {loadingPreview ? (
-                    <div className="w-8 h-8 border-3 border-[#111] border-t-transparent rounded-full animate-spin"></div>
-                  ) : competitionLogo ? (
-                    <Image
-                      src={competitionLogo}
-                      alt="Logo compétition"
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-10 h-10 text-[#111]" fill="currentColor">
-                      <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
-                    </svg>
-                  )}
+                  <Image
+                    src="/images/logo.svg"
+                    alt="PronoHub"
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
 
                 {/* Titre */}
@@ -360,37 +342,22 @@ function RejoindreContent() {
 
   // Si connecté, afficher le formulaire de join normal
   const competitionLogoAuth = getCompetitionLogo()
-
   return (
     <div className="min-h-screen theme-bg flex flex-col">
-      <Navigation
-        context="app"
-        username={username || 'Utilisateur'}
-        userAvatar={userAvatar || 'avatar1'}
-      />
-
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="theme-card rounded-xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-6 text-center">
-              {/* Logo compétition ou icône par défaut */}
+              {/* Logo app */}
               <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center p-2">
-                {loadingPreview ? (
-                  <div className="w-8 h-8 border-3 border-[#111] border-t-transparent rounded-full animate-spin"></div>
-                ) : competitionLogoAuth ? (
-                  <Image
-                    src={competitionLogoAuth}
-                    alt="Logo compétition"
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-10 h-10 text-[#111]" fill="currentColor">
-                    <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z"/>
-                  </svg>
-                )}
+                <Image
+                  src="/images/logo.svg"
+                  alt="PronoHub"
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-contain"
+                />
               </div>
 
               {/* Titre */}
