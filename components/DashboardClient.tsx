@@ -278,8 +278,23 @@ function DashboardContent({
           </div>
         )}
 
-        {/* Banniere Upgrade */}
-        <UpgradeBanner />
+        {/* Banniere Upgrade - données pré-fetchées côté serveur pour éviter 3 appels API */}
+        <UpgradeBanner
+          serverQuotas={{
+            free_tournaments_active: quotas.freeTournaments,
+            free_tournaments_max: quotas.freeTournamentsMax,
+            can_create_tournament: canCreateTournament
+          }}
+          serverCredits={credits ? {
+            oneshot_credits: credits.oneshot,
+            elite_credits: credits.elite,
+            platinium_solo_credits: credits.platinium_solo,
+            platinium_group_slots: credits.platinium_group_slots,
+            slot_invite_credits: credits.slot_invite,
+            duration_extension_credits: credits.duration_extension,
+            player_extension_credits: credits.player_extension
+          } : undefined}
+        />
 
         {/* Section Mes tournois en premier */}
         <div className="theme-card mb-8">
@@ -375,7 +390,7 @@ function DashboardContent({
             </p>
           ) : (
             <div className="space-y-3">
-              {activeTournaments.map((tournament) => {
+              {activeTournaments.map((tournament, index) => {
                 // Redirection basée sur le statut du tournoi
                 let tournamentUrl = `/terrain/${tournament.slug}` // Par défaut
 
@@ -436,7 +451,7 @@ function DashboardContent({
                                 <img
                                   src={tournament.custom_emblem_white || tournament.emblem || ''}
                                   alt={tournament.competition_name}
-                                  loading="lazy"
+                                  loading={index < 5 ? "eager" : "lazy"}
                                   className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                 />
                                 {/* Logo couleur - au survol en dark, par défaut en light */}
@@ -444,7 +459,7 @@ function DashboardContent({
                                   <img
                                     src={tournament.custom_emblem_color}
                                     alt={tournament.competition_name}
-                                    loading="lazy"
+                                    loading={index < 5 ? "eager" : "lazy"}
                                     className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 object-contain transition-opacity duration-300"
                                   />
                                 )}
@@ -512,6 +527,7 @@ function DashboardContent({
                             <img
                               src={tournament.custom_emblem_white || tournament.emblem || ''}
                               alt={tournament.competition_name}
+                              loading={index < 5 ? "eager" : "lazy"}
                               className="logo-competition-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300"
                             />
                             {/* Logo couleur - au survol en dark, par défaut en light */}
@@ -519,6 +535,7 @@ function DashboardContent({
                               <img
                                 src={tournament.custom_emblem_color}
                                 alt={tournament.competition_name}
+                                loading={index < 5 ? "eager" : "lazy"}
                                 className="logo-competition-color absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 object-contain transition-opacity duration-300"
                               />
                             )}

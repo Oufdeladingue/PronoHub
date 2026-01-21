@@ -85,17 +85,52 @@ function Banner({ config, isClosing, onDismiss, onAction }: BannerProps) {
   )
 }
 
+// Props pour passer les données pré-fetchées côté serveur (optimisation perf)
+interface ServerQuotasData {
+  free_tournaments_active: number
+  free_tournaments_max: number
+  can_create_tournament: boolean
+}
+
+interface ServerCreditsData {
+  oneshot_credits: number
+  elite_credits: number
+  platinium_solo_credits: number
+  platinium_group_slots: number
+  slot_invite_credits: number
+  duration_extension_credits: number
+  player_extension_credits: number
+}
+
 interface UpgradeBannerProps {
   variant?: 'compact' | 'full'
   context?: 'create' | 'dashboard' | 'profile'
+  // Props optionnelles pour passer les données pré-fetchées (évite les appels API côté client)
+  serverQuotas?: ServerQuotasData
+  serverCredits?: ServerCreditsData
 }
 
-export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: UpgradeBannerProps) {
+export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQuotas, serverCredits }: UpgradeBannerProps) {
   const router = useRouter()
-  const [quotas, setQuotas] = useState<UserQuotas | null>(null)
+  const [quotas, setQuotas] = useState<UserQuotas | null>(serverQuotas ? {
+    user_id: '',
+    username: '',
+    subscription_status: 'none' as const,
+    subscription_type: null,
+    subscription_expires_at: null,
+    free_tournaments_active: serverQuotas.free_tournaments_active,
+    free_tournaments_max: serverQuotas.free_tournaments_max,
+    oneshot_tournaments_active: 0,
+    oneshot_tournaments_max: 0,
+    oneshot_slots_available: 0,
+    premium_tournaments_active: 0,
+    premium_tournaments_max: 0,
+    enterprise_accounts_active: 0,
+    can_create_tournament: serverQuotas.can_create_tournament
+  } : null)
   const [tournamentType, setTournamentType] = useState<TournamentTypeResult | null>(null)
-  const [credits, setCredits] = useState<UserCredits | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [credits, setCredits] = useState<UserCredits | null>(serverCredits || null)
+  const [loading, setLoading] = useState(!serverQuotas) // Pas de loading si données serveur fournies
   const [dismissed, setDismissed] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
 
@@ -104,8 +139,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard' }: Upgra
   }
 
   useEffect(() => {
+    // Si les données serveur sont fournies, on n'a pas besoin de fetcher
+    if (serverQuotas) return
     fetchQuotas()
-  }, [])
+  }, [serverQuotas])
 
   const fetchQuotas = async () => {
     try {

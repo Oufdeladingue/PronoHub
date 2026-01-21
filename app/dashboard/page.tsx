@@ -90,52 +90,19 @@ export default async function DashboardPage() {
     player_extension: userCredits?.player_extension_credits || 0,
   }
 
-  // ========== GROUPE 2: Requêtes dépendant des tournamentIds ==========
-  // QUOTAS GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
-  // Pour les tournois gratuits, c'est le nombre de participations qui compte (pas la création)
-  const { data: participatedTournaments } = await supabase
-    .from('tournaments')
-    .select('id, tournament_type, competition_id')
-    .in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000'])
-    .neq('status', 'completed')
-
-  // Récupérer les IDs des compétitions événement pour identifier les tournois événement
-  const participatedCompetitionIds = participatedTournaments?.map(t => t.competition_id).filter(Boolean) || []
-  let eventCompetitionIds: string[] = []
-  if (participatedCompetitionIds.length > 0) {
-    const { data: eventCompetitions } = await supabase
-      .from('competitions')
-      .select('id')
-      .in('id', participatedCompetitionIds)
-      .eq('is_event', true)
-    eventCompetitionIds = eventCompetitions?.map(c => c.id) || []
-  }
-
-  // Compter par type de tournoi parmi ceux auxquels l'utilisateur participe encore (non terminés)
-  const freeTournamentsParticipating = participatedTournaments?.filter(t =>
-    (t.tournament_type === 'free' || !t.tournament_type) &&
-    !eventCompetitionIds.includes(t.competition_id)
-  ).length || 0
-  const oneshotCreated = participatedTournaments?.filter(t => t.tournament_type === 'oneshot').length || 0
-  const eliteCreated = participatedTournaments?.filter(t => t.tournament_type === 'elite').length || 0
-  const platiniumCreated = participatedTournaments?.filter(t => t.tournament_type === 'platinium').length || 0
-  const premiumTournamentsCreated = participatedTournaments?.filter(t => t.tournament_type === 'premium').length || 0
-  // Compter les tournois événement (compétitions avec is_event = true)
-  const eventTournamentsParticipating = participatedTournaments?.filter(t =>
-    eventCompetitionIds.includes(t.competition_id)
-  ).length || 0
-
-  // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
-  // FREE-KICK (gratuit): basé sur les PARTICIPATIONS - même règle pour créer et rejoindre
-  // PREMIUM: basé sur les CRÉATIONS (max 5)
-  const canCreateFree = freeTournamentsParticipating < FREE_KICK_MAX
-  const canJoinFree = freeTournamentsParticipating < FREE_KICK_MAX // Même règle que canCreateFree
-  const canCreatePremium = hasSubscription && premiumTournamentsCreated < 5
-  const canCreateOneshot = (oneshotSlotsAvailable || 0) > 0
-  const canCreateTournament = canCreateFree || canCreatePremium || canCreateOneshot
-
-  // ========== GROUPE 3: Requêtes tournois en parallèle ==========
-  const [{ data: userTournaments }, { data: leftTournaments }] = await Promise.all([
+  // ========== GROUPE 2+3: Requêtes dépendant des tournamentIds EN PARALLÈLE ==========
+  // OPTIMISATION: Fusionner GROUPE 2 et GROUPE 3 en une seule Promise.all
+  const [
+    { data: participatedTournaments },
+    { data: userTournaments },
+    { data: leftTournaments }
+  ] = await Promise.all([
+    // QUOTAS GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
+    supabase
+      .from('tournaments')
+      .select('id, tournament_type, competition_id')
+      .in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000'])
+      .neq('status', 'completed'),
     // Récupérer les détails des tournois où l'utilisateur participe
     supabase
       .from('tournaments')
@@ -155,19 +122,25 @@ export default async function DashboardPage() {
   const competitionIds = allTournamentsForCompetitions.map((t: any) => t.competition_id).filter(Boolean) || []
   const customCompetitionIds = allTournamentsForCompetitions.map((t: any) => t.custom_competition_id).filter(Boolean) || []
 
+  // Récupérer aussi les IDs des compétitions participées pour les événements
+  const participatedCompetitionIds = participatedTournaments?.map(t => t.competition_id).filter(Boolean) || []
+  // Fusionner tous les competitionIds pour une seule requête
+  const allCompetitionIds = [...new Set([...competitionIds, ...participatedCompetitionIds])]
+
   // ========== GROUPE 4: Requêtes compétitions en parallèle ==========
-  // Récupérer les emblèmes des compétitions importées et custom en parallèle
+  // OPTIMISATION: Récupérer emblèmes ET is_event en une seule requête
   let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
   let customCompetitionsMap: Record<string, { name: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
+  let eventCompetitionIds: string[] = []
 
   const competitionPromises: PromiseLike<any>[] = []
 
-  if (competitionIds.length > 0) {
+  if (allCompetitionIds.length > 0) {
     competitionPromises.push(
       supabase
         .from('competitions')
-        .select('id, emblem, custom_emblem_white, custom_emblem_color')
-        .in('id', competitionIds)
+        .select('id, emblem, custom_emblem_white, custom_emblem_color, is_event')
+        .in('id', allCompetitionIds)
         .then(({ data: competitions }) => {
           if (competitions) {
             competitionsMap = competitions.reduce((acc: any, comp: any) => {
@@ -178,6 +151,10 @@ export default async function DashboardPage() {
               }
               return acc
             }, {})
+            // Extraire les IDs des compétitions événement
+            eventCompetitionIds = competitions
+              .filter(c => c.is_event)
+              .map(c => c.id)
           }
         })
     )
@@ -205,6 +182,30 @@ export default async function DashboardPage() {
   }
 
   await Promise.all(competitionPromises)
+
+  // ========== Calcul des quotas (après avoir récupéré eventCompetitionIds) ==========
+  // Compter par type de tournoi parmi ceux auxquels l'utilisateur participe encore (non terminés)
+  const freeTournamentsParticipating = participatedTournaments?.filter(t =>
+    (t.tournament_type === 'free' || !t.tournament_type) &&
+    !eventCompetitionIds.includes(t.competition_id)
+  ).length || 0
+  const oneshotCreated = participatedTournaments?.filter(t => t.tournament_type === 'oneshot').length || 0
+  const eliteCreated = participatedTournaments?.filter(t => t.tournament_type === 'elite').length || 0
+  const platiniumCreated = participatedTournaments?.filter(t => t.tournament_type === 'platinium').length || 0
+  const premiumTournamentsCreated = participatedTournaments?.filter(t => t.tournament_type === 'premium').length || 0
+  // Compter les tournois événement (compétitions avec is_event = true)
+  const eventTournamentsParticipating = participatedTournaments?.filter(t =>
+    eventCompetitionIds.includes(t.competition_id)
+  ).length || 0
+
+  // Déterminer si l'utilisateur peut créer/rejoindre un tournoi
+  // FREE-KICK (gratuit): basé sur les PARTICIPATIONS - même règle pour créer et rejoindre
+  // PREMIUM: basé sur les CRÉATIONS (max 5)
+  const canCreateFree = freeTournamentsParticipating < FREE_KICK_MAX
+  const canJoinFree = freeTournamentsParticipating < FREE_KICK_MAX // Même règle que canCreateFree
+  const canCreatePremium = hasSubscription && premiumTournamentsCreated < 5
+  const canCreateOneshot = (oneshotSlotsAvailable || 0) > 0
+  const canCreateTournament = canCreateFree || canCreatePremium || canCreateOneshot
 
   // Compter les participants réels pour chaque tournoi (1 seule requête batch au lieu de N)
   const participantCounts: Record<string, number> = {}
@@ -246,37 +247,44 @@ export default async function DashboardPage() {
       t.custom_competition_id && (!t.starting_matchday || !t.ending_matchday)
     )
 
-    // BATCH 1: Récupérer tous les matchs importés pour les compétitions standards en 1 requête
+    // BATCH UNIQUE: Récupérer toutes les données matchdays en parallèle
     const uniqueCompetitionIds = [...new Set(standardTournaments.map(t => t.competition_id).filter(Boolean))]
-    let allImportedMatches: any[] = []
-    if (uniqueCompetitionIds.length > 0) {
-      const { data } = await supabase
-        .from('imported_matches')
-        .select('competition_id, matchday, status, finished, utc_date')
-        .in('competition_id', uniqueCompetitionIds)
-      allImportedMatches = data || []
-    }
-
-    // BATCH 2: Récupérer tous les matchdays custom et leurs matchs en 2 requêtes (au lieu de 2N)
     const uniqueCustomCompIds = [...new Set(customTournaments.map(t => t.custom_competition_id).filter(Boolean))]
-    let allCustomMatchdays: any[] = []
-    let allCustomMatches: any[] = []
-    if (uniqueCustomCompIds.length > 0) {
-      const [matchdaysRes, matchesRes] = await Promise.all([
-        supabase
+
+    // Préparer les requêtes
+    const importedMatchesPromise = uniqueCompetitionIds.length > 0
+      ? supabase
+          .from('imported_matches')
+          .select('competition_id, matchday, status, finished, utc_date')
+          .in('competition_id', uniqueCompetitionIds)
+      : Promise.resolve({ data: [] })
+
+    const customMatchdaysPromise = uniqueCustomCompIds.length > 0
+      ? supabase
           .from('custom_competition_matchdays')
           .select('id, custom_competition_id, matchday_number, start_date, end_date')
           .in('custom_competition_id', uniqueCustomCompIds)
-          .order('matchday_number', { ascending: true }),
-        supabase
+          .order('matchday_number', { ascending: true })
+      : Promise.resolve({ data: [] })
+
+    const customMatchesPromise = uniqueCustomCompIds.length > 0
+      ? supabase
           .from('custom_competition_matches')
           .select('custom_matchday_id, status, utc_date')
-      ])
-      allCustomMatchdays = matchdaysRes.data || []
-      // Filtrer les matchs pour ne garder que ceux des matchdays concernés
-      const relevantMatchdayIds = new Set(allCustomMatchdays.map(md => md.id))
-      allCustomMatches = (matchesRes.data || []).filter(m => relevantMatchdayIds.has(m.custom_matchday_id))
-    }
+      : Promise.resolve({ data: [] })
+
+    // Exécuter toutes les requêtes en parallèle
+    const [importedMatchesRes, customMatchdaysRes, customMatchesRes] = await Promise.all([
+      importedMatchesPromise,
+      customMatchdaysPromise,
+      customMatchesPromise
+    ])
+
+    const allImportedMatches = importedMatchesRes.data || []
+    const allCustomMatchdays = customMatchdaysRes.data || []
+    // Filtrer les matchs pour ne garder que ceux des matchdays concernés
+    const relevantMatchdayIds = new Set(allCustomMatchdays.map(md => md.id))
+    const allCustomMatches = ((customMatchesRes.data || []) as any[]).filter(m => relevantMatchdayIds.has(m.custom_matchday_id))
 
     // Indexer les données pour un accès rapide (réutilisé dans nextMatchDates)
     for (const match of allImportedMatches) {
