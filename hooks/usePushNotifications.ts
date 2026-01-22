@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
+const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
+
 /**
  * Hook pour gérer les notifications push via Firebase Web SDK
  * Fonctionne dans le navigateur et dans les WebViews Android
@@ -11,6 +13,7 @@ export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [showPermissionModal, setShowPermissionModal] = useState(false)
   const supabase = createClient()
 
   // Enregistrer le token FCM dans la base de données
@@ -35,25 +38,8 @@ export function usePushNotifications() {
     }
   }, [supabase])
 
-  // Initialiser les notifications via Firebase Web SDK
-  const initialize = useCallback(async () => {
-    // Vérifier si on est côté client
-    if (typeof window === 'undefined') {
-      setIsSupported(false)
-      setIsLoading(false)
-      return
-    }
-
-    // Vérifier si les notifications sont supportées
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      console.log('[Push] Notifications ou Service Worker non supportés')
-      setIsSupported(false)
-      setIsLoading(false)
-      return
-    }
-
-    setIsLoading(true)
-
+  // Demander la permission et initialiser Firebase
+  const requestPermission = useCallback(async () => {
     try {
       // Import dynamique pour éviter les erreurs SSR
       const {
@@ -91,20 +77,81 @@ export function usePushNotifications() {
     } catch (error) {
       console.error('[Push] Erreur initialisation Firebase Web:', error)
       setIsSupported(false)
-    } finally {
-      setIsLoading(false)
     }
   }, [saveTokenToDatabase])
 
+  // Vérifier si on doit afficher la modale
+  const checkAndShowModal = useCallback(async () => {
+    // Vérifier si on est côté client
+    if (typeof window === 'undefined') {
+      setIsSupported(false)
+      setIsLoading(false)
+      return
+    }
+
+    // Vérifier si les notifications sont supportées
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      console.log('[Push] Notifications ou Service Worker non supportés')
+      setIsSupported(false)
+      setIsLoading(false)
+      return
+    }
+
+    // Si la permission est déjà accordée, initialiser directement
+    if (Notification.permission === 'granted') {
+      console.log('[Push] Permission déjà accordée')
+      await requestPermission()
+      setIsLoading(false)
+      return
+    }
+
+    // Si la permission est refusée, ne pas afficher la modale
+    if (Notification.permission === 'denied') {
+      console.log('[Push] Permission refusée précédemment')
+      setIsSupported(false)
+      setIsLoading(false)
+      return
+    }
+
+    // Vérifier si on a déjà montré la modale
+    const promptShown = localStorage.getItem(NOTIFICATION_PROMPT_KEY)
+    if (promptShown) {
+      console.log('[Push] Modale déjà affichée précédemment')
+      setIsLoading(false)
+      return
+    }
+
+    // Afficher notre modale personnalisée
+    setShowPermissionModal(true)
+    setIsLoading(false)
+  }, [requestPermission])
+
+  // Quand l'utilisateur accepte notre modale
+  const handleAcceptPermission = useCallback(async () => {
+    setShowPermissionModal(false)
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true')
+    await requestPermission()
+  }, [requestPermission])
+
+  // Quand l'utilisateur refuse notre modale
+  const handleDeclinePermission = useCallback(() => {
+    setShowPermissionModal(false)
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true')
+    setIsSupported(false)
+  }, [])
+
   // Initialiser au montage du composant
   useEffect(() => {
-    initialize()
-  }, [initialize])
+    checkAndShowModal()
+  }, [checkAndShowModal])
 
   return {
     token,
     isSupported,
     isLoading,
-    reinitialize: initialize,
+    showPermissionModal,
+    handleAcceptPermission,
+    handleDeclinePermission,
+    reinitialize: checkAndShowModal,
   }
 }

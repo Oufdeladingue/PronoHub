@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import NotificationPermissionModal from './NotificationPermissionModal'
 
 interface PushNotificationsProviderProps {
   children: React.ReactNode
@@ -9,21 +10,37 @@ interface PushNotificationsProviderProps {
 
 /**
  * Provider qui initialise les notifications push via Firebase Web SDK
- * Fonctionne dans le navigateur et dans les WebViews Android
+ * Affiche une modale personnalisée avant de demander la permission système
  */
 export default function PushNotificationsProvider({ children }: PushNotificationsProviderProps) {
-  const { token, isSupported, isLoading } = usePushNotifications()
+  const {
+    token,
+    isSupported,
+    isLoading,
+    showPermissionModal,
+    handleAcceptPermission,
+    handleDeclinePermission,
+  } = usePushNotifications()
 
   useEffect(() => {
     if (!isLoading) {
       if (isSupported && token) {
         console.log('[PushProvider] Notifications push initialisées avec Firebase Web SDK')
-      } else if (!isSupported) {
-        console.log('[PushProvider] Notifications push non supportées sur ce navigateur')
+      } else if (!isSupported && !showPermissionModal) {
+        console.log('[PushProvider] Notifications push non disponibles')
       }
     }
-  }, [token, isSupported, isLoading])
+  }, [token, isSupported, isLoading, showPermissionModal])
 
-  // Ce provider ne modifie pas le rendu, il initialise juste les notifications
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {showPermissionModal && (
+        <NotificationPermissionModal
+          onAccept={handleAcceptPermission}
+          onDecline={handleDeclinePermission}
+        />
+      )}
+    </>
+  )
 }
