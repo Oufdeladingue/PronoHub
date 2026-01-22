@@ -1,14 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
 
 /**
  * Hook pour gérer les notifications push via Firebase Web SDK
- * Fonctionne dans le navigateur et dans les WebViews Android
- * La modale de permission ne s'affiche qu'après connexion
+ * Version simplifiée pour éviter les boucles infinies
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
@@ -17,168 +16,135 @@ export function usePushNotifications() {
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Utiliser useRef pour éviter les recreations de supabase
   const supabaseRef = useRef(createClient())
-  const initializedRef = useRef(false)
+  const hasInitialized = useRef(false)
+  const isProcessing = useRef(false)
 
-  // Enregistrer le token FCM dans la base de données
-  const saveTokenToDatabase = useCallback(async (fcmToken: string) => {
+  // Fonction pour sauvegarder le token
+  const saveToken = async (fcmToken: string) => {
     try {
       const supabase = supabaseRef.current
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { error } = await supabase
+      await supabase
         .from('profiles')
         .update({ fcm_token: fcmToken })
         .eq('id', user.id)
 
-      if (error) {
-        console.error('[Push] Erreur sauvegarde token:', error)
-      } else {
-        console.log('[Push] Token enregistré dans la base')
-      }
+      console.log('[Push] Token enregistré')
     } catch (error) {
       console.error('[Push] Erreur sauvegarde token:', error)
     }
-  }, [])
+  }
 
-  // Demander la permission et initialiser Firebase
-  const requestPermission = useCallback(async () => {
+  // Fonction pour demander la permission
+  const requestPermission = async () => {
+    if (isProcessing.current) return
+    isProcessing.current = true
+
     try {
-      const {
-        requestNotificationPermission,
-        registerServiceWorker,
-        onForegroundMessage
-      } = await import('@/lib/firebase-web')
-
+      const { requestNotificationPermission, registerServiceWorker } = await import('@/lib/firebase-web')
       await registerServiceWorker()
       const fcmToken = await requestNotificationPermission()
 
       if (fcmToken) {
         setToken(fcmToken)
         setIsSupported(true)
-        await saveTokenToDatabase(fcmToken)
-
-        onForegroundMessage((payload) => {
-          console.log('[Push] Message en premier plan:', payload)
-          if (Notification.permission === 'granted' && payload.notification) {
-            new Notification(payload.notification.title || 'PronoHub', {
-              body: payload.notification.body,
-              icon: '/images/logo.svg',
-            })
-          }
-        })
+        await saveToken(fcmToken)
       } else {
         setIsSupported(false)
       }
     } catch (error) {
-      console.error('[Push] Erreur initialisation Firebase Web:', error)
+      console.error('[Push] Erreur:', error)
       setIsSupported(false)
+    } finally {
+      isProcessing.current = false
     }
-  }, [saveTokenToDatabase])
+  }
 
-  // Vérifier si on doit afficher la modale
-  const checkAndShowModal = useCallback(async () => {
-    if (typeof window === 'undefined') {
-      setIsSupported(false)
+  // Fonction principale de vérification
+  const checkNotifications = async () => {
+    if (typeof window === 'undefined') return
+    if (!('Notification' in window)) {
       setIsLoading(false)
       return
     }
 
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      console.log('[Push] Notifications ou Service Worker non supportés')
-      setIsSupported(false)
-      setIsLoading(false)
-      return
-    }
-
-    // Vérifier si l'utilisateur est connecté
+    // Vérifier l'authentification
     try {
       const supabase = supabaseRef.current
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        console.log('[Push] Utilisateur non connecté, modale différée')
         setIsAuthenticated(false)
         setIsLoading(false)
         return
       }
 
       setIsAuthenticated(true)
+
+      // Si permission déjà accordée
+      if (Notification.permission === 'granted') {
+        await requestPermission()
+        setIsLoading(false)
+        return
+      }
+
+      // Si permission refusée
+      if (Notification.permission === 'denied') {
+        setIsLoading(false)
+        return
+      }
+
+      // Vérifier si modale déjà affichée
+      if (localStorage.getItem(NOTIFICATION_PROMPT_KEY)) {
+        setIsLoading(false)
+        return
+      }
+
+      // Afficher la modale
+      setShowPermissionModal(true)
+      setIsLoading(false)
     } catch {
-      setIsAuthenticated(false)
       setIsLoading(false)
-      return
     }
+  }
 
-    if (Notification.permission === 'granted') {
-      console.log('[Push] Permission déjà accordée')
-      await requestPermission()
-      setIsLoading(false)
-      return
-    }
-
-    if (Notification.permission === 'denied') {
-      console.log('[Push] Permission refusée précédemment')
-      setIsSupported(false)
-      setIsLoading(false)
-      return
-    }
-
-    const promptShown = localStorage.getItem(NOTIFICATION_PROMPT_KEY)
-    if (promptShown) {
-      console.log('[Push] Modale déjà affichée précédemment')
-      setIsLoading(false)
-      return
-    }
-
-    setShowPermissionModal(true)
-    setIsLoading(false)
-  }, [requestPermission])
-
-  // Quand l'utilisateur accepte notre modale
-  const handleAcceptPermission = useCallback(async () => {
+  // Handlers pour la modale
+  const handleAcceptPermission = async () => {
     setShowPermissionModal(false)
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true')
     await requestPermission()
-  }, [requestPermission])
+  }
 
-  // Quand l'utilisateur refuse notre modale
-  const handleDeclinePermission = useCallback(() => {
+  const handleDeclinePermission = () => {
     setShowPermissionModal(false)
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true')
-    setIsSupported(false)
-  }, [])
+  }
 
-  // Initialiser une seule fois au montage
+  // Effet d'initialisation - une seule fois
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
+    if (hasInitialized.current) return
+    hasInitialized.current = true
 
     const supabase = supabaseRef.current
 
-    // Vérifier au montage
-    checkAndShowModal()
-
-    // Écouter les changements de session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        console.log('[Push] Utilisateur connecté, vérification des notifications')
-        setIsAuthenticated(true)
-        setTimeout(() => {
-          checkAndShowModal()
-        }, 1500)
+    // Écouter les changements d'auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        setTimeout(checkNotifications, 2000)
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false)
         setShowPermissionModal(false)
       }
     })
 
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [checkAndShowModal])
+    // Check initial
+    checkNotifications()
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   return {
     token,
@@ -188,6 +154,6 @@ export function usePushNotifications() {
     showPermissionModal,
     handleAcceptPermission,
     handleDeclinePermission,
-    reinitialize: checkAndShowModal,
+    reinitialize: checkNotifications,
   }
 }
