@@ -2471,10 +2471,10 @@ export default function OppositionClient({
                                       </div>
 
                                       {/* Affichage du match avec axe de centrage sur les scores */}
-                                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
                                         {/* Partie gauche: Équipe domicile + Logo */}
-                                        <div className="flex items-center gap-2 justify-end">
-                                          <span className="theme-text font-medium text-right truncate">
+                                        <div className="flex items-center gap-2 justify-end min-w-0">
+                                          <span className="theme-text font-medium text-right truncate min-w-0">
                                             {translateTeamName(match.home_team_name)}
                                           </span>
                                           {/* Conteneur fixe pour éviter CLS */}
@@ -2594,7 +2594,7 @@ export default function OppositionClient({
                                         </div>
 
                                         {/* Partie droite: Logo + Équipe extérieure */}
-                                        <div className="flex items-center gap-2 justify-start">
+                                        <div className="flex items-center gap-2 justify-start min-w-0">
                                           {/* Conteneur fixe pour éviter CLS */}
                                           <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
                                             {match.away_team_crest && (
@@ -2607,7 +2607,7 @@ export default function OppositionClient({
                                               />
                                             )}
                                           </div>
-                                          <span className="theme-text font-medium text-left truncate">
+                                          <span className="theme-text font-medium text-left truncate min-w-0">
                                             {translateTeamName(match.away_team_name)}
                                           </span>
                                         </div>

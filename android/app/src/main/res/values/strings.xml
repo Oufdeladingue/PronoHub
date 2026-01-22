@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PronoHub</string>
+    <string name="title_activity_main">PronoHub</string>
+    <string name="package_name">club.pronohub.app</string>
+    <string name="custom_url_scheme">club.pronohub.app</string>
+</resources>
