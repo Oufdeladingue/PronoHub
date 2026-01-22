@@ -159,7 +159,9 @@ function ProfileContent() {
 
   useEffect(() => {
     async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Utiliser getSession d'abord pour s'assurer que le storage async est prêt
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
 
       if (!user) {
         router.push('/auth/login')
