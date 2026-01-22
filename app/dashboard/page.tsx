@@ -11,10 +11,8 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Tableau de bord - PronoHub',
   description: 'Gérez vos tournois de pronostics, consultez vos performances et rejoignez de nouvelles compétitions sur PronoHub.',
-  robots: {
-    index: false, // Page privée, pas d'indexation
-    follow: false,
-  },
+  // Note: robots.txt bloque déjà /dashboard - pas besoin de robots meta
+  // La meta description est importante pour l'accessibilité même si la page n'est pas indexée
 }
 
 export default async function DashboardPage() {

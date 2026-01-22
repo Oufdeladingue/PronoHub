@@ -849,6 +849,7 @@ function ProfileContent() {
                     src={getAvatarUrl(selectedAvatar)}
                     alt="Avatar sélectionné"
                     fill
+                    priority
                     className="object-cover"
                     sizes="128px"
                   />

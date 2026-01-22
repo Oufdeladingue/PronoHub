@@ -1852,7 +1852,7 @@ export default function OppositionClient({
                               isActive
                                 ? 'bg-[#ff9900] text-[#0f172a]'
                                 : isFinished
-                                  ? 'bg-slate-700 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-600 dark:hover:bg-slate-700'
+                                  ? 'bg-slate-700 dark:bg-slate-800 text-slate-300 dark:text-slate-400 hover:bg-slate-600 dark:hover:bg-slate-700'
                                   : 'bg-slate-600 dark:bg-slate-700 text-slate-200 dark:text-slate-300 hover:bg-slate-500 dark:hover:bg-slate-600'
                             }`}
                           >
@@ -1870,7 +1870,7 @@ export default function OppositionClient({
                               isActive
                                 ? 'text-[#0f172a]'
                                 : isFinished
-                                  ? 'text-slate-400 dark:text-slate-500'
+                                  ? 'text-slate-300 dark:text-slate-400'
                                   : isInProgress
                                     ? 'text-[#ff9900]'
                                     : 'text-slate-300 dark:text-slate-400'
@@ -2006,12 +2006,12 @@ export default function OppositionClient({
                     )}
 
                     {Object.entries(groupMatchesByDate(matches)).map(([date, dateMatches]) => (
-                      <div key={date}>
+                      <div key={date} role="group" aria-label={`Matchs du ${date}`}>
                         {/* En-tête de date */}
                         <div className="mb-4">
-                          <h3 className="text-sm font-bold theme-text capitalize text-center">
+                          <p className="text-sm font-bold theme-text capitalize text-center">
                             {date}
-                          </h3>
+                          </p>
                         </div>
 
                         {/* Matchs du jour */}
@@ -2110,14 +2110,18 @@ export default function OppositionClient({
                                           <div className="h-5"></div>
                                         )}
                                       </div>
-                                      {/* Logo équipe */}
-                                      {match.home_team_crest && (
-                                        <img
-                                          src={match.home_team_crest}
-                                          alt={translateTeamName(match.home_team_name)}
-                                          className="w-10 h-10 object-contain flex-shrink-0"
-                                        />
-                                      )}
+                                      {/* Logo équipe - conteneur fixe pour éviter CLS */}
+                                      <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                                        {match.home_team_crest && (
+                                          <img
+                                            src={match.home_team_crest}
+                                            alt={translateTeamName(match.home_team_name)}
+                                            width={40}
+                                            height={40}
+                                            className="w-10 h-10 object-contain"
+                                          />
+                                        )}
+                                      </div>
                                       {/* Nom équipe */}
                                       <span className="theme-text font-medium text-center text-xs leading-tight">
                                         {translateTeamName(match.home_team_name)}
@@ -2207,14 +2211,18 @@ export default function OppositionClient({
                                           <div className="h-5"></div>
                                         )}
                                       </div>
-                                      {/* Logo équipe */}
-                                      {match.away_team_crest && (
-                                        <img
-                                          src={match.away_team_crest}
-                                          alt={translateTeamName(match.away_team_name)}
-                                          className="w-10 h-10 object-contain flex-shrink-0"
-                                        />
-                                      )}
+                                      {/* Logo équipe - conteneur fixe pour éviter CLS */}
+                                      <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                                        {match.away_team_crest && (
+                                          <img
+                                            src={match.away_team_crest}
+                                            alt={translateTeamName(match.away_team_name)}
+                                            width={40}
+                                            height={40}
+                                            className="w-10 h-10 object-contain"
+                                          />
+                                        )}
+                                      </div>
                                       {/* Nom équipe */}
                                       <span className="theme-text font-medium text-center text-xs leading-tight">
                                         {translateTeamName(match.away_team_name)}
@@ -2242,6 +2250,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
+                                          aria-label={`Augmenter score ${translateTeamName(match.home_team_name)}`}
                                         >
                                           +
                                         </button>
@@ -2252,6 +2261,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
+                                          aria-label={`Diminuer score ${translateTeamName(match.home_team_name)}`}
                                         >
                                           −
                                         </button>
@@ -2270,10 +2280,11 @@ export default function OppositionClient({
                                           }
                                         }}
                                         disabled={isLocked}
+                                        aria-label={`Score ${translateTeamName(match.home_team_name)} (domicile)`}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
 
-                                      <span className="theme-text-secondary font-bold text-lg">−</span>
+                                      <span className="theme-text-secondary font-bold text-lg" aria-hidden="true">−</span>
 
                                       {/* Input extérieur */}
                                       <input
@@ -2288,6 +2299,7 @@ export default function OppositionClient({
                                           }
                                         }}
                                         disabled={isLocked}
+                                        aria-label={`Score ${translateTeamName(match.away_team_name)} (extérieur)`}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
 
@@ -2303,6 +2315,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
+                                          aria-label={`Augmenter score ${translateTeamName(match.away_team_name)}`}
                                         >
                                           +
                                         </button>
@@ -2313,6 +2326,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
+                                          aria-label={`Diminuer score ${translateTeamName(match.away_team_name)}`}
                                         >
                                           −
                                         </button>
@@ -2463,13 +2477,18 @@ export default function OppositionClient({
                                           <span className="theme-text font-medium text-right truncate">
                                             {translateTeamName(match.home_team_name)}
                                           </span>
-                                          {match.home_team_crest && (
-                                            <img
-                                              src={match.home_team_crest}
-                                              alt={translateTeamName(match.home_team_name)}
-                                              className="w-8 h-8 object-contain flex-shrink-0"
-                                            />
-                                          )}
+                                          {/* Conteneur fixe pour éviter CLS */}
+                                          <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+                                            {match.home_team_crest && (
+                                              <img
+                                                src={match.home_team_crest}
+                                                alt={translateTeamName(match.home_team_name)}
+                                                width={32}
+                                                height={32}
+                                                className="w-8 h-8 object-contain"
+                                              />
+                                            )}
+                                          </div>
                                         </div>
 
                                         {/* Axe central: Scores pronostiqués (centré et fixe) */}
@@ -2488,6 +2507,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
+                                                  aria-label={`Augmenter score ${translateTeamName(match.home_team_name)}`}
                                                 >
                                                   +
                                                 </button>
@@ -2498,6 +2518,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
+                                                  aria-label={`Diminuer score ${translateTeamName(match.home_team_name)}`}
                                                 >
                                                   −
                                                 </button>
@@ -2515,12 +2536,13 @@ export default function OppositionClient({
                                                 }
                                               }}
                                               disabled={isClosed || isLocked || match.status === 'POSTPONED'}
+                                              aria-label={`Score ${translateTeamName(match.home_team_name)} (domicile)`}
                                               className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                           </div>
 
                                           {/* Séparateur */}
-                                          <span className="theme-text-secondary font-bold text-xl">−</span>
+                                          <span className="theme-text-secondary font-bold text-xl" aria-hidden="true">−</span>
 
                                           {/* Score extérieur */}
                                           <div className="flex items-center gap-1">
@@ -2536,6 +2558,7 @@ export default function OppositionClient({
                                                 }
                                               }}
                                               disabled={isClosed || isLocked || match.status === 'POSTPONED'}
+                                              aria-label={`Score ${translateTeamName(match.away_team_name)} (extérieur)`}
                                               className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                             {!isClosed && match.status !== 'POSTPONED' && (
@@ -2550,6 +2573,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
+                                                  aria-label={`Augmenter score ${translateTeamName(match.away_team_name)}`}
                                                 >
                                                   +
                                                 </button>
@@ -2560,6 +2584,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
+                                                  aria-label={`Diminuer score ${translateTeamName(match.away_team_name)}`}
                                                 >
                                                   −
                                                 </button>
@@ -2570,13 +2595,18 @@ export default function OppositionClient({
 
                                         {/* Partie droite: Logo + Équipe extérieure */}
                                         <div className="flex items-center gap-2 justify-start">
-                                          {match.away_team_crest && (
-                                            <img
-                                              src={match.away_team_crest}
-                                              alt={translateTeamName(match.away_team_name)}
-                                              className="w-8 h-8 object-contain flex-shrink-0"
-                                            />
-                                          )}
+                                          {/* Conteneur fixe pour éviter CLS */}
+                                          <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center">
+                                            {match.away_team_crest && (
+                                              <img
+                                                src={match.away_team_crest}
+                                                alt={translateTeamName(match.away_team_name)}
+                                                width={32}
+                                                height={32}
+                                                className="w-8 h-8 object-contain"
+                                              />
+                                            )}
+                                          </div>
                                           <span className="theme-text font-medium text-left truncate">
                                             {translateTeamName(match.away_team_name)}
                                           </span>

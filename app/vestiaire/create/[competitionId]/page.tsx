@@ -605,7 +605,7 @@ export default function TableauNoirPage() {
           <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nombre de joueurs */}
             <div>
-              <label className="block text-lg font-semibold theme-text mb-2 text-center">
+              <label htmlFor="input-max-players" className="block text-lg font-semibold theme-text mb-2 text-center">
                 Nombre de joueurs
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center">
@@ -623,15 +623,18 @@ export default function TableauNoirPage() {
                   onClick={() => setMaxPlayers(Math.max(minPlayersLimit, maxPlayers - 1))}
                   disabled={maxPlayers <= minPlayersLimit}
                   className="btn-counter"
+                  aria-label="Diminuer le nombre de joueurs"
                 >
                   −
                 </button>
                 <div className="flex flex-col items-center">
                   <input
                     type="number"
+                    id="input-max-players"
                     min={minPlayersLimit}
                     max={maxPlayersLimit}
                     value={maxPlayers}
+                    aria-describedby="max-players-hint"
                     onChange={(e) => {
                       const val = parseInt(e.target.value)
                       if (!isNaN(val) && val >= minPlayersLimit && val <= maxPlayersLimit) {
@@ -640,12 +643,13 @@ export default function TableauNoirPage() {
                     }}
                     className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input"
                   />
-                  <span className="text-xs theme-text-secondary mt-1">participants</span>
+                  <span id="max-players-hint" className="text-xs theme-text-secondary mt-1">participants</span>
                 </div>
                 <button
                   onClick={() => setMaxPlayers(Math.min(maxPlayersLimit, maxPlayers + 1))}
                   disabled={maxPlayers >= maxPlayersLimit}
                   className="btn-counter"
+                  aria-label="Augmenter le nombre de joueurs"
                 >
                   +
                 </button>
@@ -667,7 +671,7 @@ export default function TableauNoirPage() {
 
                 return (
                   <>
-                    <label className="block text-lg font-semibold theme-text mb-2 text-center">
+                    <label htmlFor="input-num-matchdays" className="block text-lg font-semibold theme-text mb-2 text-center">
                       Nombre de journées
                     </label>
                     <p className="text-sm theme-text-secondary mb-4 text-center">
@@ -681,15 +685,18 @@ export default function TableauNoirPage() {
                         onClick={() => setNumMatchdays(Math.max(1, numMatchdays - 1))}
                         disabled={numMatchdays <= 1 || allMatchdays}
                         className="btn-counter"
+                        aria-label="Diminuer le nombre de journées"
                       >
                         −
                       </button>
                       <div className="flex flex-col items-center">
                         <input
                           type="number"
+                          id="input-num-matchdays"
                           min="1"
                           max={maxMatchdaysForType}
                           value={effectiveNumMatchdays}
+                          aria-describedby="num-matchdays-hint"
                           onChange={(e) => {
                             const val = parseInt(e.target.value)
                             if (!isNaN(val) && val >= 1 && val <= maxMatchdaysForType) {
@@ -699,18 +706,19 @@ export default function TableauNoirPage() {
                           disabled={allMatchdays}
                           className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <span className="text-xs theme-text-secondary mt-1">journées</span>
+                        <span id="num-matchdays-hint" className="text-xs theme-text-secondary mt-1">journées</span>
                       </div>
                       <button
                         onClick={() => setNumMatchdays(Math.min(maxMatchdaysForType, numMatchdays + 1))}
                         disabled={numMatchdays >= maxMatchdaysForType || allMatchdays}
                         className="btn-counter"
+                        aria-label="Augmenter le nombre de journées"
                       >
                         +
                       </button>
                     </div>
                     <div className="flex items-center justify-center gap-2">
-                      <label className="text-sm theme-text">
+                      <label htmlFor="toggle-all-matchdays" className="text-sm theme-text">
                         {isFreeKickLimited
                           ? `Maximum (${maxMatchdaysForType})`
                           : `Tous restants (${maxMatchdaysForType})`
@@ -718,6 +726,9 @@ export default function TableauNoirPage() {
                       </label>
                       <button
                         type="button"
+                        id="toggle-all-matchdays"
+                        aria-pressed={allMatchdays}
+                        aria-label={isFreeKickLimited ? `Activer maximum ${maxMatchdaysForType} journées` : `Activer tous les ${maxMatchdaysForType} matchs restants`}
                         onClick={() => {
                           setAllMatchdays(!allMatchdays)
                           if (!allMatchdays) {
@@ -725,6 +736,7 @@ export default function TableauNoirPage() {
                           }
                         }}
                         className={`toggle-switch ${allMatchdays ? 'active' : ''}`}
+                        role="switch"
                       >
                         <span className="toggle-switch-knob" />
                       </button>
@@ -748,8 +760,11 @@ export default function TableauNoirPage() {
               <div className="flex justify-center">
                 <button
                   type="button"
+                  aria-pressed={bonusMatchEnabled}
+                  aria-label="Activer le match bonus"
                   onClick={() => setBonusMatchEnabled(!bonusMatchEnabled)}
                   className={`toggle-switch-lg ${bonusMatchEnabled ? 'active' : ''}`}
+                  role="switch"
                 >
                   <span className="toggle-switch-knob-lg" />
                 </button>
@@ -767,8 +782,11 @@ export default function TableauNoirPage() {
               <div className="flex justify-center">
                 <button
                   type="button"
+                  aria-pressed={earlyPredictionBonus}
+                  aria-label="Activer la prime d'avant-match"
                   onClick={() => setEarlyPredictionBonus(!earlyPredictionBonus)}
                   className={`toggle-switch-lg ${earlyPredictionBonus ? 'active' : ''}`}
+                  role="switch"
                 >
                   <span className="toggle-switch-knob-lg" />
                 </button>
@@ -777,10 +795,10 @@ export default function TableauNoirPage() {
 
             {/* Points pour match nul avec prono par défaut */}
             <div className="p-4 theme-dark-bg rounded-lg">
-              <label className="block text-lg font-semibold theme-text mb-1 text-center">
+              <label htmlFor="input-default-points" className="block text-lg font-semibold theme-text mb-1 text-center">
                 Score vierge
               </label>
-              <p className="text-sm theme-text-secondary mb-3 text-center">
+              <p id="default-points-description" className="text-sm theme-text-secondary mb-3 text-center">
                 En cas d'oubli et d'absence de pronostic, le 0-0 peut rapporter au mieux :
               </p>
               <div className="flex items-center justify-center gap-3">
@@ -788,14 +806,17 @@ export default function TableauNoirPage() {
                   onClick={() => setDrawWithDefaultPredictionPoints(Math.max(0, drawWithDefaultPredictionPoints - 1))}
                   disabled={drawWithDefaultPredictionPoints <= 0}
                   className="w-10 h-10 flex items-center justify-center theme-secondary-bg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  aria-label="Diminuer les points pour score vierge"
                 >
                   −
                 </button>
                 <input
                   type="number"
+                  id="input-default-points"
                   min="0"
                   max="3"
                   value={drawWithDefaultPredictionPoints}
+                  aria-describedby="default-points-description default-points-hint"
                   onChange={(e) => {
                     const val = parseInt(e.target.value)
                     if (!isNaN(val) && val >= 0 && val <= 3) {
@@ -808,11 +829,12 @@ export default function TableauNoirPage() {
                   onClick={() => setDrawWithDefaultPredictionPoints(Math.min(3, drawWithDefaultPredictionPoints + 1))}
                   disabled={drawWithDefaultPredictionPoints >= 3}
                   className="w-10 h-10 flex items-center justify-center theme-secondary-bg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
+                  aria-label="Augmenter les points pour score vierge"
                 >
                   +
                 </button>
               </div>
-              <p className="text-center text-sm theme-text-secondary mt-2">
+              <p id="default-points-hint" className="text-center text-sm theme-text-secondary mt-2">
                 Min: 0 | Max: 3 | Recommandé: 1
               </p>
             </div>
@@ -835,7 +857,7 @@ export default function TableauNoirPage() {
             </Link>
             <button
               onClick={handleCreateTournament}
-              className="flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition font-semibold"
+              className="flex-1 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition font-semibold shadow-md"
             >
               Créer le tournoi
             </button>

@@ -72,9 +72,7 @@ export default function RootLayout({
         {/* Preconnect aux origines critiques pour réduire la latence */}
         <link rel="preconnect" href="https://txpmihreaxmtsxlgmdko.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://txpmihreaxmtsxlgmdko.supabase.co" />
-        {/* Preconnect pour les fonts Google (fallback si next/font ne suffit pas) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Note: pas de preconnect Google Fonts car next/font héberge les fonts localement */}
         {/* Preload du logo LCP pour le chargement initial */}
         <link rel="preload" href="/images/logo.svg" as="image" type="image/svg+xml" />
         <script
@@ -96,7 +94,7 @@ export default function RootLayout({
         {/* Skip to content link pour l'accessibilité */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-[#ff9900] focus:text-black focus:rounded-lg focus:font-semibold"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-[#ff9900] focus:text-black focus:rounded-lg focus:font-semibold focus:outline-2 focus:outline-offset-2 focus:outline-[#ff9900]"
         >
           Aller au contenu principal
         </a>
