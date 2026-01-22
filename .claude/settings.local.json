@@ -50,7 +50,9 @@
       "Bash(then cp \"$dir/ic_launcher_adaptive_fore.png\" \"$dir/ic_launcher_foreground.png\")",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(npx sharp:*)"
+      "Bash(npx sharp:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
