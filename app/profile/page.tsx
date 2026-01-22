@@ -159,11 +159,18 @@ function ProfileContent() {
 
   useEffect(() => {
     async function loadProfile() {
+      // Debug: vérifier l'état de la session
+      console.log('[Profile] isCapacitor:', (await import('@/lib/capacitor')).isCapacitor())
+      console.log('[Profile] localStorage keys:', Object.keys(localStorage).filter(k => k.startsWith('sb-')))
+
       // Utiliser getSession d'abord pour s'assurer que le storage async est prêt
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[Profile] getSession result:', { session: !!session, error: sessionError })
+
       const user = session?.user
 
       if (!user) {
+        console.log('[Profile] No user found, redirecting to login')
         router.push('/auth/login')
         return
       }
