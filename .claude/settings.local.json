@@ -38,7 +38,19 @@
       "Bash(winget install:*)",
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth login --web --git-protocol https)",
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth setup-git)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(npx supabase --help:*)",
+      "Bash(npx supabase db --help:*)",
+      "Bash(npx cap init:*)",
+      "Bash(npx cap:*)",
+      "Bash(git diff:*)",
+      "Bash(for dir in mipmap-hdpi mipmap-mdpi mipmap-xhdpi mipmap-xxhdpi mipmap-xxxhdpi)",
+      "Bash(do rm -f \"$dir/ic_launcher_foreground.png\")",
+      "Bash(if [ -f \"$dir/ic_launcher_adaptive_fore.png\" ])",
+      "Bash(then cp \"$dir/ic_launcher_adaptive_fore.png\" \"$dir/ic_launcher_foreground.png\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(npx sharp:*)"
     ],
     "deny": [],
     "ask": []

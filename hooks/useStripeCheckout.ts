@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
+import { openExternalUrl } from '@/lib/capacitor'
 
 // Charger Stripe une seule fois
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -66,9 +67,9 @@ export function useStripeCheckout() {
         throw new Error(data.error || 'Erreur lors de la création de la session')
       }
 
-      // Rediriger vers Stripe Checkout via l'URL
+      // Rediriger vers Stripe Checkout via l'URL (compatible Capacitor)
       if (data.url) {
-        window.location.href = data.url
+        await openExternalUrl(data.url)
         return { success: true }
       }
 
@@ -78,8 +79,8 @@ export function useStripeCheckout() {
         if (!stripe) {
           throw new Error('Impossible de charger Stripe')
         }
-        // Rediriger manuellement vers la page de checkout Stripe
-        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`
+        // Rediriger manuellement vers la page de checkout Stripe (compatible Capacitor)
+        await openExternalUrl(`https://checkout.stripe.com/pay/${data.sessionId}`)
         return { success: true }
       }
 

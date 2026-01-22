@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, X, Loader2, Plus, AlertTriangle } from 'lucide-react'
 import Footer from '@/components/Footer'
+import { openExternalUrl } from '@/lib/capacitor'
 
 interface PricingClientProps {
   isLoggedIn: boolean
@@ -160,8 +161,8 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
       const data = await response.json()
       if (data.url) {
-        // Rediriger vers la page de checkout Stripe
-        window.location.href = data.url
+        // Rediriger vers la page de checkout Stripe (compatible Capacitor)
+        await openExternalUrl(data.url)
       } else {
         // Afficher l'erreur dans une modale conviviale
         setStripeError(data.error || 'Erreur lors du paiement')
@@ -179,7 +180,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       <div className="flex-1 bg-gradient-to-b from-gray-900 to-gray-800 text-white py-16 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-12 relative z-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Choisissez votre stratégie
             </h1>
