@@ -7,16 +7,22 @@ import admin from 'firebase-admin'
 // Initialiser Firebase Admin si pas déjà fait
 if (!admin.apps.length) {
   // Les credentials peuvent être passés via variable d'environnement
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : null
+  let serviceAccount = null
+
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+    } catch (e) {
+      console.error('[Firebase Admin] Erreur parsing FIREBASE_SERVICE_ACCOUNT_KEY:', e)
+    }
+  }
 
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     })
   } else {
-    console.warn('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY non configuré, notifications push désactivées')
+    console.warn('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY non configuré ou invalide, notifications push désactivées')
   }
 }
 
