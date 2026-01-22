@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { Suspense } from 'react'
 import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
+import DashboardCapacitorWrapper from '@/components/DashboardCapacitorWrapper'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { getAdminPath } from '@/lib/admin-path'
@@ -15,7 +17,22 @@ export const metadata: Metadata = {
   // La meta description est importante pour l'accessibilité même si la page n'est pas indexée
 }
 
+// Détecter si la requête vient d'un WebView Android (Capacitor)
+function isCapacitorRequest(userAgent: string | null): boolean {
+  if (!userAgent) return false
+  return /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
+}
+
 export default async function DashboardPage() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+  const isCapacitor = isCapacitorRequest(userAgent)
+
+  // Dans Capacitor, utiliser le wrapper client qui chargera les données via API
+  if (isCapacitor) {
+    return <DashboardCapacitorWrapper />
+  }
+
   const supabase = await createClient()
 
   const { data: { user }, error } = await supabase.auth.getUser()
