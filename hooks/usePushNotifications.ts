@@ -8,12 +8,14 @@ const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
 /**
  * Hook pour gérer les notifications push via Firebase Web SDK
  * Fonctionne dans le navigateur et dans les WebViews Android
+ * La modale de permission ne s'affiche qu'après connexion
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const supabase = createClient()
 
   // Enregistrer le token FCM dans la base de données
@@ -80,6 +82,18 @@ export function usePushNotifications() {
     }
   }, [saveTokenToDatabase])
 
+  // Vérifier si l'utilisateur est connecté
+  const checkAuthentication = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsAuthenticated(!!user)
+      return !!user
+    } catch {
+      setIsAuthenticated(false)
+      return false
+    }
+  }, [supabase])
+
   // Vérifier si on doit afficher la modale
   const checkAndShowModal = useCallback(async () => {
     // Vérifier si on est côté client
@@ -93,6 +107,14 @@ export function usePushNotifications() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
       console.log('[Push] Notifications ou Service Worker non supportés')
       setIsSupported(false)
+      setIsLoading(false)
+      return
+    }
+
+    // Vérifier si l'utilisateur est connecté
+    const userIsAuthenticated = await checkAuthentication()
+    if (!userIsAuthenticated) {
+      console.log('[Push] Utilisateur non connecté, modale différée')
       setIsLoading(false)
       return
     }
@@ -124,7 +146,7 @@ export function usePushNotifications() {
     // Afficher notre modale personnalisée
     setShowPermissionModal(true)
     setIsLoading(false)
-  }, [requestPermission])
+  }, [requestPermission, checkAuthentication])
 
   // Quand l'utilisateur accepte notre modale
   const handleAcceptPermission = useCallback(async () => {
@@ -140,15 +162,36 @@ export function usePushNotifications() {
     setIsSupported(false)
   }, [])
 
-  // Initialiser au montage du composant
+  // Écouter les changements d'authentification
   useEffect(() => {
+    // Vérifier au montage
     checkAndShowModal()
-  }, [checkAndShowModal])
+
+    // Écouter les changements de session (connexion/déconnexion)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        console.log('[Push] Utilisateur connecté, vérification des notifications')
+        setIsAuthenticated(true)
+        // Petit délai pour laisser l'UI se charger après connexion
+        setTimeout(() => {
+          checkAndShowModal()
+        }, 1500)
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false)
+        setShowPermissionModal(false)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [checkAndShowModal, supabase.auth])
 
   return {
     token,
     isSupported,
     isLoading,
+    isAuthenticated,
     showPermissionModal,
     handleAcceptPermission,
     handleDeclinePermission,
