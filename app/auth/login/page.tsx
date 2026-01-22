@@ -157,15 +157,13 @@ function LoginForm() {
           .eq('id', data.user.id)
           .single()
 
-        // Afficher le loader de redirection
+        // Dans Capacitor, pas besoin d'afficher le loader ici car le dashboard a son propre loader
         setLoading(false)
-        setRedirecting(true)
 
         const redirectPath = redirectTo
           ? decodeURIComponent(redirectTo)
           : (profile?.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
         router.push(redirectPath)
-        router.refresh()
       } else {
         // Sur le web, utiliser l'API côté serveur (cookies)
         const response = await fetch('/api/auth/login', {
