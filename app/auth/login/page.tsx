@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { Suspense } from 'react'
+import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
 function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -70,15 +71,38 @@ function LoginForm() {
       const callbackUrl = redirectTo
         ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
         : `${baseUrl}/auth/callback`
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-        },
-      })
 
-      if (error) {
-        setError(`Erreur lors de la connexion avec Google: ${error.message}`)
+      // Dans Capacitor, utiliser le navigateur in-app avec skipBrowserTab
+      if (isCapacitor()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: callbackUrl,
+            skipBrowserRedirect: true, // Empêche la redirection auto
+          },
+        })
+
+        if (error) {
+          setError(`Erreur lors de la connexion avec Google: ${error.message}`)
+          return
+        }
+
+        if (data?.url) {
+          // Ouvrir l'URL OAuth dans le navigateur in-app
+          await openExternalUrl(data.url)
+        }
+      } else {
+        // Comportement web standard
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: callbackUrl,
+          },
+        })
+
+        if (error) {
+          setError(`Erreur lors de la connexion avec Google: ${error.message}`)
+        }
       }
     } catch (err: any) {
       setError(err.message)

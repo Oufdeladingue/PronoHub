@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, X, Loader2, Plus, AlertTriangle } from 'lucide-react'
 import Footer from '@/components/Footer'
-import { openExternalUrl } from '@/lib/capacitor'
+import { openExternalUrl, isCapacitor } from '@/lib/capacitor'
+import { createClient } from '@/lib/supabase/client'
 
 interface PricingClientProps {
   isLoggedIn: boolean
@@ -153,9 +154,21 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         return
       }
 
+      // Préparer les headers
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+      // Dans Capacitor, ajouter le token d'auth dans le header
+      if (isCapacitor()) {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+      }
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ purchaseType }),
       })
 
@@ -190,7 +203,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
           </div>
 
           {/* Plans Grid - 5 cartes */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16 relative z-0">
 
             {/* Free-Kick - Gratuit */}
             <div className="bg-gray-800/50 rounded-2xl p-6 border border-blue-500/50 flex flex-col">

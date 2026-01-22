@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
-import { openExternalUrl } from '@/lib/capacitor'
+import { openExternalUrl, isCapacitor } from '@/lib/capacitor'
+import { createClient } from '@/lib/supabase/client'
 
 // Charger Stripe une seule fois
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -49,10 +50,22 @@ export function useStripeCheckout() {
     setError(null)
 
     try {
+      // Préparer les headers
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+      // Dans Capacitor, ajouter le token d'auth dans le header
+      if (isCapacitor()) {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+      }
+
       // Créer la session de checkout
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           purchaseType: options.purchaseType,
           tournamentData: options.tournamentData,

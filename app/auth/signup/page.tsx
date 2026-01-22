@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
+import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -92,15 +93,37 @@ function SignUpForm() {
       const callbackUrl = redirectTo
         ? `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
         : `${window.location.origin}/auth/callback`
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: callbackUrl,
-        },
-      })
 
-      if (error) {
-        setError(`Erreur lors de la connexion avec ${provider}: ${error.message}`)
+      // Dans Capacitor, utiliser le navigateur in-app
+      if (isCapacitor()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: callbackUrl,
+            skipBrowserRedirect: true,
+          },
+        })
+
+        if (error) {
+          setError(`Erreur lors de la connexion avec ${provider}: ${error.message}`)
+          return
+        }
+
+        if (data?.url) {
+          await openExternalUrl(data.url)
+        }
+      } else {
+        // Comportement web standard
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: callbackUrl,
+          },
+        })
+
+        if (error) {
+          setError(`Erreur lors de la connexion avec ${provider}: ${error.message}`)
+        }
       }
     } catch (err: any) {
       setError(err.message)

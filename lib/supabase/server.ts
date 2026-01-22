@@ -1,10 +1,35 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function createClient() {
   const cookieStore = await cookies()
+  const headersList = await headers()
 
+  // Vérifier si un token Bearer est présent (pour Capacitor)
+  const authHeader = headersList.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    // Créer un client avec le token d'accès
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    )
+    return supabase
+  }
+
+  // Sinon utiliser les cookies (comportement web standard)
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
