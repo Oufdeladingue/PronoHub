@@ -2,20 +2,45 @@
  * Utilitaires pour Capacitor (app mobile)
  */
 
-// Détecter si on est dans l'app Capacitor
-export function isCapacitor(): boolean {
+// Vérifier si le bridge Capacitor natif est disponible (plugins accessibles)
+export function hasCapacitorBridge(): boolean {
   if (typeof window === 'undefined') return false
   return !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
 }
 
+// Détecter si on est dans l'app Capacitor/WebView Android
+export function isCapacitor(): boolean {
+  if (typeof window === 'undefined') return false
+
+  // Méthode 1: Vérifier l'objet Capacitor (fonctionne si chargé depuis les assets locaux)
+  if (hasCapacitorBridge()) return true
+
+  // Méthode 2: Détecter le WebView Android via User-Agent (fonctionne si chargé depuis URL externe)
+  // Le WebView Android contient "wv" dans son User-Agent
+  const userAgent = navigator.userAgent || ''
+  const isAndroidWebView = /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
+
+  return isAndroidWebView
+}
+
 // Ouvrir une URL externe (Stripe, etc.)
 export async function openExternalUrl(url: string): Promise<void> {
+  // Si le bridge Capacitor est disponible, utiliser le plugin Browser
+  if (hasCapacitorBridge()) {
+    try {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url })
+      return
+    } catch {
+      // Fallback si le plugin n'est pas disponible
+    }
+  }
+
+  // Fallback: ouvrir dans un nouvel onglet (fonctionne dans WebView)
   if (isCapacitor()) {
-    // Dans Capacitor, utiliser le plugin Browser pour ouvrir dans un navigateur in-app
-    const { Browser } = await import('@capacitor/browser')
-    await Browser.open({ url })
+    window.open(url, '_blank')
   } else {
-    // Sur le web, redirection classique
+    // Sur le web standard, redirection classique
     window.location.href = url
   }
 }
@@ -56,7 +81,7 @@ export async function capacitorFetch(
 /**
  * Stockage hybride pour Capacitor (utilisé par Supabase)
  * - Utilise localStorage pour les accès synchrones (requis par Supabase)
- * - Sauvegarde aussi dans Capacitor Preferences pour la persistance après fermeture de l'app
+ * - Sauvegarde aussi dans Capacitor Preferences pour la persistance (si bridge disponible)
  */
 export function createCapacitorStorage() {
   return {
@@ -67,21 +92,21 @@ export function createCapacitorStorage() {
     setItem: (key: string, value: string): void => {
       // Écriture synchrone dans localStorage
       localStorage.setItem(key, value)
-      // Sauvegarde async dans Capacitor Preferences (pour persistance)
-      if (isCapacitor()) {
+      // Sauvegarde async dans Capacitor Preferences (si bridge disponible)
+      if (hasCapacitorBridge()) {
         import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.set({ key, value })
-        })
+          Preferences.set({ key, value }).catch(() => {})
+        }).catch(() => {})
       }
     },
     removeItem: (key: string): void => {
       // Suppression synchrone depuis localStorage
       localStorage.removeItem(key)
-      // Suppression async dans Capacitor Preferences
-      if (isCapacitor()) {
+      // Suppression async dans Capacitor Preferences (si bridge disponible)
+      if (hasCapacitorBridge()) {
         import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.remove({ key })
-        })
+          Preferences.remove({ key }).catch(() => {})
+        }).catch(() => {})
       }
     },
   }
@@ -89,30 +114,28 @@ export function createCapacitorStorage() {
 
 /**
  * Restaurer la session depuis Capacitor Preferences vers localStorage
- * À appeler au démarrage de l'app Capacitor
+ * À appeler au démarrage de l'app Capacitor (uniquement si bridge disponible)
  */
 export async function restoreCapacitorSession(): Promise<void> {
-  if (!isCapacitor()) return
+  // Ne rien faire si le bridge Capacitor n'est pas disponible
+  if (!hasCapacitorBridge()) return
 
-  const { Preferences } = await import('@capacitor/preferences')
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
 
-  // Chercher les clés de session Supabase dans Preferences
-  // Le format standard est sb-<project-ref>-auth-token
-  const keysToRestore = [
-    'sb-auth-token',
-    // Ajouter d'autres patterns si nécessaire
-  ]
+    // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
+    const { keys } = await Preferences.keys()
 
-  // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
-  const { keys } = await Preferences.keys()
-
-  for (const key of keys) {
-    // Restaurer les clés qui commencent par 'sb-' (Supabase)
-    if (key.startsWith('sb-')) {
-      const { value } = await Preferences.get({ key })
-      if (value && !localStorage.getItem(key)) {
-        localStorage.setItem(key, value)
+    for (const key of keys) {
+      // Restaurer les clés qui commencent par 'sb-' (Supabase)
+      if (key.startsWith('sb-')) {
+        const { value } = await Preferences.get({ key })
+        if (value && !localStorage.getItem(key)) {
+          localStorage.setItem(key, value)
+        }
       }
     }
+  } catch {
+    // Ignorer les erreurs si le plugin n'est pas disponible
   }
 }
