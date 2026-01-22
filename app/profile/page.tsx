@@ -12,6 +12,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import UserQuotasCard from '@/components/UserQuotasCard'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
+import { isCapacitor } from '@/lib/capacitor'
 
 // Composant jauge en demi-cercle avec couleur dynamique
 function SemiCircleGauge({
@@ -1361,7 +1362,9 @@ function ProfileContent() {
               <div>
                 <h3 className="text-lg font-semibold theme-text mb-4">Préférences de notifications</h3>
                 <p className="text-sm theme-text-secondary mb-4">
-                  Choisissez les emails que vous souhaitez recevoir
+                  {isCapacitor()
+                    ? 'Choisissez les notifications mobiles que vous souhaitez recevoir'
+                    : 'Choisissez les emails que vous souhaitez recevoir'}
                 </p>
 
                 <div className="space-y-4">

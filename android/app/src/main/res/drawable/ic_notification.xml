@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ballon de foot stylisé pour les notifications -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2zM12,4c1.93,0 3.68,0.7 5.05,1.85L15.5,7.5l-1.8,-0.5L12,8.5l-1.7,-1.5l-1.8,0.5l-1.55,-1.65C8.32,4.7 10.07,4 12,4zM4,12c0,-1.93 0.7,-3.68 1.85,-5.05L7.5,8.5L7,10.3l1.5,1.7l-1.5,1.7l0.5,1.8l-1.65,1.55C4.7,15.68 4,13.93 4,12zM12,20c-1.93,0 -3.68,-0.7 -5.05,-1.85L8.5,16.5l1.8,0.5l1.7,-1.5l1.7,1.5l1.8,-0.5l1.55,1.65C15.68,19.3 13.93,20 12,20zM18.15,17.05L16.5,15.5l0.5,-1.8l-1.5,-1.7l1.5,-1.7l-0.5,-1.8l1.65,-1.55C19.3,8.32 20,10.07 20,12s-0.7,3.68 -1.85,5.05z"/>
+</vector>
