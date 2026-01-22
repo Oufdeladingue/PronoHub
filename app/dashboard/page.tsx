@@ -1,10 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
 import { Suspense } from 'react'
 import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
-import DashboardCapacitorWrapper from '@/components/DashboardCapacitorWrapper'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { getAdminPath } from '@/lib/admin-path'
@@ -17,36 +15,17 @@ export const metadata: Metadata = {
   // La meta description est importante pour l'accessibilité même si la page n'est pas indexée
 }
 
-// Détecter si la requête vient d'un WebView Android (Capacitor)
-function isCapacitorRequest(userAgent: string | null): boolean {
-  if (!userAgent) return false
-  return /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
-}
-
 export default async function DashboardPage() {
-  const headersList = await headers()
-  const userAgent = headersList.get('user-agent')
-  const isCapacitor = isCapacitorRequest(userAgent)
-
   const supabase = await createClient()
 
   const { data: { user }, error } = await supabase.auth.getUser()
 
-  // Dans Capacitor, ne pas rediriger côté serveur - le client gère l'auth
-  if ((error || !user) && !isCapacitor) {
+  if (error || !user) {
     redirect('/auth/login')
   }
 
-  // Si Capacitor et pas d'utilisateur, afficher un wrapper client qui vérifiera l'auth
-  if (!user && isCapacitor) {
-    return <DashboardCapacitorWrapper />
-  }
-
-  // À ce point, user est forcément défini (soit via redirect, soit via le check Capacitor)
-  const userId = user!.id
-
   // ========== GROUPE 1: Requêtes parallèles indépendantes ==========
-  // Ces requêtes ne dépendent que de userId, on les exécute en parallèle
+  // Ces requêtes ne dépendent que de user.id, on les exécute en parallèle
   const [
     { data: profile },
     { data: subscription },
@@ -59,31 +38,31 @@ export default async function DashboardPage() {
     supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('id', user.id)
       .maybeSingle(),
     // Abonnement actif
     supabase
       .from('user_subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .eq('status', 'active')
       .maybeSingle(),
     // Participations aux tournois
     supabase
       .from('tournament_participants')
       .select('tournament_id')
-      .eq('user_id', userId),
+      .eq('user_id', user.id),
     // Slots one-shot disponibles (legacy)
     supabase
       .from('user_oneshot_purchases')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .eq('status', 'available'),
     // Crédits disponibles
     supabase
       .from('user_available_credits')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .maybeSingle(),
     // Limite de tournois Free-Kick
     supabase
@@ -131,7 +110,7 @@ export default async function DashboardPage() {
     supabase
       .from('tournaments')
       .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
-      .eq('original_creator_id', userId)
+      .eq('original_creator_id', user.id)
       .neq('status', 'completed')
       .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
   ])
@@ -449,7 +428,7 @@ export default async function DashboardPage() {
   // Récupérer le nombre de demandes d'équipe en attente pour les tournois dont l'utilisateur est capitaine
   const pendingTeamRequests: Record<string, number> = {}
   const userCreatedTournamentIds = (userTournaments || [])
-    .filter((t: any) => t.creator_id === userId && t.status === 'pending')
+    .filter((t: any) => t.creator_id === user.id && t.status === 'pending')
     .map((t: any) => t.id)
 
   if (userCreatedTournamentIds.length > 0) {
@@ -499,7 +478,7 @@ export default async function DashboardPage() {
         }>
         ranking = {
           winner: typedRankings[0]?.username || null,
-          userRank: typedRankings.find(r => r.user_id === userId)?.rank || null,
+          userRank: typedRankings.find(r => r.user_id === user.id)?.rank || null,
           totalParticipants: typedRankings.length
         }
       }
@@ -569,7 +548,7 @@ export default async function DashboardPage() {
       emblem: emblemData.emblem,
       custom_emblem_white: emblemData.custom_emblem_white,
       custom_emblem_color: emblemData.custom_emblem_color,
-      isCaptain: t.creator_id === userId,
+      isCaptain: t.creator_id === user.id,
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null,
       lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés
