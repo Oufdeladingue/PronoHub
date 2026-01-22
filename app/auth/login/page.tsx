@@ -117,37 +117,88 @@ function LoginForm() {
     setLoading(true)
 
     try {
-      // Appeler l'API pour gérer la connexion avec email ou username
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier,
+      // Dans Capacitor, utiliser directement le client Supabase pour que la session soit stockée en localStorage
+      if (isCapacitor()) {
+        // Déterminer si c'est un email ou un username
+        const isEmail = identifier.includes('@')
+
+        let email = identifier
+        if (!isEmail) {
+          // Chercher l'email correspondant au username via l'API
+          const lookupResponse = await fetch('/api/auth/lookup-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: identifier }),
+          })
+          const lookupData = await lookupResponse.json()
+
+          if (!lookupResponse.ok || !lookupData.email) {
+            throw new Error('Utilisateur non trouvé')
+          }
+          email = lookupData.email
+        }
+
+        // Connexion directe via le client Supabase (stocke la session en localStorage)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
           password,
-        }),
-      })
+        })
 
-      const data = await response.json()
+        if (error) {
+          throw new Error(error.message === 'Invalid login credentials'
+            ? 'Email/pseudo ou mot de passe incorrect'
+            : error.message)
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur de connexion')
+        // Vérifier le rôle pour la redirection
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        // Afficher le loader de redirection
+        setLoading(false)
+        setRedirecting(true)
+
+        const redirectPath = redirectTo
+          ? decodeURIComponent(redirectTo)
+          : (profile?.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
+        router.push(redirectPath)
+        router.refresh()
+      } else {
+        // Sur le web, utiliser l'API côté serveur (cookies)
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            identifier,
+            password,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Erreur de connexion')
+        }
+
+        // Rafraîchir la session côté client
+        await supabase.auth.refreshSession()
+
+        // Afficher le loader de redirection
+        setLoading(false)
+        setRedirecting(true)
+
+        // Utiliser redirectTo si présent, sinon rediriger selon le rôle
+        const redirectPath = redirectTo
+          ? decodeURIComponent(redirectTo)
+          : (data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
+        router.push(redirectPath)
+        router.refresh()
       }
-
-      // Rafraîchir la session côté client
-      await supabase.auth.refreshSession()
-
-      // Afficher le loader de redirection
-      setLoading(false)
-      setRedirecting(true)
-
-      // Utiliser redirectTo si présent, sinon rediriger selon le rôle
-      const redirectPath = redirectTo
-        ? decodeURIComponent(redirectTo)
-        : (data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
-      router.push(redirectPath)
-      router.refresh()
     } catch (err: any) {
       setError(err.message)
       setLoading(false)
