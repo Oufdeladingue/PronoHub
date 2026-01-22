@@ -54,34 +54,65 @@ export async function capacitorFetch(
 }
 
 /**
- * Stockage persistant pour Capacitor (utilisé par Supabase)
- * Utilise le plugin Preferences pour persister la session même après fermeture de l'app
+ * Stockage hybride pour Capacitor (utilisé par Supabase)
+ * - Utilise localStorage pour les accès synchrones (requis par Supabase)
+ * - Sauvegarde aussi dans Capacitor Preferences pour la persistance après fermeture de l'app
  */
 export function createCapacitorStorage() {
   return {
-    getItem: async (key: string): Promise<string | null> => {
-      if (isCapacitor()) {
-        const { Preferences } = await import('@capacitor/preferences')
-        const { value } = await Preferences.get({ key })
-        return value
-      }
+    getItem: (key: string): string | null => {
+      // Lecture synchrone depuis localStorage
       return localStorage.getItem(key)
     },
-    setItem: async (key: string, value: string): Promise<void> => {
+    setItem: (key: string, value: string): void => {
+      // Écriture synchrone dans localStorage
+      localStorage.setItem(key, value)
+      // Sauvegarde async dans Capacitor Preferences (pour persistance)
       if (isCapacitor()) {
-        const { Preferences } = await import('@capacitor/preferences')
-        await Preferences.set({ key, value })
-      } else {
+        import('@capacitor/preferences').then(({ Preferences }) => {
+          Preferences.set({ key, value })
+        })
+      }
+    },
+    removeItem: (key: string): void => {
+      // Suppression synchrone depuis localStorage
+      localStorage.removeItem(key)
+      // Suppression async dans Capacitor Preferences
+      if (isCapacitor()) {
+        import('@capacitor/preferences').then(({ Preferences }) => {
+          Preferences.remove({ key })
+        })
+      }
+    },
+  }
+}
+
+/**
+ * Restaurer la session depuis Capacitor Preferences vers localStorage
+ * À appeler au démarrage de l'app Capacitor
+ */
+export async function restoreCapacitorSession(): Promise<void> {
+  if (!isCapacitor()) return
+
+  const { Preferences } = await import('@capacitor/preferences')
+
+  // Chercher les clés de session Supabase dans Preferences
+  // Le format standard est sb-<project-ref>-auth-token
+  const keysToRestore = [
+    'sb-auth-token',
+    // Ajouter d'autres patterns si nécessaire
+  ]
+
+  // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
+  const { keys } = await Preferences.keys()
+
+  for (const key of keys) {
+    // Restaurer les clés qui commencent par 'sb-' (Supabase)
+    if (key.startsWith('sb-')) {
+      const { value } = await Preferences.get({ key })
+      if (value && !localStorage.getItem(key)) {
         localStorage.setItem(key, value)
       }
-    },
-    removeItem: async (key: string): Promise<void> => {
-      if (isCapacitor()) {
-        const { Preferences } = await import('@capacitor/preferences')
-        await Preferences.remove({ key })
-      } else {
-        localStorage.removeItem(key)
-      }
-    },
+    }
   }
 }

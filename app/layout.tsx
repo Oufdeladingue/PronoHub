@@ -5,6 +5,7 @@ import "./globals.css";
 import AgeGate from "@/components/AgeGate";
 import { UserProvider } from "@/contexts/UserContext";
 import NavigationLoader from "@/components/NavigationLoader";
+import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
 
 // Optimisation: next/font charge les fonts de manière optimale
 // - Hébergement local (pas de requête externe à Google)
@@ -98,13 +99,15 @@ export default function RootLayout({
         >
           Aller au contenu principal
         </a>
-        <UserProvider>
-          <Suspense fallback={null}>
-            <NavigationLoader />
-          </Suspense>
-          <AgeGate />
-          {children}
-        </UserProvider>
+        <CapacitorSessionProvider>
+          <UserProvider>
+            <Suspense fallback={null}>
+              <NavigationLoader />
+            </Suspense>
+            <AgeGate />
+            {children}
+          </UserProvider>
+        </CapacitorSessionProvider>
       </body>
     </html>
   );
