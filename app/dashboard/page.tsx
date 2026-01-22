@@ -42,8 +42,11 @@ export default async function DashboardPage() {
     return <DashboardCapacitorWrapper />
   }
 
+  // À ce point, user est forcément défini (soit via redirect, soit via le check Capacitor)
+  const userId = user!.id
+
   // ========== GROUPE 1: Requêtes parallèles indépendantes ==========
-  // Ces requêtes ne dépendent que de user.id, on les exécute en parallèle
+  // Ces requêtes ne dépendent que de userId, on les exécute en parallèle
   const [
     { data: profile },
     { data: subscription },
@@ -56,31 +59,31 @@ export default async function DashboardPage() {
     supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle(),
     // Abonnement actif
     supabase
       .from('user_subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'active')
       .maybeSingle(),
     // Participations aux tournois
     supabase
       .from('tournament_participants')
       .select('tournament_id')
-      .eq('user_id', user.id),
+      .eq('user_id', userId),
     // Slots one-shot disponibles (legacy)
     supabase
       .from('user_oneshot_purchases')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'available'),
     // Crédits disponibles
     supabase
       .from('user_available_credits')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle(),
     // Limite de tournois Free-Kick
     supabase
@@ -128,7 +131,7 @@ export default async function DashboardPage() {
     supabase
       .from('tournaments')
       .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
-      .eq('original_creator_id', user.id)
+      .eq('original_creator_id', userId)
       .neq('status', 'completed')
       .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
   ])
@@ -446,7 +449,7 @@ export default async function DashboardPage() {
   // Récupérer le nombre de demandes d'équipe en attente pour les tournois dont l'utilisateur est capitaine
   const pendingTeamRequests: Record<string, number> = {}
   const userCreatedTournamentIds = (userTournaments || [])
-    .filter((t: any) => t.creator_id === user.id && t.status === 'pending')
+    .filter((t: any) => t.creator_id === userId && t.status === 'pending')
     .map((t: any) => t.id)
 
   if (userCreatedTournamentIds.length > 0) {
@@ -496,7 +499,7 @@ export default async function DashboardPage() {
         }>
         ranking = {
           winner: typedRankings[0]?.username || null,
-          userRank: typedRankings.find(r => r.user_id === user.id)?.rank || null,
+          userRank: typedRankings.find(r => r.user_id === userId)?.rank || null,
           totalParticipants: typedRankings.length
         }
       }
@@ -566,7 +569,7 @@ export default async function DashboardPage() {
       emblem: emblemData.emblem,
       custom_emblem_white: emblemData.custom_emblem_white,
       custom_emblem_color: emblemData.custom_emblem_color,
-      isCaptain: t.creator_id === user.id,
+      isCaptain: t.creator_id === userId,
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null,
       lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés
