@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { isCapacitor } from '@/lib/capacitor'
 
 const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
 
 /**
- * Hook pour gérer les notifications push via Firebase Web SDK
- * Gère correctement Capacitor où la session est dans localStorage
+ * Hook pour gérer les notifications push
+ * - Web: utilise Firebase Web SDK avec l'API Notification
+ * - Capacitor: utilise le plugin natif @capacitor/push-notifications
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
@@ -45,16 +47,44 @@ export function usePushNotifications() {
     isProcessing.current = true
 
     try {
-      const { requestNotificationPermission, registerServiceWorker } = await import('@/lib/firebase-web')
-      await registerServiceWorker()
-      const fcmToken = await requestNotificationPermission()
+      if (isCapacitor()) {
+        // Dans Capacitor, utiliser le plugin natif
+        const { PushNotifications } = await import('@capacitor/push-notifications')
 
-      if (fcmToken) {
-        setToken(fcmToken)
-        setIsSupported(true)
-        await saveToken(fcmToken)
+        const result = await PushNotifications.requestPermissions()
+        console.log('[Push] Permission result:', result.receive)
+
+        if (result.receive === 'granted') {
+          await PushNotifications.register()
+
+          // Écouter le token
+          PushNotifications.addListener('registration', async (tokenData) => {
+            console.log('[Push] Token natif obtenu:', tokenData.value.substring(0, 20) + '...')
+            setToken(tokenData.value)
+            setIsSupported(true)
+            await saveToken(tokenData.value)
+          })
+
+          PushNotifications.addListener('registrationError', (error) => {
+            console.error('[Push] Erreur registration:', error)
+            setIsSupported(false)
+          })
+        } else {
+          setIsSupported(false)
+        }
       } else {
-        setIsSupported(false)
+        // Sur le web, utiliser Firebase Web SDK
+        const { requestNotificationPermission, registerServiceWorker } = await import('@/lib/firebase-web')
+        await registerServiceWorker()
+        const fcmToken = await requestNotificationPermission()
+
+        if (fcmToken) {
+          setToken(fcmToken)
+          setIsSupported(true)
+          await saveToken(fcmToken)
+        } else {
+          setIsSupported(false)
+        }
       }
     } catch (error) {
       console.error('[Push] Erreur:', error)
@@ -64,11 +94,33 @@ export function usePushNotifications() {
     }
   }
 
+  // Vérifier le statut des permissions
+  const checkPermissionStatus = async (): Promise<'granted' | 'denied' | 'default'> => {
+    if (isCapacitor()) {
+      try {
+        const { PushNotifications } = await import('@capacitor/push-notifications')
+        const status = await PushNotifications.checkPermissions()
+        console.log('[Push] Capacitor permission status:', status.receive)
+        return status.receive as 'granted' | 'denied' | 'default'
+      } catch {
+        return 'default'
+      }
+    } else if ('Notification' in window) {
+      return Notification.permission
+    }
+    return 'denied' // Pas de support
+  }
+
   // Fonction principale de vérification
   const checkNotifications = async (retryIfNoUser = true) => {
     if (typeof window === 'undefined') return
-    if (!('Notification' in window)) {
-      console.log('[Push] Notifications non supportées')
+
+    const inCapacitor = isCapacitor()
+    console.log('[Push] Check notifications, isCapacitor:', inCapacitor)
+
+    // Vérifier si les notifications sont supportées
+    if (!inCapacitor && !('Notification' in window)) {
+      console.log('[Push] Notifications non supportées (pas Capacitor, pas Notification API)')
       setIsLoading(false)
       return
     }
@@ -99,8 +151,11 @@ export function usePushNotifications() {
       setIsAuthenticated(true)
       checkCount.current = 0 // Reset le compteur
 
+      // Vérifier le statut des permissions
+      const permissionStatus = await checkPermissionStatus()
+
       // Si permission déjà accordée
-      if (Notification.permission === 'granted') {
+      if (permissionStatus === 'granted') {
         console.log('[Push] Permission déjà accordée')
         await requestPermission()
         setIsLoading(false)
@@ -108,7 +163,7 @@ export function usePushNotifications() {
       }
 
       // Si permission refusée
-      if (Notification.permission === 'denied') {
+      if (permissionStatus === 'denied') {
         console.log('[Push] Permission refusée')
         setIsLoading(false)
         return
