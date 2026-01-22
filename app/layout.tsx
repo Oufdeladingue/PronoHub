@@ -102,13 +102,14 @@ export default function RootLayout({
         </a>
         <CapacitorSessionProvider>
           <UserProvider>
-            <PushNotificationsProvider>
+            {/* PushNotificationsProvider temporairement désactivé pour debug */}
+            {/* <PushNotificationsProvider> */}
               <Suspense fallback={null}>
                 <NavigationLoader />
               </Suspense>
               <AgeGate />
               {children}
-            </PushNotificationsProvider>
+            {/* </PushNotificationsProvider> */}
           </UserProvider>
         </CapacitorSessionProvider>
       </body>
