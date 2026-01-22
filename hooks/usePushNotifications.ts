@@ -7,7 +7,7 @@ const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
 
 /**
  * Hook pour gérer les notifications push via Firebase Web SDK
- * Version simplifiée pour éviter les boucles infinies
+ * Gère correctement Capacitor où la session est dans localStorage
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
@@ -19,6 +19,7 @@ export function usePushNotifications() {
   const supabaseRef = useRef(createClient())
   const hasInitialized = useRef(false)
   const isProcessing = useRef(false)
+  const checkCount = useRef(0)
 
   // Fonction pour sauvegarder le token
   const saveToken = async (fcmToken: string) => {
@@ -64,9 +65,10 @@ export function usePushNotifications() {
   }
 
   // Fonction principale de vérification
-  const checkNotifications = async () => {
+  const checkNotifications = async (retryIfNoUser = true) => {
     if (typeof window === 'undefined') return
     if (!('Notification' in window)) {
+      console.log('[Push] Notifications non supportées')
       setIsLoading(false)
       return
     }
@@ -76,16 +78,30 @@ export function usePushNotifications() {
       const supabase = supabaseRef.current
       const { data: { user } } = await supabase.auth.getUser()
 
+      console.log('[Push] Check notifications, user:', user?.email || 'non connecté')
+
       if (!user) {
         setIsAuthenticated(false)
+
+        // Dans Capacitor, la session peut prendre du temps à se restaurer
+        // Réessayer quelques fois avec un délai
+        if (retryIfNoUser && checkCount.current < 3) {
+          checkCount.current++
+          console.log('[Push] Pas de user, retry', checkCount.current)
+          setTimeout(() => checkNotifications(true), 2000)
+          return
+        }
+
         setIsLoading(false)
         return
       }
 
       setIsAuthenticated(true)
+      checkCount.current = 0 // Reset le compteur
 
       // Si permission déjà accordée
       if (Notification.permission === 'granted') {
+        console.log('[Push] Permission déjà accordée')
         await requestPermission()
         setIsLoading(false)
         return
@@ -93,20 +109,24 @@ export function usePushNotifications() {
 
       // Si permission refusée
       if (Notification.permission === 'denied') {
+        console.log('[Push] Permission refusée')
         setIsLoading(false)
         return
       }
 
       // Vérifier si modale déjà affichée
       if (localStorage.getItem(NOTIFICATION_PROMPT_KEY)) {
+        console.log('[Push] Modale déjà affichée précédemment')
         setIsLoading(false)
         return
       }
 
       // Afficher la modale
+      console.log('[Push] Affichage de la modale')
       setShowPermissionModal(true)
       setIsLoading(false)
-    } catch {
+    } catch (error) {
+      console.error('[Push] Erreur check:', error)
       setIsLoading(false)
     }
   }
@@ -131,17 +151,22 @@ export function usePushNotifications() {
     const supabase = supabaseRef.current
 
     // Écouter les changements d'auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        setTimeout(checkNotifications, 2000)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[Push] Auth state change:', event, session?.user?.email)
+
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          // Délai pour laisser le dashboard se charger
+          setTimeout(() => checkNotifications(false), 3000)
+        }
       } else if (event === 'SIGNED_OUT') {
         setIsAuthenticated(false)
         setShowPermissionModal(false)
       }
     })
 
-    // Check initial
-    checkNotifications()
+    // Check initial avec retry pour Capacitor
+    setTimeout(() => checkNotifications(true), 1000)
 
     return () => subscription.unsubscribe()
   }, [])
