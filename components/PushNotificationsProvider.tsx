@@ -2,25 +2,24 @@
 
 import { useEffect } from 'react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { hasCapacitorBridge } from '@/lib/capacitor'
 
 interface PushNotificationsProviderProps {
   children: React.ReactNode
 }
 
 /**
- * Provider qui initialise les notifications push au démarrage de l'app
- * Doit être placé dans le layout après l'authentification
+ * Provider qui initialise les notifications push via Firebase Web SDK
+ * Fonctionne dans le navigateur et dans les WebViews Android
  */
 export default function PushNotificationsProvider({ children }: PushNotificationsProviderProps) {
   const { token, isSupported, isLoading } = usePushNotifications()
 
   useEffect(() => {
     if (!isLoading) {
-      if (isSupported) {
-        console.log('[PushProvider] Notifications push initialisées, token:', token ? 'obtenu' : 'non obtenu')
-      } else {
-        console.log('[PushProvider] Notifications push non supportées (web ou bridge absent)')
+      if (isSupported && token) {
+        console.log('[PushProvider] Notifications push initialisées avec Firebase Web SDK')
+      } else if (!isSupported) {
+        console.log('[PushProvider] Notifications push non supportées sur ce navigateur')
       }
     }
   }, [token, isSupported, isLoading])

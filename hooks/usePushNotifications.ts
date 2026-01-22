@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { hasCapacitorBridge } from '@/lib/capacitor'
-import { initPushNotifications, setupPushListeners, removePushListeners } from '@/lib/push-notifications'
 import { createClient } from '@/lib/supabase/client'
 
 /**
- * Hook pour gérer les notifications push
- * Initialise les notifications et enregistre le token FCM dans le profil utilisateur
+ * Hook pour gérer les notifications push via Firebase Web SDK
+ * Fonctionne dans le navigateur et dans les WebViews Android
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
@@ -37,41 +35,62 @@ export function usePushNotifications() {
     }
   }, [supabase])
 
-  // Initialiser les notifications
+  // Initialiser les notifications via Firebase Web SDK
   const initialize = useCallback(async () => {
-    if (!hasCapacitorBridge()) {
+    // Vérifier si on est côté client
+    if (typeof window === 'undefined') {
       setIsSupported(false)
       setIsLoading(false)
       return
     }
 
-    setIsSupported(true)
+    // Vérifier si les notifications sont supportées
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      console.log('[Push] Notifications ou Service Worker non supportés')
+      setIsSupported(false)
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // Initialiser et obtenir le token
-      const fcmToken = await initPushNotifications()
+      // Import dynamique pour éviter les erreurs SSR
+      const {
+        requestNotificationPermission,
+        registerServiceWorker,
+        onForegroundMessage
+      } = await import('@/lib/firebase-web')
+
+      // Enregistrer le Service Worker
+      await registerServiceWorker()
+
+      // Demander la permission et obtenir le token
+      const fcmToken = await requestNotificationPermission()
 
       if (fcmToken) {
         setToken(fcmToken)
+        setIsSupported(true)
         await saveTokenToDatabase(fcmToken)
-      }
 
-      // Configurer les listeners
-      await setupPushListeners(
-        // Notification reçue (app au premier plan)
-        (notification) => {
-          console.log('[Push] Notification reçue en foreground:', notification)
-          // TODO: Afficher une notification in-app si nécessaire
-        },
-        // Notification tapée
-        (notification) => {
-          console.log('[Push] Notification tapée:', notification)
-          // TODO: Naviguer vers la page appropriée selon le type de notification
-        }
-      )
+        // Configurer le listener pour les messages en premier plan
+        onForegroundMessage((payload) => {
+          console.log('[Push] Message en premier plan:', payload)
+
+          // Afficher une notification native même en premier plan
+          if (Notification.permission === 'granted' && payload.notification) {
+            new Notification(payload.notification.title || 'PronoHub', {
+              body: payload.notification.body,
+              icon: '/images/logo.svg',
+            })
+          }
+        })
+      } else {
+        setIsSupported(false)
+      }
     } catch (error) {
-      console.error('[Push] Erreur initialisation:', error)
+      console.error('[Push] Erreur initialisation Firebase Web:', error)
+      setIsSupported(false)
     } finally {
       setIsLoading(false)
     }
@@ -80,11 +99,6 @@ export function usePushNotifications() {
   // Initialiser au montage du composant
   useEffect(() => {
     initialize()
-
-    // Cleanup
-    return () => {
-      removePushListeners()
-    }
   }, [initialize])
 
   return {
