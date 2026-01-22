@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "468891081637",
+    "project_id": "pronohub-f8fb3",
+    "storage_bucket": "pronohub-f8fb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:468891081637:android:b516b261b5e426f64ce64c",
+        "android_client_info": {
+          "package_name": "club.pronohub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSIDRJNMRxRPRh8rqVOR95nCe4x9qYNJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

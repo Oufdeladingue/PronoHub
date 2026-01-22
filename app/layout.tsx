@@ -6,6 +6,7 @@ import AgeGate from "@/components/AgeGate";
 import { UserProvider } from "@/contexts/UserContext";
 import NavigationLoader from "@/components/NavigationLoader";
 import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
+import PushNotificationsProvider from "@/components/PushNotificationsProvider";
 
 // Optimisation: next/font charge les fonts de manière optimale
 // - Hébergement local (pas de requête externe à Google)
@@ -101,11 +102,13 @@ export default function RootLayout({
         </a>
         <CapacitorSessionProvider>
           <UserProvider>
-            <Suspense fallback={null}>
-              <NavigationLoader />
-            </Suspense>
-            <AgeGate />
-            {children}
+            <PushNotificationsProvider>
+              <Suspense fallback={null}>
+                <NavigationLoader />
+              </Suspense>
+              <AgeGate />
+              {children}
+            </PushNotificationsProvider>
           </UserProvider>
         </CapacitorSessionProvider>
       </body>
