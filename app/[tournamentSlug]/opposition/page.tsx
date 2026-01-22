@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { Suspense } from 'react'
 import OppositionClient from './OppositionClient'
+import OppositionCapacitorWrapper from '@/components/OppositionCapacitorWrapper'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -13,12 +15,29 @@ export const metadata: Metadata = {
   },
 }
 
+// Détecter si la requête vient d'un WebView Android (Capacitor)
+function isCapacitorRequest(userAgent: string | null): boolean {
+  if (!userAgent) return false
+  return /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
+}
+
 interface PageProps {
   params: Promise<{ tournamentSlug: string }>
 }
 
 export default async function OppositionPage({ params }: PageProps) {
   const { tournamentSlug } = await params
+
+  // Vérifier si c'est Capacitor
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+  const isCapacitor = isCapacitorRequest(userAgent)
+
+  // Dans Capacitor, utiliser le wrapper client
+  if (isCapacitor) {
+    return <OppositionCapacitorWrapper tournamentSlug={tournamentSlug} />
+  }
+
   const supabase = await createClient()
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
