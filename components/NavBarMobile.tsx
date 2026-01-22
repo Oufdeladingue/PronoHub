@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
+import LogoutButton from '@/components/LogoutButton'
 
 export default function NavBarMobile({
   username,
@@ -139,19 +140,14 @@ export default function NavBarMobile({
                 </Link>
 
                 {/* Quitter le terrain */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6 mobile-menu-icon"
-                    />
-                    <span className="text-xs mobile-menu-text">Quitter</span>
-                  </button>
-                </form>
+                <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6 mobile-menu-icon"
+                  />
+                  <span className="text-xs mobile-menu-text">Quitter</span>
+                </LogoutButton>
               </div>
             </div>
           )}
@@ -298,19 +294,14 @@ export default function NavBarMobile({
                 </Link>
 
                 {/* Quitter le terrain */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6 mobile-menu-icon"
-                    />
-                    <span className="text-xs mobile-menu-text">Quitter</span>
-                  </button>
-                </form>
+                <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6 mobile-menu-icon"
+                  />
+                  <span className="text-xs mobile-menu-text">Quitter</span>
+                </LogoutButton>
               </div>
             </div>
           )}
@@ -403,19 +394,14 @@ export default function NavBarMobile({
               </Link>
 
               {/* Quitter le terrain */}
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
-                >
-                  <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-6 h-6 mobile-menu-icon"
-                  />
-                  <span className="text-xs mobile-menu-text">Quitter</span>
-                </button>
-              </form>
+              <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
+                <img
+                  src="/images/icons/logout.svg"
+                  alt="Quitter"
+                  className="w-6 h-6 mobile-menu-icon"
+                />
+                <span className="text-xs mobile-menu-text">Quitter</span>
+              </LogoutButton>
             </div>
           </div>
         )}

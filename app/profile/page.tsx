@@ -13,6 +13,7 @@ import UserQuotasCard from '@/components/UserQuotasCard'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { isCapacitor } from '@/lib/capacitor'
+import LogoutButton from '@/components/LogoutButton'
 
 // Composant jauge en demi-cercle avec couleur dynamique
 function SemiCircleGauge({
@@ -666,19 +667,16 @@ function ProfileContent() {
                 </Link>
 
                 {/* Bouton Déconnexion avec icône */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="nav-icon-btn"
-                    title="Quitter le terrain"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6"
-                    />
-                  </button>
-                </form>
+                <LogoutButton
+                  className="nav-icon-btn"
+                  title="Quitter le terrain"
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6"
+                  />
+                </LogoutButton>
               </div>
             </div>
           </div>
@@ -707,19 +705,14 @@ function ProfileContent() {
                 </Link>
 
                 {/* Quitter le terrain */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6 mobile-menu-icon"
-                    />
-                    <span className="text-xs mobile-menu-text">Quitter</span>
-                  </button>
-                </form>
+                <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6 mobile-menu-icon"
+                  />
+                  <span className="text-xs mobile-menu-text">Quitter</span>
+                </LogoutButton>
               </div>
             </div>
           )}

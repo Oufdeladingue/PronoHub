@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
+import LogoutButton from '@/components/LogoutButton'
 
 export default function NavBar({
   username,
@@ -220,19 +221,16 @@ export default function NavBar({
                 </Link>
 
                 {/* Bouton Déconnexion avec icône et tooltip */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="nav-icon-btn"
-                    title="Quitter le terrain"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6"
-                    />
-                  </button>
-                </form>
+                <LogoutButton
+                  className="nav-icon-btn"
+                  title="Quitter le terrain"
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6"
+                  />
+                </LogoutButton>
               </div>
             </div>
           </div>
@@ -359,19 +357,16 @@ export default function NavBar({
                 </Link>
 
                 {/* Bouton Déconnexion avec icône et tooltip */}
-                <form action="/auth/signout" method="post">
-                  <button
-                    type="submit"
-                    className="nav-icon-btn"
-                    title="Quitter le terrain"
-                  >
-                    <img
-                      src="/images/icons/logout.svg"
-                      alt="Quitter"
-                      className="w-6 h-6"
-                    />
-                  </button>
-                </form>
+                <LogoutButton
+                  className="nav-icon-btn"
+                  title="Quitter le terrain"
+                >
+                  <img
+                    src="/images/icons/logout.svg"
+                    alt="Quitter"
+                    className="w-6 h-6"
+                  />
+                </LogoutButton>
               </div>
             </div>
           </div>
@@ -458,19 +453,16 @@ export default function NavBar({
               </Link>
 
               {/* Bouton Déconnexion avec icône et tooltip */}
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="nav-icon-btn"
-                  title="Quitter le terrain"
-                >
-                  <img
-                    src="/images/icons/logout.svg"
-                    alt="Quitter"
-                    className="w-6 h-6"
-                  />
-                </button>
-              </form>
+              <LogoutButton
+                className="nav-icon-btn"
+                title="Quitter le terrain"
+              >
+                <img
+                  src="/images/icons/logout.svg"
+                  alt="Quitter"
+                  className="w-6 h-6"
+                />
+              </LogoutButton>
             </div>
           </div>
         </div>
