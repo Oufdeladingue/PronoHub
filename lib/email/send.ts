@@ -11,6 +11,7 @@ import {
   getTournamentInviteDetailedTemplate,
   getNewPlayerJoinedTemplate,
   getMultiTournamentReminderTemplate,
+  getInactiveUserReminderTemplate,
   EmailTemplateProps,
   ReminderEmailProps,
   TournamentStartedEmailProps,
@@ -18,7 +19,8 @@ import {
   TournamentEndEmailProps,
   TournamentInviteDetailedEmailProps,
   NewPlayerJoinedEmailProps,
-  MultiTournamentReminderEmailProps
+  MultiTournamentReminderEmailProps,
+  InactiveUserReminderEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -152,6 +154,15 @@ export async function sendMultiTournamentReminderEmail(
   props: MultiTournamentReminderEmailProps
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getMultiTournamentReminderTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email relance utilisateur inactif (10 jours sans tournoi)
+export async function sendInactiveUserReminderEmail(
+  to: string,
+  props: InactiveUserReminderEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getInactiveUserReminderTemplate(props)
   return sendEmail(to, subject, html, text)
 }
 

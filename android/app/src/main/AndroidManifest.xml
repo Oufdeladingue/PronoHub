@@ -38,6 +38,22 @@
                 <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/auth/callback" />
             </intent-filter>
 
+            <!-- Deep link pour retour après paiement Stripe -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/payment/success" />
+            </intent-filter>
+
+            <!-- Deep link pour annulation paiement -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/payment/cancel" />
+            </intent-filter>
+
             <!-- URL scheme personnalisé pour Capacitor -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

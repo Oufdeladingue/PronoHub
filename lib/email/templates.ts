@@ -2102,3 +2102,194 @@ Gérer mes notifications : https://www.pronohub.club/profile
     subject
   }
 }
+
+// Interface pour l'email de relance utilisateur inactif (10 jours sans tournoi)
+export interface InactiveUserReminderEmailProps {
+  username: string
+}
+
+// Template: Relance utilisateur inactif après 10 jours sans tournoi
+export function getInactiveUserReminderTemplate(props: InactiveUserReminderEmailProps) {
+  const { username } = props
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ton tournoi s'est rompu les croisés ?</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">🏥 Ton tournoi s'est rompu les croisés ?</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 18px; line-height: 1.6;">
+                Salut champion${username ? ` <strong style="color: #ff9900;">${username}</strong>` : ''} 🏆
+              </p>
+
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Bon.<br>
+                On va être francs deux secondes.
+              </p>
+
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Tu t'es inscrit sur PronoHub…<br>
+                👉 <strong style="color: #ff9900;">mais aucun tournoi lancé.</strong><br>
+                Rien. Le néant. Le niveau Ligue 2 un lundi soir sous la pluie.
+              </p>
+
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin: 24px 0;">
+                <p style="margin: 0 0 8px; color: #ff9900; font-size: 16px; font-weight: 600;">Pendant ce temps :</p>
+                <ul style="margin: 0; padding-left: 20px; color: #94a3b8; font-size: 15px; line-height: 2;">
+                  <li>⚽ Les matchs de foot s'enchaînent</li>
+                  <li>📊 Les vrais savent déjà qui va choke à la 90e</li>
+                  <li>🗣️ Et tes potes attendent toujours de voir si tu parles mieux que tu pronostiques</li>
+                </ul>
+              </div>
+
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Créer un tournoi sur PronoHub, c'est moins compliqué que d'expliquer la règle du hors-jeu à ton fils :
+              </p>
+
+              <div style="background-color: #1e293b; border-radius: 12px; padding: 24px; margin: 24px 0;">
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #e0e0e0; font-size: 15px;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background-color: #ff9900; color: #000; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin-right: 12px;">1</span>
+                      Tu lances le tournoi
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #e0e0e0; font-size: 15px;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background-color: #ff9900; color: #000; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin-right: 12px;">2</span>
+                      Tu invites des potes
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #e0e0e0; font-size: 15px;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background-color: #ff9900; color: #000; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin-right: 12px;">3</span>
+                      Tu assumes publiquement tes pronos douteux
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="margin: 0 0 8px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                <strong style="color: #ff9900;">C'est maintenant que ça se joue.</strong>
+              </p>
+              <p style="margin: 0 0 24px; color: #94a3b8; font-size: 15px; line-height: 1.6;">
+                Sinon, quelqu'un d'autre prendra le rôle du "génie du foot" du collectif…<br>
+                (et on sait tous que ce sera insupportable).
+              </p>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="https://www.pronohub.club/vestiaire" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 700; font-size: 16px; border-radius: 8px;">
+                  👉 Lance ton tournoi sur PronoHub
+                </a>
+              </div>
+
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 15px; line-height: 1.6; text-align: center;">
+                Montre que t'es pas juste fort en débats WhatsApp.
+              </p>
+
+              <p style="margin: 0; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                À tout de suite sur PronoHub ⚽<br>
+                <strong style="color: #ff9900;">L'équipe PronoHub</strong>
+              </p>
+
+              <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #1e293b;">
+                <p style="margin: 0; color: #64748b; font-size: 13px; font-style: italic;">
+                  PS : Toujours aucun tournoi ?<br>
+                  On commence à penser que tu regardes le foot sans vraiment le comprendre… 😬
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="https://www.pronohub.club/privacy" style="color: #64748b; font-size: 12px; text-decoration: none; margin-left: 16px;">Confidentialité</a>
+                    <a href="https://www.pronohub.club/cgv" style="color: #64748b; font-size: 12px; text-decoration: none; margin-left: 16px;">CGU</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const text = `
+🏥 Ton tournoi s'est rompu les croisés ?
+
+Salut champion${username ? ` ${username}` : ''} 🏆
+
+Bon.
+On va être francs deux secondes.
+
+Tu t'es inscrit sur PronoHub…
+👉 mais aucun tournoi lancé.
+Rien. Le néant. Le niveau Ligue 2 un lundi soir sous la pluie.
+
+Pendant ce temps :
+⚽ Les matchs de foot s'enchaînent
+📊 Les vrais savent déjà qui va choke à la 90e
+🗣️ Et tes potes attendent toujours de voir si tu parles mieux que tu pronostiques
+
+Créer un tournoi sur PronoHub, c'est moins compliqué que d'expliquer la règle du hors-jeu à ton fils :
+
+1. Tu lances le tournoi
+2. Tu invites des potes
+3. Tu assumes publiquement tes pronos douteux
+
+C'est maintenant que ça se joue.
+Sinon, quelqu'un d'autre prendra le rôle du "génie du foot" du collectif…
+(et on sait tous que ce sera insupportable).
+
+👉 Lance ton tournoi sur PronoHub : https://www.pronohub.club/vestiaire
+
+Montre que t'es pas juste fort en débats WhatsApp.
+
+À tout de suite sur PronoHub ⚽
+L'équipe PronoHub
+
+PS : Toujours aucun tournoi ?
+On commence à penser que tu regardes le foot sans vraiment le comprendre… 😬
+
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  const subject = '🏥 Ton tournoi s\'est rompu les croisés ?'
+
+  return {
+    html,
+    text,
+    subject
+  }
+}

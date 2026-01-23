@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, Loader2, AlertCircle, ArrowRight, Trophy, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
+import { isCapacitor } from '@/lib/capacitor'
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
@@ -28,9 +29,27 @@ function PaymentSuccessContent() {
 
     const verifyPayment = async () => {
       try {
+        // Préparer les headers avec le token Capacitor si nécessaire
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+        if (isCapacitor()) {
+          // Récupérer le token depuis localStorage (stocké par Supabase)
+          const authData = localStorage.getItem('sb-txpmihreaxmtsxlgmdko-auth-token')
+          if (authData) {
+            try {
+              const session = JSON.parse(authData)
+              if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+              }
+            } catch {
+              // Ignorer les erreurs de parsing
+            }
+          }
+        }
+
         const response = await fetch('/api/stripe/verify-session', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ session_id: sessionId })
         })
 
