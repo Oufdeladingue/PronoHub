@@ -110,12 +110,12 @@ export default function TableauNoirPage() {
       setError(null)
 
       try {
-        // Exécuter TOUS les appels API en parallèle
+        // Exécuter TOUS les appels API en parallèle (avec auth pour Capacitor)
         const [compResponse, quotasResponse, creditsResponse, pricingResponse] = await Promise.all([
-          fetch(`/api/competitions/${competitionId}`),
-          fetch('/api/user/quotas', { method: 'POST' }),
-          fetch('/api/user/credits'),
-          fetch('/api/pricing/config')
+          fetchWithAuth(`/api/competitions/${competitionId}`),
+          fetchWithAuth('/api/user/quotas', { method: 'POST' }),
+          fetchWithAuth('/api/user/credits'),
+          fetchWithAuth('/api/pricing/config')
         ])
 
         // Traiter les résultats

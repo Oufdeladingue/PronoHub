@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { isCapacitor, restoreCapacitorSession, isAndroid } from '@/lib/capacitor'
+import { isCapacitor, restoreCapacitorSession, isAndroid, hasCapacitorBridge } from '@/lib/capacitor'
 
 interface CapacitorSessionProviderProps {
   children: React.ReactNode
@@ -13,13 +13,32 @@ interface CapacitorSessionProviderProps {
 async function configureStatusBar() {
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
-    // Status bar transparente avec texte clair
+    // Status bar noire avec texte clair (s'adapte au fond noir de l'app)
     await StatusBar.setStyle({ style: Style.Dark })
-    await StatusBar.setBackgroundColor({ color: '#0f172a' })
-    // Sur Android, permettre au contenu de passer sous la status bar
+    await StatusBar.setBackgroundColor({ color: '#000000' })
+    // Sur Android, ne pas permettre le contenu sous la status bar
     await StatusBar.setOverlaysWebView({ overlay: false })
   } catch (e) {
     console.warn('[StatusBar] Configuration ignorée:', e)
+  }
+}
+
+/**
+ * Configure le listener pour restaurer la session quand l'app revient au premier plan
+ */
+async function setupAppStateListener(onResume: () => void) {
+  if (!hasCapacitorBridge()) return
+
+  try {
+    const { App } = await import('@capacitor/app')
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log('[Capacitor] App revenue au premier plan, restauration session...')
+        onResume()
+      }
+    })
+  } catch (e) {
+    console.warn('[Capacitor] Listener appStateChange non configuré:', e)
   }
 }
 
@@ -41,6 +60,11 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
       // Restaurer la session depuis Capacitor Preferences vers localStorage
       restoreCapacitorSession().then(() => {
         setIsReady(true)
+      })
+
+      // Configurer le listener pour restaurer la session quand l'app revient au premier plan
+      setupAppStateListener(() => {
+        restoreCapacitorSession()
       })
     }
   }, [])

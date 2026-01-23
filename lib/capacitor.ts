@@ -138,6 +138,9 @@ export function isNativeGoogleAuthAvailable(): boolean {
 /**
  * Restaurer la session depuis Capacitor Preferences vers localStorage
  * À appeler au démarrage de l'app Capacitor (uniquement si bridge disponible)
+ *
+ * IMPORTANT: Cette fonction restaure TOUJOURS depuis Preferences,
+ * même si localStorage a déjà une valeur (car localStorage peut être vidé par Android)
  */
 export async function restoreCapacitorSession(): Promise<void> {
   // Ne rien faire si le bridge Capacitor n'est pas disponible
@@ -153,12 +156,16 @@ export async function restoreCapacitorSession(): Promise<void> {
       // Restaurer les clés qui commencent par 'sb-' (Supabase)
       if (key.startsWith('sb-')) {
         const { value } = await Preferences.get({ key })
-        if (value && !localStorage.getItem(key)) {
+        if (value) {
+          // TOUJOURS écraser localStorage avec la valeur de Preferences
+          // car localStorage peut avoir été vidé par Android lors d'un switch d'app
           localStorage.setItem(key, value)
         }
       }
     }
-  } catch {
-    // Ignorer les erreurs si le plugin n'est pas disponible
+
+    console.log('[Capacitor] Session restaurée depuis Preferences')
+  } catch (error) {
+    console.error('[Capacitor] Erreur restauration session:', error)
   }
 }
