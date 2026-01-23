@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
   sendDetailedReminderEmail,
+  sendMultiTournamentReminderEmail,
   sendTournamentStartedEmail,
   sendMatchdayRecapEmail,
   sendTournamentEndEmail,
@@ -78,6 +79,61 @@ export async function POST(request: NextRequest) {
             }
           ],
           defaultPredictionMaxPoints: 1
+        })
+        break
+
+      case 'reminder_multi':
+        // Test du nouveau template multi-tournois
+        result = await sendMultiTournamentReminderEmail(email, {
+          username,
+          tournaments: [
+            {
+              name: 'Ligue des Champions 2024/25',
+              slug: 'ligue-des-champions-2024',
+              competitionName: 'UEFA Champions League',
+              matches: [
+                {
+                  homeTeam: 'Paris Saint-Germain',
+                  awayTeam: 'Manchester City',
+                  matchDate: 'Mercredi 11 décembre à 21h00',
+                  deadlineTime: '20h00'
+                },
+                {
+                  homeTeam: 'FC Barcelona',
+                  awayTeam: 'Borussia Dortmund',
+                  matchDate: 'Mercredi 11 décembre à 21h00',
+                  deadlineTime: '20h00'
+                }
+              ]
+            },
+            {
+              name: 'Ligue 1 - Entre Potes',
+              slug: 'ligue-1-entre-potes',
+              competitionName: 'Ligue 1 Uber Eats',
+              matches: [
+                {
+                  homeTeam: 'Paris Saint-Germain',
+                  awayTeam: 'Lyon',
+                  matchDate: 'Dimanche 15 décembre à 20h45',
+                  deadlineTime: '19h45'
+                },
+                {
+                  homeTeam: 'Monaco',
+                  awayTeam: 'Marseille',
+                  matchDate: 'Dimanche 15 décembre à 20h45',
+                  deadlineTime: '19h45'
+                },
+                {
+                  homeTeam: 'Lille',
+                  awayTeam: 'Nice',
+                  matchDate: 'Dimanche 15 décembre à 17h00',
+                  deadlineTime: '16h00'
+                }
+              ]
+            }
+          ],
+          defaultPredictionMaxPoints: 1,
+          earliestDeadline: '16h00'
         })
         break
 
@@ -230,7 +286,7 @@ export async function POST(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          { success: false, error: `Type d'email non supporté: ${type}. Types disponibles: reminder, tournament_started, matchday_recap, tournament_end, invite, new_player` },
+          { success: false, error: `Type d'email non supporté: ${type}. Types disponibles: reminder, reminder_multi, tournament_started, matchday_recap, tournament_end, invite, new_player` },
           { status: 400 }
         )
     }
@@ -244,6 +300,7 @@ export async function POST(request: NextRequest) {
 
     const typeLabels: Record<string, string> = {
       reminder: 'rappel de pronostics',
+      reminder_multi: 'rappel multi-tournois',
       tournament_started: 'lancement de tournoi',
       matchday_recap: 'récap de journée',
       tournament_end: 'récap fin de tournoi',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendDetailedReminderEmail } from '@/lib/email/send'
+import { sendMultiTournamentReminderEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
 
 // Configuration
@@ -280,34 +280,32 @@ export async function GET(request: NextRequest) {
       let emailSent = false
       let pushSent = false
 
-      // 1. Envoi email (avec tous les matchs détaillés)
+      // 1. Envoi email (avec TOUS les tournois et matchs)
       try {
-        // Pour l'email, on envoie le premier tournoi avec ses matchs (l'email gère déjà le multi-match)
-        const firstTournament = userData.tournaments[0]
-        const tournamentSlug = `${firstTournament.name.toLowerCase().replace(/\s+/g, '-')}_${firstTournament.slug}`
-
-        const result = await sendDetailedReminderEmail(userData.email, {
+        const result = await sendMultiTournamentReminderEmail(userData.email, {
           username: userData.username,
-          tournamentName: firstTournament.name,
-          tournamentSlug,
-          competitionName: firstTournament.competition_name,
-          matchdayName: `Journée ${firstTournament.matches[0]?.matchday}`,
-          matches: firstTournament.matches.map(m => {
-            const matchDate = new Date(m.utc_date)
-            return {
-              homeTeam: m.home_team,
-              awayTeam: m.away_team,
-              matchDate: matchDate.toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                hour: '2-digit',
-                minute: '2-digit'
-              }),
-              deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-            }
-          }),
-          defaultPredictionMaxPoints: 1
+          tournaments: userData.tournaments.map(t => ({
+            name: t.name,
+            slug: t.slug,
+            competitionName: t.competition_name,
+            matches: t.matches.map(m => {
+              const matchDate = new Date(m.utc_date)
+              return {
+                homeTeam: m.home_team,
+                awayTeam: m.away_team,
+                matchDate: matchDate.toLocaleDateString('fr-FR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                }),
+                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+              }
+            })
+          })),
+          defaultPredictionMaxPoints: 1,
+          earliestDeadline: deadlineStr
         })
         emailSent = result.success
         if (!result.success) {

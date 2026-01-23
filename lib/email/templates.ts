@@ -165,6 +165,24 @@ export interface CaptainTransferEmailProps {
   tournamentStatus: string // 'pending' | 'warmup' | 'active'
 }
 
+// Interface pour rappel multi-tournois (plusieurs tournois dans un seul email)
+export interface MultiTournamentReminderEmailProps {
+  username: string
+  tournaments: Array<{
+    name: string
+    slug: string
+    competitionName: string
+    matches: Array<{
+      homeTeam: string
+      awayTeam: string
+      matchDate: string
+      deadlineTime: string
+    }>
+  }>
+  defaultPredictionMaxPoints: number
+  earliestDeadline: string // Format: "20h00"
+}
+
 // Template: Email de bienvenue après inscription
 export function getWelcomeEmailTemplate({ username }: EmailTemplateProps) {
   const html = `
@@ -1886,5 +1904,201 @@ Bonne chance capitaine ! ⚽
     html,
     text,
     subject: `👑 Tu es le nouveau capitaine de ${tournamentName}`
+  }
+}
+
+// Template: Rappel multi-tournois (un email pour tous les tournois)
+export function getMultiTournamentReminderTemplate(props: MultiTournamentReminderEmailProps) {
+  const {
+    username,
+    tournaments,
+    defaultPredictionMaxPoints,
+    earliestDeadline
+  } = props
+
+  const totalMatches = tournaments.reduce((sum, t) => sum + t.matches.length, 0)
+  const actionUrl = 'https://www.pronohub.club/dashboard'
+
+  // Générer le HTML pour chaque tournoi
+  const tournamentsHtml = tournaments.map(tournament => {
+    const matchesHtml = tournament.matches.map(match => `
+      <tr>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #1e293b;">
+          <div>
+            <span style="color: #fff; font-size: 14px; font-weight: 500;">${match.homeTeam} - ${match.awayTeam}</span>
+          </div>
+          <div style="margin-top: 4px;">
+            <span style="color: #94a3b8; font-size: 12px;">📅 ${match.matchDate}</span>
+            <span style="color: #ef4444; font-size: 12px; margin-left: 10px;">⏰ ${match.deadlineTime}</span>
+          </div>
+        </td>
+      </tr>
+    `).join('')
+
+    return `
+      <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+        <div style="padding: 14px 16px; border-bottom: 1px solid #1e293b; background-color: #1e293b;">
+          <h3 style="margin: 0; color: #ff9900; font-size: 15px;">🏆 ${tournament.name}</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 12px;">${tournament.competitionName} • ${tournament.matches.length} match${tournament.matches.length > 1 ? 's' : ''}</p>
+        </div>
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          ${matchesHtml}
+        </table>
+        <div style="padding: 12px 16px; text-align: center;">
+          <a href="https://www.pronohub.club/${tournament.slug}/opposition" style="color: #ff9900; font-size: 13px; text-decoration: none;">
+            Pronostiquer →
+          </a>
+        </div>
+      </div>
+    `
+  }).join('')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rappel : ${totalMatches} matchs à pronostiquer !</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">⏰ ${totalMatches} match${totalMatches > 1 ? 's' : ''} à pronostiquer !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Tu as des pronostics en attente dans <strong>${tournaments.length} tournoi${tournaments.length > 1 ? 's' : ''}</strong>. Ne rate pas l'occasion de marquer des points !
+              </p>
+
+              <!-- Résumé -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: #ff9900; font-size: 28px; font-weight: 700;">${totalMatches}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">match${totalMatches > 1 ? 's' : ''}</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: #22c55e; font-size: 28px; font-weight: 700;">${tournaments.length}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">tournoi${tournaments.length > 1 ? 's' : ''}</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: #ef4444; font-size: 28px; font-weight: 700;">${earliestDeadline}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">1ère limite</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Liste des tournois avec matchs -->
+              ${tournamentsHtml}
+
+              <!-- Alerte prono par défaut -->
+              <div style="background-color: #7f1d1d; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #ef4444;">
+                <p style="margin: 0; color: #fecaca; font-size: 14px; line-height: 1.5;">
+                  <strong>⚠️ Attention :</strong> Si tu ne pronostiques pas avant la limite, un pronostic par défaut sera appliqué.
+                  Dans ce cas, tu ne pourras gagner que <strong>${defaultPredictionMaxPoints} point${defaultPredictionMaxPoints > 1 ? 's' : ''} maximum</strong> par match, même en cas de score exact !
+                </p>
+              </div>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${actionUrl}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                  Voir tous mes tournois
+                </a>
+              </div>
+
+              <p style="margin: 0; color: #64748b; font-size: 14px; line-height: 1.6; text-align: center;">
+                Les pronostics doivent être faits <strong>1 heure avant</strong> le début de chaque match.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="https://www.pronohub.club/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  // Version texte
+  const tournamentsText = tournaments.map(tournament => {
+    const matchesText = tournament.matches.map(match =>
+      `    • ${match.homeTeam} - ${match.awayTeam}\n      📅 ${match.matchDate} | ⏰ Limite : ${match.deadlineTime}`
+    ).join('\n')
+
+    return `🏆 ${tournament.name} (${tournament.competitionName})
+${tournament.matches.length} match${tournament.matches.length > 1 ? 's' : ''} à pronostiquer :
+${matchesText}
+👉 Pronostiquer : https://www.pronohub.club/${tournament.slug}/opposition`
+  }).join('\n\n')
+
+  const text = `
+⏰ ${totalMatches} match${totalMatches > 1 ? 's' : ''} à pronostiquer !
+
+Salut ${username} !
+
+Tu as des pronostics en attente dans ${tournaments.length} tournoi${tournaments.length > 1 ? 's' : ''}.
+
+📊 RÉSUMÉ
+---
+${totalMatches} match${totalMatches > 1 ? 's' : ''} • ${tournaments.length} tournoi${tournaments.length > 1 ? 's' : ''} • 1ère limite : ${earliestDeadline}
+
+${tournamentsText}
+
+⚠️ ATTENTION : Si tu ne pronostiques pas avant la limite, un pronostic par défaut sera appliqué. Tu ne pourras gagner que ${defaultPredictionMaxPoints} point${defaultPredictionMaxPoints > 1 ? 's' : ''} maximum par match !
+
+👉 Voir tous mes tournois : ${actionUrl}
+
+Les pronostics doivent être faits 1 heure avant le début de chaque match.
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+Gérer mes notifications : https://www.pronohub.club/profile
+  `.trim()
+
+  // Sujet dynamique selon le nombre de tournois
+  let subject: string
+  if (tournaments.length === 1) {
+    subject = `⏰ ${totalMatches} match${totalMatches > 1 ? 's' : ''} à pronostiquer dans ${tournaments[0].name} !`
+  } else {
+    subject = `⏰ ${totalMatches} matchs à pronostiquer dans ${tournaments.length} tournois !`
+  }
+
+  return {
+    html,
+    text,
+    subject
   }
 }

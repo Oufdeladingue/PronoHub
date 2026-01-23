@@ -10,13 +10,15 @@ import {
   getTournamentEndTemplate,
   getTournamentInviteDetailedTemplate,
   getNewPlayerJoinedTemplate,
+  getMultiTournamentReminderTemplate,
   EmailTemplateProps,
   ReminderEmailProps,
   TournamentStartedEmailProps,
   MatchdayRecapEmailProps,
   TournamentEndEmailProps,
   TournamentInviteDetailedEmailProps,
-  NewPlayerJoinedEmailProps
+  NewPlayerJoinedEmailProps,
+  MultiTournamentReminderEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -141,6 +143,15 @@ export async function sendNewPlayerJoinedEmail(
   props: NewPlayerJoinedEmailProps
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getNewPlayerJoinedTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email rappel multi-tournois (un seul email pour tous les tournois)
+export async function sendMultiTournamentReminderEmail(
+  to: string,
+  props: MultiTournamentReminderEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getMultiTournamentReminderTemplate(props)
   return sendEmail(to, subject, html, text)
 }
 
