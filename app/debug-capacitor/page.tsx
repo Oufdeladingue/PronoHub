@@ -158,6 +158,7 @@ export default function DebugCapacitorPage() {
     }
     try {
       let count = 0
+      const keys: string[] = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
         if (key?.startsWith('sb-')) {
@@ -165,10 +166,11 @@ export default function DebugCapacitorPage() {
           if (value) {
             await prefs.set({ key, value })
             count++
+            keys.push(key)
           }
         }
       }
-      setPrefsResult(`Sauvegardé ${count} clés sb-* dans Preferences`)
+      setPrefsResult(`Sauvegardé ${count} clés: ${keys.join(', ')}`)
       refreshKeys()
     } catch (e) {
       setPrefsResult(`Erreur sauvegarde: ${String(e)}`)
@@ -185,16 +187,18 @@ export default function DebugCapacitorPage() {
     try {
       const { keys } = await prefs.keys()
       let count = 0
+      const restored: string[] = []
       for (const key of keys) {
         if (key.startsWith('sb-')) {
           const { value } = await prefs.get({ key })
           if (value) {
             localStorage.setItem(key, value)
             count++
+            restored.push(key)
           }
         }
       }
-      setPrefsResult(`Restauré ${count} clés sb-* vers localStorage`)
+      setPrefsResult(`Restauré ${count} clés: ${restored.join(', ')}`)
       refreshKeys()
     } catch (e) {
       setPrefsResult(`Erreur restauration: ${String(e)}`)
@@ -255,7 +259,10 @@ export default function DebugCapacitorPage() {
       {/* localStorage */}
       <div className="mb-4 p-3 bg-gray-800 rounded">
         <p className="text-sm font-bold mb-2 text-[#ff9900]">localStorage</p>
-        <p className="text-xs text-gray-400">Clés ({localStorageKeys.length}):</p>
+        <p className="text-xs text-gray-400">
+          Total: {localStorageKeys.length} clés |
+          sb-*: {localStorageKeys.filter(k => k.startsWith('sb-')).length} clés
+        </p>
         <div className="flex gap-1 flex-wrap mt-1">
           {localStorageKeys.map(k => (
             <span key={k} className={`px-2 py-0.5 text-xs rounded ${k.startsWith('sb-') ? 'bg-green-800' : 'bg-gray-700'}`}>
