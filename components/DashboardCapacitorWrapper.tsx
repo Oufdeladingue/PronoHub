@@ -153,14 +153,23 @@ export default function DashboardCapacitorWrapper() {
         adminPath={getAdminPath()}
       />
 
-      {/* Bouton debug flottant (dev uniquement) */}
-      <Link
-        href="/debug-capacitor"
-        className="fixed bottom-4 right-4 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg z-50 hover:bg-purple-700"
-        title="Debug Capacitor"
-      >
-        <span className="text-xl font-bold">D</span>
-      </Link>
+      {/* Boutons debug flottants (dev uniquement) */}
+      <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-50">
+        <Link
+          href="/logs"
+          className="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-green-700"
+          title="Logs Console"
+        >
+          <span className="text-xl font-bold">L</span>
+        </Link>
+        <Link
+          href="/debug-capacitor"
+          className="w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700"
+          title="Debug Capacitor"
+        >
+          <span className="text-xl font-bold">D</span>
+        </Link>
+      </div>
     </div>
   )
 }
