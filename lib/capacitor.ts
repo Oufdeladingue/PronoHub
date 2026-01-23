@@ -205,7 +205,10 @@ export async function restoreCapacitorSession(): Promise<void> {
   try {
     // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
     const { keys } = await prefs.keys()
+    console.log(`[Capacitor] Toutes les clés dans Preferences (${keys.length}):`, keys)
+
     let restored = 0
+    const restoredKeys: string[] = []
 
     for (const key of keys) {
       // Restaurer les clés qui commencent par 'sb-' (Supabase)
@@ -217,12 +220,13 @@ export async function restoreCapacitorSession(): Promise<void> {
           // car localStorage peut avoir été vidé par Android lors d'un switch d'app
           localStorage.setItem(key, value)
           restored++
+          restoredKeys.push(key)
           console.log(`[Capacitor] Clé restaurée: ${key}`)
         }
       }
     }
 
-    console.log(`[Capacitor] Session restaurée: ${restored} clé(s) depuis Preferences`)
+    console.log(`[Capacitor] Session restaurée: ${restored} clé(s) depuis Preferences:`, restoredKeys)
   } catch (error) {
     console.error('[Capacitor] Erreur restauration session:', error)
   }
