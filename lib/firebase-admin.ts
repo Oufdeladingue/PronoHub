@@ -11,16 +11,36 @@ if (!admin.apps.length) {
 
   if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     try {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+      let keyValue = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+
+      // Nettoyer la valeur si elle est entourée de guillemets
+      if (keyValue.startsWith('"') && keyValue.endsWith('"')) {
+        keyValue = keyValue.slice(1, -1)
+      }
+      if (keyValue.startsWith("'") && keyValue.endsWith("'")) {
+        keyValue = keyValue.slice(1, -1)
+      }
+
+      // Parser le JSON
+      serviceAccount = JSON.parse(keyValue)
+      console.log('[Firebase Admin] Service account chargé pour projet:', serviceAccount.project_id)
     } catch (e) {
       console.error('[Firebase Admin] Erreur parsing FIREBASE_SERVICE_ACCOUNT_KEY:', e)
+      console.error('[Firebase Admin] Valeur (premiers 100 chars):', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100))
     }
+  } else {
+    console.warn('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY non défini')
   }
 
   if (serviceAccount) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    })
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      })
+      console.log('[Firebase Admin] Initialisé avec succès')
+    } catch (e) {
+      console.error('[Firebase Admin] Erreur initialisation:', e)
+    }
   } else {
     console.warn('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY non configuré ou invalide, notifications push désactivées')
   }

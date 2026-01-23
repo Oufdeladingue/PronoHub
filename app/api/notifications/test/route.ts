@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sendPushNotification } from '@/lib/firebase-admin'
+import { sendPushNotification, firebaseAdmin } from '@/lib/firebase-admin'
 
 /**
  * API pour tester l'envoi d'une notification push à l'utilisateur connecté
@@ -46,9 +46,18 @@ export async function POST(request: Request) {
         token: profile.fcm_token.substring(0, 20) + '...'
       })
     } else {
+      // Debug: vérifier si Firebase Admin est initialisé
+      const isFirebaseInitialized = firebaseAdmin.apps.length > 0
+      const hasEnvKey = !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+
       return NextResponse.json({
         success: false,
         error: 'Échec de l\'envoi de la notification',
+        debug: {
+          firebaseInitialized: isFirebaseInitialized,
+          hasEnvKey: hasEnvKey,
+          envKeyPreview: hasEnvKey ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 50) + '...' : null
+        },
         hint: 'Vérifiez la configuration Firebase Admin (FIREBASE_SERVICE_ACCOUNT_KEY)'
       }, { status: 500 })
     }
