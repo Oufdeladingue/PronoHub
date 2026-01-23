@@ -104,13 +104,17 @@ export async function signOutGoogle(): Promise<void> {
 
 /**
  * Rafraîchir le token Google (si disponible)
+ * Retourne uniquement les tokens d'authentification
  */
-export async function refreshGoogleToken(): Promise<GoogleUser | null> {
+export async function refreshGoogleToken(): Promise<{ accessToken: string; idToken: string } | null> {
   if (!GoogleAuth) return null
 
   try {
-    const user = await GoogleAuth.refresh()
-    return user as GoogleUser
+    const authentication = await GoogleAuth.refresh()
+    return {
+      accessToken: authentication.accessToken,
+      idToken: authentication.idToken,
+    }
   } catch (error) {
     console.error('[GoogleAuth] Erreur refresh:', error)
     return null
