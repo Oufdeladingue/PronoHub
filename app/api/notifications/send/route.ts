@@ -117,6 +117,7 @@ export async function POST(request: Request) {
 
 /**
  * Obtenir la clé de préférence pour un type de notification
+ * Utilise les mêmes préférences que les emails pour être synchronisé
  */
 function getPreferenceKey(type: NotificationType): string {
   switch (type) {

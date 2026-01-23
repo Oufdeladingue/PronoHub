@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { sendPushNotification, sendPushNotificationToMany, NotificationType } from '@/lib/firebase-admin'
 
 // Types de notifications avec leurs configurations
+// Utilise les mêmes préférences que les emails pour être synchronisé
 export const NOTIFICATION_CONFIG: Record<NotificationType, {
   prefKey: string
   defaultTitle: string
@@ -15,37 +16,37 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   clickAction?: string
 }> = {
   reminder: {
-    prefKey: 'push_reminder',
+    prefKey: 'email_reminder', // Même préférence pour email et push
     defaultTitle: 'Pronostics en attente ⚽',
     defaultBody: 'N\'oublie pas de renseigner tes pronostics avant le coup d\'envoi !',
     clickAction: '/dashboard',
   },
   tournament_started: {
-    prefKey: 'push_tournament_started',
+    prefKey: 'email_tournament_started',
     defaultTitle: 'Tournoi lancé ! 🚀',
     defaultBody: 'Le capitaine a lancé le tournoi. C\'est parti !',
     clickAction: '/dashboard',
   },
   day_recap: {
-    prefKey: 'push_day_recap',
+    prefKey: 'email_day_recap',
     defaultTitle: 'Récap de la journée 📊',
     defaultBody: 'Découvre les résultats et ton classement du jour.',
     clickAction: '/dashboard',
   },
   tournament_end: {
-    prefKey: 'push_tournament_end',
+    prefKey: 'email_tournament_end',
     defaultTitle: 'Tournoi terminé ! 🏆',
     defaultBody: 'Le tournoi est terminé. Découvre le classement final !',
     clickAction: '/dashboard',
   },
   invite: {
-    prefKey: 'push_invite',
+    prefKey: 'email_invite',
     defaultTitle: 'Invitation à un tournoi 🎯',
     defaultBody: 'Tu as été invité à rejoindre un tournoi.',
     clickAction: '/vestiaire/rejoindre',
   },
   player_joined: {
-    prefKey: 'push_player_joined',
+    prefKey: 'email_player_joined',
     defaultTitle: 'Nouveau joueur ! 👋',
     defaultBody: 'Un nouveau joueur a rejoint ton tournoi.',
     clickAction: '/dashboard',

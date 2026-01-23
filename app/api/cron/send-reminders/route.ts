@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendDetailedReminderEmail } from '@/lib/email/send'
+import { sendPronosticReminder } from '@/lib/notifications'
 
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'emails à traiter par exécution
@@ -41,12 +42,13 @@ export async function GET(request: NextRequest) {
     endOfDay.setHours(23, 59, 59, 999)
 
     // Récupérer les matchs du jour qui n'ont pas encore commencé
+    // SCHEDULED = date prévue, TIMED = date et heure fixées
     const { data: upcomingMatches, error: matchesError } = await supabase
       .from('imported_matches')
       .select('id, competition_id, matchday, home_team_name, away_team_name, utc_date')
       .gte('utc_date', now.toISOString())
       .lte('utc_date', endOfDay.toISOString())
-      .eq('status', 'SCHEDULED')
+      .in('status', ['SCHEDULED', 'TIMED'])
 
     if (matchesError) {
       console.error('Error fetching matches:', matchesError)
@@ -121,15 +123,17 @@ export async function GET(request: NextRequest) {
       // Récupérer les préférences de notification depuis les profils
       const { data: userProfiles } = await supabase
         .from('profiles')
-        .select('id, notification_preferences')
+        .select('id, notification_preferences, fcm_token')
         .in('id', userIds)
 
-      // Filtrer les utilisateurs qui ont activé les rappels
+      // Filtrer les utilisateurs qui ont activé les rappels (même préférence pour email et push)
       const preferences = (userProfiles || [])
         .filter(p => p.notification_preferences?.email_reminder === true)
         .map(p => ({
           user_id: p.id,
-          reminder_enabled: true,
+          email_enabled: true, // Si email_reminder est true, envoyer email
+          push_enabled: !!p.fcm_token, // Si email_reminder est true ET token FCM, envoyer push aussi
+          fcm_token: p.fcm_token,
           quiet_hours_start: '22:00',
           quiet_hours_end: '08:00'
         }))
@@ -218,55 +222,75 @@ export async function GET(request: NextRequest) {
             continue
           }
 
-          // Envoi de l'email de rappel
-          try {
-            const tournamentSlug = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug}`
-            const matchDate = new Date(match.utc_date)
-            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              hour: '2-digit',
-              minute: '2-digit'
-            })
+          // Envoi des rappels (email + push)
+          const tournamentSlug = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug}`
+          const matchDate = new Date(match.utc_date)
+          const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
 
-            const result = await sendDetailedReminderEmail(userEmail, {
-              username: userProfile?.username || 'Joueur',
-              tournamentName: tournament.name,
-              tournamentSlug,
-              competitionName: tournament.competition_name,
-              matchdayName: `Journée ${match.matchday}`,
-              matches: [{
-                homeTeam: match.home_team_name,
-                awayTeam: match.away_team_name,
-                matchDate: formattedDate,
-                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-              }],
-              defaultPredictionMaxPoints: 1
-            })
+          let emailSent = false
+          let pushSent = false
 
-            if (result.success) {
-              // Mettre à jour le log
-              await supabase
-                .from('notification_logs')
-                .update({ status: 'sent', sent_at: new Date().toISOString() })
-                .eq('user_id', userPref.user_id)
-                .eq('notification_type', 'reminder')
-                .eq('match_id', match.id)
-
-              processed++
-            } else {
-              throw new Error(result.error || 'Erreur inconnue')
+          // 1. Envoi email si activé
+          if (userPref.email_enabled && userEmail) {
+            try {
+              const result = await sendDetailedReminderEmail(userEmail, {
+                username: userProfile?.username || 'Joueur',
+                tournamentName: tournament.name,
+                tournamentSlug,
+                competitionName: tournament.competition_name,
+                matchdayName: `Journée ${match.matchday}`,
+                matches: [{
+                  homeTeam: match.home_team_name,
+                  awayTeam: match.away_team_name,
+                  matchDate: formattedDate,
+                  deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                }],
+                defaultPredictionMaxPoints: 1
+              })
+              emailSent = result.success
+              if (!result.success) {
+                errors.push(`Email error for ${userPref.user_id}: ${result.error}`)
+              }
+            } catch (emailError: any) {
+              errors.push(`Email error for ${userPref.user_id}: ${emailError.message}`)
             }
-          } catch (emailError: any) {
-            await supabase
-              .from('notification_logs')
-              .update({ status: 'failed', error_message: emailError.message })
-              .eq('user_id', userPref.user_id)
-              .eq('notification_type', 'reminder')
-              .eq('match_id', match.id)
+          }
 
-            errors.push(`Email error for ${userPref.user_id}: ${emailError.message}`)
+          // 2. Envoi push notification si activé
+          if (userPref.push_enabled) {
+            try {
+              pushSent = await sendPronosticReminder(
+                userPref.user_id,
+                tournament.name,
+                tournamentSlug,
+                1 // On envoie match par match donc 1
+              )
+            } catch (pushError: any) {
+              errors.push(`Push error for ${userPref.user_id}: ${pushError.message}`)
+            }
+          }
+
+          // Mettre à jour le log
+          const status = (emailSent || pushSent) ? 'sent' : 'failed'
+          await supabase
+            .from('notification_logs')
+            .update({
+              status,
+              sent_at: (emailSent || pushSent) ? new Date().toISOString() : null,
+              error_message: (!emailSent && !pushSent) ? 'Email et push échoués' : null
+            })
+            .eq('user_id', userPref.user_id)
+            .eq('notification_type', 'reminder')
+            .eq('match_id', match.id)
+
+          if (emailSent || pushSent) {
+            processed++
           }
         }
       }
