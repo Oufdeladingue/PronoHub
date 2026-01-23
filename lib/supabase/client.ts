@@ -1,8 +1,9 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createCapacitorStorage, isCapacitor } from '@/lib/capacitor'
+import { createCapacitorStorage, isCapacitor, restoreCapacitorSession } from '@/lib/capacitor'
 
 let capacitorClient: ReturnType<typeof createSupabaseClient> | null = null
+let isSessionRestored = false
 
 /**
  * Fetch wrapper qui ajoute automatiquement le token d'authentification
@@ -43,6 +44,16 @@ export function createClient() {
   // Dans Capacitor, utiliser le client avec stockage persistant
   if (typeof window !== 'undefined' && isCapacitor()) {
     if (!capacitorClient) {
+      // IMPORTANT: Restaurer la session depuis Preferences AVANT de créer le client
+      // Sinon Supabase ne verra pas les clés dans localStorage
+      if (!isSessionRestored) {
+        // Restauration synchrone via Promise bloquante
+        // Ce n'est pas idéal mais nécessaire pour que le client Supabase voie les clés
+        restoreCapacitorSession().then(() => {
+          isSessionRestored = true
+        })
+      }
+
       capacitorClient = createSupabaseClient(supabaseUrl, supabaseKey, {
         auth: {
           storage: createCapacitorStorage(),

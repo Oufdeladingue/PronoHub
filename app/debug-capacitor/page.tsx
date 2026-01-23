@@ -100,8 +100,14 @@ export default function DebugCapacitorPage() {
     const statusBar = getCapacitor()?.Plugins?.StatusBar
     if (statusBar) {
       try {
+        // Configurer le style (icônes blanches pour fond sombre, noires pour fond clair)
+        const isDark = ['#000000', '#1e293b', '#0000ff'].includes(color)
+        const style = isDark ? 'DARK' : 'LIGHT'
+
+        await statusBar.setStyle({ style })
+        await statusBar.setOverlaysWebView({ overlay: false })
         await statusBar.setBackgroundColor({ color })
-        setStatusBarResult(`OK: ${color}`)
+        setStatusBarResult(`OK: ${color} (style: ${style})`)
       } catch (e) {
         setStatusBarResult(`Erreur: ${String(e)}`)
       }
