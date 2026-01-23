@@ -4,8 +4,11 @@ const config: CapacitorConfig = {
   appId: 'club.pronohub.app',
   appName: 'PronoHub',
   webDir: 'out',
-  // IMPORTANT: Ne PAS utiliser server.url car ça empêche les plugins natifs de fonctionner
-  // L'APK charge maintenant depuis les assets locaux (out/)
+  server: {
+    // Charger depuis Vercel pour éviter de rebuild l'APK à chaque changement
+    url: 'https://www.pronohub.club',
+    cleartext: false,
+  },
   android: {
     allowMixedContent: false,
   },

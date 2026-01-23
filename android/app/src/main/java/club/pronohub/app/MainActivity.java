@@ -8,11 +8,30 @@ import android.net.Uri;
 import android.os.Build;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.Plugin;
+
+import java.util.ArrayList;
+
+// Import des plugins Capacitor
+import com.capacitorjs.plugins.statusbar.StatusBarPlugin;
+import com.capacitorjs.plugins.preferences.PreferencesPlugin;
+import com.capacitorjs.plugins.app.AppPlugin;
+import com.capacitorjs.plugins.browser.BrowserPlugin;
+import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
+import com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth;
 
 public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Enregistrer les plugins avant super.onCreate()
+        registerPlugin(StatusBarPlugin.class);
+        registerPlugin(PreferencesPlugin.class);
+        registerPlugin(AppPlugin.class);
+        registerPlugin(BrowserPlugin.class);
+        registerPlugin(PushNotificationsPlugin.class);
+        registerPlugin(GoogleAuth.class);
+
         super.onCreate(savedInstanceState);
 
         // Créer le canal de notification pour Android 8.0+
