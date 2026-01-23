@@ -57,7 +57,22 @@
       "Bash(code \"c:/Users/mjardin/Desktop/PronoHub/.env.local\")",
       "Bash(vercel env:*)",
       "Bash(dir:*)",
-      "Bash(./gradlew assembleDebug:*)"
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(del supabase.zip)",
+      "Bash(\"C:\\\\Users\\\\kochr\\\\AppData\\\\Local\\\\supabase-cli\\\\supabase.exe\" --version)",
+      "Bash(\"C:\\\\Users\\\\kochr\\\\AppData\\\\Local\\\\supabase-cli\\\\supabase.exe\" login)",
+      "Bash(export SUPABASE_ACCESS_TOKEN=\"sbp_086882f6f2d5a6ca15dadb5c1be3674c28dd78fe\")",
+      "Bash(\"C:\\\\Users\\\\kochr\\\\AppData\\\\Local\\\\supabase-cli\\\\supabase.exe\" projects list)",
+      "Bash(\"C:\\\\Users\\\\kochr\\\\AppData\\\\Local\\\\supabase-cli\\\\supabase.exe\" link --project-ref txpmihreaxmtsxlgmdko)",
+      "Bash(\"C:\\\\Users\\\\kochr\\\\AppData\\\\Local\\\\supabase-cli\\\\supabase.exe\" db dump --schema public --data-only=false)",
+      "Bash(~/.bashrc)",
+      "Bash(npx cap sync android)",
+      "Bash(xargs cat:*)",
+      "Bash(keytool:*)",
+      "Bash(supabase db execute:*)",
+      "Bash(C:/Users/kochr/AppData/Local/supabase-cli/supabase.exe db execute:*)",
+      "Bash(C:/Users/kochr/AppData/Local/supabase-cli/supabase.exe db push:*)",
+      "Bash(echo \"Le serveur dev doit être lancé. Lance ''npm run dev'' puis accède à http://localhost:3100/api/test-inactive-email\")"
     ],
     "deny": [],
     "ask": []

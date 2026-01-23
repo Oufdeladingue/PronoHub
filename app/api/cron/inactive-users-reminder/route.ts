@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendInactiveUserReminderEmail } from '@/lib/email/send'
+import { sendPushNotification } from '@/lib/firebase-admin'
 
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'utilisateurs à traiter par exécution
 const INACTIVE_DAYS = 10 // Jours d'inactivité avant envoi
+
+// Contenu de la notification push
+const PUSH_TITLE = '🗣️ Expert foot ?'
+const PUSH_BODY = 'Beaucoup de débats, zéro tournoi. PronoHub s\'inquiète.'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -55,6 +60,7 @@ export async function GET(request: NextRequest) {
         id,
         email,
         username,
+        fcm_token,
         created_at,
         inactive_reminder_sent_at
       `)
@@ -110,52 +116,82 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 3. Envoyer les emails
+    // 3. Envoyer les emails et les notifications push
     let emailsSent = 0
     let emailsFailed = 0
+    let pushSent = 0
+    let pushFailed = 0
     const errors: string[] = []
 
     for (const user of usersToNotify) {
-      if (!user.email) {
-        console.log(`[INACTIVE-REMINDER] User ${user.id} n'a pas d'email`)
-        continue
+      let emailSuccess = false
+      let pushSuccess = false
+
+      // Envoyer l'email si l'utilisateur a un email
+      if (user.email) {
+        try {
+          const result = await sendInactiveUserReminderEmail(user.email, {
+            username: user.username || ''
+          })
+
+          if (result.success) {
+            emailsSent++
+            emailSuccess = true
+            console.log(`[INACTIVE-REMINDER] Email envoyé à ${user.email}`)
+          } else {
+            emailsFailed++
+            errors.push(`Email ${user.email}: ${result.error}`)
+            console.error(`[INACTIVE-REMINDER] Échec envoi email à ${user.email}:`, result.error)
+          }
+        } catch (err) {
+          emailsFailed++
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          errors.push(`Email ${user.email}: ${errorMsg}`)
+          console.error(`[INACTIVE-REMINDER] Exception email pour ${user.email}:`, err)
+        }
       }
 
-      try {
-        const result = await sendInactiveUserReminderEmail(user.email, {
-          username: user.username || ''
-        })
+      // Envoyer la notification push si l'utilisateur a un token FCM
+      if (user.fcm_token) {
+        try {
+          const pushResult = await sendPushNotification(
+            user.fcm_token,
+            PUSH_TITLE,
+            PUSH_BODY,
+            { type: 'inactive_reminder', url: '/vestiaire' }
+          )
 
-        if (result.success) {
-          emailsSent++
-
-          // Marquer l'email comme envoyé
-          await supabase
-            .from('profiles')
-            .update({ inactive_reminder_sent_at: now.toISOString() })
-            .eq('id', user.id)
-
-          console.log(`[INACTIVE-REMINDER] Email envoyé à ${user.email}`)
-        } else {
-          emailsFailed++
-          errors.push(`${user.email}: ${result.error}`)
-          console.error(`[INACTIVE-REMINDER] Échec envoi à ${user.email}:`, result.error)
+          if (pushResult) {
+            pushSent++
+            pushSuccess = true
+            console.log(`[INACTIVE-REMINDER] Push envoyé à user ${user.id}`)
+          } else {
+            pushFailed++
+          }
+        } catch (err) {
+          pushFailed++
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          errors.push(`Push ${user.id}: ${errorMsg}`)
+          console.error(`[INACTIVE-REMINDER] Exception push pour ${user.id}:`, err)
         }
-      } catch (err) {
-        emailsFailed++
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-        errors.push(`${user.email}: ${errorMsg}`)
-        console.error(`[INACTIVE-REMINDER] Exception pour ${user.email}:`, err)
+      }
+
+      // Marquer comme envoyé si au moins un canal a fonctionné
+      if (emailSuccess || pushSuccess) {
+        await supabase
+          .from('profiles')
+          .update({ inactive_reminder_sent_at: now.toISOString() })
+          .eq('id', user.id)
       }
     }
 
-    console.log(`[INACTIVE-REMINDER] Terminé: ${emailsSent} envoyés, ${emailsFailed} échecs`)
+    console.log(`[INACTIVE-REMINDER] Terminé: ${emailsSent} emails, ${pushSent} push envoyés`)
 
     return NextResponse.json({
       success: true,
       message: `Relance utilisateurs inactifs terminée`,
-      processed: emailsSent,
-      failed: emailsFailed,
+      emails: { sent: emailsSent, failed: emailsFailed },
+      push: { sent: pushSent, failed: pushFailed },
       skipped: inactiveUsers.length - usersToNotify.length,
       errors: errors.length > 0 ? errors : undefined
     })
