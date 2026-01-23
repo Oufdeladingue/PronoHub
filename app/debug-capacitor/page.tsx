@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 export default function DebugCapacitorPage() {
   const [debugInfo, setDebugInfo] = useState<Record<string, unknown>>({})
+  const [statusBarResult, setStatusBarResult] = useState<string>('non testé')
 
   useEffect(() => {
     const info: Record<string, unknown> = {}
@@ -71,9 +72,38 @@ export default function DebugCapacitorPage() {
     setDebugInfo(info)
   }, [])
 
+  // Fonction pour tester le changement de couleur status bar
+  const testStatusBar = async (color: string) => {
+    const win = window as unknown as { Capacitor?: { Plugins?: { StatusBar?: { setBackgroundColor: (opts: { color: string }) => Promise<void> } } } }
+    const statusBar = win.Capacitor?.Plugins?.StatusBar
+    if (statusBar) {
+      try {
+        await statusBar.setBackgroundColor({ color })
+        setStatusBarResult(`OK: couleur ${color} appliquée`)
+      } catch (e) {
+        setStatusBarResult(`Erreur: ${String(e)}`)
+      }
+    } else {
+      setStatusBarResult('StatusBar plugin non disponible')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black text-white p-4">
       <h1 className="text-xl font-bold mb-4 text-[#ff9900]">Debug Capacitor</h1>
+
+      {/* Test Status Bar */}
+      <div className="mb-4 p-3 bg-gray-800 rounded">
+        <p className="text-sm mb-2">Test Status Bar: <span className="text-yellow-400">{statusBarResult}</span></p>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => testStatusBar('#ff0000')} className="px-3 py-1 bg-red-600 text-white rounded text-sm">Rouge</button>
+          <button onClick={() => testStatusBar('#00ff00')} className="px-3 py-1 bg-green-600 text-white rounded text-sm">Vert</button>
+          <button onClick={() => testStatusBar('#0000ff')} className="px-3 py-1 bg-blue-600 text-white rounded text-sm">Bleu</button>
+          <button onClick={() => testStatusBar('#000000')} className="px-3 py-1 bg-gray-600 text-white rounded text-sm">Noir</button>
+          <button onClick={() => testStatusBar('#1e293b')} className="px-3 py-1 bg-slate-700 text-white rounded text-sm">Nav</button>
+        </div>
+      </div>
+
       <pre className="text-xs whitespace-pre-wrap break-all bg-gray-900 p-4 rounded">
         {JSON.stringify(debugInfo, null, 2)}
       </pre>
