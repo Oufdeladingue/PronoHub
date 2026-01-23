@@ -3,12 +3,19 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
-import Footer from '@/components/Footer'
+import { setStatusBarColor, isCapacitor } from '@/lib/capacitor'
 
 // Landing page "Coming Soon" pour la production
 function ComingSoonPage() {
+  useEffect(() => {
+    // Status bar noire sur la page d'accueil
+    if (isCapacitor()) {
+      setStatusBarColor('#000000')
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
       <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
@@ -48,7 +55,16 @@ function ComingSoonPage() {
           </p>
         </div>
       </main>
-      <Footer variant="minimal" />
+      {/* Footer minimal inline pour éviter la zone grise */}
+      <div className="text-center py-2 text-[10px] text-gray-500">
+        © {new Date().getFullYear()} PronoHub
+        <span className="mx-2">•</span>
+        <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
+        <span className="mx-2">•</span>
+        <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
+        <span className="mx-2">•</span>
+        <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+      </div>
     </div>
   )
 }
@@ -59,6 +75,11 @@ function NormalHomePage() {
   const [logoWidth, setLogoWidth] = useState<number>(0)
 
   useEffect(() => {
+    // Status bar noire sur la page d'accueil
+    if (isCapacitor()) {
+      setStatusBarColor('#000000')
+    }
+
     if (logoRef.current) {
       const updateWidth = () => {
         const img = logoRef.current?.querySelector('img')
@@ -83,7 +104,7 @@ function NormalHomePage() {
   }, [])
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
       <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
@@ -129,7 +150,16 @@ function NormalHomePage() {
           </div>
         </div>
       </main>
-      <Footer variant="minimal" />
+      {/* Footer minimal inline pour éviter la zone grise */}
+      <div className="text-center py-2 text-[10px] text-gray-500">
+        © {new Date().getFullYear()} PronoHub
+        <span className="mx-2">•</span>
+        <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
+        <span className="mx-2">•</span>
+        <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
+        <span className="mx-2">•</span>
+        <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+      </div>
     </div>
   )
 }

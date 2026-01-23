@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import Footer from '@/components/Footer'
 import { Suspense } from 'react'
-import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl } from '@/lib/capacitor'
+import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionToPreferences, setStatusBarColor } from '@/lib/capacitor'
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 
 function LoginForm() {
@@ -42,8 +41,12 @@ function LoginForm() {
     'On fait circuler les données… tiki-taka de chargement.'
   ]
 
-  // Initialiser Google Auth natif au montage (Capacitor Android)
+  // Initialiser Google Auth natif et status bar au montage (Capacitor Android)
   useEffect(() => {
+    if (isCapacitor()) {
+      // Status bar noire pour la page de login
+      setStatusBarColor('#000000')
+    }
     if (isNativeGoogleAuthAvailable()) {
       initGoogleAuth()
     }
@@ -90,6 +93,9 @@ function LoginForm() {
           if (error) {
             throw error
           }
+
+          // Sauvegarder la session dans Capacitor Preferences pour persistance
+          await saveSessionToPreferences()
 
           // Vérifier le rôle pour la redirection
           const { data: profile } = await supabase
@@ -202,6 +208,9 @@ function LoginForm() {
             : error.message)
         }
 
+        // Sauvegarder la session dans Capacitor Preferences pour persistance
+        await saveSessionToPreferences()
+
         // Vérifier le rôle pour la redirection
         const { data: profile } = await supabase
           .from('profiles')
@@ -298,9 +307,9 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col auth-page">
+    <div className="min-h-screen flex flex-col auth-page overflow-hidden">
       <div
-        className="flex-1 flex items-center justify-center relative overflow-hidden"
+        className="flex-1 flex items-center justify-center relative"
         style={{
           backgroundImage: "url('/images/room-bg.jpg')",
           backgroundSize: "cover",
@@ -429,7 +438,16 @@ function LoginForm() {
         </p>
       </div>
       </div>
-      <Footer variant="minimal" />
+      {/* Footer minimal inline pour éviter la zone grise */}
+      <div className="text-center py-2 text-[10px] text-gray-500">
+        © {new Date().getFullYear()} PronoHub
+        <span className="mx-2">•</span>
+        <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
+        <span className="mx-2">•</span>
+        <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
+        <span className="mx-2">•</span>
+        <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+      </div>
     </div>
   )
 }

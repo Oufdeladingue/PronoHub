@@ -136,6 +136,21 @@ export function isNativeGoogleAuthAvailable(): boolean {
 }
 
 /**
+ * Change la couleur de la status bar Android
+ * @param color - Couleur hexadécimale (ex: '#1e293b' pour nav, '#000000' pour pages auth)
+ */
+export async function setStatusBarColor(color: string): Promise<void> {
+  if (!hasCapacitorBridge() || !isAndroid()) return
+
+  try {
+    const { StatusBar } = await import('@capacitor/status-bar')
+    await StatusBar.setBackgroundColor({ color })
+  } catch {
+    // Ignorer si le plugin n'est pas disponible
+  }
+}
+
+/**
  * Restaurer la session depuis Capacitor Preferences vers localStorage
  * À appeler au démarrage de l'app Capacitor (uniquement si bridge disponible)
  *
@@ -151,21 +166,51 @@ export async function restoreCapacitorSession(): Promise<void> {
 
     // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
     const { keys } = await Preferences.keys()
+    let restored = 0
 
     for (const key of keys) {
       // Restaurer les clés qui commencent par 'sb-' (Supabase)
+      // Format: sb-{projectId}-auth-token ou sb-{url}-auth-token
       if (key.startsWith('sb-')) {
         const { value } = await Preferences.get({ key })
         if (value) {
           // TOUJOURS écraser localStorage avec la valeur de Preferences
           // car localStorage peut avoir été vidé par Android lors d'un switch d'app
           localStorage.setItem(key, value)
+          restored++
+          console.log(`[Capacitor] Clé restaurée: ${key}`)
         }
       }
     }
 
-    console.log('[Capacitor] Session restaurée depuis Preferences')
+    console.log(`[Capacitor] Session restaurée: ${restored} clé(s) depuis Preferences`)
   } catch (error) {
     console.error('[Capacitor] Erreur restauration session:', error)
+  }
+}
+
+/**
+ * Forcer la sauvegarde immédiate de toutes les clés Supabase dans Preferences
+ * Utile après un login réussi
+ */
+export async function saveSessionToPreferences(): Promise<void> {
+  if (!hasCapacitorBridge()) return
+
+  try {
+    const { Preferences } = await import('@capacitor/preferences')
+
+    // Parcourir localStorage et sauvegarder toutes les clés Supabase
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('sb-')) {
+        const value = localStorage.getItem(key)
+        if (value) {
+          await Preferences.set({ key, value })
+          console.log(`[Capacitor] Clé sauvegardée: ${key}`)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Capacitor] Erreur sauvegarde session:', error)
   }
 }

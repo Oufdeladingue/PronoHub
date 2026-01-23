@@ -8,14 +8,15 @@ interface CapacitorSessionProviderProps {
 }
 
 /**
- * Configure la status bar Android pour être transparente
+ * Configure la status bar Android
+ * Utilise la couleur de la nav par défaut (#1e293b)
  */
 async function configureStatusBar() {
   try {
     const { StatusBar, Style } = await import('@capacitor/status-bar')
-    // Status bar noire avec texte clair (s'adapte au fond noir de l'app)
+    // Status bar avec couleur de la nav (thème sombre)
     await StatusBar.setStyle({ style: Style.Dark })
-    await StatusBar.setBackgroundColor({ color: '#000000' })
+    await StatusBar.setBackgroundColor({ color: '#1e293b' })
     // Sur Android, ne pas permettre le contenu sous la status bar
     await StatusBar.setOverlaysWebView({ overlay: false })
   } catch (e) {

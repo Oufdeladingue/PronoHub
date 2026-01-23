@@ -62,26 +62,24 @@ export default function Footer({ variant = 'full' }: FooterProps) {
   // Version complète
   return (
     <>
-      {/* Footer MOBILE - Non fixé, en bas de page */}
-      {/* min-h-[72px] réserve l'espace pour éviter le CLS (layout shift) */}
-      {/* pb-safe ajoute un padding pour la barre de nav Android */}
-      <footer className="md:hidden theme-nav border-t border-[var(--border-color)] mt-8 min-h-[72px] pb-safe">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col items-center gap-3">
+      {/* Footer MOBILE - Compact, en bas de page */}
+      <footer className="md:hidden theme-nav border-t border-[var(--border-color)] mt-4 py-2 pb-safe">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col items-center gap-1">
             {/* Logo et copyright */}
             <div className="flex items-center gap-2">
               <img
                 src="/images/logo.svg"
                 alt="PronoHub"
-                className="w-6 h-6"
+                className="w-5 h-5"
               />
-              <span className="text-gray-400 text-xs">
+              <span className="text-gray-400 text-[10px]">
                 © {currentYear} PronoHub
               </span>
             </div>
 
             {/* Liens */}
-            <nav className="flex items-center gap-4 text-xs">
+            <nav className="flex items-center gap-3 text-[10px]">
               <Link
                 href="/about"
                 className="text-gray-400 hover:text-[#ff9900] transition"
