@@ -447,6 +447,8 @@ function LoginForm() {
         <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
         <span className="mx-2">•</span>
         <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+        <span className="mx-2">•</span>
+        <Link href="/debug-capacitor" className="hover:text-[#ff9900]">Debug</Link>
       </div>
     </div>
   )
