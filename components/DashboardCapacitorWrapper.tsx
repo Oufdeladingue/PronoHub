@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import Image from 'next/image'
 import Navigation from '@/components/Navigation'
@@ -151,6 +152,15 @@ export default function DashboardCapacitorWrapper() {
         leftTournaments={dashboardData.leftTournaments}
         adminPath={getAdminPath()}
       />
+
+      {/* Bouton debug flottant (dev uniquement) */}
+      <Link
+        href="/debug-capacitor"
+        className="fixed bottom-4 right-4 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center shadow-lg z-50 hover:bg-purple-700"
+        title="Debug Capacitor"
+      >
+        <span className="text-xl font-bold">D</span>
+      </Link>
     </div>
   )
 }
