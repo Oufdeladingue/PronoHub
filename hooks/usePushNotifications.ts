@@ -8,8 +8,8 @@ const NOTIFICATION_PROMPT_KEY = 'pronohub_notification_prompt_shown'
 
 /**
  * Hook pour gérer les notifications push
- * - Web: utilise Firebase Web SDK avec l'API Notification
- * - Capacitor: utilise le plugin natif @capacitor/push-notifications
+ * - Capacitor uniquement: utilise le plugin natif @capacitor/push-notifications
+ * - La modale de permission n'est affichée que sur mobile (Capacitor)
  */
 export function usePushNotifications() {
   const [token, setToken] = useState<string | null>(null)
@@ -118,9 +118,10 @@ export function usePushNotifications() {
     const inCapacitor = isCapacitor()
     console.log('[Push] Check notifications, isCapacitor:', inCapacitor)
 
-    // Vérifier si les notifications sont supportées
-    if (!inCapacitor && !('Notification' in window)) {
-      console.log('[Push] Notifications non supportées (pas Capacitor, pas Notification API)')
+    // Les notifications push ne sont activées que dans l'app Capacitor (Android/iOS)
+    // Sur le web, on ne demande pas les permissions car moins pertinent
+    if (!inCapacitor) {
+      console.log('[Push] Pas dans Capacitor, notifications désactivées sur web')
       setIsLoading(false)
       return
     }
