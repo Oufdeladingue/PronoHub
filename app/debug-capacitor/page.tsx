@@ -11,7 +11,9 @@ interface PreferencesPlugin {
 }
 
 interface StatusBarPlugin {
+  setStyle: (opts: { style: string }) => Promise<void>
   setBackgroundColor: (opts: { color: string }) => Promise<void>
+  setOverlaysWebView: (opts: { overlay: boolean }) => Promise<void>
 }
 
 interface CapacitorWindow {
