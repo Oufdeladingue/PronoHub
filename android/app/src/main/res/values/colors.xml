@@ -4,4 +4,6 @@
     <color name="colorPrimaryDark">#000000</color>
     <color name="colorAccent">#FF9900</color>
     <color name="splashBackground">#000000</color>
+    <color name="pronohub_orange">#FF9900</color>
+    <color name="pronohub_yellow">#FFCC00</color>
 </resources>

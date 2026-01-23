@@ -84,10 +84,10 @@ export async function sendPushNotification(
       android: {
         priority: 'high',
         notification: {
-          icon: 'ic_notification', // Icône de notification (à créer)
-          color: '#ff9900', // Couleur PronoHub
+          icon: 'ic_notification',
+          color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_default',
-          sound: 'default',
+          sound: 'notification_sound', // Son personnalisé (sans extension)
         },
       },
     }
@@ -134,9 +134,9 @@ export async function sendPushNotificationToMany(
         priority: 'high',
         notification: {
           icon: 'ic_notification',
-          color: '#ff9900',
+          color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_default',
-          sound: 'default',
+          sound: 'notification_sound', // Son personnalisé (sans extension)
         },
       },
     }

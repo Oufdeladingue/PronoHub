@@ -52,7 +52,12 @@
       "Bash(done)",
       "Bash(npx sharp:*)",
       "Bash(git stash:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(dir /s /b \"c:\\\\Users\\\\mjardin\\\\Desktop\\\\PronoHub\\\\app\\\\*tournamentSlug*\\\\*.tsx\")",
+      "Bash(code \"c:/Users/mjardin/Desktop/PronoHub/.env.local\")",
+      "Bash(vercel env:*)",
+      "Bash(dir:*)",
+      "Bash(./gradlew assembleDebug:*)"
     ],
     "deny": [],
     "ask": []

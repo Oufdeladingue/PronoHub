@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { isCapacitor } from '@/lib/capacitor'
 
@@ -18,10 +19,30 @@ export function usePushNotifications() {
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  const router = useRouter()
   const supabaseRef = useRef(createClient())
   const hasInitialized = useRef(false)
   const isProcessing = useRef(false)
   const checkCount = useRef(0)
+  const listenersRegistered = useRef(false)
+
+  // Gérer le clic sur une notification
+  const handleNotificationClick = useCallback((data: Record<string, string>) => {
+    console.log('[Push] Notification cliquée:', data)
+
+    // Récupérer l'URL de redirection
+    const clickAction = data.clickAction || data.click_action || '/dashboard'
+
+    // Naviguer vers la page appropriée
+    if (clickAction.startsWith('/')) {
+      router.push(clickAction)
+    } else if (clickAction.startsWith('http')) {
+      // URL externe (rare)
+      window.location.href = clickAction
+    } else {
+      router.push(`/${clickAction}`)
+    }
+  }, [router])
 
   // Fonction pour sauvegarder le token
   const saveToken = async (fcmToken: string) => {
@@ -55,20 +76,39 @@ export function usePushNotifications() {
         console.log('[Push] Permission result:', result.receive)
 
         if (result.receive === 'granted') {
+          // Enregistrer les listeners une seule fois
+          if (!listenersRegistered.current) {
+            listenersRegistered.current = true
+
+            // Écouter le token
+            PushNotifications.addListener('registration', async (tokenData) => {
+              console.log('[Push] Token natif obtenu:', tokenData.value.substring(0, 20) + '...')
+              setToken(tokenData.value)
+              setIsSupported(true)
+              await saveToken(tokenData.value)
+            })
+
+            PushNotifications.addListener('registrationError', (error) => {
+              console.error('[Push] Erreur registration:', error)
+              setIsSupported(false)
+            })
+
+            // Notification reçue en foreground
+            PushNotifications.addListener('pushNotificationReceived', (notification) => {
+              console.log('[Push] Notification reçue (foreground):', notification)
+              // En foreground, la notification s'affiche automatiquement
+              // On pourrait afficher un toast personnalisé ici si besoin
+            })
+
+            // Utilisateur a cliqué sur la notification
+            PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+              console.log('[Push] Clic sur notification:', action)
+              const data = action.notification.data || {}
+              handleNotificationClick(data)
+            })
+          }
+
           await PushNotifications.register()
-
-          // Écouter le token
-          PushNotifications.addListener('registration', async (tokenData) => {
-            console.log('[Push] Token natif obtenu:', tokenData.value.substring(0, 20) + '...')
-            setToken(tokenData.value)
-            setIsSupported(true)
-            await saveToken(tokenData.value)
-          })
-
-          PushNotifications.addListener('registrationError', (error) => {
-            console.error('[Push] Erreur registration:', error)
-            setIsSupported(false)
-          })
         } else {
           setIsSupported(false)
         }
