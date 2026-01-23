@@ -32,33 +32,31 @@ export async function POST(request: Request) {
     }
 
     // Envoyer la notification de test
-    const success = await sendPushNotification(
-      profile.fcm_token,
-      'Test PronoHub',
-      `Bravo ${profile.username || 'champion'} ! Les notifications fonctionnent.`,
-      { type: 'test', timestamp: new Date().toISOString() }
-    )
+    try {
+      const success = await sendPushNotification(
+        profile.fcm_token,
+        'Test PronoHub',
+        `Bravo ${profile.username || 'champion'} ! Les notifications fonctionnent.`,
+        { type: 'test', timestamp: new Date().toISOString() }
+      )
 
-    if (success) {
       return NextResponse.json({
         success: true,
         message: 'Notification de test envoyée',
         token: profile.fcm_token.substring(0, 20) + '...'
       })
-    } else {
-      // Debug: vérifier si Firebase Admin est initialisé
-      const isFirebaseInitialized = firebaseAdmin.apps.length > 0
-      const hasEnvKey = !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-
+    } catch (fcmError: any) {
       return NextResponse.json({
         success: false,
         error: 'Échec de l\'envoi de la notification',
-        debug: {
-          firebaseInitialized: isFirebaseInitialized,
-          hasEnvKey: hasEnvKey,
-          envKeyPreview: hasEnvKey ? process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 50) + '...' : null
+        fcmError: {
+          code: fcmError.code || 'unknown',
+          message: fcmError.message || String(fcmError)
         },
-        hint: 'Vérifiez la configuration Firebase Admin (FIREBASE_SERVICE_ACCOUNT_KEY)'
+        token: profile.fcm_token.substring(0, 30) + '...',
+        hint: fcmError.code === 'messaging/invalid-registration-token'
+          ? 'Le token FCM est invalide. Reconnectez-vous sur l\'app Android pour générer un nouveau token.'
+          : 'Erreur Firebase Cloud Messaging'
       }, { status: 500 })
     }
   } catch (error) {

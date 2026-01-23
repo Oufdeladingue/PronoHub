@@ -96,7 +96,7 @@ export async function sendPushNotification(
     console.log('[Push] Notification envoyée:', response)
     return true
   } catch (error: any) {
-    console.error('[Push] Erreur envoi notification:', error)
+    console.error('[Push] Erreur envoi notification:', error.code, error.message)
 
     // Si le token est invalide, on pourrait le supprimer de la base
     if (error.code === 'messaging/invalid-registration-token' ||
@@ -104,7 +104,8 @@ export async function sendPushNotification(
       console.log('[Push] Token invalide, à supprimer:', fcmToken.substring(0, 20) + '...')
     }
 
-    return false
+    // Retourner l'erreur pour debug
+    throw error
   }
 }
 
