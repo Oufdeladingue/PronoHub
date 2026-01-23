@@ -49,11 +49,12 @@ export async function POST(request: Request) {
       const endOfDay = new Date(now)
       endOfDay.setHours(23, 59, 59, 999)
 
-      // Récupérer les tournois où l'utilisateur participe
+      // Récupérer les tournois ACTIFS où l'utilisateur participe
       const { data: participations } = await supabase
         .from('tournament_participants')
-        .select('tournament_id, tournaments(id, name, slug, competition_id, starting_matchday, ending_matchday)')
+        .select('tournament_id, tournaments!inner(id, name, slug, competition_id, starting_matchday, ending_matchday, status)')
         .eq('user_id', user.id)
+        .eq('tournaments.status', 'active')
 
       if (participations && participations.length > 0) {
         // Récupérer les matchs du jour
