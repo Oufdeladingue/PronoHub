@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const realData = body.realData === true
     const username = profile.username || 'champion'
 
-    // Si realData et type=reminder, récupérer les vrais matchs manquants
+    // Si realData et type=reminder, récupérer les vrais matchs manquants (tous les tournois)
     let realReminderNotif: { title: string; body: string; data: Record<string, string> } | null = null
 
     if (realData && type === 'reminder') {
@@ -55,6 +55,10 @@ export async function POST(request: Request) {
         .select('tournament_id, tournaments!inner(id, name, slug, competition_id, starting_matchday, ending_matchday, status)')
         .eq('user_id', user.id)
         .eq('tournaments.status', 'active')
+
+      // Collecter TOUS les tournois avec matchs manquants
+      const tournamentsWithMissing: { name: string; matchCount: number; deadline: Date }[] = []
+      let earliestDeadline = new Date('2099-12-31')
 
       if (participations && participations.length > 0) {
         // Récupérer les matchs du jour
@@ -91,35 +95,61 @@ export async function POST(request: Request) {
             const missingMatches = tournamentMatches.filter(m => !predictedMatchIds.has(m.id))
 
             if (missingMatches.length > 0) {
-              const firstMatch = missingMatches[0]
-              const matchDate = new Date(firstMatch.utc_date)
-              const deadline = new Date(matchDate.getTime() - 30 * 60 * 1000)
-              const deadlineStr = deadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-              const tournamentSlug = `${tournament.name.toLowerCase().replace(/\\s+/g, '-')}_${tournament.slug}`
-
-              realReminderNotif = {
-                title: 'Pronostics en attente ⚽',
-                body: `Tu n'as pas encore pronostiqué pour ${tournament.name}. ${missingMatches.length} match${missingMatches.length > 1 ? 's' : ''} à pronostiquer avant ${deadlineStr} !`,
-                data: {
-                  type: 'reminder',
-                  tournamentSlug,
-                  tournamentName: tournament.name,
-                  missingCount: String(missingMatches.length),
-                  firstMatch: `${firstMatch.home_team_name} - ${firstMatch.away_team_name}`
+              // Trouver la deadline la plus proche pour ce tournoi
+              for (const match of missingMatches) {
+                const matchDate = new Date(match.utc_date)
+                const deadline = new Date(matchDate.getTime() - 30 * 60 * 1000)
+                if (deadline < earliestDeadline) {
+                  earliestDeadline = deadline
                 }
               }
-              break // Prendre le premier tournoi avec des matchs manquants
+
+              tournamentsWithMissing.push({
+                name: tournament.name,
+                matchCount: missingMatches.length,
+                deadline: earliestDeadline
+              })
             }
           }
         }
       }
 
-      if (!realReminderNotif) {
+      if (tournamentsWithMissing.length === 0) {
         return NextResponse.json({
           success: false,
           error: 'Aucun match manquant trouvé pour aujourd\'hui',
           hint: 'Tu as déjà pronostiqué tous tes matchs du jour !'
         })
+      }
+
+      // Construire la notification GLOBALE
+      const totalMissingMatches = tournamentsWithMissing.reduce((sum, t) => sum + t.matchCount, 0)
+      const deadlineStr = earliestDeadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+
+      let title: string
+      let body: string
+
+      if (tournamentsWithMissing.length === 1) {
+        // Un seul tournoi
+        const t = tournamentsWithMissing[0]
+        title = `${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
+        body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
+      } else {
+        // Plusieurs tournois
+        title = `${totalMissingMatches} matchs à pronostiquer`
+        const tournamentNames = tournamentsWithMissing.map(t => t.name).join(', ')
+        body = `${tournamentsWithMissing.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
+      }
+
+      realReminderNotif = {
+        title,
+        body,
+        data: {
+          type: 'reminder',
+          totalMatches: String(totalMissingMatches),
+          tournamentsCount: String(tournamentsWithMissing.length),
+          clickAction: '/dashboard'
+        }
       }
     }
 
