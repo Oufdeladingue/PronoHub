@@ -72,7 +72,8 @@
       "Bash(supabase db execute:*)",
       "Bash(C:/Users/kochr/AppData/Local/supabase-cli/supabase.exe db execute:*)",
       "Bash(C:/Users/kochr/AppData/Local/supabase-cli/supabase.exe db push:*)",
-      "Bash(echo \"Le serveur dev doit être lancé. Lance ''npm run dev'' puis accède à http://localhost:3100/api/test-inactive-email\")"
+      "Bash(echo \"Le serveur dev doit être lancé. Lance ''npm run dev'' puis accède à http://localhost:3100/api/test-inactive-email\")",
+      "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/keytool.exe\" -list -v -keystore \"/c/Users/kochr/.android/debug.keystore\" -alias androiddebugkey -storepass android)"
     ],
     "deny": [],
     "ask": []

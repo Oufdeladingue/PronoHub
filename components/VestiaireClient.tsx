@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
 import { Trophy, Users, Award, Check, Star, Sparkles } from 'lucide-react'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface Competition {
   id: number | string
@@ -127,7 +128,7 @@ export default function VestiaireClient() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/competitions/active')
+      const response = await fetchWithAuth('/api/competitions/active')
       if (!response.ok) throw new Error('Erreur lors du chargement des compétitions')
 
       const data = await response.json()

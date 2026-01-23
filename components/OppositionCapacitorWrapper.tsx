@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import Image from 'next/image'
 import OppositionClient from '@/app/[tournamentSlug]/opposition/OppositionClient'
 
@@ -51,11 +51,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
       }
 
       try {
-        const response = await fetch(`/api/tournament/data?slug=${encodeURIComponent(tournamentSlug)}`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        })
+        const response = await fetchWithAuth(`/api/tournament/data?slug=${encodeURIComponent(tournamentSlug)}`)
 
         if (!response.ok) {
           if (response.status === 401) {

@@ -8,6 +8,7 @@ import { TournamentTypeResult } from '@/types/monetization'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface Competition {
   id: number | string
@@ -315,7 +316,7 @@ export default function TableauNoirPage() {
         tournamentData.competitionId = competition.id
       }
 
-      const response = await fetch('/api/tournaments/create', {
+      const response = await fetchWithAuth('/api/tournaments/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tournamentData)

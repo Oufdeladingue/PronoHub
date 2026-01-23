@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
+import { fetchWithAuth } from '@/lib/supabase/client'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -143,7 +144,7 @@ function DashboardContent({
   const handleCheckout = async (purchaseType: string) => {
     setIsCheckoutLoading(purchaseType)
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ purchaseType }),
@@ -183,7 +184,7 @@ function DashboardContent({
     setJoinError('')
 
     try {
-      const response = await fetch('/api/tournaments/join', {
+      const response = await fetchWithAuth('/api/tournaments/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteCode: joinCode.toUpperCase() })
@@ -235,7 +236,7 @@ function DashboardContent({
 
     setIsUsingSlot(true)
     try {
-      const response = await fetch('/api/tournaments/join', {
+      const response = await fetchWithAuth('/api/tournaments/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

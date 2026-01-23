@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -222,7 +222,7 @@ function ProfileContent() {
 
     async function loadAvatars() {
       try {
-        const response = await fetch('/api/avatars')
+        const response = await fetchWithAuth('/api/avatars')
         const data = await response.json()
         // Mélanger aléatoirement les avatars
         const shuffledAvatars = [...(data.avatars || [])].sort(() => Math.random() - 0.5)
@@ -256,7 +256,7 @@ function ProfileContent() {
   // Fonction pour charger les trophées (uniquement pour affichage des avatars, pas de recalcul)
   async function loadTrophiesForAvatars() {
     try {
-      const response = await fetch('/api/user/trophies')
+      const response = await fetchWithAuth('/api/user/trophies')
       const data = await response.json()
       if (data.success) {
         setTrophies(data.trophies)
@@ -402,7 +402,7 @@ function ProfileContent() {
   const loadStats = async () => {
     setLoadingStats(true)
     try {
-      const response = await fetch('/api/user/stats')
+      const response = await fetchWithAuth('/api/user/stats')
       const data = await response.json()
 
       if (data.success) {
@@ -437,7 +437,7 @@ function ProfileContent() {
 
     try {
       // 1. Charger d'abord les trophées stockés (rapide)
-      const response = await fetch('/api/user/trophies')
+      const response = await fetchWithAuth('/api/user/trophies')
       const data = await response.json()
 
       if (data.success) {
@@ -453,7 +453,7 @@ function ProfileContent() {
     // 2. Lancer le recalcul en arrière-plan (sans bloquer l'affichage)
     setRecalculatingTrophies(true)
     try {
-      const refreshResponse = await fetch('/api/user/trophies', { method: 'PUT' })
+      const refreshResponse = await fetchWithAuth('/api/user/trophies', { method: 'PUT' })
       const refreshData = await refreshResponse.json()
 
       if (refreshData.success) {
@@ -473,7 +473,7 @@ function ProfileContent() {
 
   const markTrophiesAsSeen = async () => {
     try {
-      await fetch('/api/user/trophies', {
+      await fetchWithAuth('/api/user/trophies', {
         method: 'POST'
       })
       setHasNewTrophies(false)

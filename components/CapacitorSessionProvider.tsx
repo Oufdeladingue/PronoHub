@@ -1,10 +1,26 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { isCapacitor, restoreCapacitorSession } from '@/lib/capacitor'
+import { isCapacitor, restoreCapacitorSession, isAndroid } from '@/lib/capacitor'
 
 interface CapacitorSessionProviderProps {
   children: React.ReactNode
+}
+
+/**
+ * Configure la status bar Android pour être transparente
+ */
+async function configureStatusBar() {
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar')
+    // Status bar transparente avec texte clair
+    await StatusBar.setStyle({ style: Style.Dark })
+    await StatusBar.setBackgroundColor({ color: '#0f172a' })
+    // Sur Android, permettre au contenu de passer sous la status bar
+    await StatusBar.setOverlaysWebView({ overlay: false })
+  } catch (e) {
+    console.warn('[StatusBar] Configuration ignorée:', e)
+  }
 }
 
 /**
@@ -17,6 +33,11 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
 
   useEffect(() => {
     if (isCapacitor()) {
+      // Configurer la status bar sur Android
+      if (isAndroid()) {
+        configureStatusBar()
+      }
+
       // Restaurer la session depuis Capacitor Preferences vers localStorage
       restoreCapacitorSession().then(() => {
         setIsReady(true)

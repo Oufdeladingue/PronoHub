@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
 import LogoutButton from '@/components/LogoutButton'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 export default function NavBar({
   username,
@@ -28,7 +29,7 @@ export default function NavBar({
     if (context === 'app') {
       const loadTrophiesStatus = async () => {
         try {
-          const response = await fetch('/api/user/trophies')
+          const response = await fetchWithAuth('/api/user/trophies')
           const data = await response.json()
           if (data.success) {
             setHasNewTrophies(data.hasNewTrophies)

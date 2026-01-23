@@ -113,6 +113,29 @@ export function createCapacitorStorage() {
 }
 
 /**
+ * Détecte si on est sur Android (Capacitor)
+ */
+export function isAndroid(): boolean {
+  if (typeof window === 'undefined') return false
+
+  // Via Capacitor
+  if (hasCapacitorBridge()) {
+    const Capacitor = (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor
+    return Capacitor?.getPlatform?.() === 'android'
+  }
+
+  // Fallback User-Agent
+  return /Android/i.test(navigator.userAgent)
+}
+
+/**
+ * Vérifie si Google Sign-In natif est disponible (Android avec bridge Capacitor)
+ */
+export function isNativeGoogleAuthAvailable(): boolean {
+  return hasCapacitorBridge() && isAndroid()
+}
+
+/**
  * Restaurer la session depuis Capacitor Preferences vers localStorage
  * À appeler au démarrage de l'app Capacitor (uniquement si bridge disponible)
  */

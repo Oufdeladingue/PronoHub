@@ -58,6 +58,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   margin: 0;
   padding: 0;
+  /* Safe area pour Android/iOS - évite le chevauchement avec la status bar */
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
 }
 
 html, body {
@@ -72,6 +77,13 @@ html, body {
   left: 0 !important;
   width: 100% !important;
   z-index: 9999 !important;
+  /* Safe area pour la navigation Android (boutons back/home/recent) */
+  padding-bottom: env(safe-area-inset-bottom, 0) !important;
+}
+
+/* Classe utilitaire pour le padding bottom safe area (navigation Android) */
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
 }
 
 /* Curseur pointer pour tous les éléments cliquables */

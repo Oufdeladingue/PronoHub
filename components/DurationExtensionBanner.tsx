@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface DurationExtensionInfo {
   canExtend: boolean
@@ -50,7 +51,7 @@ export function DurationExtensionBanner({
 
   const fetchExtensionInfo = async () => {
     try {
-      const response = await fetch(`/api/tournaments/extend-duration?tournamentId=${tournamentId}`)
+      const response = await fetchWithAuth(`/api/tournaments/extend-duration?tournamentId=${tournamentId}`)
       const data = await response.json()
 
       if (data.success) {
@@ -80,7 +81,7 @@ export function DurationExtensionBanner({
 
     setApplying(true)
     try {
-      const response = await fetch('/api/tournaments/extend-duration', {
+      const response = await fetchWithAuth('/api/tournaments/extend-duration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournamentId })

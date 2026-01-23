@@ -7,7 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { Suspense } from 'react'
-import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
+import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl } from '@/lib/capacitor'
+import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 
 function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -41,6 +42,13 @@ function LoginForm() {
     'On fait circuler les données… tiki-taka de chargement.'
   ]
 
+  // Initialiser Google Auth natif au montage (Capacitor Android)
+  useEffect(() => {
+    if (isNativeGoogleAuthAvailable()) {
+      initGoogleAuth()
+    }
+  }, [])
+
   // Animation du pourcentage de chargement
   useEffect(() => {
     if (redirecting) {
@@ -64,21 +72,66 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError(null)
+
     try {
-      // Utiliser l'URL canonique sans www pour le callback OAuth
+      // CAS 1: Google Sign-In natif Android (popup native)
+      if (isNativeGoogleAuthAvailable()) {
+        try {
+          // Obtenir l'idToken via le SDK natif Google
+          const googleUser = await signInWithGoogleNative()
+
+          // Authentifier avec Supabase via idToken
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleUser.authentication.idToken,
+            access_token: googleUser.authentication.accessToken,
+          })
+
+          if (error) {
+            throw error
+          }
+
+          // Vérifier le rôle pour la redirection
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single()
+
+          const redirectPath = redirectTo
+            ? decodeURIComponent(redirectTo)
+            : (profile?.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
+
+          router.push(redirectPath)
+          return
+
+        } catch (nativeError: unknown) {
+          const errorMessage = nativeError instanceof Error ? nativeError.message : String(nativeError)
+
+          // Si l'utilisateur a annulé, ne pas afficher d'erreur
+          if (errorMessage.includes('annulée') || errorMessage.includes('canceled')) {
+            setGoogleLoading(false)
+            return
+          }
+
+          console.error('[Auth] Erreur Google natif:', nativeError)
+          // Fallback vers OAuth browser si erreur native
+          console.log('[Auth] Fallback vers OAuth browser')
+        }
+      }
+
+      // CAS 2: OAuth classique (web ou fallback Capacitor)
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      // Passer le redirectTo au callback OAuth si présent
       const callbackUrl = redirectTo
         ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
         : `${baseUrl}/auth/callback`
 
-      // Dans Capacitor, utiliser le navigateur in-app avec skipBrowserTab
       if (isCapacitor()) {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: callbackUrl,
-            skipBrowserRedirect: true, // Empêche la redirection auto
+            skipBrowserRedirect: true,
           },
         })
 
@@ -88,11 +141,9 @@ function LoginForm() {
         }
 
         if (data?.url) {
-          // Ouvrir l'URL OAuth dans le navigateur in-app
           await openExternalUrl(data.url)
         }
       } else {
-        // Comportement web standard
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -104,8 +155,9 @@ function LoginForm() {
           setError(`Erreur lors de la connexion avec Google: ${error.message}`)
         }
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
+      setError(errorMessage)
     } finally {
       setGoogleLoading(false)
     }

@@ -71,6 +71,8 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning className={inter.variable}>
       <head>
+        {/* Viewport avec viewport-fit=cover pour gérer les safe areas sur mobile */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         {/* Preconnect aux origines critiques pour réduire la latence */}
         <link rel="preconnect" href="https://txpmihreaxmtsxlgmdko.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://txpmihreaxmtsxlgmdko.supabase.co" />

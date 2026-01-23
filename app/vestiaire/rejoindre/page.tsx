@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 
 interface TournamentPreview {
   tournament: {
@@ -52,7 +52,7 @@ function RejoindreContent() {
 
     setLoadingPreview(true)
     try {
-      const response = await fetch(`/api/tournaments/preview?code=${tournamentCode}`)
+      const response = await fetchWithAuth(`/api/tournaments/preview?code=${tournamentCode}`)
       const data = await response.json()
 
       if (response.ok && data.success) {
@@ -115,7 +115,7 @@ function RejoindreContent() {
     setError('')
 
     try {
-      const response = await fetch('/api/tournaments/join', {
+      const response = await fetchWithAuth('/api/tournaments/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

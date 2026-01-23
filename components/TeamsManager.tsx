@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/avatars'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface Player {
   id: string
@@ -130,7 +131,7 @@ export default function TeamsManager({
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams`)
       const data = await response.json()
 
       if (response.ok) {
@@ -146,7 +147,7 @@ export default function TeamsManager({
 
   const fetchTeamRequests = async () => {
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/team-requests`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/team-requests`)
       const data = await response.json()
 
       if (response.ok) {
@@ -170,7 +171,7 @@ export default function TeamsManager({
 
     setRequestLoading(true)
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/team-requests`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/team-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -199,7 +200,7 @@ export default function TeamsManager({
 
     setRequestLoading(true)
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/team-requests`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/team-requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -232,7 +233,7 @@ export default function TeamsManager({
 
     setRequestLoading(true)
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `/api/tournaments/${tournamentId}/team-requests?requestId=${myPendingRequest.id}`,
         { method: 'DELETE' }
       )
@@ -252,7 +253,7 @@ export default function TeamsManager({
   const processRequest = async (requestId: string, action: 'approve' | 'reject', options?: { teamName?: string; teamAvatar?: string; targetTeamId?: string }) => {
     setProcessingRequestId(requestId)
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/team-requests/${requestId}`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/team-requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -291,7 +292,7 @@ export default function TeamsManager({
     if (!canEdit) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamsEnabled: !teamsEnabled })
@@ -309,7 +310,7 @@ export default function TeamsManager({
     if (!canEdit || !newTeamName.trim()) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -337,7 +338,7 @@ export default function TeamsManager({
     if (!canEdit || !editTeamName.trim()) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams/${teamId}`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/${teamId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -362,7 +363,7 @@ export default function TeamsManager({
     if (!confirm('Supprimer cette équipe ? Les membres seront retirés.')) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams/${teamId}`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/${teamId}`, {
         method: 'DELETE'
       })
 
@@ -378,7 +379,7 @@ export default function TeamsManager({
     if (!canEdit) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams/${teamId}/members`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/${teamId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
@@ -402,7 +403,7 @@ export default function TeamsManager({
     if (!canEdit) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/teams/${teamId}/members?userId=${userId}`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/${teamId}/members?userId=${userId}`, {
         method: 'DELETE'
       })
 

@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { CheckCircle, Loader2, AlertCircle, ArrowRight, Trophy, Clock, Users } from 'lucide-react'
 import Link from 'next/link'
 import { isCapacitor } from '@/lib/capacitor'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams()
@@ -47,7 +48,7 @@ function PaymentSuccessContent() {
           }
         }
 
-        const response = await fetch('/api/stripe/verify-session', {
+        const response = await fetchWithAuth('/api/stripe/verify-session', {
           method: 'POST',
           headers,
           body: JSON.stringify({ session_id: sessionId })

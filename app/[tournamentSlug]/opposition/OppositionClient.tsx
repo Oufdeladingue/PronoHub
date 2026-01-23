@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
@@ -291,7 +291,7 @@ export default function OppositionClient({
     if (!tournament?.id) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournament.id}/unread-messages`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/unread-messages`)
       if (!response.ok) {
         // Si la table n'existe pas encore, on ignore silencieusement
         console.log('Message read status table not yet created')
@@ -311,7 +311,7 @@ export default function OppositionClient({
 
     setLoadingTeams(true)
     try {
-      const response = await fetch(`/api/tournaments/${tournament.id}/teams`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/teams`)
       if (!response.ok) {
         console.log('Error fetching teams')
         return
@@ -333,7 +333,7 @@ export default function OppositionClient({
     if (!tournament?.id || !userId) return
 
     try {
-      const response = await fetch(`/api/tournaments/extend-matchdays?tournamentId=${tournament.id}`)
+      const response = await fetchWithAuth(`/api/tournaments/extend-matchdays?tournamentId=${tournament.id}`)
       if (!response.ok) return
 
       const data = await response.json()
@@ -355,7 +355,7 @@ export default function OppositionClient({
 
     setExtendLoading(true)
     try {
-      const response = await fetch('/api/tournaments/extend-matchdays', {
+      const response = await fetchWithAuth('/api/tournaments/extend-matchdays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -386,7 +386,7 @@ export default function OppositionClient({
     if (!tournament?.id) return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournament.id}/messages`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/messages`, {
         method: 'PUT'
       })
       if (!response.ok) {
@@ -529,7 +529,7 @@ export default function OppositionClient({
     try {
       if (!tournament) return
 
-      const response = await fetch(`/api/tournaments/${tournament.id}/bonus-matches`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/bonus-matches`)
       if (!response.ok) return
 
       const data = await response.json()
@@ -1020,7 +1020,7 @@ export default function OppositionClient({
       if (!tournament || !userId) return
 
       // Appeler l'API pour récupérer tous les pronostics (bypass RLS)
-      const response = await fetch(`/api/tournaments/${tournament.id}/match-predictions?matchId=${matchId}`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/match-predictions?matchId=${matchId}`)
 
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération des pronostics')
@@ -1121,7 +1121,7 @@ export default function OppositionClient({
       const matchIds = matchesToPreload.map(m => m.id).join(',')
 
       // Appeler l'API batch
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `/api/tournaments/${tournament.id}/matchday-predictions?matchIds=${matchIds}`
       )
 

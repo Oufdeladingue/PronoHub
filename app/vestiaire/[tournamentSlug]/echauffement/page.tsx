@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
@@ -550,7 +550,7 @@ function EchauffementPageContent() {
 
     setExtensionLoading(true)
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -582,7 +582,7 @@ function EchauffementPageContent() {
 
     setExtensionLoading(true)
     try {
-      const response = await fetch('/api/tournaments/extend-players', {
+      const response = await fetchWithAuth('/api/tournaments/extend-players', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournamentId: tournament.id })
@@ -704,7 +704,7 @@ function EchauffementPageContent() {
 
     try {
       // Appeler l'API de démarrage pour vérifier les journées
-      const response = await fetch('/api/tournaments/start', {
+      const response = await fetchWithAuth('/api/tournaments/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -743,7 +743,7 @@ function EchauffementPageContent() {
 
     try {
       // Appeler l'API de démarrage avec ajustement automatique
-      const response = await fetch('/api/tournaments/start', {
+      const response = await fetchWithAuth('/api/tournaments/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -785,7 +785,7 @@ function EchauffementPageContent() {
     if (!tournament) return
 
     try {
-      const response = await fetch('/api/tournaments/cancel', {
+      const response = await fetchWithAuth('/api/tournaments/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournamentId: tournament.id })
@@ -817,7 +817,7 @@ function EchauffementPageContent() {
     if (!tournament) return
 
     try {
-      const response = await fetch('/api/tournaments/transfer-captain', {
+      const response = await fetchWithAuth('/api/tournaments/transfer-captain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -863,7 +863,7 @@ function EchauffementPageContent() {
     if (!tournament) return
 
     try {
-      const response = await fetch('/api/tournaments/leave', {
+      const response = await fetchWithAuth('/api/tournaments/leave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tournamentId: tournament.id })

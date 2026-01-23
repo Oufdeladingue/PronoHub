@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 export default function JoinTournamentButton() {
   const [isInputMode, setIsInputMode] = useState(false)
@@ -31,7 +32,7 @@ export default function JoinTournamentButton() {
     setError('')
 
     try {
-      const response = await fetch('/api/tournaments/join', {
+      const response = await fetchWithAuth('/api/tournaments/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

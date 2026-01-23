@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 
 interface Message {
@@ -86,7 +86,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   // Charger les messages
   const fetchMessages = async () => {
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/messages`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/messages`)
       if (!response.ok) throw new Error('Failed to fetch messages')
 
       const data = await response.json()
@@ -188,7 +188,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
 
     setSending(true)
     try {
-      const response = await fetch(`/api/tournaments/${tournamentId}/messages`, {
+      const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: newMessage.trim() })

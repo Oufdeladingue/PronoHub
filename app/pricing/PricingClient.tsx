@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, X, Loader2, Plus, AlertTriangle } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { openExternalUrl, isCapacitor } from '@/lib/capacitor'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 
 interface PricingClientProps {
   isLoggedIn: boolean
@@ -67,7 +67,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const response = await fetch('/api/pricing/config')
+        const response = await fetchWithAuth('/api/pricing/config')
         const data = await response.json()
         if (data.success && data.prices) {
           setPrices(data.prices)
@@ -85,7 +85,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
     if (!isLoggedIn) return
     const fetchQuotas = async () => {
       try {
-        const response = await fetch('/api/user/quotas')
+        const response = await fetchWithAuth('/api/user/quotas')
         const data = await response.json()
         if (data.success && data.quotas) {
           setUserQuotas(data.quotas)
@@ -166,7 +166,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         }
       }
 
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers,
         body: JSON.stringify({ purchaseType }),

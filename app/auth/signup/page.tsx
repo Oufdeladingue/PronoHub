@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
-import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
+import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl } from '@/lib/capacitor'
+import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -23,6 +24,13 @@ function SignUpForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo')
   const supabase = createClient()
+
+  // Initialiser Google Auth natif au montage (Capacitor Android)
+  useEffect(() => {
+    if (isNativeGoogleAuthAvailable()) {
+      initGoogleAuth()
+    }
+  }, [])
 
   // Ajustement automatique de la taille du titre
   useEffect(() => {
@@ -88,13 +96,49 @@ function SignUpForm() {
 
   // Gestion de l'authentification OAuth
   const handleOAuthSignIn = async (provider: 'google') => {
+    setError(null)
+
     try {
-      // Passer le redirectTo au callback OAuth si présent
+      // CAS 1: Google Sign-In natif Android (popup native)
+      if (provider === 'google' && isNativeGoogleAuthAvailable()) {
+        try {
+          // Obtenir l'idToken via le SDK natif Google
+          const googleUser = await signInWithGoogleNative()
+
+          // Authentifier avec Supabase via idToken
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: googleUser.authentication.idToken,
+            access_token: googleUser.authentication.accessToken,
+          })
+
+          if (error) {
+            throw error
+          }
+
+          // Rediriger vers le dashboard
+          const redirectPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+          router.push(redirectPath)
+          return
+
+        } catch (nativeError: unknown) {
+          const errorMessage = nativeError instanceof Error ? nativeError.message : String(nativeError)
+
+          // Si l'utilisateur a annulé, ne pas afficher d'erreur
+          if (errorMessage.includes('annulée') || errorMessage.includes('canceled')) {
+            return
+          }
+
+          console.error('[Auth] Erreur Google natif:', nativeError)
+          // Fallback vers OAuth browser
+        }
+      }
+
+      // CAS 2: OAuth classique (web ou fallback)
       const callbackUrl = redirectTo
         ? `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
         : `${window.location.origin}/auth/callback`
 
-      // Dans Capacitor, utiliser le navigateur in-app
       if (isCapacitor()) {
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider,
@@ -113,7 +157,6 @@ function SignUpForm() {
           await openExternalUrl(data.url)
         }
       } else {
-        // Comportement web standard
         const { error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
@@ -125,8 +168,9 @@ function SignUpForm() {
           setError(`Erreur lors de la connexion avec ${provider}: ${error.message}`)
         }
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
+      setError(errorMessage)
     }
   }
 

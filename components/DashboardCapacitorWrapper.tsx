@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import Image from 'next/image'
 import Navigation from '@/components/Navigation'
 import DashboardClient from '@/components/DashboardClient'
@@ -42,11 +42,7 @@ export default function DashboardCapacitorWrapper() {
 
       try {
         // Appeler l'API avec le token d'auth
-        const response = await fetch('/api/dashboard/data', {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        })
+        const response = await fetchWithAuth('/api/dashboard/data')
 
         if (!response.ok) {
           if (response.status === 401) {

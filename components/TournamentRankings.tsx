@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
 
@@ -202,7 +202,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     try {
       // Si vue equipes, charger le classement par equipe
       if (selectedView === 'teams') {
-        const response = await fetch(`/api/tournaments/${tournamentId}/teams/rankings`)
+        const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/rankings`)
         if (response.ok) {
           const data = await response.json()
           const rankings = data.rankings || []
@@ -221,7 +221,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
         ? `/api/tournaments/${tournamentId}/rankings`
         : `/api/tournaments/${tournamentId}/rankings?matchday=${selectedView}`
 
-      const response = await fetch(url)
+      const response = await fetchWithAuth(url)
 
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération du classement')

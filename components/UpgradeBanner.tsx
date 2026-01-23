@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Crown, Sparkles, AlertTriangle, X } from 'lucide-react'
 import { UserQuotas, TournamentTypeResult, ACCOUNT_LIMITS } from '@/types/monetization'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface UserCredits {
   oneshot_credits: number
@@ -409,7 +410,7 @@ export function TournamentTypeIndicator() {
 
   const fetchTournamentType = async () => {
     try {
-      const response = await fetch('/api/user/quotas', { method: 'POST' })
+      const response = await fetchWithAuth('/api/user/quotas', { method: 'POST' })
       const data = await response.json()
       if (data.success) {
         setTournamentType(data.result)

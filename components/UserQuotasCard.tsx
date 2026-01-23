@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, Loader2, Trophy, Users, PlusCircle, Eye, Wallet } from 'lucide-react'
 import Link from 'next/link'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface UserTournament {
   id: string
@@ -60,7 +61,7 @@ export default function UserQuotasCard() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/user/zone-vip')
+      const response = await fetchWithAuth('/api/user/zone-vip')
       const result = await response.json()
       if (result.success) {
         setData(result.data)
