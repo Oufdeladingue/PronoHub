@@ -5,7 +5,10 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 /**
  * API pour tester l'envoi d'une notification push à l'utilisateur connecté
  * POST /api/notifications/test
- * Body: { type?: 'test' | 'reminder' | 'tournament_started' | 'day_recap' | 'tournament_end' | 'invite' | 'player_joined' }
+ * Body: {
+ *   type?: 'test' | 'reminder' | 'tournament_started' | 'day_recap' | 'tournament_end' | 'invite' | 'player_joined',
+ *   realData?: boolean  // Pour reminder: utilise les vrais matchs manquants
+ * }
  */
 export async function POST(request: Request) {
   try {
@@ -35,7 +38,89 @@ export async function POST(request: Request) {
     // Récupérer le type de notification à tester
     const body = await request.json().catch(() => ({}))
     const type = body.type || 'test'
+    const realData = body.realData === true
     const username = profile.username || 'champion'
+
+    // Si realData et type=reminder, récupérer les vrais matchs manquants
+    let realReminderNotif: { title: string; body: string; data: Record<string, string> } | null = null
+
+    if (realData && type === 'reminder') {
+      const now = new Date()
+      const endOfDay = new Date(now)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      // Récupérer les tournois où l'utilisateur participe
+      const { data: participations } = await supabase
+        .from('tournament_participants')
+        .select('tournament_id, tournaments(id, name, slug, competition_id, starting_matchday, ending_matchday)')
+        .eq('user_id', user.id)
+
+      if (participations && participations.length > 0) {
+        // Récupérer les matchs du jour
+        const { data: todayMatches } = await supabase
+          .from('imported_matches')
+          .select('id, competition_id, matchday, home_team_name, away_team_name, utc_date')
+          .gte('utc_date', now.toISOString())
+          .lte('utc_date', endOfDay.toISOString())
+          .in('status', ['SCHEDULED', 'TIMED'])
+
+        if (todayMatches && todayMatches.length > 0) {
+          // Pour chaque tournoi, vérifier les matchs manquants
+          for (const p of participations) {
+            const tournament = p.tournaments as any
+            if (!tournament) continue
+
+            const tournamentMatches = todayMatches.filter(m =>
+              m.competition_id === tournament.competition_id &&
+              m.matchday >= (tournament.starting_matchday || 1) &&
+              m.matchday <= (tournament.ending_matchday || 999)
+            )
+
+            if (tournamentMatches.length === 0) continue
+
+            // Vérifier les pronostics existants
+            const { data: predictions } = await supabase
+              .from('predictions')
+              .select('match_id')
+              .eq('tournament_id', tournament.id)
+              .eq('user_id', user.id)
+              .in('match_id', tournamentMatches.map(m => m.id))
+
+            const predictedMatchIds = new Set(predictions?.map(p => p.match_id) || [])
+            const missingMatches = tournamentMatches.filter(m => !predictedMatchIds.has(m.id))
+
+            if (missingMatches.length > 0) {
+              const firstMatch = missingMatches[0]
+              const matchDate = new Date(firstMatch.utc_date)
+              const deadline = new Date(matchDate.getTime() - 30 * 60 * 1000)
+              const deadlineStr = deadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+              const tournamentSlug = `${tournament.name.toLowerCase().replace(/\\s+/g, '-')}_${tournament.slug}`
+
+              realReminderNotif = {
+                title: 'Pronostics en attente ⚽',
+                body: `Tu n'as pas encore pronostiqué pour ${tournament.name}. ${missingMatches.length} match${missingMatches.length > 1 ? 's' : ''} à pronostiquer avant ${deadlineStr} !`,
+                data: {
+                  type: 'reminder',
+                  tournamentSlug,
+                  tournamentName: tournament.name,
+                  missingCount: String(missingMatches.length),
+                  firstMatch: `${firstMatch.home_team_name} - ${firstMatch.away_team_name}`
+                }
+              }
+              break // Prendre le premier tournoi avec des matchs manquants
+            }
+          }
+        }
+      }
+
+      if (!realReminderNotif) {
+        return NextResponse.json({
+          success: false,
+          error: 'Aucun match manquant trouvé pour aujourd\'hui',
+          hint: 'Tu as déjà pronostiqué tous tes matchs du jour !'
+        })
+      }
+    }
 
     // Configurer le message selon le type
     const notifications: Record<string, { title: string; body: string; data?: Record<string, string> }> = {
@@ -44,7 +129,7 @@ export async function POST(request: Request) {
         body: `Bravo ${username} ! Les notifications fonctionnent.`,
         data: { type: 'test' }
       },
-      reminder: {
+      reminder: realReminderNotif || {
         title: 'Pronostics en attente ⚽',
         body: 'Tu n\'as pas encore pronostiqué pour Ligue des Champions. 1 match à pronostiquer avant 20h00 !',
         data: {
