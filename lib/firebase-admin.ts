@@ -86,7 +86,7 @@ export async function sendPushNotification(
         notification: {
           icon: 'ic_notification',
           color: '#FFCC00', // Jaune PronoHub
-          channelId: 'pronohub_default',
+          channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
         },
       },
@@ -135,7 +135,7 @@ export async function sendPushNotificationToMany(
         notification: {
           icon: 'ic_notification',
           color: '#FFCC00', // Jaune PronoHub
-          channelId: 'pronohub_default',
+          channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
         },
       },

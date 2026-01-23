@@ -3,6 +3,8 @@ package club.pronohub.app;
 import android.os.Bundle;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 
 import com.getcapacitor.BridgeActivity;
@@ -19,12 +21,18 @@ public class MainActivity extends BridgeActivity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Supprimer l'ancien canal si existant
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.deleteNotificationChannel("pronohub_default");
+            }
+
             CharSequence name = "PronoHub";
             String description = "Notifications de PronoHub";
             int importance = NotificationManager.IMPORTANCE_HIGH;
 
             NotificationChannel channel = new NotificationChannel(
-                "pronohub_default",
+                "pronohub_notifications",
                 name,
                 importance
             );
@@ -32,7 +40,14 @@ public class MainActivity extends BridgeActivity {
             channel.enableVibration(true);
             channel.enableLights(true);
 
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            // Son personnalisé
+            Uri soundUri = Uri.parse("android.resource://" + getPackageName() + "/raw/notification_sound");
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                .build();
+            channel.setSound(soundUri, audioAttributes);
+
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(channel);
             }
