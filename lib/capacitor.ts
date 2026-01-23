@@ -1,21 +1,56 @@
 /**
  * Utilitaires pour Capacitor (app mobile)
+ *
+ * IMPORTANT: Quand l'APK charge depuis une URL externe (Vercel),
+ * les imports npm des plugins ne fonctionnent pas. On utilise donc
+ * l'API native via window.Capacitor.Plugins.
  */
+
+// Type pour l'objet Capacitor global
+interface CapacitorGlobal {
+  isNativePlatform?: () => boolean
+  getPlatform?: () => string
+  Plugins?: {
+    StatusBar?: {
+      setStyle: (options: { style: string }) => Promise<void>
+      setBackgroundColor: (options: { color: string }) => Promise<void>
+      setOverlaysWebView: (options: { overlay: boolean }) => Promise<void>
+    }
+    Preferences?: {
+      get: (options: { key: string }) => Promise<{ value: string | null }>
+      set: (options: { key: string; value: string }) => Promise<void>
+      remove: (options: { key: string }) => Promise<void>
+      keys: () => Promise<{ keys: string[] }>
+    }
+    App?: {
+      addListener: (event: string, callback: (state: { isActive: boolean }) => void) => Promise<{ remove: () => void }>
+    }
+    Browser?: {
+      open: (options: { url: string }) => Promise<void>
+    }
+  }
+}
+
+// Accès à l'objet Capacitor global
+function getCapacitor(): CapacitorGlobal | null {
+  if (typeof window === 'undefined') return null
+  return (window as unknown as { Capacitor?: CapacitorGlobal }).Capacitor || null
+}
 
 // Vérifier si le bridge Capacitor natif est disponible (plugins accessibles)
 export function hasCapacitorBridge(): boolean {
-  if (typeof window === 'undefined') return false
-  return !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+  const cap = getCapacitor()
+  return cap?.isNativePlatform?.() === true
 }
 
 // Détecter si on est dans l'app Capacitor/WebView Android
 export function isCapacitor(): boolean {
   if (typeof window === 'undefined') return false
 
-  // Méthode 1: Vérifier l'objet Capacitor (fonctionne si chargé depuis les assets locaux)
+  // Méthode 1: Vérifier l'objet Capacitor (fonctionne si chargé depuis les assets locaux ou URL externe)
   if (hasCapacitorBridge()) return true
 
-  // Méthode 2: Détecter le WebView Android via User-Agent (fonctionne si chargé depuis URL externe)
+  // Méthode 2: Détecter le WebView Android via User-Agent (fallback)
   // Le WebView Android contient "wv" dans son User-Agent
   const userAgent = navigator.userAgent || ''
   const isAndroidWebView = /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
@@ -25,14 +60,14 @@ export function isCapacitor(): boolean {
 
 // Ouvrir une URL externe (Stripe, etc.)
 export async function openExternalUrl(url: string): Promise<void> {
-  // Si le bridge Capacitor est disponible, utiliser le plugin Browser
-  if (hasCapacitorBridge()) {
+  // Si le bridge Capacitor est disponible, utiliser le plugin Browser natif
+  const cap = getCapacitor()
+  if (cap?.Plugins?.Browser) {
     try {
-      const { Browser } = await import('@capacitor/browser')
-      await Browser.open({ url })
+      await cap.Plugins.Browser.open({ url })
       return
     } catch {
-      // Fallback si le plugin n'est pas disponible
+      // Fallback si le plugin échoue
     }
   }
 
@@ -53,13 +88,13 @@ export async function capacitorFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  if (isCapacitor()) {
-    // Récupérer le token depuis le stockage Capacitor
-    const { Preferences } = await import('@capacitor/preferences')
-    const { value } = await Preferences.get({ key: 'sb-auth-token' })
+  const cap = getCapacitor()
+  if (cap?.Plugins?.Preferences) {
+    // Récupérer le token depuis le stockage Capacitor natif
+    try {
+      const { value } = await cap.Plugins.Preferences.get({ key: 'sb-auth-token' })
 
-    if (value) {
-      try {
+      if (value) {
         const session = JSON.parse(value)
         const accessToken = session?.access_token
 
@@ -69,9 +104,9 @@ export async function capacitorFetch(
             Authorization: `Bearer ${accessToken}`,
           }
         }
-      } catch {
-        // Ignorer les erreurs de parsing
       }
+    } catch {
+      // Ignorer les erreurs
     }
   }
 
@@ -92,21 +127,19 @@ export function createCapacitorStorage() {
     setItem: (key: string, value: string): void => {
       // Écriture synchrone dans localStorage
       localStorage.setItem(key, value)
-      // Sauvegarde async dans Capacitor Preferences (si bridge disponible)
-      if (hasCapacitorBridge()) {
-        import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.set({ key, value }).catch(() => {})
-        }).catch(() => {})
+      // Sauvegarde async dans Capacitor Preferences natif (si disponible)
+      const cap = getCapacitor()
+      if (cap?.Plugins?.Preferences) {
+        cap.Plugins.Preferences.set({ key, value }).catch(() => {})
       }
     },
     removeItem: (key: string): void => {
       // Suppression synchrone depuis localStorage
       localStorage.removeItem(key)
-      // Suppression async dans Capacitor Preferences (si bridge disponible)
-      if (hasCapacitorBridge()) {
-        import('@capacitor/preferences').then(({ Preferences }) => {
-          Preferences.remove({ key }).catch(() => {})
-        }).catch(() => {})
+      // Suppression async dans Capacitor Preferences natif (si disponible)
+      const cap = getCapacitor()
+      if (cap?.Plugins?.Preferences) {
+        cap.Plugins.Preferences.remove({ key }).catch(() => {})
       }
     },
   }
@@ -118,10 +151,10 @@ export function createCapacitorStorage() {
 export function isAndroid(): boolean {
   if (typeof window === 'undefined') return false
 
-  // Via Capacitor
-  if (hasCapacitorBridge()) {
-    const Capacitor = (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor
-    return Capacitor?.getPlatform?.() === 'android'
+  // Via Capacitor natif
+  const cap = getCapacitor()
+  if (cap?.getPlatform) {
+    return cap.getPlatform() === 'android'
   }
 
   // Fallback User-Agent
@@ -140,13 +173,16 @@ export function isNativeGoogleAuthAvailable(): boolean {
  * @param color - Couleur hexadécimale (ex: '#1e293b' pour nav, '#000000' pour pages auth)
  */
 export async function setStatusBarColor(color: string): Promise<void> {
-  if (!hasCapacitorBridge() || !isAndroid()) return
+  if (!isAndroid()) return
 
-  try {
-    const { StatusBar } = await import('@capacitor/status-bar')
-    await StatusBar.setBackgroundColor({ color })
-  } catch {
-    // Ignorer si le plugin n'est pas disponible
+  const cap = getCapacitor()
+  if (cap?.Plugins?.StatusBar) {
+    try {
+      await cap.Plugins.StatusBar.setBackgroundColor({ color })
+      console.log(`[StatusBar] Couleur changée: ${color}`)
+    } catch (e) {
+      console.warn('[StatusBar] Erreur setBackgroundColor:', e)
+    }
   }
 }
 
@@ -158,21 +194,24 @@ export async function setStatusBarColor(color: string): Promise<void> {
  * même si localStorage a déjà une valeur (car localStorage peut être vidé par Android)
  */
 export async function restoreCapacitorSession(): Promise<void> {
-  // Ne rien faire si le bridge Capacitor n'est pas disponible
-  if (!hasCapacitorBridge()) return
+  const cap = getCapacitor()
+  const prefs = cap?.Plugins?.Preferences
+
+  if (!prefs) {
+    console.log('[Capacitor] Preferences plugin non disponible')
+    return
+  }
 
   try {
-    const { Preferences } = await import('@capacitor/preferences')
-
     // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
-    const { keys } = await Preferences.keys()
+    const { keys } = await prefs.keys()
     let restored = 0
 
     for (const key of keys) {
       // Restaurer les clés qui commencent par 'sb-' (Supabase)
       // Format: sb-{projectId}-auth-token ou sb-{url}-auth-token
       if (key.startsWith('sb-')) {
-        const { value } = await Preferences.get({ key })
+        const { value } = await prefs.get({ key })
         if (value) {
           // TOUJOURS écraser localStorage avec la valeur de Preferences
           // car localStorage peut avoir été vidé par Android lors d'un switch d'app
@@ -194,23 +233,81 @@ export async function restoreCapacitorSession(): Promise<void> {
  * Utile après un login réussi
  */
 export async function saveSessionToPreferences(): Promise<void> {
-  if (!hasCapacitorBridge()) return
+  const cap = getCapacitor()
+  const prefs = cap?.Plugins?.Preferences
+
+  if (!prefs) {
+    console.log('[Capacitor] Preferences plugin non disponible pour sauvegarde')
+    return
+  }
 
   try {
-    const { Preferences } = await import('@capacitor/preferences')
-
     // Parcourir localStorage et sauvegarder toutes les clés Supabase
+    let saved = 0
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key?.startsWith('sb-')) {
         const value = localStorage.getItem(key)
         if (value) {
-          await Preferences.set({ key, value })
+          await prefs.set({ key, value })
+          saved++
           console.log(`[Capacitor] Clé sauvegardée: ${key}`)
         }
       }
     }
+    console.log(`[Capacitor] Session sauvegardée: ${saved} clé(s) dans Preferences`)
   } catch (error) {
     console.error('[Capacitor] Erreur sauvegarde session:', error)
+  }
+}
+
+/**
+ * Configure le listener pour restaurer la session quand l'app revient au premier plan
+ */
+export async function setupAppStateListener(onResume: () => void): Promise<void> {
+  const cap = getCapacitor()
+  const appPlugin = cap?.Plugins?.App
+
+  if (!appPlugin) {
+    console.log('[Capacitor] App plugin non disponible')
+    return
+  }
+
+  try {
+    await appPlugin.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log('[Capacitor] App revenue au premier plan, restauration session...')
+        onResume()
+      }
+    })
+    console.log('[Capacitor] Listener appStateChange configuré')
+  } catch (e) {
+    console.warn('[Capacitor] Erreur configuration listener:', e)
+  }
+}
+
+/**
+ * Configure la status bar Android avec les paramètres par défaut
+ */
+export async function configureStatusBar(color: string = '#1e293b'): Promise<void> {
+  if (!isAndroid()) return
+
+  const cap = getCapacitor()
+  const statusBar = cap?.Plugins?.StatusBar
+
+  if (!statusBar) {
+    console.log('[StatusBar] Plugin non disponible')
+    return
+  }
+
+  try {
+    // Style Dark = texte blanc sur fond sombre
+    await statusBar.setStyle({ style: 'DARK' })
+    await statusBar.setBackgroundColor({ color })
+    // Ne pas permettre le contenu sous la status bar
+    await statusBar.setOverlaysWebView({ overlay: false })
+    console.log(`[StatusBar] Configurée avec couleur ${color}`)
+  } catch (e) {
+    console.warn('[StatusBar] Erreur configuration:', e)
   }
 }

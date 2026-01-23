@@ -1,46 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { isCapacitor, restoreCapacitorSession, isAndroid, hasCapacitorBridge } from '@/lib/capacitor'
+import {
+  isCapacitor,
+  restoreCapacitorSession,
+  isAndroid,
+  configureStatusBar,
+  setupAppStateListener,
+} from '@/lib/capacitor'
 
 interface CapacitorSessionProviderProps {
   children: React.ReactNode
-}
-
-/**
- * Configure la status bar Android
- * Utilise la couleur de la nav par défaut (#1e293b)
- */
-async function configureStatusBar() {
-  try {
-    const { StatusBar, Style } = await import('@capacitor/status-bar')
-    // Status bar avec couleur de la nav (thème sombre)
-    await StatusBar.setStyle({ style: Style.Dark })
-    await StatusBar.setBackgroundColor({ color: '#1e293b' })
-    // Sur Android, ne pas permettre le contenu sous la status bar
-    await StatusBar.setOverlaysWebView({ overlay: false })
-  } catch (e) {
-    console.warn('[StatusBar] Configuration ignorée:', e)
-  }
-}
-
-/**
- * Configure le listener pour restaurer la session quand l'app revient au premier plan
- */
-async function setupAppStateListener(onResume: () => void) {
-  if (!hasCapacitorBridge()) return
-
-  try {
-    const { App } = await import('@capacitor/app')
-    App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) {
-        console.log('[Capacitor] App revenue au premier plan, restauration session...')
-        onResume()
-      }
-    })
-  } catch (e) {
-    console.warn('[Capacitor] Listener appStateChange non configuré:', e)
-  }
 }
 
 /**
@@ -52,22 +22,29 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
   const [isReady, setIsReady] = useState(!isCapacitor())
 
   useEffect(() => {
-    if (isCapacitor()) {
-      // Configurer la status bar sur Android
-      if (isAndroid()) {
-        configureStatusBar()
-      }
+    async function initCapacitor() {
+      console.log('[CapacitorSessionProvider] Initialisation...')
+      console.log('[CapacitorSessionProvider] isCapacitor:', isCapacitor())
+      console.log('[CapacitorSessionProvider] isAndroid:', isAndroid())
 
-      // Restaurer la session depuis Capacitor Preferences vers localStorage
-      restoreCapacitorSession().then(() => {
+      if (isCapacitor()) {
+        // Configurer la status bar sur Android (couleur nav par défaut)
+        if (isAndroid()) {
+          await configureStatusBar('#1e293b')
+        }
+
+        // Restaurer la session depuis Capacitor Preferences vers localStorage
+        await restoreCapacitorSession()
         setIsReady(true)
-      })
 
-      // Configurer le listener pour restaurer la session quand l'app revient au premier plan
-      setupAppStateListener(() => {
-        restoreCapacitorSession()
-      })
+        // Configurer le listener pour restaurer la session quand l'app revient au premier plan
+        await setupAppStateListener(() => {
+          restoreCapacitorSession()
+        })
+      }
     }
+
+    initCapacitor()
   }, [])
 
   // Sur le web, afficher directement les enfants

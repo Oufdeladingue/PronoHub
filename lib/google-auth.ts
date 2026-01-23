@@ -1,9 +1,10 @@
 /**
  * Service Google Sign-In natif pour Capacitor Android
- * Utilise @codetrix-studio/capacitor-google-auth
+ * Utilise @codetrix-studio/capacitor-google-auth via le bridge natif
+ *
+ * IMPORTANT: Quand l'APK charge depuis une URL externe (Vercel),
+ * on doit utiliser Capacitor.Plugins.GoogleAuth au lieu d'imports npm.
  */
-
-import { hasCapacitorBridge } from './capacitor'
 
 export interface GoogleUser {
   id: string
@@ -19,20 +20,41 @@ export interface GoogleUser {
   }
 }
 
-// Variable pour stocker le module importé dynamiquement
-let GoogleAuth: typeof import('@codetrix-studio/capacitor-google-auth').GoogleAuth | null = null
+// Interface pour le plugin GoogleAuth via Capacitor.Plugins
+interface GoogleAuthPlugin {
+  initialize: (options: { clientId: string; scopes: string[]; grantOfflineAccess: boolean }) => Promise<void>
+  signIn: () => Promise<GoogleUser>
+  signOut: () => Promise<void>
+  refresh: () => Promise<{ accessToken: string; idToken: string }>
+}
+
+// Accès au plugin via Capacitor.Plugins
+function getGoogleAuthPlugin(): GoogleAuthPlugin | null {
+  if (typeof window === 'undefined') return null
+  const Capacitor = (window as unknown as {
+    Capacitor?: {
+      isNativePlatform?: () => boolean
+      Plugins?: { GoogleAuth?: GoogleAuthPlugin }
+    }
+  }).Capacitor
+  return Capacitor?.Plugins?.GoogleAuth || null
+}
+
 let isInitialized = false
 
 /**
  * Initialise le plugin Google Auth (à appeler au démarrage de l'app Capacitor)
  */
 export async function initGoogleAuth(): Promise<void> {
-  if (!hasCapacitorBridge() || isInitialized) return
+  if (isInitialized) return
+
+  const GoogleAuth = getGoogleAuthPlugin()
+  if (!GoogleAuth) {
+    console.log('[GoogleAuth] Plugin non disponible')
+    return
+  }
 
   try {
-    const module = await import('@codetrix-studio/capacitor-google-auth')
-    GoogleAuth = module.GoogleAuth
-
     // Initialisation avec les scopes
     await GoogleAuth.initialize({
       clientId: process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
@@ -52,17 +74,20 @@ export async function initGoogleAuth(): Promise<void> {
  * @returns GoogleUser avec idToken pour Supabase
  */
 export async function signInWithGoogleNative(): Promise<GoogleUser> {
+  const GoogleAuth = getGoogleAuthPlugin()
+
   if (!GoogleAuth) {
     // Tenter l'initialisation si pas encore fait
     await initGoogleAuth()
   }
 
-  if (!GoogleAuth) {
+  const plugin = getGoogleAuthPlugin()
+  if (!plugin) {
     throw new Error('GoogleAuth non disponible. Le plugin n\'a pas pu être initialisé.')
   }
 
   try {
-    const user = await GoogleAuth.signIn()
+    const user = await plugin.signIn()
 
     if (!user.authentication?.idToken) {
       throw new Error('Pas d\'idToken reçu de Google')
@@ -92,10 +117,11 @@ export async function signInWithGoogleNative(): Promise<GoogleUser> {
  * Déconnexion Google
  */
 export async function signOutGoogle(): Promise<void> {
-  if (!GoogleAuth) return
+  const plugin = getGoogleAuthPlugin()
+  if (!plugin) return
 
   try {
-    await GoogleAuth.signOut()
+    await plugin.signOut()
     console.log('[GoogleAuth] Déconnexion Google effectuée')
   } catch (error) {
     console.error('[GoogleAuth] Erreur déconnexion:', error)
@@ -107,10 +133,11 @@ export async function signOutGoogle(): Promise<void> {
  * Retourne uniquement les tokens d'authentification
  */
 export async function refreshGoogleToken(): Promise<{ accessToken: string; idToken: string } | null> {
-  if (!GoogleAuth) return null
+  const plugin = getGoogleAuthPlugin()
+  if (!plugin) return null
 
   try {
-    const authentication = await GoogleAuth.refresh()
+    const authentication = await plugin.refresh()
     return {
       accessToken: authentication.accessToken,
       idToken: authentication.idToken,
@@ -125,5 +152,5 @@ export async function refreshGoogleToken(): Promise<{ accessToken: string; idTok
  * Vérifie si Google Sign-In natif est disponible
  */
 export function isGoogleAuthAvailable(): boolean {
-  return hasCapacitorBridge() && isInitialized
+  return getGoogleAuthPlugin() !== null && isInitialized
 }
