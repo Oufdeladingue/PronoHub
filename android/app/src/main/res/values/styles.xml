@@ -15,7 +15,7 @@
         <item name="android:background">@null</item>
         <!-- Permettre les changements de couleur de la status bar -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
+        <!-- Ne pas définir de couleur par défaut, laisser le plugin gérer -->
     </style>
 
 

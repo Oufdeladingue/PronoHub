@@ -41,6 +41,21 @@ function LoginForm() {
     'On fait circuler les données… tiki-taka de chargement.'
   ]
 
+  // Vérifier si l'utilisateur est déjà connecté (redirection auto)
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('[LoginPage] Session check:', session ? 'logged in' : 'not logged in')
+
+      if (session) {
+        console.log('[LoginPage] User already logged in, redirecting to dashboard')
+        router.replace(redirectTo || '/dashboard')
+      }
+    }
+
+    checkAuth()
+  }, [router, redirectTo, supabase])
+
   // Initialiser Google Auth natif et status bar au montage (Capacitor Android)
   useEffect(() => {
     if (isCapacitor()) {

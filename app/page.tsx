@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { setStatusBarColor, isCapacitor } from '@/lib/capacitor'
+import { createClient } from '@/lib/supabase/client'
 
 // Landing page "Coming Soon" pour la production
 function ComingSoonPage() {
@@ -73,6 +75,27 @@ function ComingSoonPage() {
 function NormalHomePage() {
   const logoRef = useRef<HTMLDivElement>(null)
   const [logoWidth, setLogoWidth] = useState<number>(0)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Vérifier si l'utilisateur est déjà connecté (important pour Capacitor)
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      console.log('[HomePage] Session check:', session ? 'logged in' : 'not logged in')
+
+      if (session) {
+        console.log('[HomePage] User already logged in, redirecting to dashboard')
+        router.replace('/dashboard')
+      } else {
+        setIsCheckingAuth(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
 
   useEffect(() => {
     // Status bar noire sur la page d'accueil
@@ -102,6 +125,15 @@ function NormalHomePage() {
       return () => window.removeEventListener('resize', updateWidth)
     }
   }, [])
+
+  // Afficher un loader pendant la vérification d'auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-950 to-black">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">

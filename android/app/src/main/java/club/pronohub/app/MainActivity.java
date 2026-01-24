@@ -6,6 +6,9 @@ import android.app.NotificationManager;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
+import android.view.Window;
+import android.view.WindowManager;
+import android.graphics.Color;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -33,6 +36,13 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(GoogleAuth.class);
 
         super.onCreate(savedInstanceState);
+
+        // Forcer la couleur de la status bar nativement
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(Color.parseColor("#1e293b"));
+        }
 
         // Créer le canal de notification pour Android 8.0+
         createNotificationChannel();
