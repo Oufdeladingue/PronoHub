@@ -83,7 +83,7 @@ export default function DashboardCapacitorWrapper() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="h-screen-safe flex flex-col items-center justify-center bg-[#0a0a0a] pt-safe">
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-24 h-24">
             <Image
@@ -117,7 +117,7 @@ export default function DashboardCapacitorWrapper() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="h-screen-safe flex flex-col items-center justify-center bg-[#0a0a0a] pt-safe">
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
@@ -134,7 +134,7 @@ export default function DashboardCapacitorWrapper() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen-safe flex flex-col overflow-hidden">
       <Navigation
         username={dashboardData.profile?.username || 'utilisateur'}
         userAvatar={dashboardData.profile?.avatar || 'avatar1'}

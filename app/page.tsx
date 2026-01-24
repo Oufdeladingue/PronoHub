@@ -11,7 +11,7 @@ function ComingSoonPage() {
   // Status bar configurée en noir nativement dans MainActivity.java
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
+    <div className="h-screen-safe flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page pt-safe overflow-hidden">
       <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
@@ -127,7 +127,7 @@ function NormalHomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
+    <div className="h-screen-safe flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page pt-safe overflow-hidden">
       <main id="main-content" className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-6 p-6">
           <div className="flex flex-col items-center">

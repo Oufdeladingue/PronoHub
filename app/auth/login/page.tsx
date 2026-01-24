@@ -279,7 +279,7 @@ function LoginForm() {
   // Afficher un loader plein écran pendant la redirection vers le dashboard
   if (redirecting) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="h-screen-safe flex flex-col items-center justify-center bg-[#0a0a0a] pt-safe">
         <div className="flex flex-col items-center gap-6">
           {/* Logo avec effet de remplissage de bas en haut */}
           <div className="relative w-24 h-24">
@@ -451,7 +451,7 @@ function LoginForm() {
       </div>
       </div>
       {/* Footer minimal inline */}
-      <div className="text-center py-3 text-[10px] text-gray-300">
+      <div className="text-center py-3 text-[10px] text-gray-400">
         © {new Date().getFullYear()} PronoHub
         <span className="mx-2">•</span>
         <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>

@@ -621,7 +621,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen-safe flex flex-col overflow-hidden">
       <Navigation
         username={profile?.username || 'utilisateur'}
         userAvatar={profile?.avatar || 'avatar1'}
