@@ -315,7 +315,7 @@ export default function NavBarMobile({
     <nav className="theme-nav md:hidden">
       <div className="max-w-7xl mx-auto px-2">
         {/* Navigation layout avec logo centré absolument */}
-        <div className="relative flex items-center justify-between min-h-[80px]">
+        <div className="relative flex items-center justify-between min-h-[64px]">
           {/* GAUCHE - Theme Toggle */}
           <div className="flex items-center z-10">
             <ThemeToggle />
@@ -327,7 +327,7 @@ export default function NavBarMobile({
               <img
                 src="/images/logo.svg"
                 alt="PronoHub"
-                className="w-20 h-20 cursor-pointer hover:opacity-80 transition"
+                className="w-16 h-16 cursor-pointer hover:opacity-80 transition"
               />
             </Link>
           </div>

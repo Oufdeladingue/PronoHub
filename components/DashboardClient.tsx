@@ -263,7 +263,7 @@ function DashboardContent({
 
   return (
     <div className="theme-bg flex flex-col flex-1">
-      <main id="main-content" className="max-w-7xl mx-auto px-4 py-8 w-full flex-1 pb-16">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 pb-[72px]">
         {/* Bouton Panel Admin pour les super admins */}
         {isSuper && (
           <div className="mb-6">

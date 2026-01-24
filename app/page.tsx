@@ -4,17 +4,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { setStatusBarColor, isCapacitor } from '@/lib/capacitor'
 import { createClient } from '@/lib/supabase/client'
 
 // Landing page "Coming Soon" pour la production
 function ComingSoonPage() {
-  useEffect(() => {
-    // Status bar noire sur la page d'accueil
-    if (isCapacitor()) {
-      setStatusBarColor('#000000')
-    }
-  }, [])
+  // Status bar configurée en noir nativement dans MainActivity.java
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
@@ -98,10 +92,7 @@ function NormalHomePage() {
   }, [router])
 
   useEffect(() => {
-    // Status bar noire sur la page d'accueil
-    if (isCapacitor()) {
-      setStatusBarColor('#000000')
-    }
+    // Status bar configurée en noir nativement dans MainActivity.java
 
     if (logoRef.current) {
       const updateWidth = () => {

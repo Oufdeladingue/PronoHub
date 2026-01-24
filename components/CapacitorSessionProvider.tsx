@@ -28,10 +28,7 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
       console.log('[CapacitorSessionProvider] isAndroid:', isAndroid())
 
       if (isCapacitor()) {
-        // Configurer la status bar sur Android (couleur nav par défaut)
-        if (isAndroid()) {
-          await configureStatusBar('#1e293b')
-        }
+        // La status bar est configurée en noir nativement dans MainActivity.java
 
         // Restaurer la session depuis Capacitor Preferences vers localStorage
         console.log('[CapacitorSessionProvider] Restauration session...')
