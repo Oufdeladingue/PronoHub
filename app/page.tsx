@@ -129,29 +129,30 @@ function NormalHomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
       <main id="main-content" className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-8 p-8">
+        <div className="text-center space-y-6 p-6">
           <div className="flex flex-col items-center">
             <Image
               src="/images/king.svg"
               alt="Couronne dorée PronoHub"
-              width={200}
-              height={200}
-              className="h-auto mb-2 drop-shadow-[0_0_80px_rgba(255,220,150,0.8)]"
-              style={{ width: logoWidth > 0 ? `${logoWidth}px` : 'auto' }}
+              width={160}
+              height={160}
+              className="h-auto mb-2 drop-shadow-[0_0_60px_rgba(255,220,150,0.7)]"
+              style={{ width: logoWidth > 0 ? `${logoWidth * 0.8}px` : 'auto' }}
               priority
             />
             <div ref={logoRef}>
               <Image
                 src="/images/logo.svg"
                 alt="PronoHub - Tournois de pronostics entre amis"
-                width={200}
-                height={200}
-                className="h-32 w-auto drop-shadow-[0_0_120px_rgba(255,220,150,0.7)]"
+                width={160}
+                height={160}
+                className="w-auto drop-shadow-[0_0_100px_rgba(255,220,150,0.6)]"
+                style={{ height: '6.4rem' }}
                 priority
               />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white drop-shadow-lg">
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg">
             Fais-toi plaisir,<br />deviens le roi du prono.
           </h1>
           <p className="text-lg text-gray-200">

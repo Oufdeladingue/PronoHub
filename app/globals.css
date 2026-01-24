@@ -25,7 +25,7 @@
 }
 
 :root[data-theme="dark"] {
-  --background: #000000;
+  --background: #1e293b;
   --foreground: #f1f5f9;
   --card-bg: #1e293b;
   --nav-bg: #1e293b;
@@ -34,7 +34,7 @@
   --text-secondary: #94a3b8;
   --input-bg: #334155;
   --input-border: #475569;
-  --info-bg: #000000;
+  --info-bg: #1e293b;
 }
 
 /* Default to light theme */

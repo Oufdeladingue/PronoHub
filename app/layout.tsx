@@ -75,6 +75,8 @@ export default function RootLayout({
       <head>
         {/* Viewport avec viewport-fit=cover pour gérer les safe areas sur mobile */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        {/* CRITIQUE: Couleur theme pour Android WebView - LUE IMMÉDIATEMENT */}
+        <meta name="theme-color" content="#1e293b" />
         {/* Preconnect aux origines critiques pour réduire la latence */}
         <link rel="preconnect" href="https://txpmihreaxmtsxlgmdko.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://txpmihreaxmtsxlgmdko.supabase.co" />

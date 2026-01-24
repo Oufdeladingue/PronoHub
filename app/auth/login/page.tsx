@@ -451,7 +451,7 @@ function LoginForm() {
       </div>
       </div>
       {/* Footer minimal inline */}
-      <div className="text-center py-2 text-[10px] text-gray-400">
+      <div className="text-center py-3 text-[10px] text-gray-300">
         © {new Date().getFullYear()} PronoHub
         <span className="mx-2">•</span>
         <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
