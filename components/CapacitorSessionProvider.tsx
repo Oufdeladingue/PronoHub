@@ -56,7 +56,7 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
   // Sur Capacitor, attendre que la session soit restaurée
   if (!isReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="h-screen-safe flex items-center justify-center bg-black pt-safe">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
       </div>
     )

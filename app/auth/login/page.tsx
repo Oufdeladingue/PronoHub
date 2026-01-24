@@ -279,7 +279,7 @@ function LoginForm() {
   // Afficher un loader plein écran pendant la redirection vers le dashboard
   if (redirecting) {
     return (
-      <div className="h-screen-safe flex flex-col items-center justify-center bg-[#0a0a0a] pt-safe">
+      <div className="h-screen-safe flex flex-col items-center justify-center bg-black pt-safe">
         <div className="flex flex-col items-center gap-6">
           {/* Logo avec effet de remplissage de bas en haut */}
           <div className="relative w-24 h-24">
@@ -319,9 +319,9 @@ function LoginForm() {
   }
 
   return (
-    <div className="h-screen-safe flex flex-col auth-page bg-black pt-safe">
+    <div className="min-h-screen-safe flex flex-col auth-page bg-black">
       <div
-        className="flex-1 flex items-center justify-center relative px-4"
+        className="flex-1 flex items-center justify-center relative px-4 pt-safe"
         style={{
           backgroundImage: "url('/images/room-bg.jpg')",
           backgroundSize: "cover",
