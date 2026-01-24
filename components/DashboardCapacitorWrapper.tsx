@@ -134,7 +134,7 @@ export default function DashboardCapacitorWrapper() {
   }
 
   return (
-    <div className="h-screen-safe flex flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Navigation
         username={dashboardData.profile?.username || 'utilisateur'}
         userAvatar={dashboardData.profile?.avatar || 'avatar1'}
