@@ -259,17 +259,17 @@ function SignUpForm() {
       <div className="absolute top-0 left-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
       <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
 
-      <div className="relative z-10 w-full max-w-[420px] rounded-[14px] p-10 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
-        <div className="flex items-center justify-center gap-3 mb-7">
-          <h1 className="text-2xl font-bold text-white m-0">
+      <div className="relative z-10 w-full max-w-[420px] rounded-[14px] p-6 sm:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-white m-0">
             Rejoins l'effectif
           </h1>
           <Image
             src="/images/logo.svg"
             alt="PronoHub"
-            width={80}
-            height={80}
-            className="h-10 w-auto"
+            width={64}
+            height={64}
+            className="h-8 sm:h-10 w-auto"
           />
         </div>
 

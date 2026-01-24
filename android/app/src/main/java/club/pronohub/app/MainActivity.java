@@ -37,11 +37,16 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
-        // Forcer la couleur de la status bar nativement
+        // Forcer la status bar et navigation bar en noir (cohérent avec toute l'app)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(Color.parseColor("#1e293b"));
+            window.setStatusBarColor(Color.parseColor("#000000"));
+
+            // Navigation bar (boutons virtuels) aussi en noir
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                window.setNavigationBarColor(Color.parseColor("#000000"));
+            }
         }
 
         // Créer le canal de notification pour Android 8.0+
