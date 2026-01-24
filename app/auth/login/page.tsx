@@ -279,7 +279,7 @@ function LoginForm() {
   // Afficher un loader plein écran pendant la redirection vers le dashboard
   if (redirecting) {
     return (
-      <div className="h-screen-safe flex flex-col items-center justify-center bg-black pt-safe">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-6">
           {/* Logo avec effet de remplissage de bas en haut */}
           <div className="relative w-24 h-24">
@@ -319,14 +319,16 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen-safe flex flex-col auth-page bg-black">
+    <div className="fixed inset-0 flex flex-col auth-page bg-black overflow-hidden">
       <div
-        className="flex-1 flex items-center justify-center relative px-4 pt-safe"
+        className="flex-1 flex items-center justify-center relative px-4"
         style={{
           backgroundImage: "url('/images/room-bg.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundRepeat: "no-repeat"
+          backgroundRepeat: "no-repeat",
+          paddingTop: 'env(safe-area-inset-top, 0)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)'
         }}
       >
       {/* Radial gradient overlay */}

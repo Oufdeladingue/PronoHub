@@ -11,8 +11,8 @@ function ComingSoonPage() {
   // Status bar configurée en noir nativement dans MainActivity.java
 
   return (
-    <div className="min-h-screen-safe flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
-      <main id="main-content" className="flex-1 flex items-center justify-center pt-safe pb-safe">
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
+      <main id="main-content" className="flex-1 flex items-center justify-center px-4" style={{ paddingTop: 'env(safe-area-inset-top, 0)', paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
         <div className="text-center space-y-8 p-8">
           <div className="flex flex-col items-center">
             <Image
@@ -120,16 +120,16 @@ function NormalHomePage() {
   // Afficher un loader pendant la vérification d'auth
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-950 to-black">
+      <div className="fixed inset-0 flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen-safe flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page">
-      <main id="main-content" className="flex-1 flex items-center justify-center pt-safe pb-safe">
-        <div className="text-center space-y-6 p-6">
+    <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-black via-gray-950 to-black auth-page overflow-hidden">
+      <main id="main-content" className="flex-1 flex items-center justify-center px-4" style={{ paddingTop: 'env(safe-area-inset-top, 0)', paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
+        <div className="text-center space-y-6 py-6">
           <div className="flex flex-col items-center">
             <Image
               src="/images/king.svg"
