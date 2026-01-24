@@ -25,7 +25,7 @@
 }
 
 :root[data-theme="dark"] {
-  --background: #0f172a;
+  --background: #000000;
   --foreground: #f1f5f9;
   --card-bg: #1e293b;
   --nav-bg: #1e293b;
@@ -34,7 +34,7 @@
   --text-secondary: #94a3b8;
   --input-bg: #334155;
   --input-border: #475569;
-  --info-bg: #0f172a;
+  --info-bg: #000000;
 }
 
 /* Default to light theme */
@@ -92,9 +92,26 @@ html, body {
   padding-bottom: env(safe-area-inset-bottom, 0) !important;
 }
 
-/* Classe utilitaire pour le padding bottom safe area (navigation Android) */
+/* Classes utilitaires pour safe areas Android */
 .pb-safe {
   padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Pour les conteneurs qui doivent occuper toute la hauteur visible */
+.min-h-screen-safe {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Pour les pages sans scroll */
+.h-screen-safe {
+  height: 100vh;
+  height: -webkit-fill-available;
+  overflow: hidden;
 }
 
 /* Curseur pointer pour tous les éléments cliquables */
