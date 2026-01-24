@@ -233,9 +233,9 @@ function SignUpForm() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col auth-page overflow-hidden">
+    <div className="min-h-screen flex flex-col auth-page bg-black">
       <div
-        className="flex-1 flex items-center justify-center relative"
+        className="flex-1 flex items-start justify-center relative py-4 overflow-y-auto"
         style={{
           backgroundImage: "url('/images/room-bg.jpg')",
           backgroundSize: "cover",
@@ -256,7 +256,7 @@ function SignUpForm() {
       <div className="absolute top-0 left-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
       <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 blur-[100px] rounded-full z-[1]"></div>
 
-      <div className="relative z-10 w-full max-w-[420px] max-h-[90vh] overflow-y-auto scrollbar-hide rounded-[14px] p-4 sm:p-6 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
+      <div className="relative z-10 w-full max-w-[420px] my-auto rounded-[14px] p-4 sm:p-6 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
         <div className="flex items-center justify-center gap-2 mb-3">
           <h1 className="text-xl sm:text-2xl font-bold text-white m-0">
             Rejoins l'effectif
