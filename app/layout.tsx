@@ -7,6 +7,8 @@ import { UserProvider } from "@/contexts/UserContext";
 import NavigationLoader from "@/components/NavigationLoader";
 import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
 import PushNotificationsProvider from "@/components/PushNotificationsProvider";
+// Importer le logger dès le début pour capturer tous les logs
+import "@/lib/logger";
 
 // Optimisation: next/font charge les fonts de manière optimale
 // - Hébergement local (pas de requête externe à Google)

@@ -2,35 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-
-// Intercepter console.log pour capturer les logs
-const logs: string[] = []
-const originalLog = console.log
-const originalWarn = console.warn
-const originalError = console.error
-
-if (typeof window !== 'undefined') {
-  console.log = (...args: any[]) => {
-    logs.push(`[LOG] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}`)
-    originalLog.apply(console, args)
-  }
-  console.warn = (...args: any[]) => {
-    logs.push(`[WARN] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}`)
-    originalWarn.apply(console, args)
-  }
-  console.error = (...args: any[]) => {
-    logs.push(`[ERROR] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')}`)
-    originalError.apply(console, args)
-  }
-}
+import { globalLogs, clearLogs } from '@/lib/logger'
 
 export default function LogsPage() {
-  const [displayLogs, setDisplayLogs] = useState<string[]>([])
+  const [logs, setLogs] = useState(globalLogs)
 
   useEffect(() => {
     // Mettre à jour les logs toutes les 500ms
     const interval = setInterval(() => {
-      setDisplayLogs([...logs])
+      setLogs([...globalLogs])
     }, 500)
 
     return () => clearInterval(interval)
@@ -43,8 +23,8 @@ export default function LogsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              logs.length = 0
-              setDisplayLogs([])
+              clearLogs()
+              setLogs([])
             }}
             className="px-3 py-1 bg-red-600 text-white rounded text-sm"
           >
@@ -56,25 +36,25 @@ export default function LogsPage() {
         </div>
       </div>
 
-      <div className="bg-gray-900 p-3 rounded font-mono text-xs">
-        <p className="text-gray-400 mb-2">Total: {displayLogs.length} logs</p>
-        {displayLogs.length === 0 && <p className="text-gray-500">Aucun log</p>}
-        {displayLogs.map((log, i) => (
+      <div className="bg-gray-900 p-3 rounded font-mono text-xs max-h-[80vh] overflow-y-auto">
+        <p className="text-gray-400 mb-2">Total: {logs.length} logs</p>
+        {logs.length === 0 && <p className="text-gray-500">Aucun log (le logger s'initialise au chargement de l'app)</p>}
+        {logs.map((log, i) => (
           <div
             key={i}
             className={`py-0.5 ${
-              log.includes('[ERROR]')
+              log.level === 'ERROR'
                 ? 'text-red-400'
-                : log.includes('[WARN]')
+                : log.level === 'WARN'
                 ? 'text-yellow-400'
-                : log.includes('[Capacitor]') || log.includes('[CapacitorSessionProvider]')
+                : log.message.includes('[Capacitor]') || log.message.includes('[CapacitorSessionProvider]')
                 ? 'text-green-400'
-                : log.includes('[StatusBar]')
+                : log.message.includes('[StatusBar]')
                 ? 'text-blue-400'
                 : 'text-gray-300'
             }`}
           >
-            {log}
+            <span className="text-gray-500">{log.time}</span> [{log.level}] {log.message}
           </div>
         ))}
       </div>
