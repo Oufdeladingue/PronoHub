@@ -262,8 +262,8 @@ function DashboardContent({
   }
 
   return (
-    <div className="theme-bg flex flex-col flex-1 min-h-screen-safe pt-safe">
-      <main id="main-content" className="max-w-7xl mx-auto px-4 py-4 w-full flex-1" style={{ paddingBottom: 'max(68px, calc(68px + env(safe-area-inset-bottom, 0px)))' }}>
+    <div className="theme-bg flex flex-col flex-1 min-h-screen-safe">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 py-4 w-full flex-1" style={{ paddingBottom: 'max(64px, calc(64px + env(safe-area-inset-bottom, 0px)))' }}>
         {/* Bouton Panel Admin pour les super admins */}
         {isSuper && (
           <div className="mb-6">

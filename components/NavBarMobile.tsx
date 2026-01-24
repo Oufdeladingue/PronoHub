@@ -22,7 +22,7 @@ export default function NavBarMobile({
   // Rendu pour le contexte Creation (page de création de tournoi)
   if (context === 'creation' && creationContext) {
     return (
-      <div className="theme-nav md:hidden">
+      <div className="theme-nav md:hidden pt-safe">
         <div className="max-w-7xl mx-auto px-2 py-3">
           {/* Navigation layout - 3 colonnes sur mobile */}
           <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
@@ -184,7 +184,7 @@ export default function NavBarMobile({
     }
 
     return (
-      <div className="theme-nav md:hidden">
+      <div className="theme-nav md:hidden pt-safe">
         <div className="max-w-7xl mx-auto px-2 py-3">
           {/* Navigation layout - 3 colonnes sur mobile */}
           <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
@@ -312,7 +312,7 @@ export default function NavBarMobile({
 
   // Rendu pour le contexte App ou Admin (version mobile simplifiée)
   return (
-    <nav className="theme-nav md:hidden">
+    <nav className="theme-nav md:hidden pt-safe">
       <div className="max-w-7xl mx-auto px-2">
         {/* Navigation layout avec logo centré absolument */}
         <div className="relative flex items-center justify-between min-h-[64px]">
