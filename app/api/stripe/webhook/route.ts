@@ -13,59 +13,91 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(request: Request) {
-  // Vérifier si Stripe est configuré
-  if (!isStripeEnabled || !stripe) {
-    return NextResponse.json(
-      { error: 'Stripe n\'est pas configuré' },
-      { status: 503 }
-    )
-  }
-
-  const body = await request.text()
-  const headersList = await headers()
-  const signature = headersList.get('stripe-signature')
-
-  if (!signature) {
-    return NextResponse.json(
-      { error: 'Missing stripe-signature header' },
-      { status: 400 }
-    )
-  }
-
-  let event: any
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message)
-    return NextResponse.json(
-      { error: `Webhook Error: ${err.message}` },
-      { status: 400 }
-    )
-  }
-
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object)
-        break
-
-      case 'checkout.session.expired':
-        await handleCheckoutExpired(event.data.object)
-        break
-
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
+    // Vérifier si Stripe est configuré
+    if (!isStripeEnabled || !stripe) {
+      console.error('[Stripe Webhook] Stripe non configuré')
+      return NextResponse.json(
+        { error: 'Stripe n\'est pas configuré' },
+        { status: 503 }
+      )
     }
 
-    return NextResponse.json({ received: true })
+    // Vérifier que le webhook secret est configuré
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET manquant')
+      return NextResponse.json(
+        { error: 'Configuration webhook manquante' },
+        { status: 500 }
+      )
+    }
+
+    const body = await request.text()
+    const headersList = await headers()
+    const signature = headersList.get('stripe-signature')
+
+    if (!signature) {
+      console.error('[Stripe Webhook] Signature manquante')
+      return NextResponse.json(
+        { error: 'Missing stripe-signature header' },
+        { status: 400 }
+      )
+    }
+
+    let event: any
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET
+      )
+    } catch (err: any) {
+      console.error('[Stripe Webhook] Vérification signature échouée:', err.message)
+      return NextResponse.json(
+        { error: `Webhook Error: ${err.message}` },
+        { status: 400 }
+      )
+    }
+
+    console.log(`[Stripe Webhook] Événement reçu: ${event.type}`)
+
+    // Traiter l'événement
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed':
+          await handleCheckoutCompleted(event.data.object)
+          break
+
+        case 'checkout.session.expired':
+          await handleCheckoutExpired(event.data.object)
+          break
+
+        default:
+          console.log(`[Stripe Webhook] Type non géré: ${event.type}`)
+      }
+
+      // IMPORTANT: Toujours retourner 200 même si le handler échoue
+      // pour éviter que Stripe réessaie indéfiniment
+      return NextResponse.json({ received: true }, { status: 200 })
+
+    } catch (handlerError: any) {
+      // Logger l'erreur mais retourner 200 pour éviter les retry infinis
+      console.error('[Stripe Webhook] Erreur handler:', handlerError)
+      console.error('[Stripe Webhook] Event ID:', event.id)
+      console.error('[Stripe Webhook] Event type:', event.type)
+
+      // Retourner 200 pour que Stripe arrête de retry
+      // L'erreur est loggée pour investigation manuelle
+      return NextResponse.json({
+        received: true,
+        warning: 'Handler failed but acknowledged'
+      }, { status: 200 })
+    }
 
   } catch (error: any) {
-    console.error('Webhook handler error:', error)
+    // Erreur critique (parsing, etc.)
+    console.error('[Stripe Webhook] Erreur critique:', error)
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -75,13 +107,22 @@ export async function POST(request: Request) {
 
 // Handler: Checkout session completed (paiement réussi)
 async function handleCheckoutCompleted(session: any) {
+  console.log(`[Stripe] handleCheckoutCompleted - Session ID: ${session.id}`)
+
   const userId = session.metadata?.user_id
   const purchaseType = session.metadata?.purchase_type
 
   if (!userId || !purchaseType) {
-    console.error('[Stripe] Missing metadata in checkout session')
-    return
+    console.error('[Stripe] Missing metadata in checkout session:', {
+      sessionId: session.id,
+      hasUserId: !!userId,
+      hasPurchaseType: !!purchaseType,
+      metadata: session.metadata
+    })
+    throw new Error('Missing required metadata (user_id or purchase_type)')
   }
+
+  console.log(`[Stripe] Processing purchase - User: ${userId}, Type: ${purchaseType}`)
 
   // Vérification d'idempotence - éviter les doubles traitements
   const { data: existingPurchase } = await supabaseAdmin
@@ -136,8 +177,11 @@ async function handleCheckoutCompleted(session: any) {
     .eq('stripe_checkout_session_id', session.id)
 
   if (updateError) {
-    console.error('Error updating purchase:', updateError)
+    console.error('[Stripe] Error updating purchase:', updateError)
+    throw new Error(`Failed to update purchase: ${updateError.message}`)
   }
+
+  console.log('[Stripe] Purchase status updated to completed')
 
   // Traiter selon le type d'achat
   if (purchaseType.startsWith('tournament_creation_')) {
