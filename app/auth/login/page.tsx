@@ -139,39 +139,18 @@ function LoginForm() {
       }
 
       // CAS 2: OAuth classique (web ou fallback Capacitor)
+      // Utiliser la route API proxy pour masquer l'URL Supabase
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const callbackUrl = redirectTo
-        ? `${baseUrl}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
-        : `${baseUrl}/auth/callback`
+      const apiUrl = redirectTo
+        ? `${baseUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${baseUrl}/api/auth/google`
 
       if (isCapacitor()) {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: callbackUrl,
-            skipBrowserRedirect: true,
-          },
-        })
-
-        if (error) {
-          setError(`Erreur lors de la connexion avec Google: ${error.message}`)
-          return
-        }
-
-        if (data?.url) {
-          await openExternalUrl(data.url)
-        }
+        // Sur Capacitor, ouvrir l'URL du proxy dans le navigateur externe
+        await openExternalUrl(apiUrl)
       } else {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: callbackUrl,
-          },
-        })
-
-        if (error) {
-          setError(`Erreur lors de la connexion avec Google: ${error.message}`)
-        }
+        // Sur le web, redirection classique vers le proxy
+        window.location.href = apiUrl
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
