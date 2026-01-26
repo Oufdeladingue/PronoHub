@@ -55,9 +55,12 @@ export async function initGoogleAuth(): Promise<void> {
   }
 
   try {
+    // Récupérer le serverClientId depuis capacitor.config
+    const clientId = '468891081637-deuj1678e2kdrse16logq5ksk7qc2fru.apps.googleusercontent.com'
+
     // Initialisation avec les scopes
     await GoogleAuth.initialize({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+      clientId,
       scopes: ['profile', 'email'],
       grantOfflineAccess: true,
     })
