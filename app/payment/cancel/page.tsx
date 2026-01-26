@@ -1,13 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { XCircle, ArrowLeft, ExternalLink } from 'lucide-react'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { XCircle, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
-export default function PaymentCancelPage() {
+function PaymentCancelContent() {
+  const searchParams = useSearchParams()
   const [isExternalBrowser, setIsExternalBrowser] = useState(false)
+  const [returnPath, setReturnPath] = useState('/dashboard')
 
   useEffect(() => {
+    // Lire le paramètre return pour savoir où renvoyer l'utilisateur
+    const returnParam = searchParams.get('return')
+    if (returnParam) {
+      setReturnPath(returnParam)
+    }
+
     // Détecter si on est dans un navigateur externe (Chrome Custom Tab)
     // plutôt que dans le WebView de l'app Capacitor
     const userAgent = navigator.userAgent || ''
@@ -15,15 +24,14 @@ export default function PaymentCancelPage() {
     const isWebView = /wv/.test(userAgent) || /; wv\)/.test(userAgent)
     const hasCapacitor = !!(window as any).Capacitor?.isNativePlatform?.()
 
-    // On est dans un navigateur externe si Android + pas WebView + pas de bridge Capacitor
     if (isAndroid && !isWebView && !hasCapacitor) {
       setIsExternalBrowser(true)
     }
-  }, [])
+  }, [searchParams])
 
   const handleReturnToApp = () => {
-    // Tenter de revenir à l'app via intent URL Android
-    window.location.href = 'intent://www.pronohub.club/dashboard#Intent;scheme=https;package=club.pronohub.app;end'
+    const cleanPath = returnPath.startsWith('/') ? returnPath : `/${returnPath}`
+    window.location.href = `intent://www.pronohub.club${cleanPath}#Intent;scheme=https;package=club.pronohub.app;end`
   }
 
   return (
@@ -50,25 +58,31 @@ export default function PaymentCancelPage() {
               </p>
             </>
           ) : (
-            <>
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#ff9900] hover:bg-[#e68a00] text-white font-semibold rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour au dashboard
-              </Link>
-
-              <Link
-                href="/pricing"
-                className="flex items-center justify-center gap-2 w-full py-3 px-4 theme-bg-secondary hover:opacity-80 theme-text font-semibold rounded-lg transition-colors"
-              >
-                Voir les offres
-              </Link>
-            </>
+            <Link
+              href={returnPath}
+              className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#ff9900] hover:bg-[#e68a00] text-white font-semibold rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour
+            </Link>
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4 theme-bg">
+        <div className="max-w-md w-full theme-card p-8 text-center">
+          <Loader2 className="w-16 h-16 mx-auto mb-4 text-[#ff9900] animate-spin" />
+          <h1 className="text-xl font-bold theme-text mb-2">Chargement...</h1>
+        </div>
+      </div>
+    }>
+      <PaymentCancelContent />
+    </Suspense>
   )
 }

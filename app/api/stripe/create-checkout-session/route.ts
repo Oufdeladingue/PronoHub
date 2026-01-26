@@ -136,26 +136,31 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = getBaseUrl()
     let successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`
-    let cancelUrl = `${baseUrl}/payment/cancel`
+
+    // Déterminer la page de retour en cas d'annulation
+    let returnPath = '/dashboard'
 
     if (purchaseType.startsWith('tournament_creation_')) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=creation`
-      cancelUrl = `${baseUrl}/pricing`
+      returnPath = '/pricing'
     } else if (purchaseType === 'platinium_participation' || purchaseType === 'platinium_group_11') {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=platinium&mode=${purchaseType === 'platinium_group_11' ? 'group' : 'solo'}`
-      cancelUrl = `${baseUrl}/pricing`
+      returnPath = '/pricing'
     } else if (inviteCode) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=join&code=${inviteCode}`
-      cancelUrl = `${baseUrl}/dashboard`
+      returnPath = '/dashboard'
     } else if (tournamentId) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=extension&tournament=${tournamentId}`
-      cancelUrl = `${baseUrl}/dashboard`
+      returnPath = '/dashboard'
     }
 
-    // Override cancelUrl avec returnUrl si fourni (page d'origine du client)
+    // Override avec returnUrl si fourni (page d'origine du client)
     if (returnUrl) {
-      cancelUrl = `${baseUrl}${returnUrl}`
+      returnPath = returnUrl
     }
+
+    // Toujours passer par /payment/cancel pour gérer le contexte web/app
+    const cancelUrl = `${baseUrl}/payment/cancel?return=${encodeURIComponent(returnPath)}`
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
