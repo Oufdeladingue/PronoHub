@@ -53,6 +53,18 @@ export function DurationExtensionBanner({
     fetchExtensionInfo()
   }, [tournamentId, tournamentType, tournamentStatus])
 
+  // Quand l'app revient au premier plan (retour depuis Stripe), reset le spinner
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setBuying(false)
+        fetchExtensionInfo()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [tournamentId])
+
   // Ouvrir la modale automatiquement si ?extend=true
   useEffect(() => {
     if (searchParams.get('extend') === 'true' && info?.hasCredit && info?.canExtend) {
