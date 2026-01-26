@@ -169,9 +169,13 @@ function CreditDropdown({
   const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {
     const button = e.currentTarget
     const rect = button.getBoundingClientRect()
+    const dropdownHeight = 320 // hauteur estimée du dropdown
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight
+
     setDropdownPosition({
-      top: rect.bottom + 8,
-      left: rect.right - 256
+      top: openAbove ? rect.top - dropdownHeight - 8 : rect.bottom + 8,
+      left: Math.max(8, rect.right - 256)
     })
     setIsOpen(true)
   }
