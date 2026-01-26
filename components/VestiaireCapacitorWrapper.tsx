@@ -65,7 +65,7 @@ export default function VestiaireCapacitorWrapper() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-24 h-24">
             <Image
@@ -98,13 +98,15 @@ export default function VestiaireCapacitorWrapper() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020308]">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Navigation
         username={profile?.username || 'utilisateur'}
         userAvatar={profile?.avatar || 'avatar1'}
         context="app"
       />
-      <VestiaireClient />
+      <div className="flex-1 overflow-y-auto theme-bg">
+        <VestiaireClient />
+      </div>
     </div>
   )
 }

@@ -595,8 +595,8 @@ function ProfileContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen theme-bg flex items-center justify-center">
-        <p className="theme-text">Chargement...</p>
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <p className="text-gray-400">Chargement...</p>
       </div>
     )
   }

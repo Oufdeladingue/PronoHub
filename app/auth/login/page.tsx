@@ -448,7 +448,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-0 flex items-center justify-center bg-black">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
       </div>
     }>

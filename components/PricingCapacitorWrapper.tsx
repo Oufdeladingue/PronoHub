@@ -47,7 +47,7 @@ export default function PricingCapacitorWrapper() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
           <Image
             src="/images/logo.svg"
@@ -64,15 +64,19 @@ export default function PricingCapacitorWrapper() {
 
   return (
     <ThemeProvider>
-      {profile && (
-        <Navigation
-          username={profile.username || 'Utilisateur'}
-          userAvatar={profile.avatar}
-          context="app"
-          appContext={{ showBackToDashboard: true }}
-        />
-      )}
-      <PricingClient isLoggedIn={isLoggedIn} />
+      <div className="fixed inset-0 flex flex-col overflow-hidden">
+        {profile && (
+          <Navigation
+            username={profile.username || 'Utilisateur'}
+            userAvatar={profile.avatar}
+            context="app"
+            appContext={{ showBackToDashboard: true }}
+          />
+        )}
+        <div className="flex-1 overflow-y-auto theme-bg">
+          <PricingClient isLoggedIn={isLoggedIn} />
+        </div>
+      </div>
     </ThemeProvider>
   )
 }

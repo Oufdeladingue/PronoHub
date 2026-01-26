@@ -219,7 +219,7 @@ function FeatureItem({ title, description }: { title: string; description: strin
 
 function ContactLoading() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white flex items-center justify-center">
+    <div className="fixed inset-0 bg-black flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
     </div>
   )

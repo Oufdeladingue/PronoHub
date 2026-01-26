@@ -95,7 +95,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-6">
           <div className="relative w-24 h-24">
             <Image
@@ -129,7 +129,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a]">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
@@ -146,16 +146,18 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
   }
 
   return (
-    <OppositionClient
-      serverTournament={data.tournament}
-      serverUser={data.user}
-      serverPointsSettings={data.pointsSettings}
-      serverCompetitionLogo={data.competitionLogo}
-      serverCompetitionLogoWhite={data.competitionLogoWhite}
-      serverCaptainUsername={data.captainUsername}
-      serverAllMatches={data.allMatches}
-      serverMatchdayStages={data.matchdayStages}
-      tournamentSlug={tournamentSlug}
-    />
+    <div className="fixed inset-0 overflow-y-auto">
+      <OppositionClient
+        serverTournament={data.tournament}
+        serverUser={data.user}
+        serverPointsSettings={data.pointsSettings}
+        serverCompetitionLogo={data.competitionLogo}
+        serverCompetitionLogoWhite={data.competitionLogoWhite}
+        serverCaptainUsername={data.captainUsername}
+        serverAllMatches={data.allMatches}
+        serverMatchdayStages={data.matchdayStages}
+        tournamentSlug={tournamentSlug}
+      />
+    </div>
   )
 }

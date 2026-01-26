@@ -114,6 +114,12 @@ html, body {
   overflow: hidden;
 }
 
+/* Fix layout pour les pages dans Capacitor (Android) sans wrapper spécifique */
+/* La classe .capacitor est ajoutée au <html> par CapacitorSessionProvider */
+html.capacitor .min-h-screen {
+  min-height: -webkit-fill-available;
+}
+
 /* Curseur pointer pour tous les éléments cliquables */
 a,
 button,

@@ -169,7 +169,7 @@ export default async function OppositionPage({ params }: PageProps) {
   })
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-950 flex items-center justify-center">
+    <Suspense fallback={<div className="fixed inset-0 bg-black flex items-center justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400" />
     </div>}>
       <OppositionClient

@@ -1,6 +1,6 @@
 export default function PricingLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black">
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
           <img

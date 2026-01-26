@@ -28,6 +28,9 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
       console.log('[CapacitorSessionProvider] isAndroid:', isAndroid())
 
       if (isCapacitor()) {
+        // Ajouter une classe CSS pour les fixes de layout spécifiques Android/Capacitor
+        document.documentElement.classList.add('capacitor')
+
         // La status bar est configurée en noir nativement dans MainActivity.java
 
         // Restaurer la session depuis Capacitor Preferences vers localStorage

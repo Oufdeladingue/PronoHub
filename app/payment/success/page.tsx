@@ -223,7 +223,7 @@ function PaymentSuccessContent() {
 export default function PaymentSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center p-4 theme-bg">
+      <div className="fixed inset-0 flex items-center justify-center p-4 bg-black">
         <div className="max-w-md w-full theme-card p-8 text-center">
           <Loader2 className="w-16 h-16 mx-auto mb-4 text-[#ff9900] animate-spin" />
           <h1 className="text-xl font-bold theme-text mb-2">Chargement...</h1>

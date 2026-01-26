@@ -164,7 +164,7 @@ function RejoindreContent() {
   // Affichage pendant la vérification d'authentification
   if (checkingAuth) {
     return (
-      <div className="min-h-screen theme-bg flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
       </div>
     )
@@ -530,7 +530,7 @@ function RejoindreContent() {
 export default function RejoindrePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen theme-bg flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
       </div>
     }>
