@@ -140,8 +140,15 @@ export async function POST(request: NextRequest) {
     } else if (purchaseType === 'slot_invite') {
       nextAction = 'join_tournament'
       redirectUrl = '/dashboard'
-    } else if (purchaseType === 'duration_extension' || purchaseType === 'player_extension') {
-      // Ces extensions sont liees a un tournoi specifique
+    } else if (purchaseType === 'duration_extension') {
+      // Ne pas auto-appliquer : l'utilisateur choisira le nb de journées via la modale
+      const tournamentId = session.metadata?.tournament_id
+      if (tournamentId) {
+        nextAction = 'choose_extension'
+        redirectUrl = `/vestiaire/${tournamentId}?extend=true`
+      }
+    } else if (purchaseType === 'player_extension') {
+      // Auto-appliquer l'extension joueurs
       const tournamentId = session.metadata?.tournament_id
       if (tournamentId) {
         await handleExtension(purchaseType, tournamentId, session_id)
@@ -182,28 +189,7 @@ async function handleExtension(
   tournamentId: string,
   sessionId: string
 ): Promise<void> {
-  if (purchaseType === 'duration_extension') {
-    await supabaseAdmin
-      .from('tournaments')
-      .update({
-        duration_extended: true,
-        max_matchdays: null,
-      })
-      .eq('id', tournamentId)
-
-    // Marquer comme utilise
-    await supabaseAdmin
-      .from('tournament_purchases')
-      .update({
-        used: true,
-        used_at: new Date().toISOString(),
-        used_for_tournament_id: tournamentId,
-        tournament_id: tournamentId,
-      })
-      .eq('stripe_checkout_session_id', sessionId)
-
-    console.log('Duration extended for tournament:', tournamentId)
-  } else if (purchaseType === 'player_extension') {
+  if (purchaseType === 'player_extension') {
     const { data: tournament } = await supabaseAdmin
       .from('tournaments')
       .select('max_players, players_extended')

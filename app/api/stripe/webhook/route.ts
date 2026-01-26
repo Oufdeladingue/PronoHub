@@ -193,7 +193,9 @@ async function handleCheckoutCompleted(session: any) {
   } else if (purchaseType === 'platinium_participation') {
     await handlePlatiniumParticipation(session)
   } else if (purchaseType === 'duration_extension') {
-    await handleDurationExtension(session)
+    // Ne plus auto-appliquer : le crédit reste used=false
+    // L'utilisateur choisira le nb de journées via la modale
+    console.log('[Stripe] Duration extension credit created (pending user choice)')
   } else if (purchaseType === 'player_extension') {
     await handlePlayerExtension(session)
   }

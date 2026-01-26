@@ -79,7 +79,7 @@ function PaymentSuccessContent() {
           } else if (data.purchaseType === 'slot_invite') {
             setMessage('Votre slot supplementaire a ete active !')
           } else if (data.purchaseType === 'duration_extension') {
-            setMessage('La duree de votre tournoi a ete etendue !')
+            setMessage('Votre credit d\'extension a ete ajoute ! Choisissez la duree sur la page du tournoi.')
           } else if (data.purchaseType === 'player_extension') {
             setMessage('Capacite du tournoi augmentee de 5 joueurs !')
           } else {
@@ -162,16 +162,26 @@ function PaymentSuccessContent() {
                 </Link>
               )}
 
+              {/* Bouton principal - Choisir la duree d'extension */}
+              {purchaseInfo?.nextAction === 'choose_extension' && purchaseInfo.redirectUrl && (
+                <Link
+                  href={purchaseInfo.redirectUrl}
+                  className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-[#ff9900] hover:bg-[#e68a00] text-white font-semibold rounded-lg transition-colors"
+                >
+                  Choisir la duree <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
+
               {/* Bouton secondaire - Plus tard */}
               <Link
                 href="/dashboard"
                 className={`flex items-center justify-center gap-2 w-full py-3 px-4 ${
-                  purchaseInfo?.nextAction === 'create_tournament'
+                  (purchaseInfo?.nextAction === 'create_tournament' || purchaseInfo?.nextAction === 'choose_extension')
                     ? 'theme-bg-secondary hover:opacity-80 theme-text'
                     : 'bg-[#ff9900] hover:bg-[#e68a00] text-white'
                 } font-semibold rounded-lg transition-colors`}
               >
-                {purchaseInfo?.nextAction === 'create_tournament' ? (
+                {purchaseInfo?.nextAction === 'create_tournament' || purchaseInfo?.nextAction === 'choose_extension' ? (
                   <>
                     <Clock className="w-4 h-4" />
                     Plus tard

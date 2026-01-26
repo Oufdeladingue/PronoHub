@@ -139,6 +139,7 @@ const creditTypeLabels: Record<string, string> = {
   elite_creation: 'Crédit Elite',
   platinium_participation: 'Crédit Platinium',
   platinium_prepaid_11: 'Platinium Prepaid 11j',
+  duration_extension: 'Extension Durée',
 }
 
 // Composant Dropdown pour ajouter des credits
@@ -162,6 +163,7 @@ function CreditDropdown({
     { key: 'elite_creation', label: 'Crédit Elite', price: '9.99€', color: 'bg-orange-500', textColor: 'text-orange-400' },
     { key: 'platinium_participation', label: 'Crédit Platinium', price: '6.99€', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
     { key: 'platinium_prepaid_11', label: 'Platinium Prepaid 11j', price: '69.20€', color: 'bg-purple-500', textColor: 'text-purple-400' },
+    { key: 'duration_extension', label: 'Extension Durée', price: '3.99€', color: 'bg-teal-500', textColor: 'text-teal-400' },
   ]
 
   const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {

@@ -5,7 +5,7 @@ import { PRICES } from '@/types/monetization'
 /**
  * API pour étendre la durée d'un tournoi Free-Kick
  * POST /api/tournaments/extend-duration
- * Body: { tournamentId: string }
+ * Body: { tournamentId: string, matchdaysToAdd?: number }
  *
  * Conditions:
  * - Le tournoi doit être de type 'free'
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { tournamentId } = await request.json()
+    const { tournamentId, matchdaysToAdd } = await request.json()
 
     if (!tournamentId) {
       return NextResponse.json(
@@ -124,27 +124,42 @@ export async function POST(request: NextRequest) {
 
     if (creditError || !credit) {
       // Pas de crédit, retourner les infos pour le paiement
+      const maxPossible = Math.min(10, maxCompetitionMatchday - currentEndMatchday)
       return NextResponse.json({
         success: false,
         requiresPayment: true,
         paymentType: 'duration_extension',
         paymentAmount: PRICES.DURATION_EXTENSION,
-        message: `L'extension de durée coûte ${PRICES.DURATION_EXTENSION}€. Achetez un crédit pour prolonger jusqu'à la fin de la compétition.`,
+        message: `L'extension de durée coûte ${PRICES.DURATION_EXTENSION}€. Achetez un crédit pour prolonger votre tournoi.`,
         currentEndMatchday,
         newEndMatchday: maxCompetitionMatchday,
-        additionalMatchdays: maxCompetitionMatchday - currentEndMatchday
+        additionalMatchdays: maxCompetitionMatchday - currentEndMatchday,
+        maxAdditional: maxPossible
       }, { status: 402 })
     }
 
-    // Calculer le nouveau nombre de journées
-    const additionalMatchdays = maxCompetitionMatchday - currentEndMatchday
+    // Calculer le nombre de journées à ajouter
+    const maxPossible = Math.min(10, maxCompetitionMatchday - currentEndMatchday)
+
+    // Valider matchdaysToAdd
+    if (matchdaysToAdd !== undefined) {
+      if (!Number.isInteger(matchdaysToAdd) || matchdaysToAdd < 1 || matchdaysToAdd > maxPossible) {
+        return NextResponse.json(
+          { success: false, error: `Le nombre de journées doit être entre 1 et ${maxPossible}` },
+          { status: 400 }
+        )
+      }
+    }
+
+    const additionalMatchdays = matchdaysToAdd || maxPossible
+    const newEndMatchday = currentEndMatchday + additionalMatchdays
     const newNumMatchdays = (tournament.num_matchdays || tournament.matchdays_count) + additionalMatchdays
 
     // Appliquer l'extension
     const { error: updateError } = await supabase
       .from('tournaments')
       .update({
-        ending_matchday: maxCompetitionMatchday,
+        ending_matchday: newEndMatchday,
         num_matchdays: newNumMatchdays,
         matchdays_count: newNumMatchdays,
         max_matchdays: null, // Retirer la limite de journées
@@ -163,7 +178,7 @@ export async function POST(request: NextRequest) {
     // Créer les nouvelles journées du tournoi
     const newJourneys = []
     const startingMatchday = tournament.starting_matchday || 1
-    for (let i = currentEndMatchday + 1; i <= maxCompetitionMatchday; i++) {
+    for (let i = currentEndMatchday + 1; i <= newEndMatchday; i++) {
       newJourneys.push({
         tournament_id: tournamentId,
         journey_number: i - startingMatchday + 1,
@@ -188,8 +203,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Tournoi prolongé jusqu'à la journée ${maxCompetitionMatchday} !`,
-      newEndMatchday: maxCompetitionMatchday,
+      message: `Tournoi prolongé jusqu'à la journée ${newEndMatchday} !`,
+      newEndMatchday,
       newNumMatchdays,
       additionalMatchdays
     })
@@ -282,6 +297,9 @@ export async function GET(request: NextRequest) {
       .eq('status', 'completed')
       .eq('used', false)
 
+    const totalRemaining = maxCompetitionMatchday - currentEndMatchday
+    const maxAdditional = Math.min(10, totalRemaining)
+
     return NextResponse.json({
       success: true,
       canExtend,
@@ -289,7 +307,8 @@ export async function GET(request: NextRequest) {
       creditsAvailable: creditsCount || 0,
       currentEndMatchday,
       newEndMatchday: maxCompetitionMatchday,
-      additionalMatchdays: maxCompetitionMatchday - currentEndMatchday,
+      additionalMatchdays: totalRemaining,
+      maxAdditional,
       durationExtended: tournament.duration_extended || false,
       maxMatchdays: tournament.max_matchdays,
       price: PRICES.DURATION_EXTENSION,
