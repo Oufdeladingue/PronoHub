@@ -12,7 +12,20 @@
           "package_name": "club.pronohub.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "468891081637-a7tivn7v13jpendqbeuv4sv55k0jupku.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "club.pronohub.app",
+            "certificate_hash": "845bdd0dd4d6f5dbe98f64722be06798977ef982"
+          }
+        },
+        {
+          "client_id": "468891081637-deuj1678e2kdrse16logq5ksk7qc2fru.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBSIDRJNMRxRPRh8rqVOR95nCe4x9qYNJk"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "468891081637-deuj1678e2kdrse16logq5ksk7qc2fru.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

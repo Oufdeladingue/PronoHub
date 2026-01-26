@@ -969,7 +969,7 @@ function EchauffementPageContent() {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen theme-bg flex items-center justify-center p-4">
+      <div className="fixed inset-0 flex items-center justify-center bg-black p-4">
         <div className="theme-card p-8 max-w-md w-full text-center">
           <div className="text-red-600 text-5xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h1>
@@ -986,7 +986,7 @@ function EchauffementPageContent() {
   }
 
   return (
-    <div className="min-h-screen theme-bg">
+    <div className="fixed inset-0 flex flex-col overflow-hidden theme-bg">
       {/* Popup de confirmation de démarrage */}
       {startConfirmation && (() => {
         // Calculer les équipes vides s'il y en a
@@ -1498,7 +1498,8 @@ function EchauffementPageContent() {
         }}
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Contrôles du capitaine */}
         {currentUserId === tournament?.creator_id && (
           <div className="mb-6 theme-card border-2 border-yellow-400">
@@ -1940,6 +1941,7 @@ function EchauffementPageContent() {
           </div>
         </div>
 
+        </div>
       </main>
 
       {/* Footer ninja-mode */}

@@ -5,5 +5,5 @@
     <string name="package_name">club.pronohub.app</string>
     <string name="custom_url_scheme">club.pronohub.app</string>
     <!-- Google Sign-In Web Client ID -->
-    <string name="server_client_id">583607440165-79me5hd3vkuu6m6t876nf5kjrmk895ug.apps.googleusercontent.com</string>
+    <string name="server_client_id">468891081637-deuj1678e2kdrse16logq5ksk7qc2fru.apps.googleusercontent.com</string>
 </resources>
