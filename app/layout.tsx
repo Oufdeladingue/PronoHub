@@ -102,34 +102,7 @@ export default function RootLayout({
         {/* Skip to content link pour l'accessibilité - visible uniquement au focus clavier */}
         <a
           href="#main-content"
-          style={{
-            position: 'absolute',
-            width: '1px',
-            height: '1px',
-            padding: 0,
-            margin: '-1px',
-            overflow: 'hidden',
-            clip: 'rect(0, 0, 0, 0)',
-            whiteSpace: 'nowrap',
-            border: 0,
-          }}
-          onFocus={(e) => {
-            Object.assign(e.currentTarget.style, {
-              position: 'fixed', width: 'auto', height: 'auto',
-              padding: '0.5rem 1rem', margin: '0', overflow: 'visible',
-              clip: 'auto', whiteSpace: 'normal',
-              top: '1rem', left: '1rem', zIndex: '9999',
-              background: '#ff9900', color: '#000', borderRadius: '0.5rem',
-              fontWeight: '600', fontSize: '0.875rem',
-            })
-          }}
-          onBlur={(e) => {
-            Object.assign(e.currentTarget.style, {
-              position: 'absolute', width: '1px', height: '1px',
-              padding: '0', margin: '-1px', overflow: 'hidden',
-              clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: '0',
-            })
-          }}
+          className="skip-to-content"
         >
           Aller au contenu principal
         </a>
