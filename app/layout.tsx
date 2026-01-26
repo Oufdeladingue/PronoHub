@@ -99,10 +99,37 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
-        {/* Skip to content link pour l'accessibilité */}
+        {/* Skip to content link pour l'accessibilité - visible uniquement au focus clavier */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-9999 focus:px-4 focus:py-2 focus:bg-[#ff9900] focus:text-black focus:rounded-lg focus:font-semibold focus:outline-2 focus:outline-offset-2 focus:outline-[#ff9900]"
+          style={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0, 0, 0, 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+          onFocus={(e) => {
+            Object.assign(e.currentTarget.style, {
+              position: 'fixed', width: 'auto', height: 'auto',
+              padding: '0.5rem 1rem', margin: '0', overflow: 'visible',
+              clip: 'auto', whiteSpace: 'normal',
+              top: '1rem', left: '1rem', zIndex: '9999',
+              background: '#ff9900', color: '#000', borderRadius: '0.5rem',
+              fontWeight: '600', fontSize: '0.875rem',
+            })
+          }}
+          onBlur={(e) => {
+            Object.assign(e.currentTarget.style, {
+              position: 'absolute', width: '1px', height: '1px',
+              padding: '0', margin: '-1px', overflow: 'hidden',
+              clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: '0',
+            })
+          }}
         >
           Aller au contenu principal
         </a>
