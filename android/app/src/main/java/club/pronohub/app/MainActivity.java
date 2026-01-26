@@ -37,6 +37,11 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
+        // Forcer le background du WebView en noir pour éviter les flashs blancs
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().setBackgroundColor(Color.parseColor("#0a0a0a"));
+        }
+
         // Forcer la status bar et navigation bar en noir (cohérent avec toute l'app)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
