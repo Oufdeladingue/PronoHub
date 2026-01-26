@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Récupérer le tournoi avec les infos de compétition
+    // Récupérer le tournoi
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('*, competitions(id, current_matchday)')
+      .select('*')
       .eq('id', tournamentId)
       .single()
 
