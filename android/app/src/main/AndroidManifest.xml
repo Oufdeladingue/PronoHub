@@ -54,6 +54,22 @@
                 <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/payment/cancel" />
             </intent-filter>
 
+            <!-- Deep link pour retour vers page tournoi (après annulation Stripe) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/vestiaire/" />
+            </intent-filter>
+
+            <!-- Deep link pour retour au dashboard -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.pronohub.club" android:pathPrefix="/dashboard" />
+            </intent-filter>
+
             <!-- URL scheme personnalisé pour Capacitor -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
