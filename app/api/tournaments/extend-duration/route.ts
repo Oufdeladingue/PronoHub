@@ -80,14 +80,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier si le tournoi a déjà été étendu en durée
-    if (tournament.duration_extended === true) {
-      return NextResponse.json(
-        { success: false, error: 'La durée du tournoi a déjà été étendue. Maximum 1 extension par tournoi.' },
-        { status: 400 }
-      )
-    }
-
     // Vérifier si le tournoi a encore de la marge pour être étendu
     // (il doit rester des journées après la fin prévue du tournoi)
     const currentEndMatchday = tournament.ending_matchday || tournament.num_matchdays
@@ -270,12 +262,10 @@ export async function GET(request: NextRequest) {
     // Le tournoi peut être étendu si:
     // - Type free
     // - Status active (demarre)
-    // - Pas encore etendu
     // - Il reste des journees dans la competition
     console.log('[EXTEND-DURATION] Check conditions:', {
       tournament_type: tournament.tournament_type,
       status: tournament.status,
-      duration_extended: tournament.duration_extended,
       currentEndMatchday,
       maxCompetitionMatchday,
       competition_id: tournament.competition_id
@@ -283,7 +273,6 @@ export async function GET(request: NextRequest) {
 
     const canExtend = tournament.tournament_type === 'free' &&
       tournament.status === 'active' &&
-      tournament.duration_extended !== true &&
       currentEndMatchday < maxCompetitionMatchday
 
     console.log('[EXTEND-DURATION] canExtend:', canExtend)
