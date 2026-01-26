@@ -190,14 +190,14 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex-1 bg-gradient-to-b from-gray-900 to-gray-800 text-white py-16 px-4">
+      <div className="flex-1 theme-bg theme-text py-16 px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12 relative z-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Choisissez votre stratégie
             </h1>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-xl theme-text-secondary max-w-2xl mx-auto">
               4-4-2 classique ou en losange ? Optez pour la formule qui vous convient.
             </p>
           </div>
@@ -206,20 +206,20 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16 relative z-0">
 
             {/* Free-Kick - Gratuit */}
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-blue-500/50 flex flex-col">
+            <div className="bg-(--card-bg) rounded-2xl p-6 border border-blue-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-6 h-6 icon-filter-blue" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-blue-400">Free-Kick</h3>
-                <p className="text-gray-400 text-sm">Pour découvrir PronoHub</p>
+                <p className="theme-text-secondary text-sm">Pour découvrir PronoHub</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm text-gray-500">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
                 <div>
                   <span className="text-4xl font-bold">0</span>
-                  <span className="text-gray-400 ml-1">EUR</span>
+                  <span className="theme-text-secondary ml-1">EUR</span>
                 </div>
               </div>
 
@@ -232,18 +232,18 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </ul>
 
               {/* Extensions */}
-              <div className="border-t border-gray-700 pt-4 mb-6">
-                <p className="text-xs text-gray-500 uppercase mb-3 font-medium">Extensions disponibles</p>
+              <div className="border-t theme-border pt-4 mb-6">
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
                     <span>Étendre la durée : <span className="text-blue-400 font-medium">{prices.durationExtension.toFixed(2).replace('.', ',')} EUR</span></span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
                     <span>+5 joueurs : <span className="text-blue-400 font-medium">{prices.playerExtension.toFixed(2).replace('.', ',')} EUR</span></span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
                     <span>Slot invite : <button
                       onClick={(e) => {
@@ -290,20 +290,20 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             </div>
 
             {/* One-Shot */}
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-green-500/50 flex flex-col">
+            <div className="bg-(--card-bg) rounded-2xl p-6 border border-green-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <img src="/images/icons/on-shot-tour.svg" alt="One-Shot" className="w-6 h-6 icon-filter-green" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-green-400">One-Shot</h3>
-                <p className="text-gray-400 text-sm">Pour un tournoi complet</p>
+                <p className="theme-text-secondary text-sm">Pour un tournoi complet</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm text-gray-500">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.oneshot.toFixed(2).replace('.', ',')}</span>
-                  <span className="text-gray-400 ml-1">EUR</span>
+                  <span className="theme-text-secondary ml-1">EUR</span>
                 </div>
               </div>
 
@@ -317,10 +317,10 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </ul>
 
               {/* Extensions */}
-              <div className="border-t border-gray-700 pt-4 mb-6">
-                <p className="text-xs text-gray-500 uppercase mb-3 font-medium">Extensions disponibles</p>
+              <div className="border-t theme-border pt-4 mb-6">
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-green-400" />
                     <span>Slot invite : <button
                       onClick={(e) => {
@@ -362,14 +362,14 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/team-elite-tour.svg" alt="Elite Team" className="w-6 h-6 icon-filter-orange" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-orange-400">Elite Team</h3>
-                <p className="text-gray-400 text-sm">Pour les grands groupes</p>
+                <p className="theme-text-secondary text-sm">Pour les grands groupes</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm text-gray-500">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.elite.toFixed(2).replace('.', ',')}</span>
-                  <span className="text-gray-400 ml-1">EUR</span>
+                  <span className="theme-text-secondary ml-1">EUR</span>
                 </div>
               </div>
 
@@ -384,10 +384,10 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </ul>
 
               {/* Extensions */}
-              <div className="border-t border-gray-700 pt-4 mb-6">
-                <p className="text-xs text-gray-500 uppercase mb-3 font-medium">Extensions disponibles</p>
+              <div className="border-t theme-border pt-4 mb-6">
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-orange-400" />
                     <span>Slot invite : <button
                       onClick={(e) => {
@@ -417,20 +417,20 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             </div>
 
             {/* Platinium */}
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-yellow-500/50 flex flex-col">
+            <div className="bg-(--card-bg) rounded-2xl p-6 border border-yellow-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-yellow-400">Platinium</h3>
-                <p className="text-gray-400 text-sm">Tournoi événementiel</p>
+                <p className="theme-text-secondary text-sm">Tournoi événementiel</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm text-gray-500">Tarif par participant</span>
+                <span className="text-sm theme-text-secondary">Tarif par participant</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.platinium.toFixed(2).replace('.', ',')}</span>
-                  <span className="text-gray-400 ml-1">EUR</span>
+                  <span className="theme-text-secondary ml-1">EUR</span>
                 </div>
               </div>
 
@@ -463,20 +463,20 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             </div>
 
             {/* Corpo */}
-            <div className="bg-gray-800/50 rounded-2xl p-6 border border-purple-500/50 flex flex-col">
+            <div className="bg-(--card-bg) rounded-2xl p-6 border border-purple-500/50 flex flex-col">
               <div className="mb-6 text-center h-32 flex flex-col justify-start">
                 <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <img src="/images/icons/company-tour.svg" alt="Corpo" className="w-6 h-6 icon-filter-purple" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-purple-400">Corpo</h3>
-                <p className="text-gray-400 text-sm">Pour les entreprises</p>
+                <p className="theme-text-secondary text-sm">Pour les entreprises</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm text-gray-500">à partir de</span>
+                <span className="text-sm theme-text-secondary">à partir de</span>
                 <div>
                   <span className="text-4xl font-bold">99</span>
-                  <span className="text-gray-400 ml-1">EUR</span>
+                  <span className="theme-text-secondary ml-1">EUR</span>
                 </div>
               </div>
 
@@ -534,8 +534,8 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       {/* Modal Erreur Stripe */}
       {stripeError && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl max-w-md w-full overflow-hidden">
-            <div className="p-6 border-b border-gray-700 bg-red-500/10">
+          <div className="bg-(--card-bg) rounded-2xl max-w-md w-full overflow-hidden">
+            <div className="p-6 border-b theme-border bg-red-500/10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-500" />
@@ -544,16 +544,16 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-gray-300">{stripeError}</p>
+              <p className="theme-text-secondary">{stripeError}</p>
               {stripeError.includes('configure') && (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm theme-text-secondary">
                   Le système de paiement n&apos;est pas disponible en environnement de développement.
                   Les paiements fonctionneront en production.
                 </p>
               )}
               <button
                 onClick={() => setStripeError(null)}
-                className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-medium transition-colors"
+                className="w-full py-3 px-4 bg-gray-500 hover:bg-gray-400 rounded-lg font-medium transition-colors"
               >
                 Fermer
               </button>
@@ -565,9 +565,9 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       {/* Modal Platinium */}
       {showPlatiniumModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-2xl max-w-4xl w-full">
+          <div className="bg-(--card-bg) rounded-2xl max-w-4xl w-full">
             {/* Header */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b theme-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
@@ -575,12 +575,12 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-yellow-400">Lancer un tournoi Platinium</h2>
-                    <p className="text-xs text-gray-400">Choisissez votre formule</p>
+                    <p className="text-xs theme-text-secondary">Choisissez votre formule</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowPlatiniumModal(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="theme-text-secondary hover:theme-text transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -591,15 +591,15 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="p-4">
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Option 1 : Solo */}
-                <div className="bg-gray-700/50 rounded-xl p-4 border border-gray-600 hover:border-yellow-500/50 transition-colors flex flex-col">
+                <div className="bg-(--card-bg) rounded-xl p-4 border border-(--border-color) hover:border-yellow-500/50 transition-colors flex flex-col">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">1 place</h3>
-                      <p className="text-xs text-gray-400">Pour rejoindre ou créer</p>
+                      <h3 className="text-lg font-semibold theme-text">1 place</h3>
+                      <p className="text-xs theme-text-secondary">Pour rejoindre ou créer</p>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">€</span></p>
+                    <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal theme-text-secondary">€</span></p>
                   </div>
-                  <ul className="space-y-1.5 mb-3 text-sm text-gray-300 flex-grow">
+                  <ul className="space-y-1.5 mb-3 text-sm theme-text-secondary flex-grow">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                       <span>Vous payez votre participation</span>
@@ -635,7 +635,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 </div>
 
                 {/* Option 2 : Groupe */}
-                <div className="bg-gray-700/50 rounded-xl p-4 border-2 border-yellow-500/50 hover:border-yellow-500 transition-colors relative flex flex-col">
+                <div className="bg-(--card-bg) rounded-xl p-4 border-2 border-yellow-500/50 hover:border-yellow-500 transition-colors relative flex flex-col">
                   <div className="absolute -top-2.5 left-4">
                     <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                       ÉCONOMISEZ {(prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',')} €
@@ -643,12 +643,12 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   </div>
                   <div className="flex items-start justify-between mb-3 mt-1">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{prices.platiniumGroupSize} places</h3>
-                      <p className="text-xs text-gray-400">Vous + 10 invités</p>
+                      <h3 className="text-lg font-semibold theme-text">{prices.platiniumGroupSize} places</h3>
+                      <p className="text-xs theme-text-secondary">Vous + 10 invités</p>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal text-gray-400">€</span></p>
+                    <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal theme-text-secondary">€</span></p>
                   </div>
-                  <ul className="space-y-1.5 mb-3 text-sm text-gray-300 flex-grow">
+                  <ul className="space-y-1.5 mb-3 text-sm theme-text-secondary flex-grow">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                       <span>Tournoi <strong>garanti</strong> de démarrer</span>
@@ -708,7 +708,7 @@ function PlanFeature({ children, included = false }: { children: React.ReactNode
       ) : (
         <X className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
       )}
-      <span className={included ? 'text-gray-200' : 'text-gray-500'}>{children}</span>
+      <span className={included ? 'theme-text' : 'theme-text-secondary'}>{children}</span>
     </li>
   )
 }
@@ -717,10 +717,10 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden">
+    <div className="border theme-border rounded-lg overflow-hidden">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+        className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-(--card-bg) transition-colors"
       >
         <span className="font-medium">{question}</span>
         <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>
@@ -728,7 +728,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         </span>
       </button>
       {isOpen && (
-        <div className="px-6 py-4 bg-gray-800/30 text-gray-400">
+        <div className="px-6 py-4 bg-(--card-bg) theme-text-secondary">
           {answer}
         </div>
       )}
