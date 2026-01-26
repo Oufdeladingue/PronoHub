@@ -63,6 +63,7 @@ interface UserStats {
   availableSlots: number
   platiniumCredits: number
   platiniumPrepaid11Credits: number
+  durationExtensionCredits: number
 }
 
 interface Toast {
@@ -935,19 +936,20 @@ export default function AdminUsagePage() {
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Platinium</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Slots dispo</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Crédits Plat.</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ext. Durée</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {creditsLoading ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
                       ) : users.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
@@ -999,6 +1001,11 @@ export default function AdminUsagePage() {
                             <td className="px-4 py-4 whitespace-nowrap text-center">
                               <span className={`font-medium ${user.platiniumCredits > 0 ? 'text-yellow-500' : 'text-gray-400'}`}>
                                 {user.platiniumCredits}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-center">
+                              <span className={`font-medium ${user.durationExtensionCredits > 0 ? 'text-teal-500' : 'text-gray-400'}`}>
+                                {user.durationExtensionCredits}
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-center">
