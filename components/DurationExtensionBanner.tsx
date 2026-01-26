@@ -107,6 +107,7 @@ export function DurationExtensionBanner({
         body: JSON.stringify({
           purchaseType: 'duration_extension',
           tournamentId,
+          returnUrl: window.location.pathname,
         })
       })
 

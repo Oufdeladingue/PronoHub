@@ -18,6 +18,7 @@ interface CheckoutRequest {
     drawWithDefaultPredictionPoints: number
   }
   inviteCode?: string
+  returnUrl?: string
 }
 
 // Mapping entre purchaseType et config_key dans pricing_config
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CheckoutRequest = await request.json()
-    const { purchaseType, tournamentId, tournamentData, inviteCode } = body
+    const { purchaseType, tournamentId, tournamentData, inviteCode, returnUrl } = body
 
     // Charger les prix depuis la BDD
     const { data: pricingConfig } = await supabase
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
       cancelUrl = `${baseUrl}/dashboard`
     } else if (tournamentId) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=extension&tournament=${tournamentId}`
-      cancelUrl = `${baseUrl}/vestiaire/${tournamentId}`
+      cancelUrl = returnUrl ? `${baseUrl}${returnUrl}` : `${baseUrl}/dashboard`
     }
 
     const session = await stripe.checkout.sessions.create({
