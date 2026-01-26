@@ -149,7 +149,12 @@ export async function POST(request: NextRequest) {
       cancelUrl = `${baseUrl}/dashboard`
     } else if (tournamentId) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=extension&tournament=${tournamentId}`
-      cancelUrl = returnUrl ? `${baseUrl}${returnUrl}` : `${baseUrl}/dashboard`
+      cancelUrl = `${baseUrl}/dashboard`
+    }
+
+    // Override cancelUrl avec returnUrl si fourni (page d'origine du client)
+    if (returnUrl) {
+      cancelUrl = `${baseUrl}${returnUrl}`
     }
 
     const session = await stripe.checkout.sessions.create({

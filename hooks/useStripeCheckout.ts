@@ -34,6 +34,7 @@ interface CheckoutOptions {
   }
   tournamentId?: string
   inviteCode?: string
+  returnUrl?: string
 }
 
 export function useStripeCheckout() {
@@ -71,6 +72,7 @@ export function useStripeCheckout() {
           tournamentData: options.tournamentData,
           tournamentId: options.tournamentId,
           inviteCode: options.inviteCode,
+          returnUrl: options.returnUrl || window.location.pathname,
         }),
       })
 

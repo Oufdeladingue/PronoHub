@@ -63,6 +63,17 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
   const [stripeError, setStripeError] = useState<string | null>(null)
   const [userQuotas, setUserQuotas] = useState<UserQuotas | null>(null)
 
+  // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setLoading(null)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   // Charger les prix depuis l'API
   useEffect(() => {
     const fetchPrices = async () => {
@@ -169,7 +180,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
       const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ purchaseType }),
+        body: JSON.stringify({ purchaseType, returnUrl: window.location.pathname }),
       })
 
       const data = await response.json()

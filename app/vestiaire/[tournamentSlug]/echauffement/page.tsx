@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
+import { openExternalUrl } from '@/lib/capacitor'
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
@@ -109,6 +110,17 @@ function EchauffementPageContent() {
     fetchCurrentUser()
     fetchTournamentData()
   }, [tournamentSlug])
+
+  // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setExtensionLoading(false)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   useEffect(() => {
     if (!tournament?.id) return
@@ -556,15 +568,14 @@ function EchauffementPageContent() {
         body: JSON.stringify({
           purchaseType: 'player_extension',
           tournamentId: tournament.id,
-          successUrl: `${window.location.origin}/${tournamentSlug}/echauffement?extension=success`,
-          cancelUrl: `${window.location.origin}/${tournamentSlug}/echauffement?extension=cancelled`
+          returnUrl: window.location.pathname,
         })
       })
 
       const data = await response.json()
 
       if (data.url) {
-        window.location.href = data.url
+        await openExternalUrl(data.url)
       } else {
         throw new Error(data.error || 'Erreur lors de la création du paiement')
       }

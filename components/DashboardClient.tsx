@@ -7,6 +7,7 @@ import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { openExternalUrl } from '@/lib/capacitor'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -130,6 +131,17 @@ function DashboardContent({
   } | null>(null)
   const [isUsingSlot, setIsUsingSlot] = useState(false)
 
+  // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setIsCheckoutLoading(null)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   // Ouvrir le champ de jointure si ?action=join dans l'URL
   useEffect(() => {
     const action = searchParams.get('action')
@@ -147,11 +159,11 @@ function DashboardContent({
       const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ purchaseType }),
+        body: JSON.stringify({ purchaseType, returnUrl: '/dashboard' }),
       })
       const data = await response.json()
       if (data.url) {
-        window.location.href = data.url
+        await openExternalUrl(data.url)
       } else {
         console.error('Erreur checkout:', data.error)
         setIsCheckoutLoading(null)
