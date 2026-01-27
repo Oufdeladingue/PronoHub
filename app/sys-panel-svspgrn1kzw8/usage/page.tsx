@@ -65,7 +65,6 @@ interface TournamentDetail {
   actual_matchdays: number | null
   scoring_exact_score: number
   scoring_correct_winner: number
-  scoring_correct_goal_difference: number
   scoring_draw_with_default_prediction: number
   teams_enabled: boolean
   bonus_match_enabled: boolean
@@ -1134,9 +1133,8 @@ export default function AdminUsagePage() {
                             <h4 className="text-sm font-semibold text-blue-900 mb-2">Scoring</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-800">
                               <div>Score exact : <span className="font-semibold">{detailModal.detail.scoring_exact_score} pts</span></div>
-                              <div>Bon vainqueur : <span className="font-semibold">{detailModal.detail.scoring_correct_winner} pt</span></div>
-                              <div>Bonne diff. : <span className="font-semibold">{detailModal.detail.scoring_correct_goal_difference} pts</span></div>
-                              <div>Nul par défaut : <span className="font-semibold">{detailModal.detail.scoring_draw_with_default_prediction} pt</span></div>
+                              <div>Bon résultat : <span className="font-semibold">{detailModal.detail.scoring_correct_winner} pt</span></div>
+                              <div>Mauvais résultat : <span className="font-semibold">{detailModal.detail.scoring_draw_with_default_prediction} pt</span></div>
                             </div>
                           </div>
 
