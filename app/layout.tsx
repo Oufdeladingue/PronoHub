@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import AgeGate from "@/components/AgeGate";
 import { UserProvider } from "@/contexts/UserContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import NavigationLoader from "@/components/NavigationLoader";
 import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
 import PushNotificationsProvider from "@/components/PushNotificationsProvider";
@@ -107,15 +108,17 @@ export default function RootLayout({
           Aller au contenu principal
         </a>
         <CapacitorSessionProvider>
-          <UserProvider>
-            <PushNotificationsProvider>
-              <Suspense fallback={null}>
-                <NavigationLoader />
-              </Suspense>
-              <AgeGate />
-              {children}
-            </PushNotificationsProvider>
-          </UserProvider>
+          <ThemeProvider>
+            <UserProvider>
+              <PushNotificationsProvider>
+                <Suspense fallback={null}>
+                  <NavigationLoader />
+                </Suspense>
+                <AgeGate />
+                {children}
+              </PushNotificationsProvider>
+            </UserProvider>
+          </ThemeProvider>
         </CapacitorSessionProvider>
       </body>
     </html>

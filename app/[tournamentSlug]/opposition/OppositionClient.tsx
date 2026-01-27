@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
-import { ThemeProvider, useTheme } from '@/contexts/ThemeContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
@@ -1642,26 +1642,24 @@ export default function OppositionClient({
 
   if (error || !tournament) {
     return (
-      <ThemeProvider>
-        <div className="min-h-screen theme-bg flex items-center justify-center">
-          <div className="text-center theme-card max-w-md p-8">
-            <div className="text-5xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h2>
-            <p className="theme-text-secondary mb-6">{error || 'Ce tournoi n\'existe pas ou a été supprimé.'}</p>
-            <Link
-              href="/dashboard"
-              className="inline-block px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold"
-            >
-              Retour au dashboard
-            </Link>
-          </div>
+      <div className="min-h-screen theme-bg flex items-center justify-center">
+        <div className="text-center theme-card max-w-md p-8">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h2>
+          <p className="theme-text-secondary mb-6">{error || 'Ce tournoi n\'existe pas ou a été supprimé.'}</p>
+          <Link
+            href="/dashboard"
+            className="inline-block px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold"
+          >
+            Retour au dashboard
+          </Link>
         </div>
-      </ThemeProvider>
+      </div>
     )
   }
 
   return (
-    <ThemeProvider>
+    <>
       {/* flex flex-col pour pousser le footer en bas et éviter le CLS */}
       <div className="min-h-screen theme-bg flex flex-col">
         {/* Header */}
@@ -3172,6 +3170,6 @@ export default function OppositionClient({
           onClose={() => setShowMaxScoreModal(false)}
         />
       </div>
-    </ThemeProvider>
+    </>
   )
 }
