@@ -178,19 +178,6 @@ export async function calculateTournamentStats(
     ? finishedMatchesRaw.filter(m => new Date(m.utc_date) >= tournamentStartDate)
     : finishedMatchesRaw
 
-  if (finishedMatches.length === 0) {
-    // Pas de matchs terminés = pas de points
-    return participants.map(p => ({
-      user_id: p.user_id,
-      username: (p.profiles as any)?.username || 'Inconnu',
-      avatar: (p.profiles as any)?.avatar || 'avatar1',
-      total_points: 0,
-      rank: null,
-      predictions_count: 0,
-      joined_at: p.joined_at
-    }))
-  }
-
   const finishedMatchesMap = new Map(finishedMatches.map(m => [m.id, m]))
 
   // 6. Récupérer les matchs bonus
@@ -231,6 +218,24 @@ export async function calculateTournamentStats(
     total: preds.length,
     nonDefault: preds.filter(p => !p.is_default_prediction).length
   })))
+
+  // Si pas de matchs terminés, retourner les stats avec prédictions mais sans points
+  if (finishedMatches.length === 0) {
+    return participants.map(p => {
+      const allUserPredictions = allPredictionsByUser.get(p.user_id) || []
+      const predictionsCount = allUserPredictions.filter(pred => !pred.is_default_prediction).length
+
+      return {
+        user_id: p.user_id,
+        username: (p.profiles as any)?.username || 'Inconnu',
+        avatar: (p.profiles as any)?.avatar || 'avatar1',
+        total_points: 0,
+        rank: null,
+        predictions_count: predictionsCount,
+        joined_at: p.joined_at
+      }
+    })
+  }
 
   // 8. Calculer les stats pour chaque participant
   const participantStats: ParticipantStats[] = []
