@@ -191,15 +191,10 @@ export async function calculateTournamentStats(
 
   // 7. Récupérer toutes les prédictions du tournoi (matchs terminés ET à venir)
   // Cela permet de voir combien de pronos les users ont déjà renseignés
-  const { data: allPredictionsData, error: predictionsError } = await supabase
+  const { data: allPredictionsData } = await supabase
     .from('predictions')
     .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction')
     .eq('tournament_id', tournamentId)
-
-  console.log('[calculateTournamentStats] Tournament:', tournamentId)
-  console.log('[calculateTournamentStats] Total predictions:', allPredictionsData?.length)
-  console.log('[calculateTournamentStats] Predictions error:', predictionsError)
-  console.log('[calculateTournamentStats] Sample predictions:', allPredictionsData?.slice(0, 3))
 
   const predictionsByUser = new Map<string, any[]>()
   const allPredictionsByUser = new Map<string, any[]>() // Toutes les prédictions (pour le count)
@@ -212,12 +207,6 @@ export async function calculateTournamentStats(
     predictionsByUser.get(pred.user_id)!.push(pred)
     allPredictionsByUser.get(pred.user_id)!.push(pred)
   }
-
-  console.log('[calculateTournamentStats] Predictions by user:', Array.from(allPredictionsByUser.entries()).map(([userId, preds]) => ({
-    userId,
-    total: preds.length,
-    nonDefault: preds.filter(p => !p.is_default_prediction).length
-  })))
 
   // Si pas de matchs terminés, retourner les stats avec prédictions mais sans points
   if (finishedMatches.length === 0) {
