@@ -118,6 +118,171 @@ Date: ${createdAt}
   }
 }
 
+// Interface pour alerte création tournoi
+export interface NewTournamentAlertProps {
+  tournamentName: string
+  tournamentType: string
+  competitionName: string
+  creatorUsername: string
+  creatorEmail: string
+  maxPlayers: number
+  numMatchdays: number | string
+  allMatchdays: boolean
+  bonusMatch: boolean
+  earlyPredictionBonus: boolean
+  isEvent: boolean
+  createdAt: string
+}
+
+// Template: Alerte création tournoi
+export function getNewTournamentAlertTemplate(props: NewTournamentAlertProps) {
+  const {
+    tournamentName,
+    tournamentType,
+    competitionName,
+    creatorUsername,
+    creatorEmail,
+    maxPlayers,
+    numMatchdays,
+    allMatchdays,
+    bonusMatch,
+    earlyPredictionBonus,
+    isEvent,
+    createdAt
+  } = props
+
+  const typeLabels: Record<string, string> = {
+    'free': '🟢 Free-Kick (Gratuit)',
+    'oneshot': '🔵 One-Shot (4,99€)',
+    'elite': '🟠 Elite Team (9,99€)',
+    'platinium': '🟡 Platinium (6,99€/pers)',
+    'event': '🏆 Événement',
+  }
+
+  const typeLabel = typeLabels[tournamentType] || tournamentType
+
+  const options = [
+    bonusMatch ? '⚡ Match bonus' : null,
+    earlyPredictionBonus ? '🎯 Prime avant-match' : null,
+    isEvent ? '🏆 Événement' : null,
+  ].filter(Boolean)
+
+  const durationText = allMatchdays ? 'Toute la saison' : `${numMatchdays} journée${Number(numMatchdays) > 1 ? 's' : ''}`
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouveau tournoi PronoHub</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 500px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 30px; text-align: center; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+              <h1 style="margin: 0; color: #fff; font-size: 24px; font-weight: 700;">
+                ⚽ Nouveau tournoi créé !
+              </h1>
+              <p style="margin: 10px 0 0; color: #e0d4ff; font-size: 18px; font-weight: 600;">
+                ${tournamentName}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Type</span><br>
+                    <span style="color: #ff9900; font-size: 16px; font-weight: 600;">${typeLabel}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Compétition</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${competitionName}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Créateur</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${creatorUsername}</span>
+                    <br><span style="color: #888; font-size: 13px;">${creatorEmail}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Joueurs max</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${maxPlayers}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Durée</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${durationText}</span>
+                  </td>
+                </tr>
+                ${options.length > 0 ? `
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Options</span><br>
+                    <span style="color: #fff; font-size: 16px;">${options.join(' · ')}</span>
+                  </td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <span style="color: #888; font-size: 14px;">Date de création</span><br>
+                    <span style="color: #fff; font-size: 16px;">${createdAt}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 30px; background-color: #0f0f1a; text-align: center;">
+              <p style="margin: 0; color: #666; font-size: 12px;">
+                Alerte automatique PronoHub
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+
+  const text = `
+Nouveau tournoi PronoHub !
+
+Nom: ${tournamentName}
+Type: ${typeLabel}
+Compétition: ${competitionName}
+Créateur: ${creatorUsername} (${creatorEmail})
+Joueurs max: ${maxPlayers}
+Durée: ${durationText}
+${options.length > 0 ? `Options: ${options.join(', ')}` : ''}
+Date: ${createdAt}
+`
+
+  return {
+    html,
+    text,
+    subject: `⚽ Nouveau tournoi : ${tournamentName} (${typeLabel})`
+  }
+}
+
 // Template: Alerte transaction
 export function getTransactionAlertTemplate(props: TransactionAlertProps) {
   const {
