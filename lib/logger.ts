@@ -40,9 +40,6 @@ if (typeof window !== 'undefined') {
     addLog('ERROR', ...args)
     originalError.apply(console, args)
   }
-
-  // Log de démarrage
-  console.log('[Logger] Système de logging initialisé')
 }
 
 export function clearLogs() {

@@ -78,10 +78,7 @@ function NormalHomePage() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
-      console.log('[HomePage] Session check:', session ? 'logged in' : 'not logged in')
-
       if (session) {
-        console.log('[HomePage] User already logged in, redirecting to dashboard')
         router.replace('/dashboard')
       } else {
         setIsCheckingAuth(false)

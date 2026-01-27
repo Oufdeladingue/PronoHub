@@ -579,12 +579,6 @@ export default async function DashboardPage() {
       pendingTeamRequests: pendingTeamRequests[t.id] || 0
     }
 
-    console.log(`[DASHBOARD] Tournament ${t.name}:`, {
-      status: t.status,
-      journeyInfo: journeyInfo[t.id],
-      nextMatchDate: nextMatchDates[t.id]
-    })
-
     return tournamentData
   })
 

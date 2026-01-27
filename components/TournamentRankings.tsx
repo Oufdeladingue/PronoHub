@@ -82,21 +82,17 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   // Fonction pour vérifier si une journée a déjà commencé
   const hasMatchdayStarted = (matchday: number): boolean => {
     if (!allMatches) {
-      console.log(`[Classement] J${matchday}: pas de données allMatches`)
       return false // Par défaut, considérer comme NON commencé si pas de données
     }
 
     const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
     if (matchesForDay.length === 0) {
-      console.log(`[Classement] J${matchday}: aucun match trouvé`)
       return false // Pas de matchs = pas encore commencé
     }
 
     const now = new Date()
     const firstMatchTime = new Date(Math.min(...matchesForDay.map((m: any) => new Date(m.utc_date).getTime())))
     const hasStarted = now >= firstMatchTime
-
-    console.log(`[Classement] J${matchday}: ${matchesForDay.length} matchs, premier match: ${firstMatchTime.toISOString()}, a commencé: ${hasStarted}`)
 
     return hasStarted
   }

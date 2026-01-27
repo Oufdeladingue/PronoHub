@@ -741,12 +741,6 @@ export default function OppositionClient({
         lockedMap[pred.match_id] = true // Marquer comme verrouillé
       })
 
-      console.log('📥 Pronostics chargés depuis la BDD:', predictionsData?.length || 0)
-      console.log('📥 Détails:', predictionsData?.map(p => ({
-        matchId: p.match_id,
-        scores: `${p.predicted_home_score}-${p.predicted_away_score}`
-      })))
-
       setPredictions(predictionsMap)
       setSavedPredictions(savedMap)
       setLockedPredictions(lockedMap)
@@ -989,7 +983,6 @@ export default function OppositionClient({
           if (allPredictionsOnTime) {
             totalPoints += 1
             setHasEarlyBonus(true)
-            console.log('[fetchMatchPoints] Bonus prime d\'avant-match: +1 point')
           } else {
             setHasEarlyBonus(false)
           }
@@ -1323,7 +1316,6 @@ export default function OppositionClient({
           console.error('Erreur lors de la mise à jour:', updateError)
           throw updateError
         }
-        console.log('✅ Pronostic mis à jour:', { matchId, scores: `${prediction.predicted_home_score}-${prediction.predicted_away_score}` })
       } else {
         // Créer
         const { error: insertError } = await supabase
@@ -1340,7 +1332,6 @@ export default function OppositionClient({
           console.error('Erreur lors de l\'insertion:', insertError)
           throw insertError
         }
-        console.log('✅ Pronostic créé:', { matchId, scores: `${prediction.predicted_home_score}-${prediction.predicted_away_score}` })
       }
 
       // Marquer comme sauvegardé, non modifié et verrouillé
@@ -1351,7 +1342,6 @@ export default function OppositionClient({
       // Mettre à jour également allPredictions pour que les avertissements se mettent à jour
       setAllPredictions(prev => ({ ...prev, [matchId]: prediction }))
 
-      console.log('Pronostic enregistré avec succès')
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement du pronostic:', err)
       alert('Erreur lors de l\'enregistrement')

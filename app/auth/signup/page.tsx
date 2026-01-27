@@ -193,8 +193,6 @@ function SignUpForm() {
         throw signUpError
       }
 
-      console.log('Compte créé, email OTP envoyé à:', email)
-
       // Rediriger vers la page de vérification (avec redirectTo si présent)
       router.push(redirectTo ? `/auth/verify-code?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/verify-code')
     } catch (err: any) {

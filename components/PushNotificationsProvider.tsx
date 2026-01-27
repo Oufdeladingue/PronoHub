@@ -22,15 +22,7 @@ export default function PushNotificationsProvider({ children }: PushNotification
     handleDeclinePermission,
   } = usePushNotifications()
 
-  useEffect(() => {
-    if (!isLoading) {
-      if (isSupported && token) {
-        console.log('[PushProvider] Notifications push initialisées avec Firebase Web SDK')
-      } else if (!isSupported && !showPermissionModal) {
-        console.log('[PushProvider] Notifications push non disponibles')
-      }
-    }
-  }, [token, isSupported, isLoading, showPermissionModal])
+  // Notifications push gérées automatiquement par le hook
 
   return (
     <>

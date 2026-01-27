@@ -23,10 +23,6 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
 
   useEffect(() => {
     async function initCapacitor() {
-      console.log('[CapacitorSessionProvider] Initialisation...')
-      console.log('[CapacitorSessionProvider] isCapacitor:', isCapacitor())
-      console.log('[CapacitorSessionProvider] isAndroid:', isAndroid())
-
       if (isCapacitor()) {
         // Ajouter une classe CSS pour les fixes de layout spécifiques Android/Capacitor
         document.documentElement.classList.add('capacitor')
@@ -34,13 +30,11 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
         // La status bar est configurée en noir nativement dans MainActivity.java
 
         // Restaurer la session depuis Capacitor Preferences vers localStorage
-        console.log('[CapacitorSessionProvider] Restauration session...')
         await restoreCapacitorSession()
 
         // Set le flag global pour indiquer que la session est restaurée
         if (typeof window !== 'undefined') {
           (window as any).__capacitorSessionRestored = true
-          console.log('[CapacitorSessionProvider] Flag __capacitorSessionRestored set to true')
         }
 
         setIsReady(true)

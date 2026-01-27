@@ -166,18 +166,12 @@ function ProfileContent() {
 
   useEffect(() => {
     async function loadProfile() {
-      // Debug: vérifier l'état de la session
-      console.log('[Profile] isCapacitor:', (await import('@/lib/capacitor')).isCapacitor())
-      console.log('[Profile] localStorage keys:', Object.keys(localStorage).filter(k => k.startsWith('sb-')))
-
       // Utiliser getSession d'abord pour s'assurer que le storage async est prêt
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      console.log('[Profile] getSession result:', { session: !!session, error: sessionError })
+      const { data: { session } } = await supabase.auth.getSession()
 
       const user = session?.user
 
       if (!user) {
-        console.log('[Profile] No user found, redirecting to login')
         router.push('/auth/login')
         return
       }
@@ -191,10 +185,8 @@ function ProfileContent() {
         .eq('id', user.id)
         .single()
 
-      console.log('Profile data:', profile)
-      console.log('Profile error:', profileError)
       if (profileError) {
-        console.log('Error details:', JSON.stringify(profileError, null, 2))
+        console.error('Error loading profile:', profileError)
       }
 
       if (profile) {
@@ -219,7 +211,6 @@ function ProfileContent() {
         }
       } catch (e) {
         // La colonne notification_preferences n'existe peut-être pas encore
-        console.log('Notification preferences not available')
       }
 
       setLoading(false)
@@ -232,7 +223,6 @@ function ProfileContent() {
         // Mélanger aléatoirement les avatars
         const shuffledAvatars = [...(data.avatars || [])].sort(() => Math.random() - 0.5)
         setAvailableAvatars(shuffledAvatars)
-        console.log(`Avatars disponibles: ${shuffledAvatars.length}`, shuffledAvatars)
       } catch (error) {
         console.error('Error loading avatars:', error)
         // Fallback vers une liste par défaut

@@ -50,7 +50,6 @@ export async function initGoogleAuth(): Promise<void> {
 
   const GoogleAuth = getGoogleAuthPlugin()
   if (!GoogleAuth) {
-    console.log('[GoogleAuth] Plugin non disponible')
     return
   }
 
@@ -66,7 +65,6 @@ export async function initGoogleAuth(): Promise<void> {
     })
 
     isInitialized = true
-    console.log('[GoogleAuth] Plugin initialisé avec succès')
   } catch (error) {
     console.error('[GoogleAuth] Erreur initialisation:', error)
   }
@@ -96,7 +94,6 @@ export async function signInWithGoogleNative(): Promise<GoogleUser> {
       throw new Error('Pas d\'idToken reçu de Google')
     }
 
-    console.log('[GoogleAuth] Connexion réussie pour:', user.email)
     return user as GoogleUser
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -125,7 +122,6 @@ export async function signOutGoogle(): Promise<void> {
 
   try {
     await plugin.signOut()
-    console.log('[GoogleAuth] Déconnexion Google effectuée')
   } catch (error) {
     console.error('[GoogleAuth] Erreur déconnexion:', error)
   }

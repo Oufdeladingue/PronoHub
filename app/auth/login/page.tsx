@@ -45,10 +45,7 @@ function LoginForm() {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('[LoginPage] Session check:', session ? 'logged in' : 'not logged in')
-
       if (session) {
-        console.log('[LoginPage] User already logged in, redirecting to dashboard')
         router.replace(redirectTo || '/dashboard')
       }
     }
@@ -134,7 +131,6 @@ function LoginForm() {
 
           console.error('[Auth] Erreur Google natif:', nativeError)
           // Fallback vers OAuth browser si erreur native
-          console.log('[Auth] Fallback vers OAuth browser')
         }
       }
 

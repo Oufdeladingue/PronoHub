@@ -179,7 +179,6 @@ export async function setStatusBarColor(color: string): Promise<void> {
   if (cap?.Plugins?.StatusBar) {
     try {
       await cap.Plugins.StatusBar.setBackgroundColor({ color })
-      console.log(`[StatusBar] Couleur changée: ${color}`)
     } catch (e) {
       console.warn('[StatusBar] Erreur setBackgroundColor:', e)
     }
@@ -198,17 +197,14 @@ export async function restoreCapacitorSession(): Promise<void> {
   const prefs = cap?.Plugins?.Preferences
 
   if (!prefs) {
-    console.log('[Capacitor] Preferences plugin non disponible')
     return
   }
 
   try {
     // Récupérer toutes les clés stockées et restaurer celles liées à Supabase
     const { keys } = await prefs.keys()
-    console.log(`[Capacitor] Toutes les clés dans Preferences (${keys.length}):`, keys)
 
     let restored = 0
-    const restoredKeys: string[] = []
 
     for (const key of keys) {
       // Restaurer les clés qui commencent par 'sb-' (Supabase)
@@ -220,13 +216,9 @@ export async function restoreCapacitorSession(): Promise<void> {
           // car localStorage peut avoir été vidé par Android lors d'un switch d'app
           localStorage.setItem(key, value)
           restored++
-          restoredKeys.push(key)
-          console.log(`[Capacitor] Clé restaurée: ${key}`)
         }
       }
     }
-
-    console.log(`[Capacitor] Session restaurée: ${restored} clé(s) depuis Preferences:`, restoredKeys)
   } catch (error) {
     console.error('[Capacitor] Erreur restauration session:', error)
   }
@@ -241,25 +233,20 @@ export async function saveSessionToPreferences(): Promise<void> {
   const prefs = cap?.Plugins?.Preferences
 
   if (!prefs) {
-    console.log('[Capacitor] Preferences plugin non disponible pour sauvegarde')
     return
   }
 
   try {
     // Parcourir localStorage et sauvegarder toutes les clés Supabase
-    let saved = 0
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (key?.startsWith('sb-')) {
         const value = localStorage.getItem(key)
         if (value) {
           await prefs.set({ key, value })
-          saved++
-          console.log(`[Capacitor] Clé sauvegardée: ${key}`)
         }
       }
     }
-    console.log(`[Capacitor] Session sauvegardée: ${saved} clé(s) dans Preferences`)
   } catch (error) {
     console.error('[Capacitor] Erreur sauvegarde session:', error)
   }
@@ -273,7 +260,6 @@ export async function setupAppStateListener(onResume: () => void): Promise<void>
   const appPlugin = cap?.Plugins?.App
 
   if (!appPlugin) {
-    console.log('[Capacitor] App plugin non disponible')
     return
   }
 
@@ -284,7 +270,6 @@ export async function setupAppStateListener(onResume: () => void): Promise<void>
         onResume()
       }
     })
-    console.log('[Capacitor] Listener appStateChange configuré')
   } catch (e) {
     console.warn('[Capacitor] Erreur configuration listener:', e)
   }
@@ -300,7 +285,6 @@ export async function configureStatusBar(color: string = '#1e293b'): Promise<voi
   const statusBar = cap?.Plugins?.StatusBar
 
   if (!statusBar) {
-    console.log('[StatusBar] Plugin non disponible')
     return
   }
 
@@ -310,7 +294,6 @@ export async function configureStatusBar(color: string = '#1e293b'): Promise<voi
     await statusBar.setBackgroundColor({ color })
     // Ne pas permettre le contenu sous la status bar
     await statusBar.setOverlaysWebView({ overlay: false })
-    console.log(`[StatusBar] Configurée avec couleur ${color}`)
   } catch (e) {
     console.warn('[StatusBar] Erreur configuration:', e)
   }
