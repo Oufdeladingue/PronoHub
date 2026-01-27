@@ -41,3 +41,8 @@ next-env.d.ts
 !.vscode/extensions.json
 .idea
 nul
+
+# Android signing
+android/keystore.properties
+*.jks
+*.keystore
