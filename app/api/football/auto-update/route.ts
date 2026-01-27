@@ -173,13 +173,11 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
 
       // 4. Calculer le nombre total de journées (paires stage+matchday uniques)
       // Pour les compétitions avec knockout (CL, World Cup), le matchday redémarre à 1 par stage
-      // On compte donc les paires uniques (stage, matchday) au lieu de Math.max(matchday)
+      // Pour les knockouts à match unique (WC), matchday est null → on utilise le stage comme clé
       const stageMatchdayPairs = new Set<string>()
       matchesData.matches.forEach((match: any) => {
-        if (match.matchday != null) {
-          const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday}`
-          stageMatchdayPairs.add(key)
-        }
+        const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday ?? 'KO'}`
+        stageMatchdayPairs.add(key)
       })
       const totalMatchdays = stageMatchdayPairs.size > 0 ? stageMatchdayPairs.size : null
 
@@ -191,12 +189,13 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
       }
 
       // 6. Mettre à jour les matchs (inclure les matchs TBD knockout avec placeholders)
+      // Note: matchday peut être null pour les knockouts à match unique (WC)
       const matchesToUpsert = matchesData.matches
-        .filter((match: any) => match.matchday != null && match.id != null)
+        .filter((match: any) => match.id != null)
         .map((match: any) => ({
           football_data_match_id: match.id,
           competition_id: competition.id,
-          matchday: match.matchday,
+          matchday: match.matchday ?? 1, // Default to 1 for single-leg knockout (WC)
           stage: match.stage || null,
           utc_date: match.utcDate,
           status: match.status,

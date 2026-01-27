@@ -93,7 +93,7 @@ export async function GET() {
       }> = {}
 
       allMatches.forEach((match: any) => {
-        const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday}`
+        const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday ?? 'KO'}`
         if (!matchdayStats[key]) {
           matchdayStats[key] = {
             total: 0,
