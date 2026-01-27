@@ -11,6 +11,13 @@ export async function GET(request: Request) {
 
   const adminClient = createAdminClient()
 
+  // Test 0: Récupérer le tournoi
+  const { data: tournament } = await adminClient
+    .from('tournaments')
+    .select('*')
+    .eq('id', tournamentId)
+    .single()
+
   // Test 1: Récupérer toutes les prédictions
   const { data: allPredictions, error: allError } = await adminClient
     .from('predictions')
@@ -45,6 +52,12 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     tournamentId,
+    tournament: {
+      starting_matchday: tournament?.starting_matchday,
+      ending_matchday: tournament?.ending_matchday,
+      custom_competition_id: tournament?.custom_competition_id,
+      competition_id: tournament?.competition_id
+    },
     allPredictions: {
       count: allPredictions?.length || 0,
       error: allError,
