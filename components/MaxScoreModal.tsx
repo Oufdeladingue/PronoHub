@@ -24,13 +24,6 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
   const [isMobile, setIsMobile] = useState(false)
   const isApp = isCapacitor()
 
-  // Debug: afficher le thème détecté
-  useEffect(() => {
-    if (isOpen) {
-      console.log('[MaxScoreModal] Theme détecté:', theme)
-    }
-  }, [isOpen, theme])
-
   // Détecter mobile au montage
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)

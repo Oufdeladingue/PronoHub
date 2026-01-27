@@ -2248,9 +2248,7 @@ export default function OppositionClient({
                                         <button
                                           onClick={() => {
                                             const currentScore = prediction.predicted_home_score ?? 0
-                                            console.log('[MaxScore] Click +, current score:', currentScore)
                                             if (currentScore >= 9) {
-                                              console.log('[MaxScore] Opening modal')
                                               setShowMaxScoreModal(true)
                                             } else {
                                               handleScoreChange(match.id, 'home', currentScore + 1)
