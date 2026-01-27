@@ -1,5 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendEmail } from '@/lib/email/send'
+import { getCaptainTransferTemplate, CaptainTransferEmailProps } from '@/lib/email/templates'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,10 +29,19 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id
 
+    // Récupérer le username de l'utilisateur qui supprime son compte
+    const { data: deletingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('username')
+      .eq('id', userId)
+      .single()
+
+    const deletingUsername = deletingProfile?.username || 'Un joueur'
+
     // 1. Vérifier si l'utilisateur est capitaine de tournois actifs ou en attente
     const { data: captainTournaments } = await supabaseAdmin
       .from('tournaments')
-      .select('id, name, status, current_participants')
+      .select('id, name, slug, invite_code, status, current_participants, competition_name')
       .eq('creator_id', userId)
       .in('status', ['pending', 'warmup', 'active'])
 
@@ -46,10 +57,12 @@ export async function POST(request: NextRequest) {
           .limit(1)
 
         if (otherParticipants && otherParticipants.length > 0) {
+          const newCaptainId = otherParticipants[0].user_id
+
           // Transférer le capitanat au premier participant trouvé
           await supabaseAdmin
             .from('tournaments')
-            .update({ creator_id: otherParticipants[0].user_id })
+            .update({ creator_id: newCaptainId })
             .eq('id', tournament.id)
 
           // Mettre à jour le rôle dans tournament_participants
@@ -57,7 +70,39 @@ export async function POST(request: NextRequest) {
             .from('tournament_participants')
             .update({ participant_role: 'captain' })
             .eq('tournament_id', tournament.id)
-            .eq('user_id', otherParticipants[0].user_id)
+            .eq('user_id', newCaptainId)
+
+          // Envoyer un email au nouveau capitaine
+          const { data: newCaptainProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('username')
+            .eq('id', newCaptainId)
+            .single()
+
+          const { data: newCaptainAuth } = await supabaseAdmin.auth.admin.getUserById(newCaptainId)
+          const newCaptainEmail = newCaptainAuth?.user?.email
+
+          if (newCaptainEmail) {
+            const tournamentSlug = tournament.slug || `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.invite_code}`
+
+            const emailProps: CaptainTransferEmailProps = {
+              newCaptainUsername: newCaptainProfile?.username || 'Capitaine',
+              oldCaptainUsername: deletingUsername,
+              tournamentName: tournament.name,
+              tournamentSlug: tournamentSlug,
+              competitionName: tournament.competition_name || '',
+              tournamentStatus: tournament.status
+            }
+
+            const { html, text, subject } = getCaptainTransferTemplate(emailProps)
+
+            try {
+              await sendEmail(newCaptainEmail, subject, html, text)
+            } catch (emailError) {
+              console.error('Erreur envoi email nouveau capitaine:', emailError)
+              // On ne bloque pas la suppression si l'email échoue
+            }
+          }
         }
         // Si l'user est seul dans le tournoi, le tournoi restera sans capitaine
         // mais la suppression CASCADE retirera sa participation
