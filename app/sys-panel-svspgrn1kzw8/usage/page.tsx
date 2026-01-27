@@ -51,6 +51,52 @@ interface DeleteModalState {
   refundCredits: boolean
 }
 
+interface TournamentDetail {
+  id: string
+  name: string
+  slug: string
+  status: string
+  tournament_type: string
+  created_at: string
+  creator_username: string
+  starting_matchday: number | null
+  ending_matchday: number | null
+  planned_matchdays: number | null
+  actual_matchdays: number | null
+  scoring_exact_score: number
+  scoring_correct_winner: number
+  scoring_correct_goal_difference: number
+  scoring_draw_with_default_prediction: number
+  teams_enabled: boolean
+  bonus_match_enabled: boolean
+  early_prediction_bonus: boolean
+  all_matchdays: boolean
+  max_participants: number | null
+  invite_code: string
+  competition: {
+    name: string
+    code: string
+    emblem: string | null
+    is_custom: boolean
+  } | null
+  participants: Array<{
+    user_id: string
+    username: string
+    avatar: string
+    total_points: number
+    rank: number | null
+    predictions_count: number
+    joined_at: string
+  }>
+  total_predictions: number
+}
+
+interface DetailModalState {
+  tournament: Tournament | null
+  detail: TournamentDetail | null
+  loading: boolean
+}
+
 interface UserStats {
   userId: string
   username: string
@@ -264,6 +310,11 @@ export default function AdminUsagePage() {
     loading: false,
     refundCredits: true
   })
+  const [detailModal, setDetailModal] = useState<DetailModalState>({
+    tournament: null,
+    detail: null,
+    loading: false
+  })
 
   // États pour tri, filtrage et pagination des tournois
   const [sortColumn, setSortColumn] = useState<keyof Tournament | ''>('')
@@ -368,6 +419,25 @@ export default function AdminUsagePage() {
     } finally {
       setDeleting(null)
     }
+  }
+
+  const openDetailModal = async (tournament: Tournament) => {
+    setDetailModal({ tournament, detail: null, loading: true })
+    try {
+      const response = await fetch(`/api/admin/tournaments/${tournament.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setDetailModal(prev => ({ ...prev, detail: data.tournament, loading: false }))
+      } else {
+        setDetailModal(prev => ({ ...prev, loading: false }))
+      }
+    } catch {
+      setDetailModal(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const closeDetailModal = () => {
+    setDetailModal({ tournament: null, detail: null, loading: false })
   }
 
   // Filtrage et tri des tournois
@@ -773,12 +843,20 @@ export default function AdminUsagePage() {
                             })}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-right">
-                            <button
-                              onClick={() => openDeleteModal(tournament)}
-                              className="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
-                            >
-                              Supprimer
-                            </button>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => openDetailModal(tournament)}
+                                className="px-3 py-1.5 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
+                              >
+                                Détail
+                              </button>
+                              <button
+                                onClick={() => openDeleteModal(tournament)}
+                                className="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -886,6 +964,205 @@ export default function AdminUsagePage() {
                           {deleting ? 'Suppression...' : 'Supprimer'}
                         </button>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal de détail */}
+              {detailModal.tournament && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closeDetailModal}>
+                  <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <div className="p-6 border-b border-gray-200 flex-shrink-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Détail du tournoi
+                        </h3>
+                        <button
+                          onClick={closeDetailModal}
+                          className="p-1 rounded-lg hover:bg-gray-100 transition"
+                        >
+                          <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex-1">
+                      {detailModal.loading ? (
+                        <div className="text-center py-8 text-gray-500">
+                          Chargement des détails...
+                        </div>
+                      ) : detailModal.detail ? (
+                        <div className="space-y-6">
+                          {/* Infos générales */}
+                          <div>
+                            <h4 className="text-base font-semibold text-gray-900 mb-3">{detailModal.detail.name}</h4>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <span className="text-gray-500">Type :</span>{' '}
+                                {getTournamentTypeBadge(detailModal.detail.tournament_type)}
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Statut :</span>{' '}
+                                {getStatusBadge(detailModal.detail.status)}
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Créateur :</span>{' '}
+                                <span className="font-medium text-gray-900">{detailModal.detail.creator_username}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Code :</span>{' '}
+                                <span className="font-mono text-gray-700">{detailModal.detail.invite_code}</span>
+                              </div>
+                              {detailModal.detail.competition && (
+                                <div className="col-span-2">
+                                  <span className="text-gray-500">Compétition :</span>{' '}
+                                  <span className="font-medium text-gray-900">
+                                    {detailModal.detail.competition.name}
+                                    {detailModal.detail.competition.is_custom && (
+                                      <span className="ml-1 text-xs text-purple-600">(custom)</span>
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-gray-500">Joueurs max :</span>{' '}
+                                <span className="font-medium text-gray-900">
+                                  {detailModal.detail.max_participants || 'Illimité'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Créé le :</span>{' '}
+                                <span className="text-gray-700">
+                                  {new Date(detailModal.detail.created_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit', month: '2-digit', year: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Journées */}
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Journées</h4>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-gray-500">Plage :</span>{' '}
+                                <span className="font-medium text-gray-900">
+                                  {detailModal.detail.starting_matchday && detailModal.detail.ending_matchday
+                                    ? `J${detailModal.detail.starting_matchday} → J${detailModal.detail.ending_matchday}`
+                                    : detailModal.detail.all_matchdays
+                                      ? 'Toutes les journées'
+                                      : 'Non défini'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Nb journées :</span>{' '}
+                                <span className="font-medium text-gray-900">
+                                  {detailModal.detail.actual_matchdays || detailModal.detail.planned_matchdays || '-'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Scoring */}
+                          <div className="p-4 bg-blue-50 rounded-lg">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-2">Scoring</h4>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
+                              <div>Score exact : <span className="font-semibold">{detailModal.detail.scoring_exact_score} pts</span></div>
+                              <div>Bon vainqueur : <span className="font-semibold">{detailModal.detail.scoring_correct_winner} pt</span></div>
+                              <div>Bonne diff. : <span className="font-semibold">{detailModal.detail.scoring_correct_goal_difference} pts</span></div>
+                              <div>Nul par défaut : <span className="font-semibold">{detailModal.detail.scoring_draw_with_default_prediction} pt</span></div>
+                            </div>
+                          </div>
+
+                          {/* Options */}
+                          <div className="flex flex-wrap gap-2">
+                            {detailModal.detail.teams_enabled && (
+                              <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">Équipes</span>
+                            )}
+                            {detailModal.detail.bonus_match_enabled && (
+                              <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Match bonus</span>
+                            )}
+                            {detailModal.detail.early_prediction_bonus && (
+                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Bonus early prono</span>
+                            )}
+                            {detailModal.detail.all_matchdays && (
+                              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Toutes journées</span>
+                            )}
+                            {!detailModal.detail.teams_enabled && !detailModal.detail.bonus_match_enabled && !detailModal.detail.early_prediction_bonus && !detailModal.detail.all_matchdays && (
+                              <span className="text-xs text-gray-400">Aucune option activée</span>
+                            )}
+                          </div>
+
+                          {/* Participants */}
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                              Participants ({detailModal.detail.participants.length})
+                              <span className="ml-2 text-gray-400 font-normal">
+                                — {detailModal.detail.total_predictions} pronostic{detailModal.detail.total_predictions !== 1 ? 's' : ''} au total
+                              </span>
+                            </h4>
+                            {detailModal.detail.participants.length === 0 ? (
+                              <p className="text-sm text-gray-400">Aucun participant</p>
+                            ) : (
+                              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                <table className="min-w-full text-sm">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
+                                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
+                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-100">
+                                    {detailModal.detail.participants.map((p) => (
+                                      <tr key={p.user_id} className="hover:bg-gray-50">
+                                        <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
+                                        <td className="px-3 py-2">
+                                          <div className="flex items-center gap-2">
+                                            <img
+                                              src={getAvatarUrl(p.avatar || 'avatar1')}
+                                              alt={p.username}
+                                              className="w-6 h-6 rounded-full"
+                                              onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
+                                            />
+                                            <span className="font-medium text-gray-900">{p.username}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
+                                        <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
+                                        <td className="px-3 py-2 text-gray-500">
+                                          {new Date(p.joined_at).toLocaleDateString('fr-FR', {
+                                            day: '2-digit', month: '2-digit', year: '2-digit'
+                                          })}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-red-500">
+                          Erreur lors du chargement des détails.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+                      <button
+                        onClick={closeDetailModal}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                      >
+                        Fermer
+                      </button>
                     </div>
                   </div>
                 </div>
