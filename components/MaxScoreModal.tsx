@@ -24,6 +24,13 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
   const [isMobile, setIsMobile] = useState(false)
   const isApp = isCapacitor()
 
+  // Debug: afficher le thème détecté
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[MaxScoreModal] Theme détecté:', theme)
+    }
+  }, [isOpen, theme])
+
   // Détecter mobile au montage
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
@@ -120,7 +127,7 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
               height={32}
               className={isMobile || isApp ? 'w-7 h-7' : 'w-8 h-8'}
             />
-            <h2 className={`${fontSize} font-bold text-white drop-shadow-lg`}>
+            <h2 className={`${fontSize} font-bold drop-shadow-lg`} style={{ color: isDark ? '#000000' : '#ffffff' }}>
               Ça fait beaucoup là non ?
             </h2>
           </div>
