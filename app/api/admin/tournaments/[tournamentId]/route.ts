@@ -47,11 +47,12 @@ export async function GET(
         .eq('tournament_id', tournamentId)
         .order('rank', { ascending: true, nullsFirst: false }),
 
-      // Nombre de prédictions par utilisateur
+      // Nombre de prédictions par utilisateur (uniquement les pronos enregistrés, pas les par défaut)
       supabase
         .from('predictions')
         .select('user_id')
-        .eq('tournament_id', tournamentId),
+        .eq('tournament_id', tournamentId)
+        .eq('is_default_prediction', false),
 
       // Compétition (standard ou custom)
       tournament.custom_competition_id

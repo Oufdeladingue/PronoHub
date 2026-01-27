@@ -787,106 +787,168 @@ export default function AdminUsagePage() {
                   {tournaments.length === 0 ? 'Aucun tournoi trouvé' : 'Aucun résultat pour ces filtres'}
                 </div>
               ) : (
-                <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
-                  <table className="min-w-full border-collapse">
-                    <thead className="bg-gray-700 text-white">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('name')}>
-                          Tournoi <SortIndicator column="name" />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('tournament_type')}>
-                          Type <SortIndicator column="tournament_type" />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('status')}>
-                          Statut <SortIndicator column="status" />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('creator_username')}>
-                          Créateur <SortIndicator column="creator_username" />
-                        </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('participants_count')}>
-                          Joueurs <SortIndicator column="participants_count" />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('created_at')}>
-                          Créé le <SortIndicator column="created_at" />
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-300">
-                      {paginatedTournaments.map((tournament, index) => (
-                        <tr key={tournament.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-purple-50 transition-colors`}>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{tournament.name}</div>
-                            <div className="text-xs text-gray-400 font-mono">{tournament.slug}</div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {getTournamentTypeBadge(tournament.tournament_type)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {getStatusBadge(tournament.status)}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-700">{tournament.creator_username}</span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
-                              {tournament.participants_count}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                            {new Date(tournament.created_at).toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: '2-digit',
-                            })}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right">
-                            <div className="flex gap-2 justify-end">
-                              <button
-                                onClick={() => openDetailModal(tournament)}
-                                className="px-3 py-1.5 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
-                              >
-                                Détail
-                              </button>
-                              <button
-                                onClick={() => openDeleteModal(tournament)}
-                                className="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
-                              >
-                                Supprimer
-                              </button>
-                            </div>
-                          </td>
+                <>
+                  {/* Version desktop - tableau */}
+                  <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+                    <table className="min-w-full border-collapse">
+                      <thead className="bg-gray-700 text-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('name')}>
+                            Tournoi <SortIndicator column="name" />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('tournament_type')}>
+                            Type <SortIndicator column="tournament_type" />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('status')}>
+                            Statut <SortIndicator column="status" />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('creator_username')}>
+                            Créateur <SortIndicator column="creator_username" />
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('participants_count')}>
+                            Joueurs <SortIndicator column="participants_count" />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('created_at')}>
+                            Créé le <SortIndicator column="created_at" />
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                            Actions
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300">
+                        {paginatedTournaments.map((tournament, index) => (
+                          <tr key={tournament.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-purple-50 transition-colors`}>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{tournament.name}</div>
+                              <div className="text-xs text-gray-400 font-mono">{tournament.slug}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {getTournamentTypeBadge(tournament.tournament_type)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {getStatusBadge(tournament.status)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className="text-sm font-medium text-gray-700">{tournament.creator_username}</span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
+                                {tournament.participants_count}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {new Date(tournament.created_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                              })}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                              <div className="flex gap-2 justify-end">
+                                <button
+                                  onClick={() => openDetailModal(tournament)}
+                                  className="px-3 py-1.5 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
+                                >
+                                  Détail
+                                </button>
+                                <button
+                                  onClick={() => openDeleteModal(tournament)}
+                                  className="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-                      <div className="text-sm text-gray-600">
-                        Page {currentPage} sur {totalPages}
+                  {/* Version mobile - cartes */}
+                  <div className="lg:hidden space-y-4">
+                    {paginatedTournaments.map((tournament) => (
+                      <div key={tournament.id} className="bg-white rounded-lg shadow border border-gray-200 p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-bold text-gray-900 mb-1">{tournament.name}</h3>
+                            <p className="text-xs text-gray-400 font-mono">{tournament.slug}</p>
+                          </div>
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold ml-2">
+                            {tournament.participants_count}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Type:</span>
+                            {getTournamentTypeBadge(tournament.tournament_type)}
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Statut:</span>
+                            {getStatusBadge(tournament.status)}
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Créateur:</span>
+                            <span className="font-medium text-gray-700">{tournament.creator_username}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Créé le:</span>
+                            <span className="text-gray-600">
+                              {new Date(tournament.created_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-3 border-t border-gray-100">
+                          <button
+                            onClick={() => openDetailModal(tournament)}
+                            className="flex-1 px-3 py-2 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
+                          >
+                            Détail
+                          </button>
+                          <button
+                            onClick={() => openDeleteModal(tournament)}
+                            className="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Précédent
-                        </button>
-                        <button
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Suivant
-                        </button>
-                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Pagination */}
+              {filteredAndSortedTournaments.length > 0 && totalPages > 1 && (
+                <div className="bg-white rounded-lg shadow border border-gray-200 mt-4">
+                  <div className="px-4 py-3 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div className="text-sm text-gray-600">
+                      Page {currentPage} sur {totalPages}
                     </div>
-                  )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Précédent
+                      </button>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -999,7 +1061,7 @@ export default function AdminUsagePage() {
                           {/* Infos générales */}
                           <div>
                             <h4 className="text-base font-semibold text-gray-900 mb-3">{detailModal.detail.name}</h4>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                               <div>
                                 <span className="text-gray-500">Type :</span>{' '}
                                 {getTournamentTypeBadge(detailModal.detail.tournament_type)}
@@ -1047,7 +1109,7 @@ export default function AdminUsagePage() {
                           {/* Journées */}
                           <div className="p-4 bg-gray-50 rounded-lg">
                             <h4 className="text-sm font-semibold text-gray-700 mb-2">Journées</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                               <div>
                                 <span className="text-gray-500">Plage :</span>{' '}
                                 <span className="font-medium text-gray-900">
@@ -1070,7 +1132,7 @@ export default function AdminUsagePage() {
                           {/* Scoring */}
                           <div className="p-4 bg-blue-50 rounded-lg">
                             <h4 className="text-sm font-semibold text-blue-900 mb-2">Scoring</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-blue-800">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-800">
                               <div>Score exact : <span className="font-semibold">{detailModal.detail.scoring_exact_score} pts</span></div>
                               <div>Bon vainqueur : <span className="font-semibold">{detailModal.detail.scoring_correct_winner} pt</span></div>
                               <div>Bonne diff. : <span className="font-semibold">{detailModal.detail.scoring_correct_goal_difference} pts</span></div>
@@ -1108,44 +1170,84 @@ export default function AdminUsagePage() {
                             {detailModal.detail.participants.length === 0 ? (
                               <p className="text-sm text-gray-400">Aucun participant</p>
                             ) : (
-                              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                                <table className="min-w-full text-sm">
-                                  <thead className="bg-gray-100">
-                                    <tr>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
-                                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
-                                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-100">
-                                    {detailModal.detail.participants.map((p) => (
-                                      <tr key={p.user_id} className="hover:bg-gray-50">
-                                        <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
-                                        <td className="px-3 py-2">
-                                          <div className="flex items-center gap-2">
-                                            <img
-                                              src={getAvatarUrl(p.avatar || 'avatar1')}
-                                              alt={p.username}
-                                              className="w-6 h-6 rounded-full"
-                                              onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
-                                            />
-                                            <span className="font-medium text-gray-900">{p.username}</span>
+                              <>
+                                {/* Version desktop */}
+                                <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden">
+                                  <table className="min-w-full text-sm">
+                                    <thead className="bg-gray-100">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
+                                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                      {detailModal.detail.participants.map((p) => (
+                                        <tr key={p.user_id} className="hover:bg-gray-50">
+                                          <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
+                                          <td className="px-3 py-2">
+                                            <div className="flex items-center gap-2">
+                                              <img
+                                                src={getAvatarUrl(p.avatar || 'avatar1')}
+                                                alt={p.username}
+                                                className="w-6 h-6 rounded-full"
+                                                onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
+                                              />
+                                              <span className="font-medium text-gray-900">{p.username}</span>
+                                            </div>
+                                          </td>
+                                          <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
+                                          <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
+                                          <td className="px-3 py-2 text-gray-500">
+                                            {new Date(p.joined_at).toLocaleDateString('fr-FR', {
+                                              day: '2-digit', month: '2-digit', year: '2-digit'
+                                            })}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                {/* Version mobile */}
+                                <div className="md:hidden space-y-2">
+                                  {detailModal.detail.participants.map((p) => (
+                                    <div key={p.user_id} className="p-3 border border-gray-200 rounded-lg bg-white">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-gray-500 font-medium">#{p.rank || '-'}</span>
+                                          <img
+                                            src={getAvatarUrl(p.avatar || 'avatar1')}
+                                            alt={p.username}
+                                            className="w-6 h-6 rounded-full"
+                                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
+                                          />
+                                          <span className="font-medium text-gray-900 text-sm">{p.username}</span>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center justify-between text-xs">
+                                        <div className="flex gap-4">
+                                          <div>
+                                            <span className="text-gray-500">Points: </span>
+                                            <span className="font-semibold text-purple-700">{p.total_points}</span>
                                           </div>
-                                        </td>
-                                        <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
-                                        <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
-                                        <td className="px-3 py-2 text-gray-500">
+                                          <div>
+                                            <span className="text-gray-500">Pronos: </span>
+                                            <span className="text-gray-600">{p.predictions_count}</span>
+                                          </div>
+                                        </div>
+                                        <div className="text-gray-400">
                                           {new Date(p.joined_at).toLocaleDateString('fr-FR', {
                                             day: '2-digit', month: '2-digit', year: '2-digit'
                                           })}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
                             )}
                           </div>
                         </div>
