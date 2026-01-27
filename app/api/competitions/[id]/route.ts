@@ -91,7 +91,7 @@ export async function GET(
         .single(),
       supabase
         .from('imported_matches')
-        .select('matchday, status, utc_date')
+        .select('matchday, status, utc_date, stage')
         .eq('competition_id', competitionId)
     ])
 
@@ -106,8 +106,9 @@ export async function GET(
     const allMatches = matchesResult.data || []
     const now = new Date()
 
-    // Calculer les stats de matchdays
-    const matchdayStats: Record<number, {
+    // Calculer les stats de matchdays par paire (stage, matchday)
+    // Pour gérer les knockouts où le matchday redémarre à 1 par stage
+    const matchdayStats: Record<string, {
       total: number,
       finished: number,
       firstMatchDate: Date | null,
@@ -115,24 +116,25 @@ export async function GET(
     }> = {}
 
     allMatches.forEach((match: any) => {
-      if (!matchdayStats[match.matchday]) {
-        matchdayStats[match.matchday] = {
+      const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday}`
+      if (!matchdayStats[key]) {
+        matchdayStats[key] = {
           total: 0,
           finished: 0,
           firstMatchDate: null,
           allFinished: true
         }
       }
-      matchdayStats[match.matchday].total++
+      matchdayStats[key].total++
       if (match.status === 'FINISHED') {
-        matchdayStats[match.matchday].finished++
+        matchdayStats[key].finished++
       } else {
-        matchdayStats[match.matchday].allFinished = false
+        matchdayStats[key].allFinished = false
       }
       const matchDate = new Date(match.utc_date)
-      if (!matchdayStats[match.matchday].firstMatchDate ||
-          matchDate < matchdayStats[match.matchday].firstMatchDate!) {
-        matchdayStats[match.matchday].firstMatchDate = matchDate
+      if (!matchdayStats[key].firstMatchDate ||
+          matchDate < matchdayStats[key].firstMatchDate!) {
+        matchdayStats[key].firstMatchDate = matchDate
       }
     })
 
@@ -153,7 +155,7 @@ export async function GET(
     const totalMatchdays = comp.total_matchdays || importedMatchdaysCount
     const remainingMatchdays = Math.max(0, totalMatchdays - finishedMatchdaysCount - startingMatchdaysCount)
 
-    const remainingMatchdaysList = Object.entries(matchdayStats)
+    const remainingMatchdayKeys = Object.entries(matchdayStats)
       .filter(([_, stats]) => {
         if (stats.allFinished) return false
         if (stats.firstMatchDate) {
@@ -162,10 +164,13 @@ export async function GET(
         }
         return true
       })
-      .map(([matchday]) => parseInt(matchday))
+      .map(([key]) => key)
 
     const remainingMatches = allMatches.filter(
-      (m: any) => m.status !== 'FINISHED' && remainingMatchdaysList.includes(m.matchday)
+      (m: any) => {
+        const key = `${m.stage || 'REGULAR_SEASON'}_${m.matchday}`
+        return m.status !== 'FINISHED' && remainingMatchdayKeys.includes(key)
+      }
     ).length
 
     return NextResponse.json({

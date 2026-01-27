@@ -34,16 +34,19 @@ export async function GET() {
     // Pour chaque compétition, calculer le nombre réel de journées
     const formattedCompetitions = await Promise.all(
       (competitions || []).map(async (comp) => {
-        // Récupérer tous les matchdays distincts depuis imported_matches
+        // Récupérer tous les matchdays distincts depuis imported_matches (avec stage)
         const { data: matchdaysData } = await supabase
           .from('imported_matches')
-          .select('matchday')
+          .select('matchday, stage')
           .eq('competition_id', comp.id)
           .not('matchday', 'is', null)
 
-        // Compter les journées distinctes importées
-        const distinctMatchdays = new Set(matchdaysData?.map(m => m.matchday) || [])
-        const importedMatchdaysCount = distinctMatchdays.size
+        // Compter les paires (stage, matchday) distinctes
+        // Pour les compétitions avec knockout, le matchday redémarre par stage
+        const distinctPairs = new Set(
+          (matchdaysData || []).map(m => `${m.stage || 'REGULAR_SEASON'}_${m.matchday}`)
+        )
+        const importedMatchdaysCount = distinctPairs.size
 
         // Pour les compétitions avec phases knockout, utiliser le mapping prédéfini
         // Sinon utiliser le max entre: journées importées, total_matchdays de la table

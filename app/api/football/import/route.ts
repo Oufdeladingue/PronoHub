@@ -306,9 +306,14 @@ async function importFromFootballData(competitionId: number) {
 
   const matchesData = await matchesResponse.json()
 
-  // 4. Calculer le nombre total de journées
-  const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
-  const calculatedMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
+  // 4. Calculer le nombre total de journées (paires stage+matchday uniques)
+  const stageMatchdayPairs = new Set<string>()
+  matchesData.matches.forEach((match: any) => {
+    if (match.matchday != null) {
+      stageMatchdayPairs.add(`${match.stage || 'REGULAR_SEASON'}_${match.matchday}`)
+    }
+  })
+  const calculatedMatchdays = stageMatchdayPairs.size > 0 ? stageMatchdayPairs.size : null
 
   // 5. Vérifier s'il existe une configuration manuelle pour cette compétition
   const { data: configData } = await supabase
