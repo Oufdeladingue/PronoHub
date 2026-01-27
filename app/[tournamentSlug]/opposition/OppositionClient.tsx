@@ -645,9 +645,7 @@ export default function OppositionClient({
       // Initialiser les prédictions à 0-0 pour tous les matchs qui n'ont pas encore de prédiction
       if (matchesData.length > 0) {
         setPredictions(prev => {
-          console.log('🔄 fetchMatches - État actuel des prédictions:', Object.keys(prev).length, 'matchs')
           const newPredictions = { ...prev }
-          let addedCount = 0
           matchesData.forEach(match => {
             if (!newPredictions[match.id]) {
               newPredictions[match.id] = {
@@ -655,11 +653,8 @@ export default function OppositionClient({
                 predicted_home_score: 0,
                 predicted_away_score: 0
               }
-              addedCount++
             }
           })
-          console.log('🔄 fetchMatches - Ajout de', addedCount, 'prédictions à 0-0')
-          console.log('🔄 fetchMatches - Total après:', Object.keys(newPredictions).length, 'matchs')
           return newPredictions
         })
       }
@@ -721,13 +716,7 @@ export default function OppositionClient({
         matchIds = matchesData?.map(m => m.id) || []
       }
 
-      console.log('🔍 [fetchUserPredictions] Matchs trouvés:', matchIds.length)
-
       if (matchIds.length === 0) return
-
-      console.log('🔍 [fetchUserPredictions] Match IDs:', matchIds)
-      console.log('🔍 [fetchUserPredictions] Tournament ID:', tournament.id)
-      console.log('🔍 [fetchUserPredictions] User ID:', user.id)
 
       // Ensuite, récupérer les prédictions pour ces matchs
       const { data: predictionsData, error } = await supabase
@@ -736,9 +725,6 @@ export default function OppositionClient({
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
-
-      console.log('🔍 [fetchUserPredictions] Predictions query error:', error)
-      console.log('🔍 [fetchUserPredictions] Predictions found:', predictionsData?.length || 0)
 
       if (error) {
         console.error('Erreur Supabase:', error)
