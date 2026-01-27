@@ -14,7 +14,14 @@ interface ThemeContextType {
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
+  // Initialiser le thème depuis localStorage immédiatement (SSR-safe)
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme') as Theme | null
+      return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark'
+    }
+    return 'dark'
+  })
   const [mounted, setMounted] = useState(false)
   const supabase = createClient()
 
