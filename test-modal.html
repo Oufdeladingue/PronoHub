@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Modale Score Maximum - PronoHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes scale-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.2s ease-out;
+        }
+
+        .animate-scale-in {
+            animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .animate-bounce-subtle {
+            animation: bounce-subtle 2s ease-in-out infinite;
+        }
+
+        /* Style PronoHub */
+        .pronohub-gradient {
+            background: linear-gradient(135deg, #ff9900 0%, #ff7700 100%);
+        }
+
+        .pronohub-border {
+            border: 2px solid #ff9900;
+        }
+
+        .pronohub-shadow {
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.3);
+        }
+
+        .pronohub-glow {
+            box-shadow: 0 0 25px rgba(255, 153, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" style="background: linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 100%);">
+    <div class="max-w-2xl w-full space-y-8">
+        <!-- En-tête -->
+        <div class="text-center space-y-4">
+            <h1 class="text-4xl font-bold text-white">
+                Test de la Modale Score Maximum
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Clique sur le bouton pour voir la modale qui s'affiche quand on essaie de dépasser 9 buts
+            </p>
+        </div>
+
+        <!-- Simulation compteur -->
+        <div class="rounded-xl p-8" style="background: rgba(26, 26, 26, 0.8); border: 1px solid rgba(255, 153, 0, 0.2);">
+            <div class="flex items-center justify-center gap-6">
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm mb-2 font-semibold">Paris SG</div>
+                    <div class="flex items-center gap-2">
+                        <button class="w-10 h-10 rounded-lg bg-gray-800 text-white font-bold border border-gray-700" disabled style="opacity: 0.5;">-</button>
+                        <div class="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border-2 border-[#ff9900]">
+                            <span class="text-3xl font-bold text-[#ff9900]">9</span>
+                        </div>
+                        <button onclick="openModal()" class="w-10 h-10 rounded-lg pronohub-gradient text-white font-bold transition-all transform hover:scale-110 pronohub-shadow hover:pronohub-glow animate-bounce-subtle">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-3xl font-bold text-gray-600">VS</div>
+
+                <div class="text-center">
+                    <div class="text-gray-400 text-sm mb-2 font-semibold">Marseille</div>
+                    <div class="flex items-center gap-2">
+                        <button class="w-10 h-10 rounded-lg bg-gray-800 text-white font-bold border border-gray-700" disabled style="opacity: 0.5;">-</button>
+                        <div class="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border-2 border-gray-700">
+                            <span class="text-3xl font-bold text-gray-400">0</span>
+                        </div>
+                        <button class="w-10 h-10 rounded-lg bg-gray-800 text-white font-bold border border-gray-700" disabled style="opacity: 0.5;">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 text-center">
+                <p class="text-gray-400 text-sm">
+                    👆 Clique sur le <span class="text-[#ff9900] font-bold">+</span> orange du Paris SG pour tester
+                </p>
+            </div>
+        </div>
+
+        <!-- Bouton direct -->
+        <div class="text-center">
+            <button onclick="openModal()" class="pronohub-gradient hover:opacity-90 text-white font-bold py-4 px-8 rounded-lg transition-all transform hover:scale-105 pronohub-shadow hover:pronohub-glow">
+                🎭 Ouvrir la modale directement
+            </button>
+        </div>
+
+        <!-- Info -->
+        <div class="rounded-xl p-6" style="background: rgba(26, 26, 26, 0.6); border: 1px solid rgba(255, 153, 0, 0.15);">
+            <h3 class="text-[#ff9900] font-bold mb-3 text-lg">📋 Messages aléatoires</h3>
+            <ul class="text-gray-400 text-sm space-y-2">
+                <li>• "Ce score déclenche un visionnage de la VAR : et c'est refusé pour quelques centimètres..."</li>
+                <li>• "Tu tentes de débloquer le badge 'Humiliation gratuite' ? C'est trop pour une seule équipe..."</li>
+                <li>• "À ce niveau-là, on ne parle plus de football mais de baby-foot ! Concentre-toi"</li>
+                <li>• "Tu penses que le gardien adverse va rater le bus ?"</li>
+                <li>• "Ce score est historiquement possible… mais statistiquement suspect et logiquement refusé !"</li>
+            </ul>
+            <p class="text-gray-600 text-xs mt-4 italic">
+                💡 Un message différent s'affiche à chaque ouverture
+            </p>
+        </div>
+    </div>
+
+    <!-- Modale PronoHub Style -->
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 animate-fade-in" style="background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);" onclick="closeModal()">
+        <div class="rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in" style="background: linear-gradient(to bottom, #0f0f0f 0%, #1a1a1a 100%); border: 2px solid #ff9900; box-shadow: 0 0 40px rgba(255, 153, 0, 0.4);" onclick="event.stopPropagation()">
+            <!-- Header PronoHub -->
+            <div class="pronohub-gradient p-6 text-center relative">
+                <button onclick="closeModal()" class="absolute top-4 right-4 text-white/80 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <h2 class="text-2xl font-bold text-white drop-shadow-lg">
+                    ⚽ Ça fait beaucoup là non ?
+                </h2>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 space-y-6">
+                <!-- GIF avec style PronoHub -->
+                <div class="flex justify-center">
+                    <div class="rounded-xl overflow-hidden pronohub-border pronohub-shadow">
+                        <img src="https://c.tenor.com/qxVAbTWrqMEAAAAd/tenor.gif" alt="Réaction surprise" class="w-full h-auto">
+                    </div>
+                </div>
+
+                <!-- Message avec meilleure lisibilité -->
+                <p id="message" class="text-gray-200 text-center text-base leading-relaxed px-2 font-medium"></p>
+
+                <!-- Bouton PronoHub -->
+                <button onclick="closeModal()" class="w-full pronohub-gradient hover:opacity-90 text-white font-bold py-3.5 px-6 rounded-lg transition-all transform hover:scale-[1.02] pronohub-shadow hover:pronohub-glow">
+                    Je reste lucide
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messages = [
+            "Ce score déclenche un visionnage de la VAR : et c'est refusé pour quelques centimètres...",
+            "Tu tentes de débloquer le badge 'Humiliation gratuite' ? C'est trop pour une seule équipe...",
+            "À ce niveau-là, on ne parle plus de football mais de baby-foot ! Concentre-toi",
+            "Tu penses que le gardien adverse va rater le bus ?",
+            "Ce score est historiquement possible… mais statistiquement suspect et logiquement refusé ! "
+        ];
+
+        function openModal() {
+            const modal = document.getElementById('modal');
+            const message = document.getElementById('message');
+
+            // Message aléatoire
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            message.textContent = randomMessage;
+
+            // Afficher la modale
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Fermer avec Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

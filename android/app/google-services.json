@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "468891081637-7ronj1t1hkv8n5civf0u7u8n97aq2eqm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "club.pronohub.app",
+            "certificate_hash": "139fd36a41383518a36220e807236a31559a33e3"
+          }
+        },
+        {
           "client_id": "468891081637-a7tivn7v13jpendqbeuv4sv55k0jupku.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
