@@ -3,7 +3,7 @@
  * Utilisée par /api/tournaments/[tournamentId]/rankings et /api/admin/tournaments/[tournamentId]
  */
 
-import { createClient as createServerClient } from '@supabase/supabase-js'
+import { type SupabaseClient } from '@supabase/supabase-js'
 import { calculatePoints, type PointsSettings } from './scoring'
 
 export interface ParticipantStats {
@@ -20,8 +20,7 @@ export interface ParticipantStats {
 }
 
 export interface TournamentStatsOptions {
-  supabaseUrl: string
-  supabaseKey: string
+  supabase: SupabaseClient
   tournamentId: string
   includeDetailedStats?: boolean // Si true, inclut exact_scores, correct_results, matches_played
 }
@@ -33,9 +32,7 @@ export interface TournamentStatsOptions {
 export async function calculateTournamentStats(
   options: TournamentStatsOptions
 ): Promise<ParticipantStats[]> {
-  const { supabaseUrl, supabaseKey, tournamentId, includeDetailedStats = false } = options
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey)
+  const { supabase, tournamentId, includeDetailedStats = false } = options
 
   // 1. Récupérer le tournoi et ses paramètres
   const { data: tournament } = await supabase

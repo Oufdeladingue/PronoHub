@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { calculateTournamentStats } from '@/lib/calculate-tournament-stats'
@@ -55,9 +55,9 @@ export async function GET(
         : { data: null, error: null }
 
     // Calculer les statistiques dynamiquement (points, rangs, nombre de pronos)
+    const adminClient = createAdminClient()
     const participantsDetails = await calculateTournamentStats({
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      supabase: adminClient,
       tournamentId,
       includeDetailedStats: false
     })
