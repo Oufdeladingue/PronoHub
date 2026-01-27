@@ -32,12 +32,16 @@ export async function GET(request: Request) {
     predsByUser.get(pred.user_id)!.push(pred)
   }
 
-  const userStats = Array.from(predsByUser.entries()).map(([userId, preds]) => ({
-    userId,
-    username: participants?.find(p => p.user_id === userId)?.profiles?.username || 'Unknown',
-    total: preds.length,
-    nonDefault: preds.filter(p => !p.is_default_prediction).length
-  }))
+  const userStats = Array.from(predsByUser.entries()).map(([userId, preds]) => {
+    const participant = participants?.find(p => p.user_id === userId)
+    const profile = participant?.profiles as any
+    return {
+      userId,
+      username: profile?.username || 'Unknown',
+      total: preds.length,
+      nonDefault: preds.filter(p => !p.is_default_prediction).length
+    }
+  })
 
   return NextResponse.json({
     tournamentId,
