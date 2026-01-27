@@ -15,6 +15,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [facebookLoading, setFacebookLoading] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
@@ -157,6 +158,30 @@ function LoginForm() {
       setError(errorMessage)
     } finally {
       setGoogleLoading(false)
+    }
+  }
+
+  // Gestion de l'authentification OAuth Facebook
+  const handleFacebookSignIn = async () => {
+    setFacebookLoading(true)
+    setError(null)
+
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+      const apiUrl = redirectTo
+        ? `${baseUrl}/api/auth/facebook?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${baseUrl}/api/auth/facebook`
+
+      if (isCapacitor()) {
+        await openExternalUrl(apiUrl)
+      } else {
+        window.location.href = apiUrl
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
+      setError(errorMessage)
+    } finally {
+      setFacebookLoading(false)
     }
   }
 
@@ -420,6 +445,27 @@ function LoginForm() {
           )}
           <span className="text-white font-medium">
             {googleLoading ? 'Connexion...' : 'Continuer avec Google'}
+          </span>
+        </button>
+
+        {/* Bouton de connexion Facebook */}
+        <button
+          onClick={handleFacebookSignIn}
+          disabled={facebookLoading}
+          className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg bg-[#1a1a1a] hover:bg-[#222] transition-all duration-[250ms] disabled:opacity-50 disabled:cursor-not-allowed mt-3"
+        >
+          {facebookLoading ? (
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          )}
+          <span className="text-white font-medium">
+            {facebookLoading ? 'Connexion...' : 'Continuer avec Facebook'}
           </span>
         </button>
 
