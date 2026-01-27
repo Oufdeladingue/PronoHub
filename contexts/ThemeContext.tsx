@@ -18,6 +18,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as Theme | null
+      console.log('[ThemeContext] Initialisation, localStorage.theme:', savedTheme)
       return (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark'
     }
     return 'dark'
@@ -68,13 +69,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setTheme = async (newTheme: Theme) => {
+    console.log('[ThemeContext] setTheme appelé avec:', newTheme)
     setThemeState(newTheme)
     document.documentElement.setAttribute('data-theme', newTheme)
     localStorage.setItem('theme', newTheme)
+    console.log('[ThemeContext] localStorage.theme après setItem:', localStorage.getItem('theme'))
 
     // Sauvegarder dans la base de données si l'utilisateur est connecté
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      console.log('[ThemeContext] Sauvegarde du thème en BDD pour user:', user.id)
       await supabase
         .from('profiles')
         .update({ theme_preference: newTheme })
@@ -83,7 +87,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light')
+    const newTheme = theme === 'light' ? 'dark' : 'light'
+    console.log('[ThemeContext] toggleTheme: de', theme, 'vers', newTheme)
+    setTheme(newTheme)
   }
 
   return (
