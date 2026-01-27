@@ -112,9 +112,18 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
             </svg>
           </button>
 
-          <h2 className={`${fontSize} font-bold text-white drop-shadow-lg`}>
-            Ça fait beaucoup là non ?
-          </h2>
+          <div className="flex items-center justify-center gap-3">
+            <Image
+              src="/images/logo.svg"
+              alt="PronoHub"
+              width={32}
+              height={32}
+              className={isMobile || isApp ? 'w-7 h-7' : 'w-8 h-8'}
+            />
+            <h2 className={`${fontSize} font-bold text-white drop-shadow-lg`}>
+              Ça fait beaucoup là non ?
+            </h2>
+          </div>
         </div>
 
         {/* Body */}
