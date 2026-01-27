@@ -15,6 +15,8 @@
     "dev": "next dev -p 3100",
     "dev:clean": "rmdir /s /q .next 2>nul & next dev -p 3100",
     "build": "next build",
+    "build:android": "npm run build && npx cap sync android",
+    "android": "npm run build:android && cd android && .\\gradlew assembleDebug",
     "start": "next start",
     "lint": "next lint",
     "kill": "for /f \"tokens=5\" %a in ('netstat -ano ^| findstr :3100 ^| findstr LISTENING') do taskkill /F /PID %a"

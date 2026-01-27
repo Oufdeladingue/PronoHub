@@ -14,6 +14,7 @@ import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
+import MaxScoreModal from '@/components/MaxScoreModal'
 
 interface Tournament {
   id: string
@@ -203,6 +204,9 @@ export default function OppositionClient({
 
   // État pour le pseudo du capitaine - pré-chargé depuis le server
   const [captainUsername, setCaptainUsername] = useState<string | null>(serverCaptainUsername)
+
+  // État pour la modale de score maximum
+  const [showMaxScoreModal, setShowMaxScoreModal] = useState(false)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -2245,8 +2249,12 @@ export default function OppositionClient({
                                       >
                                         <button
                                           onClick={() => {
-                                            const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
-                                            handleScoreChange(match.id, 'home', newValue)
+                                            const currentScore = prediction.predicted_home_score ?? 0
+                                            if (currentScore >= 9) {
+                                              setShowMaxScoreModal(true)
+                                            } else {
+                                              handleScoreChange(match.id, 'home', currentScore + 1)
+                                            }
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
@@ -2310,8 +2318,12 @@ export default function OppositionClient({
                                       >
                                         <button
                                           onClick={() => {
-                                            const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
-                                            handleScoreChange(match.id, 'away', newValue)
+                                            const currentScore = prediction.predicted_away_score ?? 0
+                                            if (currentScore >= 9) {
+                                              setShowMaxScoreModal(true)
+                                            } else {
+                                              handleScoreChange(match.id, 'away', currentScore + 1)
+                                            }
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
@@ -2502,8 +2514,12 @@ export default function OppositionClient({
                                               >
                                                 <button
                                                   onClick={() => {
-                                                    const newValue = Math.min(9, (prediction.predicted_home_score ?? 0) + 1)
-                                                    handleScoreChange(match.id, 'home', newValue)
+                                                    const currentScore = prediction.predicted_home_score ?? 0
+                                                    if (currentScore >= 9) {
+                                                      setShowMaxScoreModal(true)
+                                                    } else {
+                                                      handleScoreChange(match.id, 'home', currentScore + 1)
+                                                    }
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
@@ -2568,8 +2584,12 @@ export default function OppositionClient({
                                               >
                                                 <button
                                                   onClick={() => {
-                                                    const newValue = Math.min(9, (prediction.predicted_away_score ?? 0) + 1)
-                                                    handleScoreChange(match.id, 'away', newValue)
+                                                    const currentScore = prediction.predicted_away_score ?? 0
+                                                    if (currentScore >= 9) {
+                                                      setShowMaxScoreModal(true)
+                                                    } else {
+                                                      handleScoreChange(match.id, 'away', currentScore + 1)
+                                                    }
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
@@ -3143,6 +3163,12 @@ export default function OppositionClient({
             </div>
           </div>
         )}
+
+        {/* Modale score maximum */}
+        <MaxScoreModal
+          isOpen={showMaxScoreModal}
+          onClose={() => setShowMaxScoreModal(false)}
+        />
       </div>
     </ThemeProvider>
   )
