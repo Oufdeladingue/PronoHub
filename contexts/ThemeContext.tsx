@@ -29,19 +29,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setMounted(true)
 
-    // Charger le thème depuis le localStorage en premier
-    const savedTheme = localStorage.getItem('theme') as Theme | null
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-      setThemeState(savedTheme)
-      document.documentElement.setAttribute('data-theme', savedTheme)
-    } else {
-      // Si pas de thème sauvegardé ou valeur invalide, utiliser dark par défaut
-      setThemeState('dark')
-      document.documentElement.setAttribute('data-theme', 'dark')
-      localStorage.setItem('theme', 'dark')
-    }
-
-    // Puis charger depuis la base de données si l'utilisateur est connecté
+    // Ne charger depuis la BDD que si l'utilisateur est connecté
+    // Le thème est déjà initialisé depuis localStorage dans useState
     async function loadUserTheme() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -51,16 +40,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           .eq('id', user.id)
           .single()
 
-        // Utiliser la préférence BDD seulement si elle est explicitement 'light' ou 'dark'
-        if (profile?.theme_preference === 'light' || profile?.theme_preference === 'dark') {
+        // Utiliser la préférence BDD seulement si elle est différente de celle en localStorage
+        const localTheme = localStorage.getItem('theme')
+        if (profile?.theme_preference &&
+            (profile.theme_preference === 'light' || profile.theme_preference === 'dark') &&
+            profile.theme_preference !== localTheme) {
+          console.log('[ThemeContext] Sync depuis BDD:', profile.theme_preference)
           setThemeState(profile.theme_preference)
           document.documentElement.setAttribute('data-theme', profile.theme_preference)
           localStorage.setItem('theme', profile.theme_preference)
-        } else {
-          // Si pas de préférence valide en BDD, forcer dark comme défaut
-          setThemeState('dark')
-          document.documentElement.setAttribute('data-theme', 'dark')
-          localStorage.setItem('theme', 'dark')
         }
       }
     }
