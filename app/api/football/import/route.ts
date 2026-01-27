@@ -306,9 +306,13 @@ async function importFromFootballData(competitionId: number) {
 
   const matchesData = await matchesResponse.json()
 
-  // 4. Calculer le nombre total de journées
-  const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
-  const calculatedMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
+  // 4. Calculer le nombre total de journées (paires stage+matchday uniques)
+  // Pour les knockouts à match unique (WC), matchday est null → on utilise 'KO' comme clé
+  const stageMatchdayPairs = new Set<string>()
+  matchesData.matches.forEach((match: any) => {
+    stageMatchdayPairs.add(`${match.stage || 'REGULAR_SEASON'}_${match.matchday ?? 'KO'}`)
+  })
+  const calculatedMatchdays = stageMatchdayPairs.size > 0 ? stageMatchdayPairs.size : null
 
   // 5. Vérifier s'il existe une configuration manuelle pour cette compétition
   const { data: configData } = await supabase
@@ -338,10 +342,8 @@ async function importFromFootballData(competitionId: number) {
 
   const matchesToInsert = matchesData.matches
     .filter((match: any) => {
-      // Filtrer les matchs sans matchday (contrainte NOT NULL en base)
-      if (match.matchday === null || match.matchday === undefined) {
-        return false
-      }
+      // Garder tous les matchs avec un id
+      if (!match.id) return false
 
       const hasTeams = match.homeTeam?.id && match.awayTeam?.id
       if (hasTeams) return true
@@ -359,7 +361,7 @@ async function importFromFootballData(competitionId: number) {
       return {
         football_data_match_id: match.id,
         competition_id: competitionId,
-        matchday: match.matchday,
+        matchday: match.matchday ?? 1, // Default to 1 for single-leg knockout (WC)
         stage: match.stage || null, // Phase de compétition (LEAGUE_STAGE, PLAYOFFS, QUARTER_FINALS, etc.)
         utc_date: match.utcDate,
         status: match.status,

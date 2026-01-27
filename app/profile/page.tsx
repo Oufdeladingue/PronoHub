@@ -155,6 +155,11 @@ function ProfileContent() {
   const [savingNotifications, setSavingNotifications] = useState(false)
   const [notificationSaved, setNotificationSaved] = useState(false)
   const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false)
+  const [showDeleteZone, setShowDeleteZone] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -397,6 +402,35 @@ function ProfileContent() {
     }
 
     setChangingPassword(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'SUPPRIMER MON COMPTE') return
+
+    setDeleting(true)
+    setDeleteError('')
+
+    try {
+      const response = await fetchWithAuth('/api/user/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmText: deleteConfirmText })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Déconnecter côté client et rediriger
+        await supabase.auth.signOut()
+        router.push('/')
+      } else {
+        setDeleteError(data.error || 'Erreur lors de la suppression')
+        setDeleting(false)
+      }
+    } catch (error) {
+      setDeleteError('Erreur de connexion au serveur')
+      setDeleting(false)
+    }
   }
 
   const loadStats = async () => {
@@ -1545,6 +1579,78 @@ function ProfileContent() {
                     {changingPassword ? 'Modification en cours...' : 'Modifier le mot de passe'}
                   </button>
                 </div>
+              </div>
+
+              {/* Séparateur */}
+              <div className="border-t theme-border"></div>
+
+              {/* Zone danger - Suppression de compte (cachée par défaut) */}
+              <div>
+                <button
+                  onClick={() => setShowDeleteZone(!showDeleteZone)}
+                  className="text-xs theme-text-secondary hover:text-red-500 transition-colors underline underline-offset-2"
+                >
+                  Gestion avancée du compte
+                </button>
+
+                {showDeleteZone && (
+                  <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+                    <h4 className="text-sm font-semibold text-red-500 mb-2">Supprimer mon compte</h4>
+                    <p className="text-xs theme-text-secondary mb-3">
+                      Cette action est irréversible. Toutes vos données seront définitivement supprimées :
+                      pronostics, participations aux tournois, trophées et statistiques.
+                      Si vous êtes capitaine d&apos;un tournoi, le rôle sera automatiquement transféré à un autre joueur.
+                    </p>
+
+                    {!showDeleteConfirm ? (
+                      <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="text-xs px-3 py-1.5 rounded border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors"
+                      >
+                        Supprimer définitivement mon compte
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-xs text-red-400 font-medium">
+                          Tapez <span className="font-mono font-bold">SUPPRIMER MON COMPTE</span> pour confirmer :
+                        </p>
+                        <input
+                          type="text"
+                          value={deleteConfirmText}
+                          onChange={(e) => {
+                            setDeleteConfirmText(e.target.value.toUpperCase())
+                            setDeleteError('')
+                          }}
+                          placeholder="SUPPRIMER MON COMPTE"
+                          className="w-full px-3 py-2 text-sm rounded border border-red-500/50 bg-transparent theme-text font-mono focus:outline-none focus:ring-1 focus:ring-red-500"
+                          autoComplete="off"
+                        />
+                        {deleteError && (
+                          <p className="text-xs text-red-500">{deleteError}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleDeleteAccount}
+                            disabled={deleteConfirmText !== 'SUPPRIMER MON COMPTE' || deleting}
+                            className="flex-1 py-2 px-3 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {deleting ? 'Suppression en cours...' : 'Confirmer la suppression'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowDeleteConfirm(false)
+                              setDeleteConfirmText('')
+                              setDeleteError('')
+                            }}
+                            className="px-3 py-2 text-sm rounded border theme-border theme-text hover:opacity-80 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -171,9 +171,15 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
 
       const matchesData = await matchesResponse.json()
 
-      // 4. Calculer le nombre total de journées
-      const matchdays = matchesData.matches.map((match: any) => match.matchday).filter((md: any) => md != null)
-      const totalMatchdays = matchdays.length > 0 ? Math.max(...matchdays) : null
+      // 4. Calculer le nombre total de journées (paires stage+matchday uniques)
+      // Pour les compétitions avec knockout (CL, World Cup), le matchday redémarre à 1 par stage
+      // Pour les knockouts à match unique (WC), matchday est null → on utilise le stage comme clé
+      const stageMatchdayPairs = new Set<string>()
+      matchesData.matches.forEach((match: any) => {
+        const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday ?? 'KO'}`
+        stageMatchdayPairs.add(key)
+      })
+      const totalMatchdays = stageMatchdayPairs.size > 0 ? stageMatchdayPairs.size : null
 
       // 5. Mettre à jour le nombre total de journées dans la compétition
       if (totalMatchdays) {
@@ -182,27 +188,26 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
         }).eq('id', competition.id)
       }
 
-      // 6. Mettre à jour les matchs (filtrer ceux sans équipes définies - TBD)
-      const validMatches = matchesData.matches.filter((match: any) =>
-        match.homeTeam?.id && match.awayTeam?.id
-      )
-
-      const matchesToUpsert = validMatches.map((match: any) => ({
-        football_data_match_id: match.id,
-        competition_id: competition.id,
-        matchday: match.matchday,
-        stage: match.stage || null,
-        utc_date: match.utcDate,
-        status: match.status,
-        home_team_id: match.homeTeam.id,
-        home_team_name: match.homeTeam.name,
-        home_team_crest: match.homeTeam.crest,
-        away_team_id: match.awayTeam.id,
-        away_team_name: match.awayTeam.name,
-        away_team_crest: match.awayTeam.crest,
-        home_score: match.score?.fullTime?.home,
-        away_score: match.score?.fullTime?.away,
-      }))
+      // 6. Mettre à jour les matchs (inclure les matchs TBD knockout avec placeholders)
+      // Note: matchday peut être null pour les knockouts à match unique (WC)
+      const matchesToUpsert = matchesData.matches
+        .filter((match: any) => match.id != null)
+        .map((match: any) => ({
+          football_data_match_id: match.id,
+          competition_id: competition.id,
+          matchday: match.matchday ?? 1, // Default to 1 for single-leg knockout (WC)
+          stage: match.stage || null,
+          utc_date: match.utcDate,
+          status: match.status,
+          home_team_id: match.homeTeam?.id || 0,
+          home_team_name: match.homeTeam?.name || 'À déterminer',
+          home_team_crest: match.homeTeam?.crest || null,
+          away_team_id: match.awayTeam?.id || 0,
+          away_team_name: match.awayTeam?.name || 'À déterminer',
+          away_team_crest: match.awayTeam?.crest || null,
+          home_score: match.score?.fullTime?.home,
+          away_score: match.score?.fullTime?.away,
+        }))
 
       const { error: matchesError } = await supabase
         .from('imported_matches')

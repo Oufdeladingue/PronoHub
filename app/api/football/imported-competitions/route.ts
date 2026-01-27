@@ -3,11 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 
 // Mapping du nombre total de journées pour les compétitions avec phases knockout
 // Calculé depuis COMPETITION_KNOCKOUT_MATCHDAYS (max des clés de knockout)
+// Note: WC 2026 = 48 équipes avec 32èmes de finale (LAST_32)
 const COMPETITION_TOTAL_MATCHDAYS: Record<string, number> = {
   'CL': 17,   // 8 journées ligue + 9 knockout (jusqu'à finale)
   'EL': 17,   // 8 journées ligue + 9 knockout
   'ECL': 17,  // 8 journées ligue + 9 knockout
-  'WC': 7,    // 3 journées groupes + 4 knockout
+  'WC': 9,    // 3 groupes + 6 knockout (32e, 16e, QF, SF, 3e, Finale)
   'EC': 7,    // 3 journées groupes + 4 knockout
   'COPA': 6,  // 3 journées groupes + 3 knockout
   'CDL': 6,   // 6 tours (coupe directe)
@@ -34,16 +35,19 @@ export async function GET() {
     // Pour chaque compétition, calculer le nombre réel de journées
     const formattedCompetitions = await Promise.all(
       (competitions || []).map(async (comp) => {
-        // Récupérer tous les matchdays distincts depuis imported_matches
+        // Récupérer tous les matchdays distincts depuis imported_matches (avec stage)
         const { data: matchdaysData } = await supabase
           .from('imported_matches')
-          .select('matchday')
+          .select('matchday, stage')
           .eq('competition_id', comp.id)
-          .not('matchday', 'is', null)
 
-        // Compter les journées distinctes importées
-        const distinctMatchdays = new Set(matchdaysData?.map(m => m.matchday) || [])
-        const importedMatchdaysCount = distinctMatchdays.size
+        // Compter les paires (stage, matchday) distinctes
+        // Pour les compétitions avec knockout, le matchday redémarre par stage
+        // Pour les knockouts à match unique (WC), matchday est null → on utilise 'KO' comme clé
+        const distinctPairs = new Set(
+          (matchdaysData || []).map(m => `${m.stage || 'REGULAR_SEASON'}_${m.matchday ?? 'KO'}`)
+        )
+        const importedMatchdaysCount = distinctPairs.size
 
         // Pour les compétitions avec phases knockout, utiliser le mapping prédéfini
         // Sinon utiliser le max entre: journées importées, total_matchdays de la table

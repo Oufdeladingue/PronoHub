@@ -318,12 +318,19 @@ export function parseMatchdayFromRound(round: string): number {
 
 /**
  * Calcule le nombre total de journées depuis une liste de fixtures
+ * Compte les paires uniques (stage, matchday) pour gérer les knockouts
+ * où le matchday redémarre à 1 par stage
  */
 export function calculateTotalMatchdays(fixtures: ApiFootballFixture[]): number {
   if (!fixtures || fixtures.length === 0) return 0
 
-  const matchdays = fixtures.map(f => parseMatchdayFromRound(f.league.round))
-  return Math.max(...matchdays, 0)
+  const stageMatchdayPairs = new Set<string>()
+  fixtures.forEach(f => {
+    const matchday = parseMatchdayFromRound(f.league.round)
+    const stage = parseStageFromRound(f.league.round) || 'REGULAR_SEASON'
+    stageMatchdayPairs.add(`${stage}_${matchday}`)
+  })
+  return stageMatchdayPairs.size
 }
 
 /**

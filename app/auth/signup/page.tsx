@@ -102,10 +102,8 @@ function SignUpForm() {
       // CAS 1: Google Sign-In natif Android (popup native)
       if (provider === 'google' && isNativeGoogleAuthAvailable()) {
         try {
-          // Obtenir l'idToken via le SDK natif Google
           const googleUser = await signInWithGoogleNative()
 
-          // Authentifier avec Supabase via idToken
           const { data, error } = await supabase.auth.signInWithIdToken({
             provider: 'google',
             token: googleUser.authentication.idToken,
@@ -116,10 +114,8 @@ function SignUpForm() {
             throw error
           }
 
-          // Sauvegarder la session dans Capacitor Preferences pour persistance
           await saveSessionToPreferences()
 
-          // Rediriger vers le dashboard
           const redirectPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
           router.push(redirectPath)
           return
@@ -127,7 +123,6 @@ function SignUpForm() {
         } catch (nativeError: unknown) {
           const errorMessage = nativeError instanceof Error ? nativeError.message : String(nativeError)
 
-          // Si l'utilisateur a annulé, ne pas afficher d'erreur
           if (errorMessage.includes('annulée') || errorMessage.includes('canceled')) {
             return
           }
@@ -138,17 +133,14 @@ function SignUpForm() {
       }
 
       // CAS 2: OAuth classique (web ou fallback)
-      // Utiliser la route API proxy pour masquer l'URL Supabase
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
       const apiUrl = redirectTo
-        ? `${baseUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`
-        : `${baseUrl}/api/auth/google`
+        ? `${baseUrl}/api/auth/${provider}?redirectTo=${encodeURIComponent(redirectTo)}`
+        : `${baseUrl}/api/auth/${provider}`
 
       if (isCapacitor()) {
-        // Sur Capacitor, ouvrir l'URL du proxy dans le navigateur externe
         await openExternalUrl(apiUrl)
       } else {
-        // Sur le web, redirection classique vers le proxy
         window.location.href = apiUrl
       }
     } catch (err: unknown) {

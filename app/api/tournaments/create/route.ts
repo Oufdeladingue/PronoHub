@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { TournamentType, PRICES, TOURNAMENT_RULES } from '@/types/monetization'
+import { sendEmail } from '@/lib/email/send'
+import { ADMIN_EMAIL, getNewTournamentAlertTemplate } from '@/lib/email/admin-templates'
 
 // =====================================================
 // Système de création de tournoi v2
@@ -519,6 +521,33 @@ export async function POST(request: Request) {
       if (eventSlotError) {
         console.error('Error marking event slot as used:', eventSlotError)
       }
+    }
+
+    // Envoyer un email d'alerte admin (non-bloquant)
+    try {
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single()
+
+      const { html, text, subject } = getNewTournamentAlertTemplate({
+        tournamentName: name,
+        tournamentType: isEventCompetition ? 'event' : tournamentType,
+        competitionName,
+        creatorUsername: creatorProfile?.username || 'Inconnu',
+        creatorEmail: user.email || '',
+        maxPlayers: effectiveMaxPlayers,
+        numMatchdays: effectiveMatchdays,
+        allMatchdays: allMatchdays || false,
+        bonusMatch: bonusMatchEnabled || false,
+        earlyPredictionBonus: earlyPredictionBonus || false,
+        isEvent: isEventCompetition,
+        createdAt: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
+      })
+      await sendEmail(ADMIN_EMAIL, subject, html, text)
+    } catch (emailError) {
+      console.error('Failed to send tournament creation alert email:', emailError)
     }
 
     return NextResponse.json({
