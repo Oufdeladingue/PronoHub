@@ -205,20 +205,23 @@ export async function calculateTournamentStats(
 
   const bonusMatchIds = new Set(bonusMatches?.map(bm => bm.match_id) || [])
 
-  // 7. Récupérer toutes les prédictions
-  const matchIds = finishedMatches.map(m => m.id)
+  // 7. Récupérer toutes les prédictions du tournoi (matchs terminés ET à venir)
+  // Cela permet de voir combien de pronos les users ont déjà renseignés
   const { data: allPredictionsData } = await supabase
     .from('predictions')
     .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction')
     .eq('tournament_id', tournamentId)
-    .in('match_id', matchIds.length > 0 ? matchIds : ['00000000-0000-0000-0000-000000000000'])
 
   const predictionsByUser = new Map<string, any[]>()
+  const allPredictionsByUser = new Map<string, any[]>() // Toutes les prédictions (pour le count)
+
   for (const pred of (allPredictionsData || [])) {
     if (!predictionsByUser.has(pred.user_id)) {
       predictionsByUser.set(pred.user_id, [])
+      allPredictionsByUser.set(pred.user_id, [])
     }
     predictionsByUser.get(pred.user_id)!.push(pred)
+    allPredictionsByUser.get(pred.user_id)!.push(pred)
   }
 
   // 8. Calculer les stats pour chaque participant
@@ -252,9 +255,12 @@ export async function calculateTournamentStats(
     let exactScores = 0
     let correctResults = 0
     let matchesPlayed = 0
-    let predictionsCount = 0
 
-    // Calculer les points
+    // Calculer le nombre total de prédictions enregistrées (matchs terminés + à venir)
+    const allUserPredictions = allPredictionsByUser.get(userId) || []
+    const predictionsCount = allUserPredictions.filter(p => !p.is_default_prediction).length
+
+    // Calculer les points (uniquement pour les matchs terminés)
     for (const prediction of allPredictions) {
       const match = finishedMatchesMap.get(prediction.match_id)
       if (!match || match.home_score === null || match.away_score === null) continue
@@ -281,9 +287,8 @@ export async function calculateTournamentStats(
         isDefaultPrediction
       )
 
-      // Compter les prédictions enregistrées (non par défaut)
+      // Compter les stats détaillées (uniquement pour les matchs terminés)
       if (!isDefaultPrediction) {
-        predictionsCount++
         matchesPlayed++
         if (result.isExactScore) exactScores++
         if (result.isCorrectResult) correctResults++
