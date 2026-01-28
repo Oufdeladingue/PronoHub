@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import StandingsModal from './StandingsModal'
 
 interface TeamFormMatch {
   matchId: string
@@ -100,42 +101,49 @@ function MatchDetailCard({ match, competitionEmblem }: { match: TeamFormMatch | 
   const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
 
   return (
-    <div className={`p-3 rounded-lg border ${resultBg}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          {competitionEmblem && (
-            <img
-              src={competitionEmblem}
-              alt="Competition"
-              className="w-4 h-4 object-contain shrink-0"
-            />
-          )}
-          {match.opponentCrest && (
-            <img
-              src={match.opponentCrest}
-              alt={match.opponentName}
-              className="w-5 h-5 object-contain shrink-0"
-            />
-          )}
-          <span className="text-xs theme-text truncate">
-            {match.isHome ? 'vs' : '@'} {match.opponentName}
+    <div className={`p-3 rounded-lg border ${resultBg} flex gap-3`}>
+      {/* Logo competition agrandi */}
+      {competitionEmblem && (
+        <div className="shrink-0 flex items-center">
+          <img
+            src={competitionEmblem}
+            alt="Competition"
+            className="w-10 h-10 object-contain"
+          />
+        </div>
+      )}
+
+      {/* Contenu */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {match.opponentCrest && (
+              <img
+                src={match.opponentCrest}
+                alt={match.opponentName}
+                className="w-5 h-5 object-contain shrink-0"
+              />
+            )}
+            <span className="text-xs theme-text truncate">
+              {match.isHome ? 'vs' : '@'} {match.opponentName}
+            </span>
+          </div>
+          <span className="text-sm font-bold theme-text ml-2">
+            {match.goalsFor}-{match.goalsAgainst}
           </span>
         </div>
-        <span className="text-sm font-bold theme-text ml-2">
-          {match.goalsFor}-{match.goalsAgainst}
-        </span>
-      </div>
-      <div className="flex items-center justify-between text-[10px]">
-        <span className="theme-text-secondary">
-          {new Date(match.utcDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-        </span>
-        <span className={`font-medium ${
-          match.result === 'W' ? 'text-green-400' :
-          match.result === 'D' ? 'text-yellow-400' :
-          'text-red-400'
-        }`}>
-          {resultText}
-        </span>
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="theme-text-secondary">
+            {new Date(match.utcDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+          </span>
+          <span className={`font-medium ${
+            match.result === 'W' ? 'text-green-400' :
+            match.result === 'D' ? 'text-yellow-400' :
+            'text-red-400'
+          }`}>
+            {resultText}
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -261,6 +269,7 @@ export default function StatsModal({
   const [data, setData] = useState<StatsData | null>(null)
   const [homeSelectedIndex, setHomeSelectedIndex] = useState(0)
   const [awaySelectedIndex, setAwaySelectedIndex] = useState(0)
+  const [showStandings, setShowStandings] = useState(false)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -299,154 +308,170 @@ export default function StatsModal({
   }, [matchId, tournamentId, competitionId, homeTeamId, awayTeamId, homeTeamName, awayTeamName])
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className="theme-card max-w-md w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header avec logos */}
-        <div className="p-4 border-b theme-border flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            {data?.homeTeamCrest && (
-              <img
-                src={data.homeTeamCrest}
-                alt={homeTeamName}
-                className="w-7 h-7 object-contain shrink-0"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <h3 className="text-base font-bold theme-text">Stats du match</h3>
-              <p className="text-xs theme-text-secondary truncate">
-                {homeTeamName} vs {awayTeamName}
-              </p>
-            </div>
-            {data?.awayTeamCrest && (
-              <img
-                src={data.awayTeamCrest}
-                alt={awayTeamName}
-                className="w-7 h-7 object-contain shrink-0"
-              />
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ml-2"
-          >
-            <svg className="w-5 h-5 theme-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 overflow-y-auto flex-1 space-y-5">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-500">{error}</p>
+    <>
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div
+          className="theme-card max-w-md w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header avec titre centre */}
+          <div className="p-4 border-b theme-border shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="w-8" /> {/* Spacer for centering */}
+              <h3 className="text-base font-bold theme-text text-center flex-1">Stats du match</h3>
               <button
                 onClick={onClose}
-                className="mt-4 px-4 py-2 theme-bg rounded-lg text-sm border theme-border hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
-                Fermer
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-          ) : data ? (
-            <>
-              {/* Forme des equipes */}
-              <div>
-                <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  Forme recente
-                </h4>
-                <div className="space-y-4">
-                  <TeamFormSection
-                    teamName={data.homeTeamName}
-                    teamCrest={data.homeTeamCrest}
-                    matches={data.homeTeamForm}
-                    selectedIndex={homeSelectedIndex}
-                    onSelectIndex={setHomeSelectedIndex}
-                    dotColor="bg-blue-500"
-                    competitionEmblem={data.competitionEmblem}
-                    position={data.homeTeamPosition}
-                  />
-                  <TeamFormSection
-                    teamName={data.awayTeamName}
-                    teamCrest={data.awayTeamCrest}
-                    matches={data.awayTeamForm}
-                    selectedIndex={awaySelectedIndex}
-                    onSelectIndex={setAwaySelectedIndex}
-                    dotColor="bg-[#ff9900]"
-                    competitionEmblem={data.competitionEmblem}
-                    position={data.awayTeamPosition}
-                  />
-                </div>
-              </div>
+            {/* Match teams centré avec logos */}
+            <div className="flex items-center justify-center gap-3 mt-2">
+              {data?.homeTeamCrest && (
+                <img
+                  src={data.homeTeamCrest}
+                  alt={homeTeamName}
+                  className="w-6 h-6 object-contain"
+                />
+              )}
+              <p className="text-sm theme-text-secondary">
+                {homeTeamName} vs {awayTeamName}
+              </p>
+              {data?.awayTeamCrest && (
+                <img
+                  src={data.awayTeamCrest}
+                  alt={awayTeamName}
+                  className="w-6 h-6 object-contain"
+                />
+              )}
+            </div>
+          </div>
 
-              {/* Tendances de pronostics */}
-              <div>
-                <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="4" y="10" width="4" height="10" rx="1" />
-                    <rect x="10" y="4" width="4" height="16" rx="1" />
-                    <rect x="16" y="8" width="4" height="12" rx="1" />
-                  </svg>
-                  Tendances des pronostics
-                </h4>
-                {data.predictionTrends ? (
-                  <div className="space-y-3 p-3 theme-bg rounded-lg border theme-border">
-                    <TrendsBar
-                      label={`Victoire ${data.homeTeamName}`}
-                      percentage={data.predictionTrends.homeWin.percentage}
-                      count={data.predictionTrends.homeWin.count}
-                      color="bg-blue-500"
+          {/* Content */}
+          <div className="p-4 overflow-y-auto flex-1 space-y-5">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-red-500">{error}</p>
+                <button
+                  onClick={onClose}
+                  className="mt-4 px-4 py-2 theme-bg rounded-lg text-sm border theme-border hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : data ? (
+              <>
+                {/* Forme des equipes */}
+                <div>
+                  <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4 text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    Forme recente
+                  </h4>
+                  <div className="space-y-4">
+                    <TeamFormSection
+                      teamName={data.homeTeamName}
+                      teamCrest={data.homeTeamCrest}
+                      matches={data.homeTeamForm}
+                      selectedIndex={homeSelectedIndex}
+                      onSelectIndex={setHomeSelectedIndex}
+                      dotColor="bg-blue-500"
+                      competitionEmblem={data.competitionEmblem}
+                      position={data.homeTeamPosition}
                     />
-                    <TrendsBar
-                      label="Match nul"
-                      percentage={data.predictionTrends.draw.percentage}
-                      count={data.predictionTrends.draw.count}
-                      color="bg-yellow-500"
+                    <TeamFormSection
+                      teamName={data.awayTeamName}
+                      teamCrest={data.awayTeamCrest}
+                      matches={data.awayTeamForm}
+                      selectedIndex={awaySelectedIndex}
+                      onSelectIndex={setAwaySelectedIndex}
+                      dotColor="bg-[#ff9900]"
+                      competitionEmblem={data.competitionEmblem}
+                      position={data.awayTeamPosition}
                     />
-                    <TrendsBar
-                      label={`Victoire ${data.awayTeamName}`}
-                      percentage={data.predictionTrends.awayWin.percentage}
-                      count={data.predictionTrends.awayWin.count}
-                      color="bg-[#ff9900]"
-                    />
-                    <p className="text-[10px] theme-text-secondary text-center pt-1">
-                      Base sur {data.predictionTrends.totalPredictions} pronostics
-                    </p>
                   </div>
-                ) : (
-                  <div className="text-center py-4 theme-bg rounded-lg border theme-border">
-                    <p className="text-sm theme-text-secondary">
-                      Pas assez de pronostics
-                    </p>
-                    <p className="text-xs theme-text-secondary mt-0.5">
-                      (minimum 5 requis)
-                    </p>
+                </div>
+
+                {/* Lien vers le classement */}
+                <button
+                  onClick={() => setShowStandings(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2 text-sm text-[#ff9900] hover:text-[#ffaa33] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Voir le classement
+                </button>
+
+                {/* Tendances de pronostics - masqué si pas de données */}
+                {data.predictionTrends && (
+                  <div>
+                    <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
+                        <rect x="4" y="10" width="4" height="10" rx="1" />
+                        <rect x="10" y="4" width="4" height="16" rx="1" />
+                        <rect x="16" y="8" width="4" height="12" rx="1" />
+                      </svg>
+                      Tendances des pronostics
+                    </h4>
+                    <div className="space-y-3 p-3 theme-bg rounded-lg border theme-border">
+                      <TrendsBar
+                        label={`Victoire ${data.homeTeamName}`}
+                        percentage={data.predictionTrends.homeWin.percentage}
+                        count={data.predictionTrends.homeWin.count}
+                        color="bg-blue-500"
+                      />
+                      <TrendsBar
+                        label="Match nul"
+                        percentage={data.predictionTrends.draw.percentage}
+                        count={data.predictionTrends.draw.count}
+                        color="bg-yellow-500"
+                      />
+                      <TrendsBar
+                        label={`Victoire ${data.awayTeamName}`}
+                        percentage={data.predictionTrends.awayWin.percentage}
+                        count={data.predictionTrends.awayWin.count}
+                        color="bg-[#ff9900]"
+                      />
+                      <p className="text-[10px] theme-text-secondary text-center pt-1">
+                        Base sur {data.predictionTrends.totalPredictions} pronostics
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
-            </>
-          ) : null}
-        </div>
+              </>
+            ) : null}
+          </div>
 
-        {/* Footer */}
-        <div className="p-3 border-t theme-border flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 theme-bg theme-text rounded-lg border theme-border hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium text-sm"
-          >
-            Fermer
-          </button>
+          {/* Footer */}
+          <div className="p-3 border-t theme-border flex-shrink-0">
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 theme-text rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium text-sm"
+            >
+              Fermer
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal Classement */}
+      {showStandings && (
+        <StandingsModal
+          competitionId={competitionId}
+          competitionEmblem={data?.competitionEmblem}
+          highlightTeamIds={[homeTeamId, awayTeamId]}
+          onClose={() => setShowStandings(false)}
+        />
+      )}
+    </>
   )
 }
