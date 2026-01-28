@@ -34,11 +34,12 @@ export async function GET(request: Request) {
     if (competitionId) {
       competitionsToSync = [parseInt(competitionId)]
     } else {
-      // Récupérer toutes les compétitions actives (ligues uniquement, pas les coupes)
+      // Récupérer toutes les compétitions actives de type LEAGUE (pas les coupes)
       const { data: activeComps } = await supabase
         .from('competitions')
-        .select('id')
+        .select('id, type')
         .eq('is_active', true)
+        .eq('type', 'LEAGUE')
 
       competitionsToSync = activeComps?.map(c => c.id) || []
     }
@@ -93,24 +94,26 @@ export async function GET(request: Request) {
           continue
         }
 
-        // Préparer les données pour l'upsert
-        const standingsToInsert = totalStandings.table.map((team: any) => ({
-          competition_id: compId,
-          team_id: team.team.id,
-          team_name: team.team.name,
-          team_crest: team.team.crest,
-          position: team.position,
-          played_games: team.playedGames,
-          won: team.won,
-          draw: team.draw,
-          lost: team.lost,
-          goals_for: team.goalsFor,
-          goals_against: team.goalsAgainst,
-          goal_difference: team.goalDifference,
-          points: team.points,
-          form: team.form || null,
-          updated_at: new Date().toISOString()
-        }))
+        // Préparer les données pour l'upsert (filtrer les entrées sans team_id)
+        const standingsToInsert = totalStandings.table
+          .filter((team: any) => team.team?.id != null)
+          .map((team: any) => ({
+            competition_id: compId,
+            team_id: team.team.id,
+            team_name: team.team.name,
+            team_crest: team.team.crest,
+            position: team.position,
+            played_games: team.playedGames,
+            won: team.won,
+            draw: team.draw,
+            lost: team.lost,
+            goals_for: team.goalsFor,
+            goals_against: team.goalsAgainst,
+            goal_difference: team.goalDifference,
+            points: team.points,
+            form: team.form || null,
+            updated_at: new Date().toISOString()
+          }))
 
         // Upsert les classements
         const { error: upsertError } = await supabase
@@ -129,8 +132,8 @@ export async function GET(request: Request) {
           console.log(`[STANDINGS] Synced ${standingsToInsert.length} teams for competition ${compId}`)
         }
 
-        // Petit délai pour éviter de surcharger l'API
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Délai de 7 secondes pour respecter le rate limit (10 req/min en free tier)
+        await new Promise(resolve => setTimeout(resolve, 7000))
 
       } catch (compError: any) {
         console.error(`[STANDINGS] Error syncing competition ${compId}:`, compError)
