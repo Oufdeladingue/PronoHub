@@ -2327,8 +2327,8 @@ export default function OppositionClient({
                                     </div>
                                   )}
 
-                                  {/* Bouton d'action (sauvegarder/modifier) */}
-                                  <div className="flex justify-center items-center gap-2 relative">
+                                  {/* Bouton d'action (sauvegarder/modifier) + Stats */}
+                                  <div className="flex justify-center items-center gap-2">
                                     {isClosed ? (
                                       hasFirstMatchStarted() ? null : (
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
@@ -2374,22 +2374,20 @@ export default function OppositionClient({
                                         )}
                                       </button>
                                     )}
-                                    {/* Bouton Stats (Mobile) - positionné à droite du conteneur */}
+                                    {/* Bouton Stats (Mobile) - inline à côté du bouton action */}
                                     {match.home_team_id && match.away_team_id && tournament?.competition_id && (
-                                      <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
-                                        <StatsButton
-                                          matchId={match.id}
-                                          tournamentId={tournament.id}
-                                          competitionId={tournament.competition_id}
-                                          homeTeamId={match.home_team_id}
-                                          awayTeamId={match.away_team_id}
-                                          homeTeamName={match.home_team_name}
-                                          awayTeamName={match.away_team_name}
-                                          hasAccess={statsAccess.hasAccess}
-                                          size="sm"
-                                          returnUrl={`/${tournamentSlug}/opposition`}
-                                        />
-                                      </div>
+                                      <StatsButton
+                                        matchId={match.id}
+                                        tournamentId={tournament.id}
+                                        competitionId={tournament.competition_id}
+                                        homeTeamId={match.home_team_id}
+                                        awayTeamId={match.away_team_id}
+                                        homeTeamName={match.home_team_name}
+                                        awayTeamName={match.away_team_name}
+                                        hasAccess={statsAccess.hasAccess}
+                                        size="sm"
+                                        returnUrl={`/${tournamentSlug}/opposition`}
+                                      />
                                     )}
                                   </div>
                                 </div>
