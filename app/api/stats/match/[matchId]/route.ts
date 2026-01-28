@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -74,8 +74,11 @@ export async function GET(
       )
     }
 
-    // Exécuter les 7 queries en parallèle
-    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult, competitionResult, homeStandingResult, awayStandingResult] = await Promise.all([
+    // Client admin pour les tendances (bypass RLS pour lire TOUTES les prédictions)
+    const adminClient = createAdminClient()
+
+    // Exécuter les 6 queries en parallèle (sans les tendances pour l'instant)
+    const [homeFormResult, awayFormResult, currentMatchResult, competitionResult, homeStandingResult, awayStandingResult] = await Promise.all([
       // Forme équipe domicile (5 derniers matchs terminés dans la compétition)
       supabase
         .from('imported_matches')
@@ -95,12 +98,6 @@ export async function GET(
         .or(`home_team_id.eq.${awayTeamId},away_team_id.eq.${awayTeamId}`)
         .order('utc_date', { ascending: false })
         .limit(5),
-
-      // Tendances pronostics (sur TOUS les tournois)
-      supabase
-        .from('predictions')
-        .select('predicted_home_score, predicted_away_score')
-        .eq('match_id', matchId),
 
       // Récupérer les crests des équipes du match actuel
       supabase
@@ -132,6 +129,15 @@ export async function GET(
         .eq('team_id', parseInt(awayTeamId))
         .single()
     ])
+
+    // Récupérer les tendances pronostics (toutes les predictions pour ce match)
+    // Les predictions utilisent directement imported_matches.id comme match_id
+    const trendsResult = await adminClient
+      .from('predictions')
+      .select('predicted_home_score, predicted_away_score')
+      .eq('match_id', matchId)
+
+    const trendsData = trendsResult.data || []
 
     // Transformer les résultats de forme équipe
     const transformTeamForm = (matches: any[], teamId: number): TeamFormMatch[] => {
@@ -165,14 +171,13 @@ export async function GET(
 
     // Calculer les tendances de pronostics
     let predictionTrends: PredictionTrends | null = null
-    const predictions = trendsResult.data || []
 
-    if (predictions.length >= 5) {
+    if (trendsData.length >= 5) {
       let homeWinCount = 0
       let drawCount = 0
       let awayWinCount = 0
 
-      for (const pred of predictions) {
+      for (const pred of trendsData) {
         if (pred.predicted_home_score > pred.predicted_away_score) {
           homeWinCount++
         } else if (pred.predicted_home_score === pred.predicted_away_score) {
@@ -182,7 +187,7 @@ export async function GET(
         }
       }
 
-      const total = predictions.length
+      const total = trendsData.length
       predictionTrends = {
         totalPredictions: total,
         homeWin: {
