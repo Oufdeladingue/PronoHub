@@ -2173,8 +2173,8 @@ export default function OppositionClient({
                                         </span>
                                       </div>
 
-                                      {/* Bouton Stats (Mobile) - sous le score */}
-                                      {match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
+                                      {/* Bouton Stats (Mobile) - sous le score - masqué si match terminé */}
+                                      {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
                                         <div className="md:hidden">
                                           <StatsButton
                                             matchId={match.id}
@@ -2712,8 +2712,8 @@ export default function OppositionClient({
                                   </div>
                                 </div>
 
-                                {/* Bouton Stats (Desktop) - positionné en bas à droite */}
-                                {match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
+                                {/* Bouton Stats (Desktop) - positionné en bas à droite - masqué si match terminé */}
+                                {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
                                   <div className="hidden md:flex justify-end mt-2">
                                     <StatsButton
                                       matchId={match.id}
