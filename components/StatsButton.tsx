@@ -69,8 +69,8 @@ export default function StatsButton({
         onContextMenu={(e) => e.preventDefault()}
         className={`${buttonSize} flex items-center justify-center rounded-full border transition-all duration-200 select-none touch-manipulation ${
           hasAccess
-            ? 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-orange-400 hover:text-orange-500 dark:hover:border-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
-            : 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 opacity-70 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-400 dark:hover:text-slate-500'
+            ? 'border-blue-400 dark:border-[#ff9900] text-blue-500 dark:text-[#ff9900] hover:border-blue-500 hover:text-blue-600 dark:hover:border-[#ffaa33] dark:hover:text-[#ffaa33] hover:bg-blue-50 dark:hover:bg-orange-900/20'
+            : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-500 dark:hover:text-slate-400'
         }`}
         title={hasAccess ? 'Voir les stats du match' : 'Débloquer les statistiques'}
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
