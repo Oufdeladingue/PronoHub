@@ -267,22 +267,187 @@ function TeamFormSection({
   )
 }
 
-// Composant pour les barres de tendance
-function TrendsBar({ label, percentage, count, color }: { label: string; percentage: number; count: number; color: string }) {
+// Composant pour le graphique demi-cercle des tendances
+function TrendsSemiCircle({
+  homeWinPercentage,
+  drawPercentage,
+  awayWinPercentage,
+  totalPredictions,
+  homeTeamCrest,
+  awayTeamCrest
+}: {
+  homeWinPercentage: number
+  drawPercentage: number
+  awayWinPercentage: number
+  totalPredictions: number
+  homeTeamCrest: string | null
+  awayTeamCrest: string | null
+}) {
+  // Calculer les angles pour le SVG (demi-cercle = 180 degrés)
+  // On part de la gauche (180°) vers la droite (0°)
+  const homeAngle = (homeWinPercentage / 100) * 180
+  const drawAngle = (drawPercentage / 100) * 180
+  const awayAngle = (awayWinPercentage / 100) * 180
+
+  // Fonction pour calculer un point sur l'arc
+  const polarToCartesian = (cx: number, cy: number, r: number, angleDegrees: number) => {
+    const angleRadians = (angleDegrees * Math.PI) / 180
+    return {
+      x: cx + r * Math.cos(angleRadians),
+      y: cy - r * Math.sin(angleRadians)
+    }
+  }
+
+  // Fonction pour créer un arc SVG
+  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(cx, cy, r, startAngle)
+    const end = polarToCartesian(cx, cy, r, endAngle)
+    const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0
+
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`
+  }
+
+  const cx = 100 // Centre X
+  const cy = 90  // Centre Y
+  const outerR = 80 // Rayon extérieur
+  const innerR = 50 // Rayon intérieur (pour l'épaisseur de l'arc)
+  const strokeWidth = outerR - innerR
+
+  // Angles de départ pour chaque section (de gauche à droite)
+  const homeStart = 180
+  const homeEnd = 180 - homeAngle
+  const drawStart = homeEnd
+  const drawEnd = drawStart - drawAngle
+  const awayStart = drawEnd
+  const awayEnd = 0
+
+  // Position des pourcentages sur l'arc
+  const homeMidAngle = homeStart - homeAngle / 2
+  const drawMidAngle = drawStart - drawAngle / 2
+  const awayMidAngle = awayStart - awayAngle / 2
+
+  const labelRadius = (outerR + innerR) / 2
+
+  const homePos = polarToCartesian(cx, cy, labelRadius, homeMidAngle)
+  const drawPos = polarToCartesian(cx, cy, labelRadius, drawMidAngle)
+  const awayPos = polarToCartesian(cx, cy, labelRadius, awayMidAngle)
+
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-sm">
-        <span className="theme-text-secondary truncate mr-2">{label}</span>
-        <span className="font-semibold theme-text">{percentage}%</span>
-      </div>
-      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div
-          className={`h-full ${color} rounded-full transition-all duration-500`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <div className="text-xs theme-text-secondary text-right">
-        {count} prono{count > 1 ? 's' : ''}
+    <div className="relative">
+      <svg viewBox="0 0 200 110" className="w-full max-w-[280px] mx-auto">
+        {/* Arc équipe domicile (bleu) */}
+        {homeWinPercentage > 0 && (
+          <path
+            d={describeArc(cx, cy, (outerR + innerR) / 2, homeStart, Math.max(homeEnd, 0.1))}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+          />
+        )}
+
+        {/* Arc match nul (jaune) */}
+        {drawPercentage > 0 && (
+          <path
+            d={describeArc(cx, cy, (outerR + innerR) / 2, drawStart, Math.max(drawEnd, 0.1))}
+            fill="none"
+            stroke="#eab308"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+          />
+        )}
+
+        {/* Arc équipe extérieur (orange) */}
+        {awayWinPercentage > 0 && (
+          <path
+            d={describeArc(cx, cy, (outerR + innerR) / 2, awayStart, Math.max(awayEnd, 0.1))}
+            fill="none"
+            stroke="#ff9900"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+          />
+        )}
+
+        {/* Pourcentages sur l'arc */}
+        {homeWinPercentage >= 10 && (
+          <text
+            x={homePos.x}
+            y={homePos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-white text-[11px] font-bold"
+          >
+            {homeWinPercentage}%
+          </text>
+        )}
+        {drawPercentage >= 10 && (
+          <text
+            x={drawPos.x}
+            y={drawPos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-white text-[11px] font-bold"
+          >
+            {drawPercentage}%
+          </text>
+        )}
+        {awayWinPercentage >= 10 && (
+          <text
+            x={awayPos.x}
+            y={awayPos.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-white text-[11px] font-bold"
+          >
+            {awayWinPercentage}%
+          </text>
+        )}
+
+        {/* Nombre total au centre bas */}
+        <text
+          x={cx}
+          y={cy + 5}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="fill-slate-500 dark:fill-slate-400 text-[10px]"
+        >
+          {totalPredictions} pronos
+        </text>
+      </svg>
+
+      {/* Labels sous le graphique */}
+      <div className="flex items-center justify-between px-2 -mt-1">
+        {/* Logo équipe domicile */}
+        <div className="flex flex-col items-center gap-1">
+          {homeTeamCrest ? (
+            <img src={homeTeamCrest} alt="Domicile" className="w-6 h-6 object-contain" />
+          ) : (
+            <div className="w-6 h-6 bg-blue-500 rounded-full" />
+          )}
+          {homeWinPercentage < 10 && (
+            <span className="text-[10px] font-medium text-blue-500">{homeWinPercentage}%</span>
+          )}
+        </div>
+
+        {/* Nul au centre */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs font-medium theme-text-secondary">Nul</span>
+          {drawPercentage < 10 && (
+            <span className="text-[10px] font-medium text-yellow-500">{drawPercentage}%</span>
+          )}
+        </div>
+
+        {/* Logo équipe extérieur */}
+        <div className="flex flex-col items-center gap-1">
+          {awayTeamCrest ? (
+            <img src={awayTeamCrest} alt="Extérieur" className="w-6 h-6 object-contain" />
+          ) : (
+            <div className="w-6 h-6 bg-[#ff9900] rounded-full" />
+          )}
+          {awayWinPercentage < 10 && (
+            <span className="text-[10px] font-medium text-[#ff9900]">{awayWinPercentage}%</span>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -460,28 +625,15 @@ export default function StatsModal({
                       </svg>
                       Tendances des pronostics
                     </h4>
-                    <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <TrendsBar
-                        label={`Victoire ${data.homeTeamName}`}
-                        percentage={data.predictionTrends.homeWin.percentage}
-                        count={data.predictionTrends.homeWin.count}
-                        color="bg-blue-500"
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <TrendsSemiCircle
+                        homeWinPercentage={data.predictionTrends.homeWin.percentage}
+                        drawPercentage={data.predictionTrends.draw.percentage}
+                        awayWinPercentage={data.predictionTrends.awayWin.percentage}
+                        totalPredictions={data.predictionTrends.totalPredictions}
+                        homeTeamCrest={data.homeTeamCrest}
+                        awayTeamCrest={data.awayTeamCrest}
                       />
-                      <TrendsBar
-                        label="Match nul"
-                        percentage={data.predictionTrends.draw.percentage}
-                        count={data.predictionTrends.draw.count}
-                        color="bg-yellow-500"
-                      />
-                      <TrendsBar
-                        label={`Victoire ${data.awayTeamName}`}
-                        percentage={data.predictionTrends.awayWin.percentage}
-                        count={data.predictionTrends.awayWin.count}
-                        color="bg-[#ff9900]"
-                      />
-                      <p className="text-[10px] theme-text-secondary text-center pt-1">
-                        Base sur {data.predictionTrends.totalPredictions} pronostics
-                      </p>
                     </div>
                   </div>
                 )}
