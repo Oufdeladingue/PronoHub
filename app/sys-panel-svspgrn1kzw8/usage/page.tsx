@@ -1467,22 +1467,22 @@ export default function AdminUsagePage() {
               </div>
 
               {/* Pagination */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 p-4 bg-gray-50 rounded-lg">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 p-4 bg-slate-800 rounded-lg">
                 <div className="flex items-center gap-4">
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">{creditsTotalCount}</span> utilisateur{creditsTotalCount > 1 ? 's' : ''}
+                  <div className="text-sm text-white">
+                    <span className="font-semibold text-purple-400">{creditsTotalCount}</span> utilisateur{creditsTotalCount > 1 ? 's' : ''}
                     {creditsTotalCount > 0 && (
-                      <span className="text-gray-400 ml-2">
+                      <span className="text-slate-400 ml-2">
                         ({(creditsPage - 1) * creditsPageSize + 1}-{Math.min(creditsPage * creditsPageSize, creditsTotalCount)})
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-sm text-gray-500">Afficher :</label>
+                    <label className="text-sm text-slate-300">Afficher :</label>
                     <select
                       value={creditsPageSize}
                       onChange={(e) => setCreditsPageSize(Number(e.target.value))}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
+                      className="px-2 py-1 border border-slate-600 rounded text-sm bg-slate-700 text-white"
                     >
                       <option value={10}>10</option>
                       <option value={20}>20</option>
@@ -1492,20 +1492,20 @@ export default function AdminUsagePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">
-                    Page {creditsPage} / {creditsTotalPages || 1}
+                  <span className="text-sm text-slate-300">
+                    Page <span className="font-semibold text-white">{creditsPage}</span> / {creditsTotalPages || 1}
                   </span>
                   <button
                     onClick={() => setCreditsPage(Math.max(1, creditsPage - 1))}
                     disabled={creditsPage === 1}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-sm"
+                    className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
                   >
                     ←
                   </button>
                   <button
                     onClick={() => setCreditsPage(Math.min(creditsTotalPages || 1, creditsPage + 1))}
                     disabled={creditsPage >= creditsTotalPages}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-sm"
+                    className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
                   >
                     →
                   </button>
@@ -1513,7 +1513,7 @@ export default function AdminUsagePage() {
               </div>
 
               {/* Legende */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
+              <div className="mt-6 p-4 bg-slate-100 rounded-lg text-sm text-slate-700">
                 <strong>Légende :</strong> Le nombre entre parenthèses indique les participations payantes.
               </div>
             </>
