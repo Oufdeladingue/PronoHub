@@ -29,6 +29,7 @@ interface StatsResponse {
   awayTeamName: string
   homeTeamCrest: string | null
   awayTeamCrest: string | null
+  competitionEmblem: string | null
 }
 
 /**
@@ -69,8 +70,8 @@ export async function GET(
       )
     }
 
-    // Exécuter les 4 queries en parallèle
-    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult] = await Promise.all([
+    // Exécuter les 5 queries en parallèle
+    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult, competitionResult] = await Promise.all([
       // Forme équipe domicile (5 derniers matchs terminés dans la compétition)
       supabase
         .from('imported_matches')
@@ -102,6 +103,13 @@ export async function GET(
         .from('imported_matches')
         .select('home_team_crest, away_team_crest')
         .eq('id', matchId)
+        .single(),
+
+      // Récupérer l'emblème de la compétition
+      supabase
+        .from('competitions')
+        .select('emblem')
+        .eq('id', parseInt(competitionId))
         .single()
     ])
 
@@ -172,9 +180,10 @@ export async function GET(
       }
     }
 
-    // Récupérer les crests du match actuel
+    // Récupérer les crests du match actuel et l'emblème de la compétition
     const homeTeamCrest = currentMatchResult.data?.home_team_crest || null
     const awayTeamCrest = currentMatchResult.data?.away_team_crest || null
+    const competitionEmblem = competitionResult.data?.emblem || null
 
     return NextResponse.json({
       homeTeamForm,
@@ -183,7 +192,8 @@ export async function GET(
       homeTeamName,
       awayTeamName,
       homeTeamCrest,
-      awayTeamCrest
+      awayTeamCrest,
+      competitionEmblem
     } as StatsResponse)
 
   } catch (error) {

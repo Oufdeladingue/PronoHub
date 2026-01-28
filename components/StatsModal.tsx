@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 
 interface TeamFormMatch {
   matchId: string
@@ -29,6 +28,7 @@ interface StatsData {
   awayTeamName: string
   homeTeamCrest: string | null
   awayTeamCrest: string | null
+  competitionEmblem: string | null
 }
 
 interface StatsModalProps {
@@ -83,7 +83,7 @@ function ResultCircle({
 }
 
 // Composant pour afficher le detail d'un match
-function MatchDetailCard({ match }: { match: TeamFormMatch | null }) {
+function MatchDetailCard({ match, competitionEmblem }: { match: TeamFormMatch | null; competitionEmblem: string | null }) {
   if (!match) {
     return (
       <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-center min-h-[72px] flex items-center justify-center">
@@ -95,19 +95,24 @@ function MatchDetailCard({ match }: { match: TeamFormMatch | null }) {
   const resultBg = match.result === 'W' ? 'bg-green-500/10 border-green-500/30' :
                    match.result === 'D' ? 'bg-yellow-500/10 border-yellow-500/30' :
                    'bg-red-500/10 border-red-500/30'
-  const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Defaite'
+  const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
 
   return (
     <div className={`p-3 rounded-lg border ${resultBg}`}>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2 min-w-0 flex-1">
+          {competitionEmblem && (
+            <img
+              src={competitionEmblem}
+              alt="Competition"
+              className="w-4 h-4 object-contain shrink-0"
+            />
+          )}
           {match.opponentCrest && (
-            <Image
+            <img
               src={match.opponentCrest}
               alt={match.opponentName}
-              width={18}
-              height={18}
-              className="flex-shrink-0"
+              className="w-5 h-5 object-contain shrink-0"
             />
           )}
           <span className="text-xs theme-text truncate">
@@ -141,7 +146,8 @@ function TeamFormSection({
   matches,
   selectedIndex,
   onSelectIndex,
-  dotColor
+  dotColor,
+  competitionEmblem
 }: {
   teamName: string
   teamCrest: string | null
@@ -149,6 +155,7 @@ function TeamFormSection({
   selectedIndex: number
   onSelectIndex: (index: number) => void
   dotColor: string
+  competitionEmblem: string | null
 }) {
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
   const reversedMatches = [...matches].reverse()
@@ -159,12 +166,10 @@ function TeamFormSection({
       <div className="flex items-center gap-2 mb-3">
         <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
         {teamCrest && (
-          <Image
+          <img
             src={teamCrest}
             alt={teamName}
-            width={20}
-            height={20}
-            className="flex-shrink-0"
+            className="w-5 h-5 object-contain shrink-0"
           />
         )}
         <span className="text-sm font-semibold theme-text truncate">{teamName}</span>
@@ -203,6 +208,7 @@ function TeamFormSection({
           {/* Carte detail du match selectionne */}
           <MatchDetailCard
             match={selectedIndex >= 0 && selectedIndex < matches.length ? matches[selectedIndex] : null}
+            competitionEmblem={competitionEmblem}
           />
         </>
       )}
@@ -290,15 +296,13 @@ export default function StatsModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header avec logos */}
-        <div className="p-4 border-b theme-border flex items-center justify-between flex-shrink-0">
+        <div className="p-4 border-b theme-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {data?.homeTeamCrest && (
-              <Image
+              <img
                 src={data.homeTeamCrest}
                 alt={homeTeamName}
-                width={28}
-                height={28}
-                className="flex-shrink-0"
+                className="w-7 h-7 object-contain shrink-0"
               />
             )}
             <div className="min-w-0 flex-1">
@@ -308,12 +312,10 @@ export default function StatsModal({
               </p>
             </div>
             {data?.awayTeamCrest && (
-              <Image
+              <img
                 src={data.awayTeamCrest}
                 alt={awayTeamName}
-                width={28}
-                height={28}
-                className="flex-shrink-0"
+                className="w-7 h-7 object-contain shrink-0"
               />
             )}
           </div>
@@ -353,7 +355,7 @@ export default function StatsModal({
                   </svg>
                   Forme recente
                 </h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-4">
                   <TeamFormSection
                     teamName={data.homeTeamName}
                     teamCrest={data.homeTeamCrest}
@@ -361,6 +363,7 @@ export default function StatsModal({
                     selectedIndex={homeSelectedIndex}
                     onSelectIndex={setHomeSelectedIndex}
                     dotColor="bg-blue-500"
+                    competitionEmblem={data.competitionEmblem}
                   />
                   <TeamFormSection
                     teamName={data.awayTeamName}
@@ -369,6 +372,7 @@ export default function StatsModal({
                     selectedIndex={awaySelectedIndex}
                     onSelectIndex={setAwaySelectedIndex}
                     dotColor="bg-[#ff9900]"
+                    competitionEmblem={data.competitionEmblem}
                   />
                 </div>
               </div>
