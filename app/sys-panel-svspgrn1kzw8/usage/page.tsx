@@ -336,7 +336,7 @@ export default function AdminUsagePage() {
   const [creditsTotalCount, setCreditsTotalCount] = useState(0)
   const [addingCredit, setAddingCredit] = useState<{ userId: string; type: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
-  const creditsPageSize = 10
+  const [creditsPageSize, setCreditsPageSize] = useState(20)
 
   // ===== FONCTIONS TOURNOIS =====
 
@@ -580,14 +580,14 @@ export default function AdminUsagePage() {
       console.error('Error fetching users:', error)
     }
     setCreditsLoading(false)
-  }, [creditsSearch, creditsPage])
+  }, [creditsSearch, creditsPage, creditsPageSize])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setCreditsPage(1)
     }, 300)
     return () => clearTimeout(timer)
-  }, [creditsSearch])
+  }, [creditsSearch, creditsPageSize])
 
   const handleAddCredit = async (userId: string, creditType: string, username: string, tournamentId?: string) => {
     setAddingCredit({ userId, type: creditType })
@@ -1454,29 +1454,50 @@ export default function AdminUsagePage() {
               </div>
 
               {/* Pagination */}
-              {creditsTotalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
-                  <div className="text-sm text-gray-500">
-                    Page {creditsPage} sur {creditsTotalPages}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">{creditsTotalCount}</span> utilisateur{creditsTotalCount > 1 ? 's' : ''}
+                    {creditsTotalCount > 0 && (
+                      <span className="text-gray-400 ml-2">
+                        ({(creditsPage - 1) * creditsPageSize + 1}-{Math.min(creditsPage * creditsPageSize, creditsTotalCount)})
+                      </span>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCreditsPage(Math.max(1, creditsPage - 1))}
-                      disabled={creditsPage === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-500">Afficher :</label>
+                    <select
+                      value={creditsPageSize}
+                      onChange={(e) => setCreditsPageSize(Number(e.target.value))}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm bg-white"
                     >
-                      Précédent
-                    </button>
-                    <button
-                      onClick={() => setCreditsPage(Math.min(creditsTotalPages, creditsPage + 1))}
-                      disabled={creditsPage === creditsTotalPages}
-                      className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Suivant
-                    </button>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
                   </div>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    Page {creditsPage} / {creditsTotalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setCreditsPage(Math.max(1, creditsPage - 1))}
+                    disabled={creditsPage === 1}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-sm"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={() => setCreditsPage(Math.min(creditsTotalPages || 1, creditsPage + 1))}
+                    disabled={creditsPage >= creditsTotalPages}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white text-sm"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
 
               {/* Legende */}
               <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
