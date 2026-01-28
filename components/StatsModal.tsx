@@ -298,19 +298,38 @@ function TrendsSemiCircle({
     return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`
   }
 
+  // Fonction pour calculer la position sur l'arc
+  const getPointOnArc = (angle: number, radius: number, cx: number, cy: number) => ({
+    x: cx + radius * Math.cos((angle * Math.PI) / 180),
+    y: cy - radius * Math.sin((angle * Math.PI) / 180)
+  })
+
   const cx = 120
-  const cy = 95
-  const radius = 70
-  const strokeWidth = 28
+  const cy = 90
+  const radius = 65
+  const strokeWidth = 26
 
   // Calculer les angles (de 180° à 0°, gauche vers droite)
   const homeEndAngle = 180 - (homeWinPercentage / 100) * 180
   const drawEndAngle = homeEndAngle - (drawPercentage / 100) * 180
-  // awayEndAngle serait 0°
+
+  // Position du label "Nul" au milieu de l'arc jaune
+  const drawMidAngle = homeEndAngle - (drawPercentage / 100) * 90
+  const nulPos = getPointOnArc(drawMidAngle, radius, cx, cy)
 
   return (
-    <div className="relative">
-      <svg viewBox="0 0 240 120" className="w-full max-w-[260px] mx-auto">
+    <div className="flex items-center justify-center gap-3">
+      {/* Logo équipe domicile (gauche) */}
+      <div className="shrink-0">
+        {homeTeamCrest ? (
+          <img src={homeTeamCrest} alt="Domicile" className="w-8 h-8 object-contain" />
+        ) : (
+          <div className="w-8 h-8 bg-blue-500 rounded-full" />
+        )}
+      </div>
+
+      {/* Demi-cercle */}
+      <svg viewBox="0 0 240 105" className="w-[180px] h-[80px]">
         {/* Arc équipe domicile (bleu) */}
         {homeWinPercentage > 0 && (
           <path
@@ -322,12 +341,12 @@ function TrendsSemiCircle({
           />
         )}
 
-        {/* Arc match nul (jaune) */}
+        {/* Arc match nul (vert-gris) */}
         {drawPercentage > 0 && (
           <path
             d={createArc(homeEndAngle, drawEndAngle, radius, cx, cy)}
             fill="none"
-            stroke="#eab308"
+            stroke="#6b7280"
             strokeWidth={strokeWidth}
             strokeLinecap="butt"
           />
@@ -344,70 +363,46 @@ function TrendsSemiCircle({
           />
         )}
 
-        {/* Logo équipe domicile (gauche) */}
-        {homeTeamCrest ? (
-          <image
-            href={homeTeamCrest}
-            x={cx - radius - strokeWidth/2 - 20}
-            y={cy - 14}
-            width="28"
-            height="28"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        ) : (
-          <circle cx={cx - radius - strokeWidth/2 - 6} cy={cy} r="10" fill="#3b82f6" />
-        )}
-
-        {/* Label "Nul" en haut au centre */}
-        <text
-          x={cx}
-          y="18"
-          textAnchor="middle"
-          className="fill-slate-400 dark:fill-slate-500 text-xs font-medium"
-        >
-          Nul
-        </text>
-
-        {/* Logo équipe extérieur (droite) */}
-        {awayTeamCrest ? (
-          <image
-            href={awayTeamCrest}
-            x={cx + radius + strokeWidth/2 - 8}
-            y={cy - 14}
-            width="28"
-            height="28"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        ) : (
-          <circle cx={cx + radius + strokeWidth/2 + 6} cy={cy} r="10" fill="#ff9900" />
+        {/* Label "Nul" sur l'arc gris */}
+        {drawPercentage >= 15 && (
+          <text
+            x={nulPos.x}
+            y={nulPos.y + 4}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="fill-white text-[10px] font-semibold"
+          >
+            Nul
+          </text>
         )}
 
         {/* Nombre de pronos au centre */}
         <text
           x={cx}
-          y={cy - 10}
+          y={cy - 5}
           textAnchor="middle"
-          className="fill-slate-500 dark:fill-slate-400 text-[10px]"
+          className="fill-slate-500 dark:fill-slate-400 text-[9px]"
         >
-          basé sur
+          basé sur {totalPredictions}
         </text>
         <text
           x={cx}
-          y={cy + 6}
+          y={cy + 8}
           textAnchor="middle"
-          className="fill-slate-600 dark:fill-slate-300 text-sm font-semibold"
-        >
-          {totalPredictions}
-        </text>
-        <text
-          x={cx}
-          y={cy + 20}
-          textAnchor="middle"
-          className="fill-slate-500 dark:fill-slate-400 text-[10px]"
+          className="fill-slate-500 dark:fill-slate-400 text-[9px]"
         >
           pronostics
         </text>
       </svg>
+
+      {/* Logo équipe extérieur (droite) */}
+      <div className="shrink-0">
+        {awayTeamCrest ? (
+          <img src={awayTeamCrest} alt="Extérieur" className="w-8 h-8 object-contain" />
+        ) : (
+          <div className="w-8 h-8 bg-[#ff9900] rounded-full" />
+        )}
+      </div>
     </div>
   )
 }
@@ -472,14 +467,14 @@ export default function StatsModal({
           className="theme-card max-w-md w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header avec titre centre */}
-          <div className="p-4 border-b theme-border shrink-0">
+          {/* Header compact */}
+          <div className="px-4 py-2 border-b theme-border shrink-0">
             <div className="flex items-center justify-between">
-              <div className="w-8" /> {/* Spacer for centering */}
-              <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900] text-center flex-1">Stats du match</h3>
+              <div className="w-8" />
+              <h3 className="text-sm font-bold text-blue-600 dark:text-[#ff9900] text-center flex-1">Stats du match</h3>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="p-1.5 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -487,23 +482,15 @@ export default function StatsModal({
               </button>
             </div>
             {/* Match teams centré avec logos */}
-            <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="flex items-center justify-center gap-2 mt-1">
               {data?.homeTeamCrest && (
-                <img
-                  src={data.homeTeamCrest}
-                  alt={homeTeamName}
-                  className="w-6 h-6 object-contain"
-                />
+                <img src={data.homeTeamCrest} alt={homeTeamName} className="w-5 h-5 object-contain" />
               )}
-              <p className="text-sm theme-text">
+              <p className="text-xs theme-text">
                 {homeTeamName} <span className="text-blue-600 dark:text-[#ff9900] font-semibold">vs</span> {awayTeamName}
               </p>
               {data?.awayTeamCrest && (
-                <img
-                  src={data.awayTeamCrest}
-                  alt={awayTeamName}
-                  className="w-6 h-6 object-contain"
-                />
+                <img src={data.awayTeamCrest} alt={awayTeamName} className="w-5 h-5 object-contain" />
               )}
             </div>
           </div>
