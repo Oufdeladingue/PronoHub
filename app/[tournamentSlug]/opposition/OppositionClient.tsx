@@ -2168,6 +2168,24 @@ export default function OppositionClient({
                                         </span>
                                       </div>
 
+                                      {/* Bouton Stats (Mobile) - sous le score */}
+                                      {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                        <div className="md:hidden">
+                                          <StatsButton
+                                            matchId={match.id}
+                                            tournamentId={tournament.id}
+                                            competitionId={tournament.competition_id}
+                                            homeTeamId={match.home_team_id}
+                                            awayTeamId={match.away_team_id}
+                                            homeTeamName={match.home_team_name}
+                                            awayTeamName={match.away_team_name}
+                                            hasAccess={statsAccess.hasAccess}
+                                            size="sm"
+                                            returnUrl={`/${tournamentSlug}/opposition`}
+                                          />
+                                        </div>
+                                      )}
+
                                       {/* Points gagnés */}
                                       {hasFirstMatchStarted() && matchPoints[match.id] !== undefined ? (
                                         <div
@@ -2373,21 +2391,6 @@ export default function OppositionClient({
                                           <span>Enregistrer</span>
                                         )}
                                       </button>
-                                    )}
-                                    {/* Bouton Stats (Mobile) - inline à côté du bouton action */}
-                                    {match.home_team_id && match.away_team_id && tournament?.competition_id && (
-                                      <StatsButton
-                                        matchId={match.id}
-                                        tournamentId={tournament.id}
-                                        competitionId={tournament.competition_id}
-                                        homeTeamId={match.home_team_id}
-                                        awayTeamId={match.away_team_id}
-                                        homeTeamName={match.home_team_name}
-                                        awayTeamName={match.away_team_name}
-                                        hasAccess={statsAccess.hasAccess}
-                                        size="sm"
-                                        returnUrl={`/${tournamentSlug}/opposition`}
-                                      />
                                     )}
                                   </div>
                                 </div>
