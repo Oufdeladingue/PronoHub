@@ -2032,7 +2032,7 @@ export default function OppositionClient({
                             return (
                               <div
                                 key={match.id}
-                                className={`relative flex flex-col p-[10px] theme-card hover:shadow-lg transition border-2 ${borderColor} ${isClosed ? 'opacity-75' : ''}`}
+                                className={`relative flex flex-col p-[10px] theme-card hover:shadow-lg transition border-2 ${borderColor}`}
                               >
                                 <style jsx>{`
                                   @keyframes pulse-bonus {
@@ -2065,7 +2065,7 @@ export default function OppositionClient({
                                 `}</style>
 
                                 {/* Affichage MOBILE uniquement */}
-                                <div className="md:hidden relative">
+                                <div className={`md:hidden relative ${isClosed ? 'opacity-75' : ''}`}>
                                   {/* Logo de la compétition source en position absolue coin inférieur droit (uniquement pour tournois custom) */}
                                   {tournament?.custom_competition_id && match.competition_emblem && (
                                     <div className="absolute bottom-1 right-1 z-10" title={match.competition_name || ''}>
@@ -2401,7 +2401,7 @@ export default function OppositionClient({
                                 </div>
 
                                 {/* Affichage DESKTOP */}
-                                <div className="hidden md:block relative">
+                                <div className={`hidden md:block relative ${isClosed ? 'opacity-75' : ''}`}>
                                   <div className="flex items-center gap-3 w-full">
                                     {/* COLONNE GAUCHE 15% - Horaire, logo compétition et badge bonus (alignés à gauche) */}
                                     <div className="flex flex-col items-start gap-1 w-[15%] flex-shrink-0 overflow-hidden">
