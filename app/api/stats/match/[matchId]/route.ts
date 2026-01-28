@@ -30,8 +30,8 @@ interface StatsResponse {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
-  competitionCustomLogoLight: string | null
-  competitionCustomLogoDark: string | null
+  competitionCustomEmblemColor: string | null  // Logo coloré pour thème clair
+  competitionCustomEmblemWhite: string | null  // Logo blanc pour thème sombre
   homeTeamPosition: number | null
   awayTeamPosition: number | null
 }
@@ -112,7 +112,7 @@ export async function GET(
       // Récupérer l'emblème et logos personnalisés de la compétition
       supabase
         .from('competitions')
-        .select('emblem, custom_logo_light, custom_logo_dark')
+        .select('emblem, custom_emblem_color, custom_emblem_white')
         .eq('id', parseInt(competitionId))
         .single(),
 
@@ -204,8 +204,8 @@ export async function GET(
     const homeTeamCrest = currentMatchResult.data?.home_team_crest || null
     const awayTeamCrest = currentMatchResult.data?.away_team_crest || null
     const competitionEmblem = competitionResult.data?.emblem || null
-    const competitionCustomLogoLight = competitionResult.data?.custom_logo_light || null
-    const competitionCustomLogoDark = competitionResult.data?.custom_logo_dark || null
+    const competitionCustomEmblemColor = competitionResult.data?.custom_emblem_color || null
+    const competitionCustomEmblemWhite = competitionResult.data?.custom_emblem_white || null
 
     // Récupérer les positions des équipes (null si pas de classement disponible)
     const homeTeamPosition = homeStandingResult.data?.position || null
@@ -220,8 +220,8 @@ export async function GET(
       homeTeamCrest,
       awayTeamCrest,
       competitionEmblem,
-      competitionCustomLogoLight,
-      competitionCustomLogoDark,
+      competitionCustomEmblemColor,
+      competitionCustomEmblemWhite,
       homeTeamPosition,
       awayTeamPosition
     } as StatsResponse)

@@ -22,8 +22,8 @@ interface StandingsModalProps {
   competitionId: number
   competitionName?: string
   competitionEmblem?: string | null
-  competitionCustomLogoLight?: string | null
-  competitionCustomLogoDark?: string | null
+  competitionCustomEmblemColor?: string | null  // Logo coloré pour thème clair
+  competitionCustomEmblemWhite?: string | null  // Logo blanc pour thème sombre
   highlightTeamIds: number[]
   onClose: () => void
 }
@@ -32,8 +32,8 @@ export default function StandingsModal({
   competitionId,
   competitionName,
   competitionEmblem,
-  competitionCustomLogoLight,
-  competitionCustomLogoDark,
+  competitionCustomEmblemColor,
+  competitionCustomEmblemWhite,
   highlightTeamIds,
   onClose
 }: StandingsModalProps) {
@@ -68,8 +68,10 @@ export default function StandingsModal({
   const isHighlighted = (teamId: number) => highlightTeamIds.includes(teamId)
 
   // Logos adaptés au thème
-  const logoLight = competitionCustomLogoLight || competitionEmblem
-  const logoDark = competitionCustomLogoDark || competitionEmblem
+  // Thème clair: logo coloré ou emblème par défaut
+  // Thème sombre: logo blanc ou emblème par défaut
+  const logoLight = competitionCustomEmblemColor || competitionEmblem
+  const logoDark = competitionCustomEmblemWhite || competitionEmblem
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={onClose}>
@@ -83,6 +85,7 @@ export default function StandingsModal({
             {/* Logo adapté au thème */}
             {(logoLight || logoDark) && (
               <>
+                {/* Logo coloré pour thème clair */}
                 {logoLight && (
                   <img
                     src={logoLight}
@@ -90,6 +93,7 @@ export default function StandingsModal({
                     className="w-8 h-8 object-contain dark:hidden"
                   />
                 )}
+                {/* Logo blanc pour thème sombre */}
                 {logoDark && (
                   <img
                     src={logoDark}
@@ -117,7 +121,7 @@ export default function StandingsModal({
         <div className="overflow-y-auto flex-1">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>
             </div>
           ) : error ? (
             <div className="text-center py-8">
@@ -169,9 +173,9 @@ export default function StandingsModal({
                       </div>
                     </td>
                     <td className="py-2 px-1 text-center theme-text-secondary">{team.played_games}</td>
-                    <td className="py-2 px-1 text-center text-green-500">{team.won}</td>
-                    <td className="py-2 px-1 text-center text-yellow-500">{team.draw}</td>
-                    <td className="py-2 px-1 text-center text-red-500">{team.lost}</td>
+                    <td className="py-2 px-1 text-center text-green-600 dark:text-green-500">{team.won}</td>
+                    <td className="py-2 px-1 text-center text-yellow-600 dark:text-yellow-500">{team.draw}</td>
+                    <td className="py-2 px-1 text-center text-red-600 dark:text-red-500">{team.lost}</td>
                     <td className="py-2 px-1 text-center theme-text-secondary">
                       {team.goal_difference > 0 ? '+' : ''}{team.goal_difference}
                     </td>
@@ -187,7 +191,7 @@ export default function StandingsModal({
         <div className="p-3 border-t theme-border shrink-0">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
+            className="w-full px-4 py-2.5 bg-blue-500 dark:bg-[#ff9900] text-white rounded-lg hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors font-medium text-sm"
           >
             Fermer
           </button>

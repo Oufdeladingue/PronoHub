@@ -30,8 +30,8 @@ interface StatsData {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
-  competitionCustomLogoLight: string | null
-  competitionCustomLogoDark: string | null
+  competitionCustomEmblemColor: string | null  // Logo coloré pour thème clair
+  competitionCustomEmblemWhite: string | null  // Logo blanc pour thème sombre
   homeTeamPosition: number | null
   awayTeamPosition: number | null
 }
@@ -73,13 +73,13 @@ function ResultCircle({
         disabled={isUpcoming}
         className={`w-7 h-7 flex items-center justify-center rounded-full text-white text-xs font-bold transition-all ${bgColor} ${
           !isUpcoming ? 'hover:scale-110 cursor-pointer' : 'cursor-default'
-        } ${isSelected ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-[#ff9900]' : ''}`}
+        } ${isSelected ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-blue-500 dark:ring-[#ff9900]' : ''}`}
       >
         {label}
       </button>
       {/* Fleche indicateur */}
       <div className={`mt-1 h-3 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`}>
-        <svg className="w-3 h-3 text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-3 h-3 text-blue-500 dark:text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 4l-8 8h16l-8-8z" />
         </svg>
       </div>
@@ -91,13 +91,13 @@ function ResultCircle({
 function MatchDetailCard({
   match,
   competitionEmblem,
-  competitionCustomLogoLight,
-  competitionCustomLogoDark
+  competitionCustomEmblemColor,
+  competitionCustomEmblemWhite
 }: {
   match: TeamFormMatch | null
   competitionEmblem: string | null
-  competitionCustomLogoLight: string | null
-  competitionCustomLogoDark: string | null
+  competitionCustomEmblemColor: string | null
+  competitionCustomEmblemWhite: string | null
 }) {
   if (!match) {
     return (
@@ -112,16 +112,17 @@ function MatchDetailCard({
                    'bg-red-500/10 border-red-500/30'
   const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
 
-  // Utiliser le logo personnalisé selon le thème, sinon l'emblème par défaut
-  const logoLight = competitionCustomLogoLight || competitionEmblem
-  const logoDark = competitionCustomLogoDark || competitionEmblem
+  // Logo pour thème clair: custom coloré ou emblème par défaut
+  // Logo pour thème sombre: custom blanc ou emblème par défaut
+  const logoLight = competitionCustomEmblemColor || competitionEmblem
+  const logoDark = competitionCustomEmblemWhite || competitionEmblem
 
   return (
     <div className={`p-3 rounded-lg border ${resultBg} flex gap-3`}>
       {/* Logo competition agrandi - adapté au thème */}
       {(logoLight || logoDark) && (
         <div className="shrink-0 flex items-center">
-          {/* Logo pour thème clair */}
+          {/* Logo pour thème clair (coloré) */}
           {logoLight && (
             <img
               src={logoLight}
@@ -129,7 +130,7 @@ function MatchDetailCard({
               className="w-10 h-10 object-contain dark:hidden"
             />
           )}
-          {/* Logo pour thème sombre */}
+          {/* Logo pour thème sombre (blanc) */}
           {logoDark && (
             <img
               src={logoDark}
@@ -164,9 +165,9 @@ function MatchDetailCard({
             {new Date(match.utcDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
           </span>
           <span className={`font-medium ${
-            match.result === 'W' ? 'text-green-400' :
-            match.result === 'D' ? 'text-yellow-400' :
-            'text-red-400'
+            match.result === 'W' ? 'text-green-500 dark:text-green-400' :
+            match.result === 'D' ? 'text-yellow-600 dark:text-yellow-400' :
+            'text-red-500 dark:text-red-400'
           }`}>
             {resultText}
           </span>
@@ -185,8 +186,8 @@ function TeamFormSection({
   onSelectIndex,
   dotColor,
   competitionEmblem,
-  competitionCustomLogoLight,
-  competitionCustomLogoDark,
+  competitionCustomEmblemColor,
+  competitionCustomEmblemWhite,
   position
 }: {
   teamName: string
@@ -196,8 +197,8 @@ function TeamFormSection({
   onSelectIndex: (index: number) => void
   dotColor: string
   competitionEmblem: string | null
-  competitionCustomLogoLight: string | null
-  competitionCustomLogoDark: string | null
+  competitionCustomEmblemColor: string | null
+  competitionCustomEmblemWhite: string | null
   position: number | null
 }) {
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
@@ -257,8 +258,8 @@ function TeamFormSection({
           <MatchDetailCard
             match={selectedIndex >= 0 && selectedIndex < matches.length ? matches[selectedIndex] : null}
             competitionEmblem={competitionEmblem}
-            competitionCustomLogoLight={competitionCustomLogoLight}
-            competitionCustomLogoDark={competitionCustomLogoDark}
+            competitionCustomEmblemColor={competitionCustomEmblemColor}
+            competitionCustomEmblemWhite={competitionCustomEmblemWhite}
           />
         </>
       )}
@@ -387,14 +388,14 @@ export default function StatsModal({
           <div className="p-4 overflow-y-auto flex-1 space-y-5">
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>
               </div>
             ) : error ? (
               <div className="text-center py-8">
                 <p className="text-red-500">{error}</p>
                 <button
                   onClick={onClose}
-                  className="mt-4 px-4 py-2 bg-slate-200 dark:bg-slate-700 theme-text rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                  className="mt-4 px-4 py-2 bg-blue-500 dark:bg-[#ff9900] text-white rounded-lg text-sm hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors"
                 >
                   Fermer
                 </button>
@@ -418,8 +419,8 @@ export default function StatsModal({
                       onSelectIndex={setHomeSelectedIndex}
                       dotColor="bg-blue-500"
                       competitionEmblem={data.competitionEmblem}
-                      competitionCustomLogoLight={data.competitionCustomLogoLight}
-                      competitionCustomLogoDark={data.competitionCustomLogoDark}
+                      competitionCustomEmblemColor={data.competitionCustomEmblemColor}
+                      competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
                       position={data.homeTeamPosition}
                     />
                     <TeamFormSection
@@ -430,8 +431,8 @@ export default function StatsModal({
                       onSelectIndex={setAwaySelectedIndex}
                       dotColor="bg-[#ff9900]"
                       competitionEmblem={data.competitionEmblem}
-                      competitionCustomLogoLight={data.competitionCustomLogoLight}
-                      competitionCustomLogoDark={data.competitionCustomLogoDark}
+                      competitionCustomEmblemColor={data.competitionCustomEmblemColor}
+                      competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
                       position={data.awayTeamPosition}
                     />
                   </div>
@@ -492,7 +493,7 @@ export default function StatsModal({
           <div className="p-3 border-t theme-border shrink-0">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
+              className="w-full px-4 py-2.5 bg-blue-500 dark:bg-[#ff9900] text-white rounded-lg hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors font-medium text-sm"
             >
               Fermer
             </button>
@@ -505,8 +506,8 @@ export default function StatsModal({
         <StandingsModal
           competitionId={competitionId}
           competitionEmblem={data?.competitionEmblem}
-          competitionCustomLogoLight={data?.competitionCustomLogoLight}
-          competitionCustomLogoDark={data?.competitionCustomLogoDark}
+          competitionCustomEmblemColor={data?.competitionCustomEmblemColor}
+          competitionCustomEmblemWhite={data?.competitionCustomEmblemWhite}
           highlightTeamIds={[homeTeamId, awayTeamId]}
           onClose={() => setShowStandings(false)}
         />
