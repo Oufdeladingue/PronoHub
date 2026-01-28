@@ -47,10 +47,10 @@ export default function NavBar({
     const adminPath = process.env.NEXT_PUBLIC_ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
     const navItems = [
       { name: 'Général', href: `/${adminPath}`, icon: 'home' },
-      { name: 'Data', href: `/${adminPath}/data`, icon: 'import' },
+      { name: 'Compétitions', href: `/${adminPath}/data`, icon: 'import' },
       { name: 'Custom', href: `/${adminPath}/custom`, icon: 'star' },
       { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
-      { name: 'Utilisation', href: `/${adminPath}/usage`, icon: 'trophy' },
+      { name: 'Données', href: `/${adminPath}/usage`, icon: 'trophy' },
       { name: 'Réglages', href: `/${adminPath}/settings`, icon: 'settings' },
     ]
 

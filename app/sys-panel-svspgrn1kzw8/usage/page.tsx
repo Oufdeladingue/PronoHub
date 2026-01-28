@@ -1056,19 +1056,17 @@ export default function AdminUsagePage() {
                           Chargement des détails...
                         </div>
                       ) : detailModal.detail ? (
-                        <div className="space-y-6">
-                          {/* Infos générales */}
+                        <div className="space-y-4">
+                          {/* Infos générales - compact */}
                           <div>
-                            <h4 className="text-base font-semibold text-gray-900 mb-3">{detailModal.detail.name}</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                              <div>
-                                <span className="text-gray-500">Type :</span>{' '}
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-base font-semibold text-gray-900">{detailModal.detail.name}</h4>
+                              <div className="flex items-center gap-2">
                                 {getTournamentTypeBadge(detailModal.detail.tournament_type)}
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Statut :</span>{' '}
                                 {getStatusBadge(detailModal.detail.status)}
                               </div>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm">
                               <div>
                                 <span className="text-gray-500">Créateur :</span>{' '}
                                 <span className="font-medium text-gray-900">{detailModal.detail.creator_username}</span>
@@ -1077,8 +1075,16 @@ export default function AdminUsagePage() {
                                 <span className="text-gray-500">Code :</span>{' '}
                                 <span className="font-mono text-gray-700">{detailModal.detail.invite_code}</span>
                               </div>
+                              <div>
+                                <span className="text-gray-500">Créé le :</span>{' '}
+                                <span className="text-gray-700">
+                                  {new Date(detailModal.detail.created_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit', month: '2-digit', year: 'numeric'
+                                  })}
+                                </span>
+                              </div>
                               {detailModal.detail.competition && (
-                                <div className="col-span-2">
+                                <div className="col-span-2 sm:col-span-1">
                                   <span className="text-gray-500">Compétition :</span>{' '}
                                   <span className="font-medium text-gray-900">
                                     {detailModal.detail.competition.name}
@@ -1094,67 +1100,53 @@ export default function AdminUsagePage() {
                                   {detailModal.detail.max_participants || 'Illimité'}
                                 </span>
                               </div>
-                              <div>
-                                <span className="text-gray-500">Créé le :</span>{' '}
-                                <span className="text-gray-700">
-                                  {new Date(detailModal.detail.created_at).toLocaleDateString('fr-FR', {
-                                    day: '2-digit', month: '2-digit', year: 'numeric'
-                                  })}
-                                </span>
-                              </div>
                             </div>
                           </div>
 
-                          {/* Journées */}
-                          <div className="p-4 bg-gray-50 rounded-lg">
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Journées</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                          {/* Journées + Scoring + Options - fusionnés */}
+                          <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
                               <div>
-                                <span className="text-gray-500">Plage :</span>{' '}
+                                <span className="text-gray-500">Journées :</span>{' '}
                                 <span className="font-medium text-gray-900">
                                   {detailModal.detail.starting_matchday && detailModal.detail.ending_matchday
-                                    ? `J${detailModal.detail.starting_matchday} → J${detailModal.detail.ending_matchday}`
+                                    ? `J${detailModal.detail.starting_matchday}→J${detailModal.detail.ending_matchday}`
                                     : detailModal.detail.all_matchdays
-                                      ? 'Toutes les journées'
+                                      ? 'Toutes'
                                       : 'Non défini'}
+                                  {' '}({detailModal.detail.actual_matchdays || detailModal.detail.planned_matchdays || '-'})
                                 </span>
                               </div>
                               <div>
-                                <span className="text-gray-500">Nb journées :</span>{' '}
-                                <span className="font-medium text-gray-900">
-                                  {detailModal.detail.actual_matchdays || detailModal.detail.planned_matchdays || '-'}
-                                </span>
+                                <span className="text-gray-500">Exact :</span>{' '}
+                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_exact_score} pts</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Bon résultat :</span>{' '}
+                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_correct_winner} pt</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Mauvais :</span>{' '}
+                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_draw_with_default_prediction} pt</span>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Scoring */}
-                          <div className="p-4 bg-blue-50 rounded-lg">
-                            <h4 className="text-sm font-semibold text-blue-900 mb-2">Scoring</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-blue-800">
-                              <div>Score exact : <span className="font-semibold">{detailModal.detail.scoring_exact_score} pts</span></div>
-                              <div>Bon résultat : <span className="font-semibold">{detailModal.detail.scoring_correct_winner} pt</span></div>
-                              <div>Mauvais résultat : <span className="font-semibold">{detailModal.detail.scoring_draw_with_default_prediction} pt</span></div>
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {detailModal.detail.teams_enabled && (
+                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">Équipes</span>
+                              )}
+                              {detailModal.detail.bonus_match_enabled && (
+                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Match bonus</span>
+                              )}
+                              {detailModal.detail.early_prediction_bonus && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Bonus early</span>
+                              )}
+                              {detailModal.detail.all_matchdays && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Toutes journées</span>
+                              )}
+                              {!detailModal.detail.teams_enabled && !detailModal.detail.bonus_match_enabled && !detailModal.detail.early_prediction_bonus && !detailModal.detail.all_matchdays && (
+                                <span className="text-xs text-gray-400">Aucune option</span>
+                              )}
                             </div>
-                          </div>
-
-                          {/* Options */}
-                          <div className="flex flex-wrap gap-2">
-                            {detailModal.detail.teams_enabled && (
-                              <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">Équipes</span>
-                            )}
-                            {detailModal.detail.bonus_match_enabled && (
-                              <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Match bonus</span>
-                            )}
-                            {detailModal.detail.early_prediction_bonus && (
-                              <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Bonus early prono</span>
-                            )}
-                            {detailModal.detail.all_matchdays && (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Toutes journées</span>
-                            )}
-                            {!detailModal.detail.teams_enabled && !detailModal.detail.bonus_match_enabled && !detailModal.detail.early_prediction_bonus && !detailModal.detail.all_matchdays && (
-                              <span className="text-xs text-gray-400">Aucune option activée</span>
-                            )}
                           </div>
 
                           {/* Participants */}
