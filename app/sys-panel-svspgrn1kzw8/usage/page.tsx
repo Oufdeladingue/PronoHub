@@ -348,6 +348,17 @@ export default function AdminUsagePage() {
   const [addingCredit, setAddingCredit] = useState<{ userId: string; type: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [statsTournamentModal, setStatsTournamentModal] = useState<{ userId: string; username: string } | null>(null)
+  const [userTournaments, setUserTournaments] = useState<Array<{
+    id: string
+    name: string
+    slug: string
+    status: string
+    tournament_type: string
+    competition_name: string
+    has_stats_access: boolean
+  }>>([])
+  const [userTournamentsLoading, setUserTournamentsLoading] = useState(false)
+  const [userHasLifetimeAccess, setUserHasLifetimeAccess] = useState(false)
   const [creditsPageSize, setCreditsPageSize] = useState(20)
 
   // ===== FONCTIONS TOURNOIS =====
@@ -636,6 +647,26 @@ export default function AdminUsagePage() {
   }
 
   const creditsTotalPages = Math.ceil(creditsTotalCount / creditsPageSize)
+
+  const openStatsTournamentModal = async (userId: string, username: string) => {
+    setStatsTournamentModal({ userId, username })
+    setUserTournamentsLoading(true)
+    setUserTournaments([])
+    setUserHasLifetimeAccess(false)
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/tournaments`)
+      const data = await response.json()
+
+      if (data.success) {
+        setUserTournaments(data.tournaments)
+        setUserHasLifetimeAccess(data.has_lifetime_access || false)
+      }
+    } catch (error) {
+      console.error('Error fetching user tournaments:', error)
+    }
+    setUserTournamentsLoading(false)
+  }
 
   // ===== EFFETS =====
 
@@ -1453,7 +1484,7 @@ export default function AdminUsagePage() {
                                   userId={user.userId}
                                   username={user.username}
                                   onAddCredit={handleAddCredit}
-                                  onSelectStatsTournament={(userId, username) => setStatsTournamentModal({ userId, username })}
+                                  onSelectStatsTournament={(userId, username) => openStatsTournamentModal(userId, username)}
                                   isLoading={addingCredit?.userId === user.userId}
                                 />
                               </div>
@@ -1546,27 +1577,59 @@ export default function AdminUsagePage() {
               </div>
             </div>
             <div className="p-4 overflow-y-auto flex-1">
-              {tournaments.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Aucun tournoi disponible</p>
+              {userTournamentsLoading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="animate-spin h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Chargement des tournois...
+                </div>
+              ) : userHasLifetimeAccess ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-pink-100 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-900 font-medium">Stats à Vie activé</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {statsTournamentModal.username} a déjà accès aux stats sur tous ses tournois
+                  </p>
+                </div>
+              ) : userTournaments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  {statsTournamentModal.username} ne participe à aucun tournoi
+                </p>
               ) : (
                 <div className="space-y-2">
-                  {tournaments.map((t) => (
+                  {userTournaments.map((t) => (
                     <button
                       key={t.id}
                       onClick={async () => {
-                        await handleAddCredit(statsTournamentModal.userId, 'stats_access_tournament', statsTournamentModal.username, t.id)
-                        setStatsTournamentModal(null)
+                        if (!t.has_stats_access) {
+                          await handleAddCredit(statsTournamentModal.userId, 'stats_access_tournament', statsTournamentModal.username, t.id)
+                          setStatsTournamentModal(null)
+                        }
                       }}
-                      disabled={addingCredit?.userId === statsTournamentModal.userId}
-                      className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-pink-300 transition-colors disabled:opacity-50"
+                      disabled={addingCredit?.userId === statsTournamentModal.userId || t.has_stats_access}
+                      className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors disabled:opacity-50 ${
+                        t.has_stats_access
+                          ? 'border-green-200 bg-green-50 cursor-not-allowed'
+                          : 'border-gray-200 hover:bg-gray-50 hover:border-pink-300'
+                      }`}
                     >
                       <div className="text-left">
-                        <p className="font-medium text-gray-900">{t.name}</p>
+                        <p className={`font-medium ${t.has_stats_access ? 'text-gray-500' : 'text-gray-900'}`}>{t.name}</p>
                         <p className="text-xs text-gray-500">{t.competition_name}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {getTournamentTypeBadge(t.tournament_type)}
-                        <span className="text-xs text-gray-400">{t.participants_count} joueurs</span>
+                        {t.has_stats_access && (
+                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700">
+                            Activé
+                          </span>
+                        )}
                       </div>
                     </button>
                   ))}
