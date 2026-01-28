@@ -283,108 +283,131 @@ function TrendsSemiCircle({
   homeTeamCrest: string | null
   awayTeamCrest: string | null
 }) {
-  // Utiliser stroke-dasharray pour créer les segments
-  // Circonférence du demi-cercle = π * r
-  const radius = 60
-  const circumference = Math.PI * radius
+  // Fonction pour créer un arc SVG
+  const createArc = (startAngle: number, endAngle: number, radius: number, cx: number, cy: number) => {
+    const start = {
+      x: cx + radius * Math.cos((startAngle * Math.PI) / 180),
+      y: cy - radius * Math.sin((startAngle * Math.PI) / 180)
+    }
+    const end = {
+      x: cx + radius * Math.cos((endAngle * Math.PI) / 180),
+      y: cy - radius * Math.sin((endAngle * Math.PI) / 180)
+    }
+    const largeArc = Math.abs(endAngle - startAngle) > 180 ? 1 : 0
+    const sweep = startAngle > endAngle ? 1 : 0
+    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`
+  }
 
-  // Calculer les longueurs de chaque segment
-  const homeLength = (homeWinPercentage / 100) * circumference
-  const drawLength = (drawPercentage / 100) * circumference
-  const awayLength = (awayWinPercentage / 100) * circumference
+  const cx = 120
+  const cy = 95
+  const radius = 70
+  const strokeWidth = 28
 
-  // Décalages pour positionner chaque segment
-  const homeOffset = 0
-  const drawOffset = homeLength
-  const awayOffset = homeLength + drawLength
+  // Calculer les angles (de 180° à 0°, gauche vers droite)
+  const homeEndAngle = 180 - (homeWinPercentage / 100) * 180
+  const drawEndAngle = homeEndAngle - (drawPercentage / 100) * 180
+  // awayEndAngle serait 0°
 
   return (
-    <div className="relative flex flex-col items-center">
-      <div className="relative w-[200px] h-[110px]">
-        <svg viewBox="0 0 200 110" className="w-full h-full">
-          {/* Fond gris */}
+    <div className="relative">
+      <svg viewBox="0 0 240 120" className="w-full max-w-[260px] mx-auto">
+        {/* Arc équipe domicile (bleu) */}
+        {homeWinPercentage > 0 && (
           <path
-            d="M 20 100 A 60 60 0 0 1 180 100"
+            d={createArc(180, homeEndAngle, radius, cx, cy)}
             fill="none"
-            stroke="#374151"
-            strokeWidth="24"
-            strokeLinecap="round"
+            stroke="#3b82f6"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
           />
+        )}
 
-          {/* Arc équipe domicile (bleu) - de gauche */}
-          {homeWinPercentage > 0 && (
-            <path
-              d="M 20 100 A 60 60 0 0 1 180 100"
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth="24"
-              strokeLinecap="butt"
-              strokeDasharray={`${homeLength} ${circumference}`}
-              strokeDashoffset={0}
-            />
-          )}
+        {/* Arc match nul (jaune) */}
+        {drawPercentage > 0 && (
+          <path
+            d={createArc(homeEndAngle, drawEndAngle, radius, cx, cy)}
+            fill="none"
+            stroke="#eab308"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+          />
+        )}
 
-          {/* Arc match nul (jaune) - au milieu */}
-          {drawPercentage > 0 && (
-            <path
-              d="M 20 100 A 60 60 0 0 1 180 100"
-              fill="none"
-              stroke="#eab308"
-              strokeWidth="24"
-              strokeLinecap="butt"
-              strokeDasharray={`${drawLength} ${circumference}`}
-              strokeDashoffset={-drawOffset}
-            />
-          )}
+        {/* Arc équipe extérieur (orange) */}
+        {awayWinPercentage > 0 && (
+          <path
+            d={createArc(drawEndAngle, 0, radius, cx, cy)}
+            fill="none"
+            stroke="#ff9900"
+            strokeWidth={strokeWidth}
+            strokeLinecap="butt"
+          />
+        )}
 
-          {/* Arc équipe extérieur (orange) - à droite */}
-          {awayWinPercentage > 0 && (
-            <path
-              d="M 20 100 A 60 60 0 0 1 180 100"
-              fill="none"
-              stroke="#ff9900"
-              strokeWidth="24"
-              strokeLinecap="butt"
-              strokeDasharray={`${awayLength} ${circumference}`}
-              strokeDashoffset={-awayOffset}
-            />
-          )}
-        </svg>
+        {/* Logo équipe domicile (gauche) */}
+        {homeTeamCrest ? (
+          <image
+            href={homeTeamCrest}
+            x={cx - radius - strokeWidth/2 - 20}
+            y={cy - 14}
+            width="28"
+            height="28"
+            preserveAspectRatio="xMidYMid meet"
+          />
+        ) : (
+          <circle cx={cx - radius - strokeWidth/2 - 6} cy={cy} r="10" fill="#3b82f6" />
+        )}
+
+        {/* Label "Nul" en haut au centre */}
+        <text
+          x={cx}
+          y="18"
+          textAnchor="middle"
+          className="fill-slate-400 dark:fill-slate-500 text-xs font-medium"
+        >
+          Nul
+        </text>
+
+        {/* Logo équipe extérieur (droite) */}
+        {awayTeamCrest ? (
+          <image
+            href={awayTeamCrest}
+            x={cx + radius + strokeWidth/2 - 8}
+            y={cy - 14}
+            width="28"
+            height="28"
+            preserveAspectRatio="xMidYMid meet"
+          />
+        ) : (
+          <circle cx={cx + radius + strokeWidth/2 + 6} cy={cy} r="10" fill="#ff9900" />
+        )}
 
         {/* Nombre de pronos au centre */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-          <span className="text-xs theme-text-secondary">{totalPredictions} pronos</span>
-        </div>
-      </div>
-
-      {/* Labels avec logos et pourcentages */}
-      <div className="flex items-start justify-between w-full px-4 mt-2">
-        {/* Équipe domicile */}
-        <div className="flex flex-col items-center gap-1">
-          {homeTeamCrest ? (
-            <img src={homeTeamCrest} alt="Domicile" className="w-7 h-7 object-contain" />
-          ) : (
-            <div className="w-7 h-7 bg-blue-500 rounded-full" />
-          )}
-          <span className="text-sm font-bold text-blue-500">{homeWinPercentage}%</span>
-        </div>
-
-        {/* Nul */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-sm font-medium theme-text-secondary">Nul</span>
-          <span className="text-sm font-bold text-yellow-500">{drawPercentage}%</span>
-        </div>
-
-        {/* Équipe extérieur */}
-        <div className="flex flex-col items-center gap-1">
-          {awayTeamCrest ? (
-            <img src={awayTeamCrest} alt="Extérieur" className="w-7 h-7 object-contain" />
-          ) : (
-            <div className="w-7 h-7 bg-[#ff9900] rounded-full" />
-          )}
-          <span className="text-sm font-bold text-[#ff9900]">{awayWinPercentage}%</span>
-        </div>
-      </div>
+        <text
+          x={cx}
+          y={cy - 10}
+          textAnchor="middle"
+          className="fill-slate-500 dark:fill-slate-400 text-[10px]"
+        >
+          basé sur
+        </text>
+        <text
+          x={cx}
+          y={cy + 6}
+          textAnchor="middle"
+          className="fill-slate-600 dark:fill-slate-300 text-sm font-semibold"
+        >
+          {totalPredictions}
+        </text>
+        <text
+          x={cx}
+          y={cy + 20}
+          textAnchor="middle"
+          className="fill-slate-500 dark:fill-slate-400 text-[10px]"
+        >
+          pronostics
+        </text>
+      </svg>
     </div>
   )
 }
