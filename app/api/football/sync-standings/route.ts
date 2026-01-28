@@ -34,12 +34,12 @@ export async function GET(request: Request) {
     if (competitionId) {
       competitionsToSync = [parseInt(competitionId)]
     } else {
-      // Récupérer toutes les compétitions actives de type LEAGUE (pas les coupes)
+      // Récupérer toutes les compétitions actives
+      // Les coupes (qui n'ont pas de classement) retourneront 404 et seront ignorées
       const { data: activeComps } = await supabase
         .from('competitions')
-        .select('id, type')
+        .select('id')
         .eq('is_active', true)
-        .eq('type', 'LEAGUE')
 
       competitionsToSync = activeComps?.map(c => c.id) || []
     }
