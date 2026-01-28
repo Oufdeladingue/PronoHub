@@ -26,6 +26,7 @@ function StatsIcon({ size }: { size: number }) {
       viewBox="0 0 24 24"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
+      className="pointer-events-none"
     >
       {/* 3 barres verticales de hauteurs différentes */}
       <rect x="4" y="10" width="4" height="10" rx="1" />
@@ -65,12 +66,14 @@ export default function StatsButton({
     <>
       <button
         onClick={handleClick}
-        className={`${buttonSize} flex items-center justify-center rounded-full border transition-all duration-200 ${
+        onContextMenu={(e) => e.preventDefault()}
+        className={`${buttonSize} flex items-center justify-center rounded-full border transition-all duration-200 select-none touch-manipulation ${
           hasAccess
             ? 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-orange-400 hover:text-orange-500 dark:hover:border-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
             : 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 opacity-70 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-400 dark:hover:text-slate-500'
         }`}
         title={hasAccess ? 'Voir les stats du match' : 'Débloquer les statistiques'}
+        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
       >
         <StatsIcon size={iconSize} />
       </button>
