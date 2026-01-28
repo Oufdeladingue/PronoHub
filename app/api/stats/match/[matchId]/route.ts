@@ -30,6 +30,8 @@ interface StatsResponse {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
+  competitionCustomLogoLight: string | null
+  competitionCustomLogoDark: string | null
   homeTeamPosition: number | null
   awayTeamPosition: number | null
 }
@@ -107,10 +109,10 @@ export async function GET(
         .eq('id', matchId)
         .single(),
 
-      // Récupérer l'emblème de la compétition
+      // Récupérer l'emblème et logos personnalisés de la compétition
       supabase
         .from('competitions')
-        .select('emblem')
+        .select('emblem, custom_logo_light, custom_logo_dark')
         .eq('id', parseInt(competitionId))
         .single(),
 
@@ -202,6 +204,8 @@ export async function GET(
     const homeTeamCrest = currentMatchResult.data?.home_team_crest || null
     const awayTeamCrest = currentMatchResult.data?.away_team_crest || null
     const competitionEmblem = competitionResult.data?.emblem || null
+    const competitionCustomLogoLight = competitionResult.data?.custom_logo_light || null
+    const competitionCustomLogoDark = competitionResult.data?.custom_logo_dark || null
 
     // Récupérer les positions des équipes (null si pas de classement disponible)
     const homeTeamPosition = homeStandingResult.data?.position || null
@@ -216,6 +220,8 @@ export async function GET(
       homeTeamCrest,
       awayTeamCrest,
       competitionEmblem,
+      competitionCustomLogoLight,
+      competitionCustomLogoDark,
       homeTeamPosition,
       awayTeamPosition
     } as StatsResponse)

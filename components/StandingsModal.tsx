@@ -22,6 +22,8 @@ interface StandingsModalProps {
   competitionId: number
   competitionName?: string
   competitionEmblem?: string | null
+  competitionCustomLogoLight?: string | null
+  competitionCustomLogoDark?: string | null
   highlightTeamIds: number[]
   onClose: () => void
 }
@@ -30,6 +32,8 @@ export default function StandingsModal({
   competitionId,
   competitionName,
   competitionEmblem,
+  competitionCustomLogoLight,
+  competitionCustomLogoDark,
   highlightTeamIds,
   onClose
 }: StandingsModalProps) {
@@ -63,6 +67,10 @@ export default function StandingsModal({
 
   const isHighlighted = (teamId: number) => highlightTeamIds.includes(teamId)
 
+  // Logos adaptés au thème
+  const logoLight = competitionCustomLogoLight || competitionEmblem
+  const logoDark = competitionCustomLogoDark || competitionEmblem
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={onClose}>
       <div
@@ -72,14 +80,26 @@ export default function StandingsModal({
         {/* Header */}
         <div className="p-4 border-b theme-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            {competitionEmblem && (
-              <img
-                src={competitionEmblem}
-                alt="Competition"
-                className="w-8 h-8 object-contain"
-              />
+            {/* Logo adapté au thème */}
+            {(logoLight || logoDark) && (
+              <>
+                {logoLight && (
+                  <img
+                    src={logoLight}
+                    alt="Competition"
+                    className="w-8 h-8 object-contain dark:hidden"
+                  />
+                )}
+                {logoDark && (
+                  <img
+                    src={logoDark}
+                    alt="Competition"
+                    className="w-8 h-8 object-contain hidden dark:block"
+                  />
+                )}
+              </>
             )}
-            <h3 className="text-base font-bold theme-text">
+            <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900]">
               {competitionName || 'Classement'}
             </h3>
           </div>
@@ -127,7 +147,7 @@ export default function StandingsModal({
                     key={team.team_id}
                     className={`border-b theme-border transition-colors ${
                       isHighlighted(team.team_id)
-                        ? 'bg-[#ff9900]/10 dark:bg-[#ff9900]/20'
+                        ? 'bg-blue-500/10 dark:bg-[#ff9900]/20'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}
                   >
@@ -143,7 +163,7 @@ export default function StandingsModal({
                             className="w-4 h-4 object-contain shrink-0"
                           />
                         )}
-                        <span className={`truncate ${isHighlighted(team.team_id) ? 'font-semibold text-[#ff9900]' : 'theme-text'}`}>
+                        <span className={`truncate ${isHighlighted(team.team_id) ? 'font-semibold text-blue-600 dark:text-[#ff9900]' : 'theme-text'}`}>
                           {team.team_name}
                         </span>
                       </div>
@@ -167,7 +187,7 @@ export default function StandingsModal({
         <div className="p-3 border-t theme-border shrink-0">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 theme-text rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium text-sm"
+            className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
           >
             Fermer
           </button>

@@ -30,6 +30,8 @@ interface StatsData {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
+  competitionCustomLogoLight: string | null
+  competitionCustomLogoDark: string | null
   homeTeamPosition: number | null
   awayTeamPosition: number | null
 }
@@ -85,12 +87,22 @@ function ResultCircle({
   )
 }
 
-// Composant pour afficher le detail d'un match
-function MatchDetailCard({ match, competitionEmblem }: { match: TeamFormMatch | null; competitionEmblem: string | null }) {
+// Composant pour afficher le detail d'un match avec logo adapté au thème
+function MatchDetailCard({
+  match,
+  competitionEmblem,
+  competitionCustomLogoLight,
+  competitionCustomLogoDark
+}: {
+  match: TeamFormMatch | null
+  competitionEmblem: string | null
+  competitionCustomLogoLight: string | null
+  competitionCustomLogoDark: string | null
+}) {
   if (!match) {
     return (
-      <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 text-center min-h-[72px] flex items-center justify-center">
-        <p className="text-xs text-slate-500">Cliquez sur un rond</p>
+      <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-center min-h-[72px] flex items-center justify-center">
+        <p className="text-xs text-slate-500 dark:text-slate-400">Cliquez sur un rond</p>
       </div>
     )
   }
@@ -100,16 +112,31 @@ function MatchDetailCard({ match, competitionEmblem }: { match: TeamFormMatch | 
                    'bg-red-500/10 border-red-500/30'
   const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
 
+  // Utiliser le logo personnalisé selon le thème, sinon l'emblème par défaut
+  const logoLight = competitionCustomLogoLight || competitionEmblem
+  const logoDark = competitionCustomLogoDark || competitionEmblem
+
   return (
     <div className={`p-3 rounded-lg border ${resultBg} flex gap-3`}>
-      {/* Logo competition agrandi */}
-      {competitionEmblem && (
+      {/* Logo competition agrandi - adapté au thème */}
+      {(logoLight || logoDark) && (
         <div className="shrink-0 flex items-center">
-          <img
-            src={competitionEmblem}
-            alt="Competition"
-            className="w-10 h-10 object-contain"
-          />
+          {/* Logo pour thème clair */}
+          {logoLight && (
+            <img
+              src={logoLight}
+              alt="Competition"
+              className="w-10 h-10 object-contain dark:hidden"
+            />
+          )}
+          {/* Logo pour thème sombre */}
+          {logoDark && (
+            <img
+              src={logoDark}
+              alt="Competition"
+              className="w-10 h-10 object-contain hidden dark:block"
+            />
+          )}
         </div>
       )}
 
@@ -158,6 +185,8 @@ function TeamFormSection({
   onSelectIndex,
   dotColor,
   competitionEmblem,
+  competitionCustomLogoLight,
+  competitionCustomLogoDark,
   position
 }: {
   teamName: string
@@ -167,6 +196,8 @@ function TeamFormSection({
   onSelectIndex: (index: number) => void
   dotColor: string
   competitionEmblem: string | null
+  competitionCustomLogoLight: string | null
+  competitionCustomLogoDark: string | null
   position: number | null
 }) {
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
@@ -226,6 +257,8 @@ function TeamFormSection({
           <MatchDetailCard
             match={selectedIndex >= 0 && selectedIndex < matches.length ? matches[selectedIndex] : null}
             competitionEmblem={competitionEmblem}
+            competitionCustomLogoLight={competitionCustomLogoLight}
+            competitionCustomLogoDark={competitionCustomLogoDark}
           />
         </>
       )}
@@ -318,7 +351,7 @@ export default function StatsModal({
           <div className="p-4 border-b theme-border shrink-0">
             <div className="flex items-center justify-between">
               <div className="w-8" /> {/* Spacer for centering */}
-              <h3 className="text-base font-bold theme-text text-center flex-1">Stats du match</h3>
+              <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900] text-center flex-1">Stats du match</h3>
               <button
                 onClick={onClose}
                 className="p-2 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -329,7 +362,7 @@ export default function StatsModal({
               </button>
             </div>
             {/* Match teams centré avec logos */}
-            <div className="flex items-center justify-center gap-3 mt-2">
+            <div className="flex items-center justify-center gap-2 mt-2">
               {data?.homeTeamCrest && (
                 <img
                   src={data.homeTeamCrest}
@@ -337,8 +370,8 @@ export default function StatsModal({
                   className="w-6 h-6 object-contain"
                 />
               )}
-              <p className="text-sm theme-text-secondary">
-                {homeTeamName} vs {awayTeamName}
+              <p className="text-sm theme-text">
+                {homeTeamName} <span className="text-blue-600 dark:text-[#ff9900] font-semibold">vs</span> {awayTeamName}
               </p>
               {data?.awayTeamCrest && (
                 <img
@@ -361,7 +394,7 @@ export default function StatsModal({
                 <p className="text-red-500">{error}</p>
                 <button
                   onClick={onClose}
-                  className="mt-4 px-4 py-2 theme-bg rounded-lg text-sm border theme-border hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="mt-4 px-4 py-2 bg-slate-200 dark:bg-slate-700 theme-text rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   Fermer
                 </button>
@@ -371,7 +404,7 @@ export default function StatsModal({
                 {/* Forme des equipes */}
                 <div>
                   <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                     Forme recente
@@ -385,6 +418,8 @@ export default function StatsModal({
                       onSelectIndex={setHomeSelectedIndex}
                       dotColor="bg-blue-500"
                       competitionEmblem={data.competitionEmblem}
+                      competitionCustomLogoLight={data.competitionCustomLogoLight}
+                      competitionCustomLogoDark={data.competitionCustomLogoDark}
                       position={data.homeTeamPosition}
                     />
                     <TeamFormSection
@@ -395,6 +430,8 @@ export default function StatsModal({
                       onSelectIndex={setAwaySelectedIndex}
                       dotColor="bg-[#ff9900]"
                       competitionEmblem={data.competitionEmblem}
+                      competitionCustomLogoLight={data.competitionCustomLogoLight}
+                      competitionCustomLogoDark={data.competitionCustomLogoDark}
                       position={data.awayTeamPosition}
                     />
                   </div>
@@ -403,7 +440,7 @@ export default function StatsModal({
                 {/* Lien vers le classement */}
                 <button
                   onClick={() => setShowStandings(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2 text-sm text-[#ff9900] hover:text-[#ffaa33] transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2 text-sm text-blue-600 dark:text-[#ff9900] hover:text-blue-700 dark:hover:text-[#ffaa33] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -415,14 +452,14 @@ export default function StatsModal({
                 {data.predictionTrends && (
                   <div>
                     <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
                         <rect x="4" y="10" width="4" height="10" rx="1" />
                         <rect x="10" y="4" width="4" height="16" rx="1" />
                         <rect x="16" y="8" width="4" height="12" rx="1" />
                       </svg>
                       Tendances des pronostics
                     </h4>
-                    <div className="space-y-3 p-3 theme-bg rounded-lg border theme-border">
+                    <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                       <TrendsBar
                         label={`Victoire ${data.homeTeamName}`}
                         percentage={data.predictionTrends.homeWin.percentage}
@@ -452,10 +489,10 @@ export default function StatsModal({
           </div>
 
           {/* Footer */}
-          <div className="p-3 border-t theme-border flex-shrink-0">
+          <div className="p-3 border-t theme-border shrink-0">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 theme-text rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium text-sm"
+              className="w-full px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium text-sm"
             >
               Fermer
             </button>
@@ -468,6 +505,8 @@ export default function StatsModal({
         <StandingsModal
           competitionId={competitionId}
           competitionEmblem={data?.competitionEmblem}
+          competitionCustomLogoLight={data?.competitionCustomLogoLight}
+          competitionCustomLogoDark={data?.competitionCustomLogoDark}
           highlightTeamIds={[homeTeamId, awayTeamId]}
           onClose={() => setShowStandings(false)}
         />
