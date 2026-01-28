@@ -86,6 +86,8 @@ interface TournamentDetail {
     rank: number | null
     predictions_count: number
     joined_at: string
+    has_stats_access?: boolean
+    stats_access_type?: 'lifetime' | 'tournament' | null
   }>
   total_predictions: number
 }
@@ -195,11 +197,13 @@ function CreditDropdown({
   userId,
   username,
   onAddCredit,
+  onSelectStatsTournament,
   isLoading
 }: {
   userId: string
   username: string
   onAddCredit: (userId: string, type: string, username: string) => void
+  onSelectStatsTournament: (userId: string, username: string) => void
   isLoading: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -212,7 +216,7 @@ function CreditDropdown({
     { key: 'platinium_participation', label: 'Crédit Platinium', price: '6.99€', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
     { key: 'platinium_prepaid_11', label: 'Platinium Prepaid 11j', price: '69.20€', color: 'bg-purple-500', textColor: 'text-purple-400' },
     { key: 'duration_extension', label: 'Extension Durée', price: '3.99€', color: 'bg-teal-500', textColor: 'text-teal-400' },
-    // stats_access_tournament retiré ici - utiliser le bouton dans le détail du tournoi
+    { key: 'stats_access_tournament', label: 'Stats Tournoi', price: '1.99€', color: 'bg-pink-500', textColor: 'text-pink-400', needsTournament: true },
     { key: 'stats_access_lifetime', label: 'Stats à Vie', price: '5.99€', color: 'bg-rose-500', textColor: 'text-rose-400' },
   ]
 
@@ -274,7 +278,11 @@ function CreditDropdown({
                 <button
                   key={type.key}
                   onClick={() => {
-                    onAddCredit(userId, type.key, username)
+                    if (type.needsTournament) {
+                      onSelectStatsTournament(userId, username)
+                    } else {
+                      onAddCredit(userId, type.key, username)
+                    }
                     setIsOpen(false)
                   }}
                   className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
@@ -282,6 +290,9 @@ function CreditDropdown({
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${type.color}`}></div>
                     <span className="text-sm text-slate-200 group-hover:text-white">{type.label}</span>
+                    {type.needsTournament && (
+                      <span className="text-[10px] text-slate-400">→ tournoi</span>
+                    )}
                   </div>
                   <span className={`text-xs font-semibold ${type.textColor}`}>{type.price}</span>
                 </button>
@@ -336,6 +347,7 @@ export default function AdminUsagePage() {
   const [creditsTotalCount, setCreditsTotalCount] = useState(0)
   const [addingCredit, setAddingCredit] = useState<{ userId: string; type: string } | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [statsTournamentModal, setStatsTournamentModal] = useState<{ userId: string; username: string } | null>(null)
   const [creditsPageSize, setCreditsPageSize] = useState(20)
 
   // ===== FONCTIONS TOURNOIS =====
@@ -1441,6 +1453,7 @@ export default function AdminUsagePage() {
                                   userId={user.userId}
                                   username={user.username}
                                   onAddCredit={handleAddCredit}
+                                  onSelectStatsTournament={(userId, username) => setStatsTournamentModal({ userId, username })}
                                   isLoading={addingCredit?.userId === user.userId}
                                 />
                               </div>
@@ -1507,6 +1520,62 @@ export default function AdminUsagePage() {
           )}
         </main>
       </div>
+
+      {/* Modal de sélection de tournoi pour Stats */}
+      {statsTournamentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setStatsTournamentModal(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Sélectionner un tournoi
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Stats Tournoi pour {statsTournamentModal.username}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setStatsTournamentModal(null)}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              {tournaments.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Aucun tournoi disponible</p>
+              ) : (
+                <div className="space-y-2">
+                  {tournaments.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={async () => {
+                        await handleAddCredit(statsTournamentModal.userId, 'stats_access_tournament', statsTournamentModal.username, t.id)
+                        setStatsTournamentModal(null)
+                      }}
+                      disabled={addingCredit?.userId === statsTournamentModal.userId}
+                      className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-pink-300 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <p className="font-medium text-gray-900">{t.name}</p>
+                        <p className="text-xs text-gray-500">{t.competition_name}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getTournamentTypeBadge(t.tournament_type)}
+                        <span className="text-xs text-gray-400">{t.participants_count} joueurs</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }
