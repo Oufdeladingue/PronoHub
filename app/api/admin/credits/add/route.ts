@@ -124,7 +124,11 @@ export async function POST(request: NextRequest) {
 
     if (purchaseError) {
       console.error('Error creating purchase:', purchaseError)
-      return NextResponse.json({ error: 'Erreur lors de la création du crédit' }, { status: 500 })
+      return NextResponse.json({
+        error: 'Erreur lors de la création du crédit',
+        details: purchaseError.message,
+        code: purchaseError.code
+      }, { status: 500 })
     }
 
     console.log(`[ADMIN] Crédit "${config.label}" ajouté pour ${targetUser.username} par admin ${user.id}`)

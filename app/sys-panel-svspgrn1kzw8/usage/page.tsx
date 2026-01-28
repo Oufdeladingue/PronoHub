@@ -631,10 +631,14 @@ export default function AdminUsagePage() {
           username
         })
       } else {
+        const errorMsg = data.details
+          ? `${data.error}: ${data.details}`
+          : data.error || 'Erreur lors de l\'ajout du crédit'
         addToast({
           type: 'error',
-          message: data.error || 'Erreur lors de l\'ajout du crédit'
+          message: errorMsg
         })
+        console.error('Credit add error:', data)
       }
     } catch (error) {
       console.error('Error adding credit:', error)
