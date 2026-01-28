@@ -31,6 +31,8 @@ const PRICE_CONFIG_MAPPING: Record<string, string> = {
   player_extension: 'player_extension_price',
   platinium_participation: 'platinium_creation_price', // Meme prix que creation
   platinium_group_11: 'platinium_group', // Calcule dynamiquement
+  stats_access_tournament: 'stats_access_tournament_price',
+  stats_access_lifetime: 'stats_access_lifetime_price',
 }
 
 export async function POST(request: NextRequest) {
@@ -149,6 +151,11 @@ export async function POST(request: NextRequest) {
     } else if (inviteCode) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=join&code=${inviteCode}`
       returnPath = '/dashboard'
+    } else if (purchaseType.startsWith('stats_access_')) {
+      // Stats access purchase - return to the tournament page
+      const statsType = purchaseType === 'stats_access_lifetime' ? 'lifetime' : 'tournament'
+      successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=stats&stats_type=${statsType}${tournamentId ? `&tournament=${tournamentId}` : ''}`
+      returnPath = returnUrl || '/dashboard'
     } else if (tournamentId) {
       successUrl = `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=extension&tournament=${tournamentId}`
       returnPath = '/dashboard'

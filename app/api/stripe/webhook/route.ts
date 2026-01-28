@@ -198,6 +198,15 @@ async function handleCheckoutCompleted(session: any) {
     console.log('[Stripe] Duration extension credit created (pending user choice)')
   } else if (purchaseType === 'player_extension') {
     await handlePlayerExtension(session)
+  } else if (purchaseType === 'stats_access_tournament') {
+    // L'accès aux stats pour ce tournoi est maintenant actif
+    // Le purchase record est déjà marqué completed, rien à faire de plus
+    const tournamentId = session.metadata?.tournament_id
+    console.log(`[Stripe] Stats access purchased for tournament: ${tournamentId || 'N/A'}`)
+  } else if (purchaseType === 'stats_access_lifetime') {
+    // L'accès aux stats à vie est maintenant actif
+    // Le purchase record est déjà marqué completed, rien à faire de plus
+    console.log('[Stripe] Lifetime stats access purchased')
   }
 }
 

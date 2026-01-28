@@ -38,6 +38,16 @@ const creditTypeConfig: Record<string, { purchaseType: string; amount: number; l
     purchaseType: 'duration_extension',
     amount: 3.99,
     label: 'Extension Durée'
+  },
+  'stats_access_tournament': {
+    purchaseType: 'stats_access_tournament',
+    amount: 1.99,
+    label: 'Stats Tournoi'
+  },
+  'stats_access_lifetime': {
+    purchaseType: 'stats_access_lifetime',
+    amount: 5.99,
+    label: 'Stats à Vie'
   }
 }
 

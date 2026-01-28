@@ -186,6 +186,8 @@ const creditTypeLabels: Record<string, string> = {
   platinium_participation: 'Crédit Platinium',
   platinium_prepaid_11: 'Platinium Prepaid 11j',
   duration_extension: 'Extension Durée',
+  stats_access_tournament: 'Stats Tournoi',
+  stats_access_lifetime: 'Stats à Vie',
 }
 
 // Composant Dropdown pour ajouter des credits
@@ -210,6 +212,8 @@ function CreditDropdown({
     { key: 'platinium_participation', label: 'Crédit Platinium', price: '6.99€', color: 'bg-yellow-500', textColor: 'text-yellow-400' },
     { key: 'platinium_prepaid_11', label: 'Platinium Prepaid 11j', price: '69.20€', color: 'bg-purple-500', textColor: 'text-purple-400' },
     { key: 'duration_extension', label: 'Extension Durée', price: '3.99€', color: 'bg-teal-500', textColor: 'text-teal-400' },
+    { key: 'stats_access_tournament', label: 'Stats Tournoi', price: '1.99€', color: 'bg-pink-500', textColor: 'text-pink-400' },
+    { key: 'stats_access_lifetime', label: 'Stats à Vie', price: '5.99€', color: 'bg-rose-500', textColor: 'text-rose-400' },
   ]
 
   const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>) => {

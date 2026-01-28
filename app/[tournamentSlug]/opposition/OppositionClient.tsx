@@ -15,6 +15,8 @@ import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
 import MaxScoreModal from '@/components/MaxScoreModal'
+import StatsButton from '@/components/StatsButton'
+import { useStatsAccess } from '@/hooks/useStatsAccess'
 
 interface Tournament {
   id: string
@@ -42,6 +44,8 @@ interface Match {
   matchday: number
   stage?: StageType | null
   utc_date: string
+  home_team_id?: number | null
+  away_team_id?: number | null
   home_team_name: string
   away_team_name: string
   home_team_crest: string | null
@@ -207,6 +211,9 @@ export default function OppositionClient({
 
   // État pour la modale de score maximum
   const [showMaxScoreModal, setShowMaxScoreModal] = useState(false)
+
+  // Hook pour vérifier l'accès aux stats
+  const statsAccess = useStatsAccess(serverTournament.id)
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -2320,8 +2327,8 @@ export default function OppositionClient({
                                     </div>
                                   )}
 
-                                  {/* Bouton d'action (sauvegarder/modifier) */}
-                                  <div className="flex justify-center">
+                                  {/* Bouton d'action (sauvegarder/modifier) + Stats */}
+                                  <div className="flex justify-center items-center gap-2">
                                     {isClosed ? (
                                       hasFirstMatchStarted() ? null : (
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
@@ -2366,6 +2373,21 @@ export default function OppositionClient({
                                           <span>Enregistrer</span>
                                         )}
                                       </button>
+                                    )}
+                                    {/* Bouton Stats */}
+                                    {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                      <StatsButton
+                                        matchId={match.id}
+                                        tournamentId={tournament.id}
+                                        competitionId={tournament.competition_id}
+                                        homeTeamId={match.home_team_id}
+                                        awayTeamId={match.away_team_id}
+                                        homeTeamName={match.home_team_name}
+                                        awayTeamName={match.away_team_name}
+                                        hasAccess={statsAccess.hasAccess}
+                                        size="sm"
+                                        returnUrl={`/${tournamentSlug}/opposition`}
+                                      />
                                     )}
                                   </div>
                                 </div>
@@ -2677,6 +2699,22 @@ export default function OppositionClient({
                                             <span className="hidden xl:inline">Enregistrer</span>
                                           )}
                                         </button>
+                                      )}
+
+                                      {/* Bouton Stats (Desktop) */}
+                                      {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                        <StatsButton
+                                          matchId={match.id}
+                                          tournamentId={tournament.id}
+                                          competitionId={tournament.competition_id}
+                                          homeTeamId={match.home_team_id}
+                                          awayTeamId={match.away_team_id}
+                                          homeTeamName={match.home_team_name}
+                                          awayTeamName={match.away_team_name}
+                                          hasAccess={statsAccess.hasAccess}
+                                          size="md"
+                                          returnUrl={`/${tournamentSlug}/opposition`}
+                                        />
                                       )}
                                     </div>
                                   </div>

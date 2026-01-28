@@ -32,6 +32,8 @@ export type StripePurchaseType =
   | 'player_extension'
   | 'platinium_participation'
   | 'platinium_group_11'
+  | 'stats_access_tournament'
+  | 'stats_access_lifetime'
 
 export const STRIPE_PRODUCTS: Record<StripePurchaseType, {
   name: string
@@ -77,6 +79,16 @@ export const STRIPE_PRODUCTS: Record<StripePurchaseType, {
     name: 'Platinium Groupe 11',
     description: 'Lancer un tournoi Platinium avec 11 places incluses (10% de remise)',
     priceInCents: 6920, // 11 x 6.99€ = 76.89€ - 10% = 69.20€
+  },
+  stats_access_tournament: {
+    name: 'Stats du match - Tournoi',
+    description: 'Accès aux statistiques des matchs pour ce tournoi',
+    priceInCents: 199,
+  },
+  stats_access_lifetime: {
+    name: 'Stats du match - À vie',
+    description: 'Accès aux statistiques des matchs pour tous vos tournois',
+    priceInCents: 599,
   },
 }
 
