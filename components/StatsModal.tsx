@@ -49,7 +49,7 @@ function ResultBadge({ result, goalsFor, goalsAgainst }: { result: 'W' | 'D' | '
       <span className={`w-6 h-6 flex items-center justify-center rounded-full text-white text-xs font-bold ${bgColor}`}>
         {label}
       </span>
-      <span className="text-xs text-slate-500 dark:text-slate-400">
+      <span className="text-xs theme-text-secondary">
         {goalsFor}-{goalsAgainst}
       </span>
     </div>
@@ -59,7 +59,7 @@ function ResultBadge({ result, goalsFor, goalsAgainst }: { result: 'W' | 'D' | '
 function TeamFormSection({ teamName, matches, isHome }: { teamName: string; matches: TeamFormMatch[]; isHome: boolean }) {
   if (matches.length === 0) {
     return (
-      <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+      <div className="text-sm theme-text-secondary text-center py-4">
         Aucun match terminé trouvé
       </div>
     )
@@ -67,11 +67,11 @@ function TeamFormSection({ teamName, matches, isHome }: { teamName: string; matc
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+      <h4 className="text-sm font-semibold theme-text flex items-center gap-2">
         {isHome ? (
           <span className="w-2 h-2 rounded-full bg-blue-500"></span>
         ) : (
-          <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+          <span className="w-2 h-2 rounded-full bg-[#ff9900]"></span>
         )}
         {teamName}
       </h4>
@@ -79,7 +79,7 @@ function TeamFormSection({ teamName, matches, isHome }: { teamName: string; matc
         {matches.map((match) => (
           <div
             key={match.matchId}
-            className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg"
+            className="flex items-center justify-between p-2 theme-bg rounded-lg border theme-border"
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
               {match.opponentCrest && (
@@ -91,7 +91,7 @@ function TeamFormSection({ teamName, matches, isHome }: { teamName: string; matc
                   className="flex-shrink-0"
                 />
               )}
-              <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
+              <span className="text-sm theme-text truncate">
                 {match.isHome ? 'vs' : '@'} {match.opponentName}
               </span>
             </div>
@@ -119,16 +119,16 @@ function TrendsBar({ label, percentage, count, color }: { label: string; percent
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
-        <span className="text-slate-600 dark:text-slate-400">{label}</span>
-        <span className="font-semibold text-slate-700 dark:text-slate-300">{percentage}%</span>
+        <span className="theme-text-secondary">{label}</span>
+        <span className="font-semibold theme-text">{percentage}%</span>
       </div>
-      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
           className={`h-full ${color} rounded-full transition-all duration-500`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <div className="text-xs text-slate-500 dark:text-slate-500 text-right">
+      <div className="text-xs theme-text-secondary text-right">
         {count} pronostic{count > 1 ? 's' : ''}
       </div>
     </div>
@@ -183,24 +183,24 @@ export default function StatsModal({
   }, [matchId, tournamentId, competitionId, homeTeamId, awayTeamId, homeTeamName, awayTeamName])
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col"
+        className="theme-card max-w-lg w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between flex-shrink-0">
+        <div className="p-4 border-b theme-border flex items-center justify-between flex-shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Stats du match</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <h3 className="text-lg font-bold theme-text">Stats du match</h3>
+            <p className="text-sm theme-text-secondary">
               {homeTeamName} vs {awayTeamName}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
-            <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5 theme-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -210,14 +210,14 @@ export default function StatsModal({
         <div className="p-4 overflow-y-auto flex-1 space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-red-500 dark:text-red-400">{error}</p>
+              <p className="text-red-500">{error}</p>
               <button
                 onClick={onClose}
-                className="mt-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm hover:bg-slate-200 dark:hover:bg-slate-700"
+                className="mt-4 px-4 py-2 theme-bg rounded-lg text-sm border theme-border hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Fermer
               </button>
@@ -226,8 +226,8 @@ export default function StatsModal({
             <>
               {/* Forme des équipes */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <h4 className="text-sm font-semibold theme-text mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                   </svg>
                   Forme récente (5 derniers matchs)
@@ -240,14 +240,16 @@ export default function StatsModal({
 
               {/* Tendances de pronostics */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <h4 className="text-sm font-semibold theme-text mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="4" y="10" width="4" height="10" rx="1" />
+                    <rect x="10" y="4" width="4" height="16" rx="1" />
+                    <rect x="16" y="8" width="4" height="12" rx="1" />
                   </svg>
                   Tendances des pronostics
                 </h4>
                 {data.predictionTrends ? (
-                  <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <div className="space-y-4 p-4 theme-bg rounded-lg border theme-border">
                     <TrendsBar
                       label={`Victoire ${data.homeTeamName}`}
                       percentage={data.predictionTrends.homeWin.percentage}
@@ -264,18 +266,18 @@ export default function StatsModal({
                       label={`Victoire ${data.awayTeamName}`}
                       percentage={data.predictionTrends.awayWin.percentage}
                       count={data.predictionTrends.awayWin.count}
-                      color="bg-orange-500"
+                      color="bg-[#ff9900]"
                     />
-                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-2">
+                    <p className="text-xs theme-text-secondary text-center mt-2">
                       Basé sur {data.predictionTrends.totalPredictions} pronostics (tous tournois confondus)
                     </p>
                   </div>
                 ) : (
-                  <div className="text-center py-6 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="text-center py-6 theme-bg rounded-lg border theme-border">
+                    <p className="text-sm theme-text-secondary">
                       Pas assez de pronostics pour afficher les tendances
                     </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                    <p className="text-xs theme-text-secondary mt-1">
                       (minimum 5 pronostics requis)
                     </p>
                   </div>
@@ -286,10 +288,10 @@ export default function StatsModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="p-4 border-t theme-border flex-shrink-0">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium"
+            className="w-full px-4 py-2.5 theme-bg theme-text rounded-lg border theme-border hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
           >
             Fermer
           </button>
