@@ -395,7 +395,7 @@ export default function StatsModal({
                 <p className="text-red-500">{error}</p>
                 <button
                   onClick={onClose}
-                  className="mt-4 px-4 py-2 bg-blue-500 dark:bg-[#ff9900] text-white rounded-lg text-sm hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors"
+                  className="mt-4 px-4 py-2 bg-blue-500 dark:bg-[#ff9900] text-white dark:text-black rounded-lg text-sm hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors"
                 >
                   Fermer
                 </button>
@@ -493,7 +493,7 @@ export default function StatsModal({
           <div className="p-3 border-t theme-border shrink-0">
             <button
               onClick={onClose}
-              className="w-full px-4 py-2.5 bg-blue-500 dark:bg-[#ff9900] text-white rounded-lg hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors font-medium text-sm"
+              className="w-full px-4 py-2.5 bg-blue-500 dark:bg-[#ff9900] text-white dark:text-black rounded-lg hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors font-medium text-sm"
             >
               Fermer
             </button>

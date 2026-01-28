@@ -55,6 +55,7 @@ interface Match {
   home_score?: number | null
   away_score?: number | null
   // Champs pour les tournois custom (compétition source du match)
+  competition_id?: number | null
   competition_name?: string | null
   competition_emblem?: string | null
   competition_emblem_white?: string | null
@@ -591,7 +592,7 @@ export default function OppositionClient({
             const { data: importedMatches } = await supabase
               .from('imported_matches')
               .select(`
-                id, football_data_match_id, home_team_name, away_team_name, home_team_crest, away_team_crest,
+                id, football_data_match_id, home_team_id, away_team_id, home_team_name, away_team_name, home_team_crest, away_team_crest,
                 utc_date, status, home_score, away_score, finished, stage, competition_id,
                 competitions (id, name, emblem, custom_emblem_white, custom_emblem_color)
               `)
@@ -618,6 +619,9 @@ export default function OppositionClient({
               custom_match_id: match.id,
               matchday: selectedMatchday,
               utc_date: im?.utc_date || match.cached_utc_date,
+              // IDs des équipes depuis imported_matches (nécessaire pour les stats)
+              home_team_id: im?.home_team_id || null,
+              away_team_id: im?.away_team_id || null,
               home_team_name: im?.home_team_name || match.cached_home_team,
               away_team_name: im?.away_team_name || match.cached_away_team,
               home_team_crest: im?.home_team_crest || match.cached_home_logo,
@@ -627,7 +631,8 @@ export default function OppositionClient({
               home_score: im?.home_score ?? null,
               away_score: im?.away_score ?? null,
               stage: im?.stage || null,
-              // Infos de la compétition source pour les tournois custom
+              // Infos de la compétition source pour les tournois custom (nécessaire pour les stats)
+              competition_id: im?.competition_id || null,
               competition_name: comp?.name || null,
               competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
               competition_emblem_white: comp?.custom_emblem_white || comp?.emblem || null
@@ -2169,12 +2174,12 @@ export default function OppositionClient({
                                       </div>
 
                                       {/* Bouton Stats (Mobile) - sous le score */}
-                                      {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                      {match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
                                         <div className="md:hidden">
                                           <StatsButton
                                             matchId={match.id}
                                             tournamentId={tournament.id}
-                                            competitionId={tournament.competition_id}
+                                            competitionId={match.competition_id || tournament.competition_id!}
                                             homeTeamId={match.home_team_id}
                                             awayTeamId={match.away_team_id}
                                             homeTeamName={match.home_team_name}
@@ -2708,12 +2713,12 @@ export default function OppositionClient({
                                 </div>
 
                                 {/* Bouton Stats (Desktop) - positionné en bas à droite */}
-                                {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                {match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
                                   <div className="hidden md:flex justify-end mt-2">
                                     <StatsButton
                                       matchId={match.id}
                                       tournamentId={tournament.id}
-                                      competitionId={tournament.competition_id}
+                                      competitionId={match.competition_id || tournament.competition_id!}
                                       homeTeamId={match.home_team_id}
                                       awayTeamId={match.away_team_id}
                                       homeTeamName={match.home_team_name}
