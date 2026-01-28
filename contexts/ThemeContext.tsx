@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { hasCapacitorBridge } from '@/lib/capacitor'
 
 type Theme = 'light' | 'dark'
 
@@ -27,6 +28,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
+
+    // S'assurer que le DOM reflète le thème actuel (après restauration Capacitor)
+    const currentTheme = localStorage.getItem('theme') as Theme | null
+    if (currentTheme && (currentTheme === 'light' || currentTheme === 'dark')) {
+      document.documentElement.setAttribute('data-theme', currentTheme)
+      if (currentTheme !== theme) {
+        setThemeState(currentTheme)
+      }
+    } else {
+      document.documentElement.setAttribute('data-theme', theme)
+    }
 
     // Ne charger depuis la BDD que si l'utilisateur est connecté
     // Le thème est déjà initialisé depuis localStorage dans useState
@@ -58,6 +70,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(newTheme)
     document.documentElement.setAttribute('data-theme', newTheme)
     localStorage.setItem('theme', newTheme)
+
+    // Sauvegarder dans Capacitor Preferences pour la persistance Android
+    if (hasCapacitorBridge()) {
+      try {
+        const cap = (window as any).Capacitor
+        await cap?.Plugins?.Preferences?.set({ key: 'theme', value: newTheme })
+      } catch {
+        // Ignorer les erreurs
+      }
+    }
 
     // Sauvegarder dans la base de données si l'utilisateur est connecté
     const { data: { user } } = await supabase.auth.getUser()

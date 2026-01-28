@@ -207,15 +207,19 @@ export async function restoreCapacitorSession(): Promise<void> {
     let restored = 0
 
     for (const key of keys) {
-      // Restaurer les clés qui commencent par 'sb-' (Supabase)
-      // Format: sb-{projectId}-auth-token ou sb-{url}-auth-token
-      if (key.startsWith('sb-')) {
+      // Restaurer les clés Supabase (sb-*) et le thème
+      if (key.startsWith('sb-') || key === 'theme') {
         const { value } = await prefs.get({ key })
         if (value) {
           // TOUJOURS écraser localStorage avec la valeur de Preferences
           // car localStorage peut avoir été vidé par Android lors d'un switch d'app
           localStorage.setItem(key, value)
           restored++
+
+          // Appliquer le thème immédiatement au DOM pour éviter le flash
+          if (key === 'theme' && (value === 'dark' || value === 'light')) {
+            document.documentElement.setAttribute('data-theme', value)
+          }
         }
       }
     }
