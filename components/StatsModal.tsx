@@ -29,6 +29,8 @@ interface StatsData {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
+  homeTeamPosition: number | null
+  awayTeamPosition: number | null
 }
 
 interface StatsModalProps {
@@ -147,7 +149,8 @@ function TeamFormSection({
   selectedIndex,
   onSelectIndex,
   dotColor,
-  competitionEmblem
+  competitionEmblem,
+  position
 }: {
   teamName: string
   teamCrest: string | null
@@ -156,13 +159,14 @@ function TeamFormSection({
   onSelectIndex: (index: number) => void
   dotColor: string
   competitionEmblem: string | null
+  position: number | null
 }) {
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
   const reversedMatches = [...matches].reverse()
 
   return (
     <div className="flex-1">
-      {/* Nom equipe avec logo */}
+      {/* Nom equipe avec logo et position */}
       <div className="flex items-center gap-2 mb-3">
         <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
         {teamCrest && (
@@ -173,6 +177,11 @@ function TeamFormSection({
           />
         )}
         <span className="text-sm font-semibold theme-text truncate">{teamName}</span>
+        {position && (
+          <span className="text-xs theme-text-secondary bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
+            {position}{position === 1 ? 'er' : 'ème'}
+          </span>
+        )}
       </div>
 
       {/* Ronds de resultat */}
@@ -364,6 +373,7 @@ export default function StatsModal({
                     onSelectIndex={setHomeSelectedIndex}
                     dotColor="bg-blue-500"
                     competitionEmblem={data.competitionEmblem}
+                    position={data.homeTeamPosition}
                   />
                   <TeamFormSection
                     teamName={data.awayTeamName}
@@ -373,6 +383,7 @@ export default function StatsModal({
                     onSelectIndex={setAwaySelectedIndex}
                     dotColor="bg-[#ff9900]"
                     competitionEmblem={data.competitionEmblem}
+                    position={data.awayTeamPosition}
                   />
                 </div>
               </div>

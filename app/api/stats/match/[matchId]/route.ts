@@ -30,6 +30,8 @@ interface StatsResponse {
   homeTeamCrest: string | null
   awayTeamCrest: string | null
   competitionEmblem: string | null
+  homeTeamPosition: number | null
+  awayTeamPosition: number | null
 }
 
 /**
@@ -70,8 +72,8 @@ export async function GET(
       )
     }
 
-    // Exécuter les 5 queries en parallèle
-    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult, competitionResult] = await Promise.all([
+    // Exécuter les 7 queries en parallèle
+    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult, competitionResult, homeStandingResult, awayStandingResult] = await Promise.all([
       // Forme équipe domicile (5 derniers matchs terminés dans la compétition)
       supabase
         .from('imported_matches')
@@ -110,6 +112,22 @@ export async function GET(
         .from('competitions')
         .select('emblem')
         .eq('id', parseInt(competitionId))
+        .single(),
+
+      // Position équipe domicile dans le classement
+      supabase
+        .from('competition_standings')
+        .select('position')
+        .eq('competition_id', parseInt(competitionId))
+        .eq('team_id', parseInt(homeTeamId))
+        .single(),
+
+      // Position équipe extérieur dans le classement
+      supabase
+        .from('competition_standings')
+        .select('position')
+        .eq('competition_id', parseInt(competitionId))
+        .eq('team_id', parseInt(awayTeamId))
         .single()
     ])
 
@@ -185,6 +203,10 @@ export async function GET(
     const awayTeamCrest = currentMatchResult.data?.away_team_crest || null
     const competitionEmblem = competitionResult.data?.emblem || null
 
+    // Récupérer les positions des équipes (null si pas de classement disponible)
+    const homeTeamPosition = homeStandingResult.data?.position || null
+    const awayTeamPosition = awayStandingResult.data?.position || null
+
     return NextResponse.json({
       homeTeamForm,
       awayTeamForm,
@@ -193,7 +215,9 @@ export async function GET(
       awayTeamName,
       homeTeamCrest,
       awayTeamCrest,
-      competitionEmblem
+      competitionEmblem,
+      homeTeamPosition,
+      awayTeamPosition
     } as StatsResponse)
 
   } catch (error) {
