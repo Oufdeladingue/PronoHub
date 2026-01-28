@@ -73,10 +73,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userId, creditType } = body
+    const { userId, creditType, tournamentId } = body
 
     if (!userId || !creditType) {
       return NextResponse.json({ error: 'userId et creditType sont requis' }, { status: 400 })
+    }
+
+    // Pour stats_access_tournament, le tournamentId est requis
+    if (creditType === 'stats_access_tournament' && !tournamentId) {
+      return NextResponse.json({ error: 'tournamentId est requis pour stats_access_tournament' }, { status: 400 })
     }
 
     const config = creditTypeConfig[creditType]
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
     // Créer l'entrée dans tournament_purchases
     const insertData: Record<string, unknown> = {
       user_id: userId,
-      tournament_id: null,
+      tournament_id: creditType === 'stats_access_tournament' ? tournamentId : null,
       purchase_type: config.purchaseType,
       amount: config.amount,
       currency: 'eur',

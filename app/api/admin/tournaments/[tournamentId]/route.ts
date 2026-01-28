@@ -62,6 +62,50 @@ export async function GET(
       includeDetailedStats: false
     })
 
+    // Récupérer les achats d'accès stats pour ce tournoi
+    const participantIds = participantsDetails.map(p => p.user_id)
+
+    // Récupérer les achats stats_access_tournament pour ce tournoi + stats_access_lifetime
+    const { data: statsAccessPurchases } = await adminClient
+      .from('tournament_purchases')
+      .select('user_id, purchase_type')
+      .in('user_id', participantIds)
+      .in('purchase_type', ['stats_access_tournament', 'stats_access_lifetime'])
+      .eq('status', 'completed')
+
+    // Filtrer: stats_access_tournament doit correspondre à ce tournamentId
+    const { data: tournamentStatsPurchases } = await adminClient
+      .from('tournament_purchases')
+      .select('user_id')
+      .in('user_id', participantIds)
+      .eq('purchase_type', 'stats_access_tournament')
+      .eq('tournament_id', tournamentId)
+      .eq('status', 'completed')
+
+    // Créer un map des accès stats par user
+    const statsAccessMap = new Map<string, 'lifetime' | 'tournament'>()
+
+    // D'abord les lifetime (priorité)
+    for (const purchase of (statsAccessPurchases || [])) {
+      if (purchase.purchase_type === 'stats_access_lifetime') {
+        statsAccessMap.set(purchase.user_id, 'lifetime')
+      }
+    }
+
+    // Ensuite les tournament-specific (si pas déjà lifetime)
+    for (const purchase of (tournamentStatsPurchases || [])) {
+      if (!statsAccessMap.has(purchase.user_id)) {
+        statsAccessMap.set(purchase.user_id, 'tournament')
+      }
+    }
+
+    // Enrichir les participants avec l'info stats access
+    const participantsWithStatsAccess = participantsDetails.map(p => ({
+      ...p,
+      has_stats_access: statsAccessMap.has(p.user_id),
+      stats_access_type: statsAccessMap.get(p.user_id) || null
+    }))
+
     // Compter le total de prédictions enregistrées
     const totalPredictions = participantsDetails.reduce((sum, p) => sum + p.predictions_count, 0)
 
@@ -109,7 +153,7 @@ export async function GET(
         max_participants: tournament.max_players || tournament.max_participants,
         invite_code: tournament.invite_code,
         competition: competitionInfo,
-        participants: participantsDetails,
+        participants: participantsWithStatsAccess,
         total_predictions: totalPredictions
       }
     })
