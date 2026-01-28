@@ -27,6 +27,8 @@ interface StatsResponse {
   predictionTrends: PredictionTrends | null
   homeTeamName: string
   awayTeamName: string
+  homeTeamCrest: string | null
+  awayTeamCrest: string | null
 }
 
 /**
@@ -67,8 +69,8 @@ export async function GET(
       )
     }
 
-    // Exécuter les 3 queries en parallèle
-    const [homeFormResult, awayFormResult, trendsResult] = await Promise.all([
+    // Exécuter les 4 queries en parallèle
+    const [homeFormResult, awayFormResult, trendsResult, currentMatchResult] = await Promise.all([
       // Forme équipe domicile (5 derniers matchs terminés dans la compétition)
       supabase
         .from('imported_matches')
@@ -93,7 +95,14 @@ export async function GET(
       supabase
         .from('predictions')
         .select('predicted_home_score, predicted_away_score')
-        .eq('match_id', matchId)
+        .eq('match_id', matchId),
+
+      // Récupérer les crests des équipes du match actuel
+      supabase
+        .from('imported_matches')
+        .select('home_team_crest, away_team_crest')
+        .eq('id', matchId)
+        .single()
     ])
 
     // Transformer les résultats de forme équipe
@@ -163,12 +172,18 @@ export async function GET(
       }
     }
 
+    // Récupérer les crests du match actuel
+    const homeTeamCrest = currentMatchResult.data?.home_team_crest || null
+    const awayTeamCrest = currentMatchResult.data?.away_team_crest || null
+
     return NextResponse.json({
       homeTeamForm,
       awayTeamForm,
       predictionTrends,
       homeTeamName,
-      awayTeamName
+      awayTeamName,
+      homeTeamCrest,
+      awayTeamCrest
     } as StatsResponse)
 
   } catch (error) {
