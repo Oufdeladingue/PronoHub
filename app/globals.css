@@ -1307,6 +1307,18 @@ input[type="number"] {
   animation: blink-warning 0.8s ease-in-out infinite;
 }
 
+.animate-blink-warning-active {
+  /* Filtre pour #1e293b - slate foncé (thème sombre, bouton actif) */
+  filter: invert(13%) sepia(15%) saturate(1200%) hue-rotate(182deg) brightness(95%) contrast(92%);
+  animation: blink-warning 0.8s ease-in-out infinite;
+}
+
+:root .animate-blink-warning-active,
+.light .animate-blink-warning-active {
+  /* Filtre pour #7c2d12 - orange foncé (thème clair, bouton actif) */
+  filter: invert(18%) sepia(60%) saturate(2500%) hue-rotate(15deg) brightness(95%) contrast(95%);
+}
+
 /* Filtre pour les icônes du footer qui s'adaptent au thème */
 .theme-icon {
   filter: invert(71%) sepia(8%) saturate(891%) hue-rotate(182deg) brightness(93%) contrast(88%);

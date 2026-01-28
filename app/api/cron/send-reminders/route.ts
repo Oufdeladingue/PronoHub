@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
           }
         }
       }
-      const deadlineStr = earliestDeadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+      const deadlineStr = earliestDeadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
 
       // Créer le log de notification
       const { error: logError } = await supabase
@@ -298,9 +298,10 @@ export async function GET(request: NextRequest) {
                   day: 'numeric',
                   month: 'long',
                   hour: '2-digit',
-                  minute: '2-digit'
+                  minute: '2-digit',
+                  timeZone: 'Europe/Paris'
                 }),
-                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
               }
             })
           })),

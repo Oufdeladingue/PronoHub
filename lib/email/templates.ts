@@ -2000,7 +2000,7 @@ export function getMultiTournamentReminderTemplate(props: MultiTournamentReminde
                     </td>
                     <td style="padding: 8px; text-align: center;">
                       <span style="display: block; color: #ef4444; font-size: 28px; font-weight: 700;">${earliestDeadline}</span>
-                      <span style="color: #94a3b8; font-size: 12px;">1ère limite</span>
+                      <span style="color: #94a3b8; font-size: 12px;">heure limite</span>
                     </td>
                   </tr>
                 </table>
@@ -2073,7 +2073,7 @@ Tu as des pronostics en attente dans ${tournaments.length} tournoi${tournaments.
 
 📊 RÉSUMÉ
 ---
-${totalMatches} match${totalMatches > 1 ? 's' : ''} • ${tournaments.length} tournoi${tournaments.length > 1 ? 's' : ''} • 1ère limite : ${earliestDeadline}
+${totalMatches} match${totalMatches > 1 ? 's' : ''} • ${tournaments.length} tournoi${tournaments.length > 1 ? 's' : ''} • heure limite : ${earliestDeadline}
 
 ${tournamentsText}
 

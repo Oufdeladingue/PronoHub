@@ -6,13 +6,25 @@ import OppositionClient from './OppositionClient'
 import OppositionCapacitorWrapper from '@/components/OppositionCapacitorWrapper'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Opposition - PronoHub',
-  description: 'Consultez les pronostics, classements et statistiques de votre tournoi.',
-  robots: {
-    index: false,
-    follow: false,
-  },
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { tournamentSlug } = await params
+  const supabase = await createClient()
+  const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
+
+  const { data: tournament } = await supabase
+    .from('tournaments')
+    .select('name')
+    .eq('slug', tournamentCode)
+    .single()
+
+  return {
+    title: tournament?.name ? `${tournament.name} - PronoHub` : 'Opposition - PronoHub',
+    description: 'Consultez les pronostics, classements et statistiques de votre tournoi.',
+    robots: {
+      index: false,
+      follow: false,
+    },
+  }
 }
 
 // Détecter si la requête vient d'un WebView Android (Capacitor)

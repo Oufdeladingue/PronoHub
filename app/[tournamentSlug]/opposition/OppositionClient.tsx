@@ -1839,7 +1839,7 @@ export default function OppositionClient({
                               <img
                                 src="/images/icons/exclamation.svg"
                                 alt="Pronostics manquants"
-                                className="absolute top-1 right-1 w-4 h-4 animate-blink-warning"
+                                className={`absolute top-1 right-1 w-4 h-4 ${isActive ? 'animate-blink-warning-active' : 'animate-blink-warning'}`}
                                 title="Vous avez des pronostics manquants pour cette journée"
                               />
                             )}
