@@ -2374,20 +2374,22 @@ export default function OppositionClient({
                                         )}
                                       </button>
                                     )}
-                                    {/* Bouton Stats (Mobile) - positionné à droite */}
+                                    {/* Bouton Stats (Mobile) - positionné à droite du conteneur */}
                                     {match.home_team_id && match.away_team_id && tournament?.competition_id && (
-                                      <StatsButton
-                                        matchId={match.id}
-                                        tournamentId={tournament.id}
-                                        competitionId={tournament.competition_id}
-                                        homeTeamId={match.home_team_id}
-                                        awayTeamId={match.away_team_id}
-                                        homeTeamName={match.home_team_name}
-                                        awayTeamName={match.away_team_name}
-                                        hasAccess={statsAccess.hasAccess}
-                                        size="sm"
-                                        returnUrl={`/${tournamentSlug}/opposition`}
-                                      />
+                                      <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                                        <StatsButton
+                                          matchId={match.id}
+                                          tournamentId={tournament.id}
+                                          competitionId={tournament.competition_id}
+                                          homeTeamId={match.home_team_id}
+                                          awayTeamId={match.away_team_id}
+                                          homeTeamName={match.home_team_name}
+                                          awayTeamName={match.away_team_name}
+                                          hasAccess={statsAccess.hasAccess}
+                                          size="sm"
+                                          returnUrl={`/${tournamentSlug}/opposition`}
+                                        />
+                                      </div>
                                     )}
                                   </div>
                                 </div>
