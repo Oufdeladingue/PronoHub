@@ -318,18 +318,19 @@ function TrendsSemiCircle({
   const nulPos = getPointOnArc(drawMidAngle, radius, cx, cy)
 
   return (
-    <div className="flex items-center justify-center gap-3">
-      {/* Logo équipe domicile (gauche) */}
-      <div className="shrink-0">
+    <div className="flex items-center justify-center gap-2">
+      {/* Logo + % équipe domicile (gauche) */}
+      <div className="shrink-0 flex flex-col items-center gap-1">
         {homeTeamCrest ? (
           <img src={homeTeamCrest} alt="Domicile" className="w-8 h-8 object-contain" />
         ) : (
           <div className="w-8 h-8 bg-blue-500 rounded-full" />
         )}
+        <span className="text-sm font-bold text-blue-500">{homeWinPercentage}%</span>
       </div>
 
       {/* Demi-cercle */}
-      <svg viewBox="0 0 240 105" className="w-[180px] h-[80px]">
+      <svg viewBox="0 0 240 100" className="w-[160px] h-[70px]">
         {/* Arc équipe domicile (bleu) */}
         {homeWinPercentage > 0 && (
           <path
@@ -341,7 +342,7 @@ function TrendsSemiCircle({
           />
         )}
 
-        {/* Arc match nul (vert-gris) */}
+        {/* Arc match nul (gris) */}
         {drawPercentage > 0 && (
           <path
             d={createArc(homeEndAngle, drawEndAngle, radius, cx, cy)}
@@ -363,45 +364,37 @@ function TrendsSemiCircle({
           />
         )}
 
-        {/* Label "Nul" sur l'arc gris */}
-        {drawPercentage >= 15 && (
-          <text
-            x={nulPos.x}
-            y={nulPos.y + 4}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-white text-[10px] font-semibold"
-          >
-            Nul
-          </text>
+        {/* % Nul au centre du diagramme */}
+        {drawPercentage > 0 && (
+          <>
+            <text
+              x={cx}
+              y={cy - 8}
+              textAnchor="middle"
+              className="fill-slate-400 dark:fill-slate-500 text-[9px]"
+            >
+              Nul
+            </text>
+            <text
+              x={cx}
+              y={cy + 6}
+              textAnchor="middle"
+              className="fill-slate-500 dark:fill-slate-400 text-sm font-bold"
+            >
+              {drawPercentage}%
+            </text>
+          </>
         )}
-
-        {/* Nombre de pronos au centre */}
-        <text
-          x={cx}
-          y={cy - 5}
-          textAnchor="middle"
-          className="fill-slate-500 dark:fill-slate-400 text-[9px]"
-        >
-          basé sur {totalPredictions}
-        </text>
-        <text
-          x={cx}
-          y={cy + 8}
-          textAnchor="middle"
-          className="fill-slate-500 dark:fill-slate-400 text-[9px]"
-        >
-          pronostics
-        </text>
       </svg>
 
-      {/* Logo équipe extérieur (droite) */}
-      <div className="shrink-0">
+      {/* Logo + % équipe extérieur (droite) */}
+      <div className="shrink-0 flex flex-col items-center gap-1">
         {awayTeamCrest ? (
           <img src={awayTeamCrest} alt="Extérieur" className="w-8 h-8 object-contain" />
         ) : (
           <div className="w-8 h-8 bg-[#ff9900] rounded-full" />
         )}
+        <span className="text-sm font-bold text-[#ff9900]">{awayWinPercentage}%</span>
       </div>
     </div>
   )
@@ -563,15 +556,15 @@ export default function StatsModal({
                 {/* Tendances de pronostics - masqué si pas de données */}
                 {data.predictionTrends && (
                   <div>
-                    <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
+                    <h4 className="text-sm font-semibold theme-text mb-2 flex items-center gap-2">
                       <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
                         <rect x="4" y="10" width="4" height="10" rx="1" />
                         <rect x="10" y="4" width="4" height="16" rx="1" />
                         <rect x="16" y="8" width="4" height="12" rx="1" />
                       </svg>
-                      Tendances des pronostics
+                      <span>Tendances des joueurs <span className="font-normal theme-text-secondary text-xs">(basé sur {data.predictionTrends.totalPredictions} pronostics)</span></span>
                     </h4>
-                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <div className="py-2 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                       <TrendsSemiCircle
                         homeWinPercentage={data.predictionTrends.homeWin.percentage}
                         drawPercentage={data.predictionTrends.draw.percentage}
