@@ -2,7 +2,23 @@
 -- Date: 2026-01-28
 -- Description: Adds new purchase types for stats feature access (per-tournament and lifetime)
 
--- Index pour lookup rapide accès stats
+-- 1. Drop existing constraint and add new one with stats_access types
+ALTER TABLE public.tournament_purchases
+DROP CONSTRAINT IF EXISTS tournament_purchases_purchase_type_check;
+
+ALTER TABLE public.tournament_purchases
+ADD CONSTRAINT tournament_purchases_purchase_type_check
+CHECK (purchase_type IN (
+  'tournament_creation',
+  'slot_invite',
+  'duration_extension',
+  'player_extension',
+  'platinium_participation',
+  'stats_access_tournament',
+  'stats_access_lifetime'
+));
+
+-- 2. Index pour lookup rapide accès stats
 CREATE INDEX IF NOT EXISTS idx_tournament_purchases_stats_access
 ON public.tournament_purchases(user_id, purchase_type, status)
 WHERE purchase_type IN ('stats_access_tournament', 'stats_access_lifetime');
