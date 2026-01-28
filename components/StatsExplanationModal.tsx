@@ -95,7 +95,7 @@ export default function StatsExplanationModal({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-sm theme-text">
-                <strong>Tendances des pronostics</strong> - Découvrez ce que parient les autres joueurs sur ce match
+                <strong>Tendances des pronostics</strong> - Découvrez ce que la communauté pronostique pour ce match
               </span>
             </li>
           </ul>
@@ -145,7 +145,7 @@ export default function StatsExplanationModal({
           </div>
 
           <p className="text-xs theme-text-secondary text-center">
-            Gratuit pour les tournois Elite et Platinium
+            Fonctionnalité gratuite pour les tournois Elite et Platinium
           </p>
         </div>
 

@@ -74,7 +74,14 @@
       "Bash(C:/Users/kochr/AppData/Local/supabase-cli/supabase.exe db push:*)",
       "Bash(echo \"Le serveur dev doit être lancé. Lance ''npm run dev'' puis accède à http://localhost:3100/api/test-inactive-email\")",
       "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/keytool.exe\" -list -v -keystore \"/c/Users/kochr/.android/debug.keystore\" -alias androiddebugkey -storepass android)",
-      "Bash(vercel logs:*)"
+      "Bash(vercel logs:*)",
+      "Bash(npx next build)",
+      "Bash(git -C \"c:/Users/mjardin/Desktop/PronoHub\" show 2b0a4cc --stat)",
+      "Bash(git -C \"c:/Users/mjardin/Desktop/PronoHub\" show 2b0a4cc~1:app/api/admin/credits/route.ts)",
+      "Bash(git -C \"c:/Users/mjardin/Desktop/PronoHub\" show 2b0a4cc~1:app/api/admin/credits/add/route.ts)",
+      "Bash(git diff-tree:*)",
+      "Bash(\"app/api/admin/custom-competitions/[id]/matchdays/[matchdayId]/matches/route.ts\")",
+      "WebFetch(domain:developers.facebook.com)"
     ],
     "deny": [],
     "ask": []

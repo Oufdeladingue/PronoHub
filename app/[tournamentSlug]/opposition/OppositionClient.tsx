@@ -2327,8 +2327,8 @@ export default function OppositionClient({
                                     </div>
                                   )}
 
-                                  {/* Bouton d'action (sauvegarder/modifier) + Stats */}
-                                  <div className="flex justify-center items-center gap-2">
+                                  {/* Bouton d'action (sauvegarder/modifier) */}
+                                  <div className="flex justify-center items-center gap-2 relative">
                                     {isClosed ? (
                                       hasFirstMatchStarted() ? null : (
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
@@ -2374,7 +2374,7 @@ export default function OppositionClient({
                                         )}
                                       </button>
                                     )}
-                                    {/* Bouton Stats */}
+                                    {/* Bouton Stats (Mobile) - positionné à droite */}
                                     {match.home_team_id && match.away_team_id && tournament?.competition_id && (
                                       <StatsButton
                                         matchId={match.id}
@@ -2700,25 +2700,27 @@ export default function OppositionClient({
                                           )}
                                         </button>
                                       )}
-
-                                      {/* Bouton Stats (Desktop) */}
-                                      {match.home_team_id && match.away_team_id && tournament?.competition_id && (
-                                        <StatsButton
-                                          matchId={match.id}
-                                          tournamentId={tournament.id}
-                                          competitionId={tournament.competition_id}
-                                          homeTeamId={match.home_team_id}
-                                          awayTeamId={match.away_team_id}
-                                          homeTeamName={match.home_team_name}
-                                          awayTeamName={match.away_team_name}
-                                          hasAccess={statsAccess.hasAccess}
-                                          size="md"
-                                          returnUrl={`/${tournamentSlug}/opposition`}
-                                        />
-                                      )}
                                     </div>
                                   </div>
                                 </div>
+
+                                {/* Bouton Stats (Desktop) - positionné en bas à droite */}
+                                {match.home_team_id && match.away_team_id && tournament?.competition_id && (
+                                  <div className="hidden md:flex justify-end mt-2">
+                                    <StatsButton
+                                      matchId={match.id}
+                                      tournamentId={tournament.id}
+                                      competitionId={tournament.competition_id}
+                                      homeTeamId={match.home_team_id}
+                                      awayTeamId={match.away_team_id}
+                                      homeTeamName={match.home_team_name}
+                                      awayTeamName={match.away_team_name}
+                                      hasAccess={statsAccess.hasAccess}
+                                      size="md"
+                                      returnUrl={`/${tournamentSlug}/opposition`}
+                                    />
+                                  </div>
+                                )}
 
                                 {/* Accordéon pour voir les pronostics des autres (seulement si journée clôturée) */}
                                 {isClosed && (
