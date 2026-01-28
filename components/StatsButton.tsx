@@ -55,19 +55,17 @@ export default function StatsButton({
     }
   }
 
-  const iconSize = size === 'sm' ? 16 : 20
-  const buttonClasses = size === 'sm'
-    ? 'p-1.5 rounded-lg'
-    : 'p-2 rounded-lg'
+  const iconSize = size === 'sm' ? 14 : 16
+  const buttonSize = size === 'sm' ? 'w-7 h-7' : 'w-8 h-8'
 
   return (
     <>
       <button
         onClick={handleClick}
-        className={`${buttonClasses} transition-colors ${
+        className={`${buttonSize} flex items-center justify-center rounded-full border transition-all duration-200 ${
           hasAccess
-            ? 'text-slate-400 dark:text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-            : 'text-slate-300 dark:text-slate-600 opacity-60 hover:opacity-80 hover:bg-slate-100 dark:hover:bg-slate-700/30'
+            ? 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-orange-400 hover:text-orange-500 dark:hover:border-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+            : 'border-slate-200 dark:border-slate-700 text-slate-300 dark:text-slate-600 opacity-70 hover:opacity-100 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-400 dark:hover:text-slate-500'
         }`}
         title={hasAccess ? 'Voir les stats du match' : 'Débloquer les statistiques'}
       >
