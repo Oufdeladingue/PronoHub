@@ -59,45 +59,47 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
     setIsDownloading(true)
     try {
-      // Trouver tous les éléments problématiques
-      const starsContainer = cardRef.current.querySelector('.stars-container') as HTMLElement
-      const allGlowEffects = cardRef.current.querySelectorAll('.blur-2xl')
+      // APPROCHE RADICALE: Cloner l'élément et nettoyer les classes problématiques
+      const clone = cardRef.current.cloneNode(true) as HTMLElement
 
-      // Sauvegarder les styles originaux de tous les éléments
-      const originalStyles: Array<{ element: HTMLElement; cssText: string }> = []
-
-      // Masquer le conteneur d'étoiles
-      if (starsContainer) {
-        originalStyles.push({ element: starsContainer, cssText: starsContainer.style.cssText })
-        starsContainer.style.cssText = 'display: none !important;'
+      // Supprimer physiquement le conteneur d'étoiles du clone
+      const starsInClone = clone.querySelector('.stars-container')
+      if (starsInClone) {
+        starsInClone.remove()
       }
 
-      // Pour tous les éléments avec blur-2xl, forcer un background compatible
-      allGlowEffects.forEach((el) => {
+      // Remplacer tous les éléments blur-2xl par des divs simples avec background rgba
+      const glowEffects = clone.querySelectorAll('.blur-2xl')
+      glowEffects.forEach((el) => {
         const htmlEl = el as HTMLElement
-        originalStyles.push({ element: htmlEl, cssText: htmlEl.style.cssText })
-        // Remplacer par un background simple en rgba
-        htmlEl.style.cssText = `background-color: ${themeColor} !important; filter: blur(40px) !important; opacity: 0.4 !important;`
+        // Supprimer la classe blur-2xl et animate-pulse
+        htmlEl.classList.remove('blur-2xl', 'animate-pulse')
+        // Appliquer un style inline simple
+        htmlEl.style.backgroundColor = themeColor
+        htmlEl.style.filter = 'blur(40px)'
+        htmlEl.style.opacity = '0.4'
       })
 
+      // Insérer le clone hors de la vue
+      clone.style.position = 'fixed'
+      clone.style.left = '-9999px'
+      clone.style.top = '0'
+      document.body.appendChild(clone)
+
+      // Attendre que le clone soit rendu
+      await new Promise(resolve => setTimeout(resolve, 100))
+
       const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(clone, {
         backgroundColor: '#000000',
         scale: 2,
         logging: false,
         useCORS: true,
-        allowTaint: true,
-        ignoreElements: (element) => {
-          // Ignorer complètement les étoiles animées
-          return element.classList?.contains('animate-fall-star') ||
-                 element.classList?.contains('stars-container')
-        }
+        allowTaint: true
       })
 
-      // Restaurer tous les styles originaux
-      originalStyles.forEach(({ element, cssText }) => {
-        element.style.cssText = cssText
-      })
+      // Supprimer le clone du DOM
+      document.body.removeChild(clone)
 
       canvas.toBlob((blob) => {
         if (blob) {
