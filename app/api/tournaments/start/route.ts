@@ -479,11 +479,14 @@ async function sendTournamentLaunchNotifications(
       await sendNotificationToTournament(
         tournamentId,
         'tournament_started',
-        `🚀 ${tournament.name} est lancé !`,
-        `Le tournoi vient d'être lancé. Premier match : ${firstMatchDate}. À toi de jouer !`,
         {
-          type: 'tournament_started',
-          tournamentSlug: tournament.slug
+          title: `🚀 ${tournament.name} est lancé !`,
+          body: `Le tournoi vient d'être lancé. Premier match : ${firstMatchDate}. À toi de jouer !`,
+          tournamentSlug: tournament.slug,
+          data: {
+            type: 'tournament_started',
+            tournamentSlug: tournament.slug
+          }
         }
       )
       console.log('[START] Push notifications sent')
