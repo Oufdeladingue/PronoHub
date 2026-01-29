@@ -195,6 +195,7 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
 
 async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: Date) {
   // Chercher le dernier match prédit qui s'est terminé avant le déblocage
+  // Augmenter la limite pour gérer les matchs orphelins
   const { data: predictions } = await supabase
     .from('predictions')
     .select(`
@@ -208,7 +209,7 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
     .eq('user_id', userId)
     .lte('created_at', unlockDate.toISOString())
     .order('created_at', { ascending: false })
-    .limit(10) // Prendre les 10 derniers
+    .limit(50) // Augmenter pour avoir plus de chances de trouver un match valide
 
   if (!predictions || predictions.length === 0) return null
 
@@ -216,12 +217,16 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
   for (const pred of predictions) {
     try {
       const matchDetails = await getMatchDetails(supabase, pred.match_id, pred.tournaments)
-      if (matchDetails) {
-        // Vérifier si le match est terminé
-        const isFinished = await isMatchFinished(supabase, pred.match_id, pred.tournaments)
-        if (isFinished) {
-          return matchDetails
-        }
+      // getMatchDetails peut retourner null si le match n'existe plus
+      if (!matchDetails) {
+        console.log(`[trophy-unlock-info] Match ${pred.match_id} introuvable, passage au suivant`)
+        continue
+      }
+
+      // Vérifier si le match est terminé
+      const isFinished = await isMatchFinished(supabase, pred.match_id, pred.tournaments)
+      if (isFinished) {
+        return matchDetails
       }
     } catch (error) {
       // Si erreur sur ce match, passer au suivant
@@ -234,8 +239,39 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
 }
 
 async function findLastPredictedMatch(supabase: any, userId: string, unlockDate: Date) {
-  // Même logique que findLastMatchdayMatch
-  return await findLastMatchdayMatch(supabase, userId, unlockDate)
+  // D'abord essayer avec les predictions (peut avoir des matchs orphelins)
+  const matchFromPredictions = await findLastMatchdayMatch(supabase, userId, unlockDate)
+  if (matchFromPredictions) return matchFromPredictions
+
+  // Fallback: chercher directement dans tous les matchs terminés importés avant le unlock
+  // pour gérer le cas où toutes les predictions pointent vers des matchs custom supprimés
+  console.log('[trophy-unlock-info] Fallback: recherche dans imported_matches')
+
+  const { data: importedMatches } = await supabase
+    .from('imported_matches')
+    .select('*')
+    .eq('status', 'FINISHED')
+    .lte('utc_date', unlockDate.toISOString())
+    .order('utc_date', { ascending: false })
+    .limit(1)
+
+  if (!importedMatches || importedMatches.length === 0) return null
+
+  const match = importedMatches[0]
+
+  // Récupérer les équipes
+  const [homeTeam, awayTeam] = await Promise.all([
+    supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).limit(1),
+    supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).limit(1)
+  ])
+
+  return {
+    home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
+    away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
+    home_team_logo: homeTeam.data?.[0]?.logo,
+    away_team_logo: awayTeam.data?.[0]?.logo,
+    competition_id: match.competition_id
+  }
 }
 
 // Helper pour récupérer les détails d'un match

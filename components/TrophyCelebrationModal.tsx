@@ -59,40 +59,44 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
     setIsDownloading(true)
     try {
-      // Masquer temporairement tous les éléments avec classes Tailwind qui causent des problèmes
+      // Trouver tous les éléments problématiques
       const starsContainer = cardRef.current.querySelector('.stars-container') as HTMLElement
-      const glowEffect = cardRef.current.querySelector('.blur-2xl') as HTMLElement
+      const allGlowEffects = cardRef.current.querySelectorAll('.blur-2xl')
 
-      // Sauvegarder les styles originaux
-      const originalStyles: { element: HTMLElement; display: string }[] = []
+      // Sauvegarder les styles originaux de tous les éléments
+      const originalStyles: Array<{ element: HTMLElement; cssText: string }> = []
 
+      // Masquer le conteneur d'étoiles
       if (starsContainer) {
-        originalStyles.push({ element: starsContainer, display: starsContainer.style.display })
-        starsContainer.style.display = 'none'
+        originalStyles.push({ element: starsContainer, cssText: starsContainer.style.cssText })
+        starsContainer.style.cssText = 'display: none !important;'
       }
 
-      if (glowEffect) {
-        originalStyles.push({ element: glowEffect, display: glowEffect.style.display })
-        glowEffect.style.display = 'none'
-      }
+      // Pour tous les éléments avec blur-2xl, forcer un background compatible
+      allGlowEffects.forEach((el) => {
+        const htmlEl = el as HTMLElement
+        originalStyles.push({ element: htmlEl, cssText: htmlEl.style.cssText })
+        // Remplacer par un background simple en rgba
+        htmlEl.style.cssText = `background-color: ${themeColor} !important; filter: blur(40px) !important; opacity: 0.4 !important;`
+      })
 
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: bgColor,
+        backgroundColor: '#000000',
         scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
         ignoreElements: (element) => {
-          // Ignorer les éléments avec des animations ou des effets complexes
-          return element.classList?.contains('animate-pulse') ||
-                 element.classList?.contains('animate-fall-star')
+          // Ignorer complètement les étoiles animées
+          return element.classList?.contains('animate-fall-star') ||
+                 element.classList?.contains('stars-container')
         }
       })
 
-      // Restaurer les styles originaux
-      originalStyles.forEach(({ element, display }) => {
-        element.style.display = display
+      // Restaurer tous les styles originaux
+      originalStyles.forEach(({ element, cssText }) => {
+        element.style.cssText = cssText
       })
 
       canvas.toBlob((blob) => {

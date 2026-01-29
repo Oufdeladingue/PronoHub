@@ -18,8 +18,7 @@ async function resetTrophiesNew() {
     if (userError) throw userError
 
     const romsUser = users.find(u =>
-      u.email?.toLowerCase().includes('rom') ||
-      u.user_metadata?.username?.toLowerCase().includes('rom')
+      u.email === 'kochroman6@gmail.com'
     )
 
     if (!romsUser) {
