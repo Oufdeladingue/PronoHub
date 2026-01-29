@@ -408,3 +408,172 @@ Session: ${stripeSessionId}
     subject: `💰 Transaction : ${(amount / 100).toFixed(2)}€ - ${purchaseLabel}`
   }
 }
+
+// Interface pour alerte lancement tournoi
+export interface TournamentStartedAlertProps {
+  tournamentName: string
+  tournamentType: string
+  competitionName: string
+  captainUsername: string
+  captainEmail: string
+  participantsCount: number
+  participants: Array<{ username: string; isCaptain: boolean }>
+  matchdayRange: { start: number; end: number; totalMatches: number }
+  firstMatchDate: string
+  bonusEnabled: boolean
+  startedAt: string
+}
+
+// Template: Alerte lancement tournoi (admin)
+export function getTournamentStartedAlertTemplate(props: TournamentStartedAlertProps) {
+  const {
+    tournamentName,
+    tournamentType,
+    competitionName,
+    captainUsername,
+    captainEmail,
+    participantsCount,
+    participants,
+    matchdayRange,
+    firstMatchDate,
+    bonusEnabled,
+    startedAt
+  } = props
+
+  const typeLabels: Record<string, string> = {
+    'free': '🟢 Free-Kick',
+    'oneshot': '🔵 One-Shot',
+    'elite': '🟠 Elite Team',
+    'platinium': '🟡 Platinium',
+    'event': '🏆 Événement',
+  }
+
+  const typeLabel = typeLabels[tournamentType] || tournamentType
+
+  const participantsHtml = participants.map(p =>
+    `<span style="display: inline-block; background-color: ${p.isCaptain ? '#ff9900' : '#1e293b'}; color: ${p.isCaptain ? '#000' : '#e0e0e0'}; padding: 4px 10px; border-radius: 16px; margin: 3px; font-size: 12px;">${p.username}${p.isCaptain ? ' (cap.)' : ''}</span>`
+  ).join('')
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tournoi lancé - PronoHub</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 500px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 30px; text-align: center; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+              <h1 style="margin: 0; color: #fff; font-size: 24px; font-weight: 700;">
+                🚀 Tournoi lancé !
+              </h1>
+              <p style="margin: 10px 0 0; color: #dcfce7; font-size: 18px; font-weight: 600;">
+                ${tournamentName}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Type</span><br>
+                    <span style="color: #ff9900; font-size: 16px; font-weight: 600;">${typeLabel}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Compétition</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${competitionName}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Capitaine</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${captainUsername}</span>
+                    <br><span style="color: #888; font-size: 13px;">${captainEmail}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Journées</span><br>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">J${matchdayRange.start} → J${matchdayRange.end} (${matchdayRange.totalMatches} matchs)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Premier match</span><br>
+                    <span style="color: #22c55e; font-size: 16px; font-weight: 600;">${firstMatchDate}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
+                    <span style="color: #888; font-size: 14px;">Bonus</span><br>
+                    <span style="color: ${bonusEnabled ? '#22c55e' : '#ef4444'}; font-size: 16px; font-weight: 600;">${bonusEnabled ? '✅ Activé' : '❌ Désactivé'}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0;">
+                    <span style="color: #888; font-size: 14px;">Participants (${participantsCount})</span><br>
+                    <div style="margin-top: 8px; line-height: 2;">
+                      ${participantsHtml}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 20px 0 0; color: #64748b; font-size: 12px; text-align: center;">
+                Lancé le ${startedAt}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 30px; background-color: #0f0f1a; text-align: center;">
+              <p style="margin: 0; color: #666; font-size: 12px;">
+                Alerte automatique PronoHub
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+
+  const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}`).join('\n')
+
+  const text = `
+🚀 Tournoi lancé sur PronoHub !
+
+Nom: ${tournamentName}
+Type: ${typeLabel}
+Compétition: ${competitionName}
+Capitaine: ${captainUsername} (${captainEmail})
+Journées: J${matchdayRange.start} → J${matchdayRange.end} (${matchdayRange.totalMatches} matchs)
+Premier match: ${firstMatchDate}
+Bonus: ${bonusEnabled ? 'Activé' : 'Désactivé'}
+
+Participants (${participantsCount}):
+${participantsText}
+
+Lancé le: ${startedAt}
+`
+
+  return {
+    html,
+    text,
+    subject: `🚀 Tournoi lancé : ${tournamentName} (${participantsCount} joueurs)`
+  }
+}

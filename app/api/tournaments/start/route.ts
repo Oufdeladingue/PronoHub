@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendTournamentStartedEmail, sendTournamentStartedAdminAlert } from '@/lib/email'
+import { sendNotificationToTournament } from '@/lib/notifications'
 
 interface StartTournamentRequest {
   tournamentId: string
@@ -278,6 +280,17 @@ export async function POST(request: NextRequest) {
       .eq('id', tournamentId)
       .single()
 
+    // 9. Envoyer les emails et notifications aux participants (async, sans bloquer la réponse)
+    sendTournamentLaunchNotifications(
+      supabase,
+      tournamentId,
+      tournament,
+      competition!,
+      startingMatchday,
+      endingMatchday,
+      actualMatchdays
+    ).catch(err => console.error('[START] Error sending launch notifications:', err))
+
     return NextResponse.json({
       success: true,
       message: 'Tournament started successfully',
@@ -298,5 +311,188 @@ export async function POST(request: NextRequest) {
       { error: error.message },
       { status: 500 }
     )
+  }
+}
+
+// Fonction pour envoyer les emails et notifications de lancement
+async function sendTournamentLaunchNotifications(
+  supabase: any,
+  tournamentId: string,
+  tournament: any,
+  competition: { id: any; name: string; current_matchday: number | null; total_matchdays: number | null },
+  startingMatchday: number,
+  endingMatchday: number,
+  actualMatchdays: number
+) {
+  try {
+    console.log('[START] Sending launch notifications for tournament:', tournament.name)
+
+    // 1. Récupérer tous les participants avec leurs infos
+    const { data: participants } = await supabase
+      .from('tournament_participants')
+      .select(`
+        user_id,
+        profiles!inner(id, email, username, notification_preferences)
+      `)
+      .eq('tournament_id', tournamentId)
+
+    if (!participants || participants.length === 0) {
+      console.log('[START] No participants found')
+      return
+    }
+
+    // 2. Récupérer le capitaine
+    const { data: captain } = await supabase
+      .from('profiles')
+      .select('id, email, username')
+      .eq('id', tournament.captain_id)
+      .single()
+
+    // 3. Récupérer le premier match pour la date
+    let firstMatchDate = 'À déterminer'
+    let firstMatchDeadline = ''
+    let totalMatches = 0
+
+    if (tournament.competition_id) {
+      const { data: matches } = await supabase
+        .from('imported_matches')
+        .select('utc_date')
+        .eq('competition_id', tournament.competition_id)
+        .gte('matchday', startingMatchday)
+        .lte('matchday', endingMatchday)
+        .order('utc_date', { ascending: true })
+
+      if (matches && matches.length > 0) {
+        totalMatches = matches.length
+        const firstMatch = new Date(matches[0].utc_date)
+        const deadline = new Date(firstMatch.getTime() - 30 * 60 * 1000) // 30 min avant
+
+        // Formater la date en français
+        firstMatchDate = firstMatch.toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        // Mettre la première lettre en majuscule
+        firstMatchDate = firstMatchDate.charAt(0).toUpperCase() + firstMatchDate.slice(1)
+
+        firstMatchDeadline = deadline.toLocaleTimeString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }
+    }
+
+    // 4. Préparer la liste des participants pour l'email
+    const participantsList = participants.map((p: any) => ({
+      username: p.profiles?.username || 'Joueur',
+      isCaptain: p.user_id === tournament.captain_id
+    }))
+
+    // 5. Compter le nb de tournois actifs par participant (pour l'email)
+    const participantTournamentCounts: Record<string, number> = {}
+    for (const p of participants) {
+      const { count } = await supabase
+        .from('tournament_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', p.user_id)
+        .eq('tournaments.status', 'active')
+
+      participantTournamentCounts[p.user_id] = count || 1
+    }
+
+    // 6. Envoyer l'email à chaque participant
+    const emailPromises = participants.map(async (p: any) => {
+      const profile = p.profiles
+      if (!profile?.email) return
+
+      // Vérifier les préférences de notification
+      const prefs = profile.notification_preferences || {}
+      if (prefs.email_tournament_started === false) {
+        console.log('[START] Email disabled for user:', profile.username)
+        return
+      }
+
+      try {
+        await sendTournamentStartedEmail(profile.email, {
+          username: profile.username || 'Champion',
+          tournamentName: tournament.name,
+          tournamentSlug: tournament.slug,
+          competitionName: competition.name,
+          participants: participantsList,
+          matchdayRange: {
+            start: startingMatchday,
+            end: endingMatchday,
+            totalMatches
+          },
+          firstMatchDate,
+          firstMatchDeadline,
+          rules: {
+            exactScore: tournament.points_exact_score || 3,
+            correctResult: tournament.points_correct_result || 1,
+            correctGoalDiff: tournament.points_goal_diff || 2,
+            bonusEnabled: tournament.bonus_match || false,
+            bonusPoints: tournament.bonus_points || 5,
+            defaultPredictionMaxPoints: tournament.default_prediction_max_points || 1
+          },
+          userActiveTournaments: participantTournamentCounts[p.user_id] || 1
+        })
+        console.log('[START] Email sent to:', profile.email)
+      } catch (err) {
+        console.error('[START] Error sending email to', profile.email, err)
+      }
+    })
+
+    await Promise.all(emailPromises)
+
+    // 7. Envoyer l'email admin
+    try {
+      await sendTournamentStartedAdminAlert({
+        tournamentName: tournament.name,
+        tournamentType: tournament.type || 'free',
+        competitionName: competition.name,
+        captainUsername: captain?.username || 'Inconnu',
+        captainEmail: captain?.email || 'N/A',
+        participantsCount: participants.length,
+        participants: participantsList,
+        matchdayRange: {
+          start: startingMatchday,
+          end: endingMatchday,
+          totalMatches
+        },
+        firstMatchDate,
+        bonusEnabled: tournament.bonus_match || false,
+        startedAt: new Date().toLocaleString('fr-FR', {
+          dateStyle: 'full',
+          timeStyle: 'short'
+        })
+      })
+      console.log('[START] Admin alert sent')
+    } catch (err) {
+      console.error('[START] Error sending admin alert:', err)
+    }
+
+    // 8. Envoyer les notifications push
+    try {
+      await sendNotificationToTournament(
+        tournamentId,
+        'tournament_started',
+        `🚀 ${tournament.name} est lancé !`,
+        `Le tournoi vient d'être lancé. Premier match : ${firstMatchDate}. À toi de jouer !`,
+        {
+          type: 'tournament_started',
+          tournamentSlug: tournament.slug
+        }
+      )
+      console.log('[START] Push notifications sent')
+    } catch (err) {
+      console.error('[START] Error sending push notifications:', err)
+    }
+
+    console.log('[START] All launch notifications sent successfully')
+  } catch (error) {
+    console.error('[START] Error in sendTournamentLaunchNotifications:', error)
   }
 }

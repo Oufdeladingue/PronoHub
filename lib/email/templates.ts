@@ -41,6 +41,7 @@ export interface TournamentStartedEmailProps {
     totalMatches: number
   }
   firstMatchDate: string // Format: "Samedi 30 novembre à 21h00"
+  firstMatchDeadline: string // Format: "20h30" (30min avant le match)
   rules: {
     exactScore: number
     correctResult: number
@@ -814,6 +815,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
     participants,
     matchdayRange,
     firstMatchDate,
+    firstMatchDeadline,
     rules,
     userActiveTournaments
   } = props
@@ -831,9 +833,25 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
     <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Score exact</td><td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">+${rules.exactScore} pts</td></tr>
     <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bon résultat (1N2)</td><td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctResult} pts</td></tr>
     <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonne différence de buts</td><td style="padding: 6px 0; color: #8b5cf6; font-size: 13px; text-align: right; font-weight: 600;">+${rules.correctGoalDiff} pts</td></tr>
-    ${rules.bonusEnabled ? `<tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bonus activé</td><td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">+${rules.bonusPoints || 0} pts</td></tr>` : ''}
     <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Prono par défaut (max)</td><td style="padding: 6px 0; color: #ef4444; font-size: 13px; text-align: right; font-weight: 600;">${rules.defaultPredictionMaxPoints} pts max</td></tr>
   `
+
+  // Bonus HTML (explication détaillée)
+  const bonusHtml = rules.bonusEnabled ? `
+    <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
+      <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">🎰 Bonus "Double ou Quitté"</h3>
+      <p style="margin: 0 0 8px; color: #e0e0e0; font-size: 13px; line-height: 1.5;">
+        Ce tournoi a le <strong style="color: #ff9900;">bonus activé</strong> ! Sur chaque journée, tu peux miser sur UN match de ton choix :
+      </p>
+      <ul style="margin: 8px 0; padding-left: 20px; color: #94a3b8; font-size: 13px; line-height: 1.8;">
+        <li>✅ Si ton prono est <strong style="color: #22c55e;">correct</strong> : tu gagnes <strong style="color: #ff9900;">+${rules.bonusPoints || 0} points bonus</strong></li>
+        <li>❌ Si ton prono est <strong style="color: #ef4444;">faux</strong> : tu perds <strong style="color: #ef4444;">${rules.bonusPoints || 0} points</strong></li>
+      </ul>
+      <p style="margin: 0; color: #64748b; font-size: 12px;">
+        💡 Stratégie : choisis un match dont tu es sûr du résultat !
+      </p>
+    </div>
+  ` : ''
 
   const html = `
 <!DOCTYPE html>
@@ -907,6 +925,36 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
                 </table>
               </div>
 
+              <!-- Bonus (si activé) -->
+              ${bonusHtml}
+
+              <!-- Important : deadline -->
+              <div style="background-color: #1e3a5f; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #3b82f6;">
+                <h3 style="margin: 0 0 12px; color: #3b82f6; font-size: 16px;">⏰ Important</h3>
+                <p style="margin: 0 0 8px; color: #e0e0e0; font-size: 13px; line-height: 1.5;">
+                  Les pronostics doivent être validés <strong style="color: #ff9900;">30 minutes avant le coup d'envoi</strong> de chaque match.
+                </p>
+                <p style="margin: 0; color: #94a3b8; font-size: 13px;">
+                  📅 Premier match : <strong style="color: #22c55e;">${firstMatchDate}</strong><br>
+                  ⏱️ Limite pour pronostiquer : <strong style="color: #ff9900;">${firstMatchDeadline || 'Voir app'}</strong>
+                </p>
+              </div>
+
+              <!-- Alertes -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">🔔 Ne rate aucun match !</h3>
+                <p style="margin: 0 0 12px; color: #e0e0e0; font-size: 13px; line-height: 1.5;">
+                  Configure tes alertes pour recevoir des rappels avant chaque journée :
+                </p>
+                <ul style="margin: 0; padding-left: 20px; color: #94a3b8; font-size: 13px; line-height: 1.8;">
+                  <li>📧 <strong>Emails</strong> : rappels de pronostics, récaps de journée</li>
+                  <li>📱 <strong>Notifications push</strong> : alertes instantanées sur ton mobile</li>
+                </ul>
+                <p style="margin: 12px 0 0; color: #64748b; font-size: 12px;">
+                  👉 <a href="https://www.pronohub.club/profile" style="color: #ff9900; text-decoration: none;">Gérer mes alertes dans mon profil</a>
+                </p>
+              </div>
+
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
                 <a href="${tournamentUrl}/opposition" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
@@ -963,6 +1011,14 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
 
   const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}`).join('\n')
 
+  const bonusText = rules.bonusEnabled ? `
+🎰 BONUS "DOUBLE OU QUITTÉ"
+Ce tournoi a le bonus activé ! Sur chaque journée, tu peux miser sur UN match :
+- ✅ Prono correct : +${rules.bonusPoints || 0} points bonus
+- ❌ Prono faux : -${rules.bonusPoints || 0} points
+Stratégie : choisis un match dont tu es sûr du résultat !
+` : ''
+
   const text = `
 🚀 C'est parti ! Le tournoi ${tournamentName} est lancé !
 
@@ -983,13 +1039,22 @@ ${participantsText}
 - Score exact : +${rules.exactScore} pts
 - Bon résultat (1N2) : +${rules.correctResult} pts
 - Bonne différence de buts : +${rules.correctGoalDiff} pts
-${rules.bonusEnabled ? `- Bonus : +${rules.bonusPoints || 0} pts` : ''}
 - Prono par défaut : ${rules.defaultPredictionMaxPoints} pts max
+${bonusText}
+⏰ IMPORTANT
+Les pronostics doivent être validés 30 MINUTES AVANT le coup d'envoi de chaque match.
+- Premier match : ${firstMatchDate}
+- Limite pour pronostiquer : ${firstMatchDeadline || 'Voir app'}
+
+🔔 NE RATE AUCUN MATCH !
+Configure tes alertes pour recevoir des rappels :
+- 📧 Emails : rappels de pronostics, récaps de journée
+- 📱 Notifications push : alertes instantanées sur ton mobile
+👉 Gérer mes alertes : ${baseUrl}/profile
 
 🎯 Pronostiquer : ${tournamentUrl}/opposition
 🏆 Classement : ${tournamentUrl}/classement
 💬 Tchat : ${tournamentUrl}/tchat
-⚙️ Gérer mes alertes : ${baseUrl}/profile
 ⭐ Passer Premium : ${baseUrl}/premium
 
 Tu participes à ${userActiveTournaments} tournoi${userActiveTournaments > 1 ? 's' : ''} actif${userActiveTournaments > 1 ? 's' : ''}.

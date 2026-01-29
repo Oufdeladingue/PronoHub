@@ -1,5 +1,10 @@
 import resend, { EMAIL_CONFIG } from './resend'
 import {
+  ADMIN_EMAIL,
+  getTournamentStartedAlertTemplate,
+  TournamentStartedAlertProps
+} from './admin-templates'
+import {
   getWelcomeEmailTemplate,
   getTournamentInviteTemplate,
   getMatchReminderTemplate,
@@ -194,4 +199,12 @@ export async function sendBulkEmails(
   }
 
   return results
+}
+
+// Email alerte admin : tournoi lancé
+export async function sendTournamentStartedAdminAlert(
+  props: TournamentStartedAlertProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getTournamentStartedAlertTemplate(props)
+  return sendEmail(ADMIN_EMAIL, subject, html, text)
 }
