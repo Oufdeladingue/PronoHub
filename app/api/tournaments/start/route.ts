@@ -404,6 +404,7 @@ async function sendTournamentLaunchNotifications(
     let totalMatches = 0
 
     if (tournament.competition_id) {
+      // Compétition importée
       const { data: matches } = await supabase
         .from('imported_matches')
         .select('utc_date')
@@ -432,6 +433,47 @@ async function sendTournamentLaunchNotifications(
           hour: '2-digit',
           minute: '2-digit'
         })
+      }
+    } else if (tournament.custom_competition_id) {
+      // Compétition custom - récupérer les matchdays puis les matchs
+      const { data: matchdays } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .gte('matchday_number', startingMatchday)
+        .lte('matchday_number', endingMatchday)
+
+      if (matchdays && matchdays.length > 0) {
+        const matchdayIds = matchdays.map((md: any) => md.id)
+
+        const { data: customMatches } = await supabase
+          .from('custom_competition_matches')
+          .select('cached_utc_date')
+          .in('custom_matchday_id', matchdayIds)
+          .not('cached_utc_date', 'is', null)
+          .order('cached_utc_date', { ascending: true })
+
+        if (customMatches && customMatches.length > 0) {
+          totalMatches = customMatches.length
+          const firstMatch = new Date(customMatches[0].cached_utc_date)
+          const deadline = new Date(firstMatch.getTime() - 30 * 60 * 1000) // 30 min avant
+
+          // Formater la date en français
+          firstMatchDate = firstMatch.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          // Mettre la première lettre en majuscule
+          firstMatchDate = firstMatchDate.charAt(0).toUpperCase() + firstMatchDate.slice(1)
+
+          firstMatchDeadline = deadline.toLocaleTimeString('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        }
       }
     }
 
