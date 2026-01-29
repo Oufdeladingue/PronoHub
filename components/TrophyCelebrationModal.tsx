@@ -360,11 +360,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             {trophy.description}
           </p>
 
-          {/* Date de déblocage */}
-          <p className="text-xs text-gray-400 text-center mb-4">
-            Débloqué le {unlockedDate}
-          </p>
-
           {/* Match déclencheur */}
           {trophy.triggerMatch && (
             <div
@@ -372,7 +367,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
             >
               <p className="text-xs text-gray-400 mb-2 text-center">
-                Match déclencheur
+                Débloqué le {unlockedDate} grâce à :
               </p>
               <div className="flex items-center justify-center gap-3">
                 {/* Équipe domicile */}

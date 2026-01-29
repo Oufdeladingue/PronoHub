@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
       match: {
         homeTeamName: match.home_team_name,
         awayTeamName: match.away_team_name,
-        homeTeamLogo: match.home_team_crest,
-        awayTeamLogo: match.away_team_crest,
+        homeTeamCrest: match.home_team_crest,
+        awayTeamCrest: match.away_team_crest,
         competitionId: match.competition_id
       }
     })
