@@ -62,6 +62,43 @@ export function useTrophyNotifications() {
         return
       }
 
+      // Vérifier d'abord s'il y a des trophées is_new dans les trophées stockés
+      const existingNewTrophies = data.trophies?.filter((t: Trophy) => t.is_new) || []
+
+      if (existingNewTrophies.length > 0) {
+        // Charger les infos complètes pour les trophées existants marqués comme nouveaux
+        const trophiesWithDetails = await Promise.all(
+          existingNewTrophies.map(async (trophy: Trophy) => {
+            const trophyInfo = getTrophyInfo(trophy.trophy_type)
+
+            // Charger les infos du match déclencheur
+            try {
+              const matchResponse = await fetchWithAuth(
+                `/api/user/trophy-unlock-info?trophyType=${trophy.trophy_type}&unlockedAt=${trophy.unlocked_at}`
+              )
+              const matchData = await matchResponse.json()
+
+              return {
+                ...trophy,
+                ...trophyInfo,
+                triggerMatch: matchData.success ? matchData.match : undefined
+              }
+            } catch (error) {
+              console.error('Error loading trigger match:', error)
+              return {
+                ...trophy,
+                ...trophyInfo
+              }
+            }
+          })
+        )
+
+        setNewTrophies(trophiesWithDetails)
+        localStorage.setItem('trophy_last_check', today)
+        setIsChecking(false)
+        return
+      }
+
       // 2. Lancer le recalcul en arrière-plan
       const refreshResponse = await fetchWithAuth('/api/user/trophies', { method: 'PUT' })
       const refreshData = await refreshResponse.json()
