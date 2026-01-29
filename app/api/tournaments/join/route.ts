@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentType, PRICES, InviteType } from '@/types/monetization'
+import { sendNewPlayerJoinedEmail } from '@/lib/email/send'
 
 // =====================================================
 // Système de join tournoi v2
@@ -592,6 +593,80 @@ export async function POST(request: NextRequest) {
         { error: 'Erreur lors de l\'ajout au tournoi' },
         { status: 500 }
       )
+    }
+
+    // Envoyer un email au capitaine pour l'informer du nouveau joueur
+    try {
+      // Récupérer les infos du capitaine (créateur du tournoi)
+      const { data: captain } = await supabase
+        .from('profiles')
+        .select('id, username, email')
+        .eq('id', tournament.creator_id)
+        .single()
+
+      // Récupérer le username du nouveau joueur
+      const { data: newPlayer } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single()
+
+      // Récupérer tous les participants actuels (incluant le nouveau)
+      const { data: allParticipants, count: currentCount } = await supabase
+        .from('tournament_participants')
+        .select(`
+          user_id,
+          profiles!inner (
+            username
+          )
+        `, { count: 'exact' })
+        .eq('tournament_id', tournament.id)
+
+      // Récupérer le nom de la compétition
+      let competitionName = 'Tournoi personnalisé'
+      if (tournament.competition_id) {
+        const { data: competition } = await supabase
+          .from('competitions')
+          .select('name')
+          .eq('id', tournament.competition_id)
+          .single()
+        if (competition) competitionName = competition.name
+      } else if (tournament.custom_competition_id) {
+        const { data: customComp } = await supabase
+          .from('custom_competitions')
+          .select('name')
+          .eq('id', tournament.custom_competition_id)
+          .single()
+        if (customComp) competitionName = customComp.name
+      }
+
+      // Envoyer l'email au capitaine (seulement si ce n'est pas lui qui rejoint)
+      if (captain && captain.email && captain.id !== user.id) {
+        const participantsList = (allParticipants || []).map((p: any) => ({
+          username: p.profiles?.username || 'Joueur',
+          isCaptain: p.user_id === tournament.creator_id
+        }))
+
+        const currentParticipants = currentCount || participantsList.length
+        const canLaunch = currentParticipants >= 2 // Minimum 2 joueurs pour lancer
+
+        await sendNewPlayerJoinedEmail(captain.email, {
+          captainUsername: captain.username || 'Capitaine',
+          tournamentName: tournament.name,
+          tournamentSlug: `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`,
+          competitionName,
+          newPlayerUsername: newPlayer?.username || 'Nouveau joueur',
+          currentParticipants,
+          maxParticipants: tournament.max_players,
+          participants: participantsList,
+          canLaunchTournament: canLaunch
+        })
+
+        console.log(`[JOIN] Email sent to captain ${captain.email} for new player ${newPlayer?.username}`)
+      }
+    } catch (emailError) {
+      // Ne pas bloquer le join si l'email échoue
+      console.error('[JOIN] Error sending email to captain:', emailError)
     }
 
     // Construire le slug complet pour la redirection
