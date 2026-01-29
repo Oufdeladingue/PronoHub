@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { X, Minus, Plus } from 'lucide-react'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { openExternalUrl } from '@/lib/capacitor'
 
 interface DurationExtensionInfo {
   canExtend: boolean
@@ -114,7 +115,8 @@ export function DurationExtensionBanner({
       const data = await response.json()
 
       if (data.success && data.url) {
-        window.location.href = data.url
+        await openExternalUrl(data.url)
+        // Le spinner sera reset par visibilitychange quand l'user revient
       } else {
         alert(data.error || 'Erreur lors de la création du paiement')
         setBuying(false)

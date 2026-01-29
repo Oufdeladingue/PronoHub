@@ -508,7 +508,7 @@ function EchauffementPageContent() {
     if (tournament.tournament_type !== 'elite' && tournament.tournament_type !== 'platinium') return
 
     try {
-      const response = await fetch(`/api/tournaments/${tournament.id}/teams`)
+      const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/teams`)
       const data = await response.json()
 
       if (response.ok && data.teams) {
@@ -536,7 +536,7 @@ function EchauffementPageContent() {
     if (!tournament?.id || tournament.tournament_type !== 'free') return
 
     try {
-      const response = await fetch(`/api/tournaments/extend-players?tournamentId=${tournament.id}`)
+      const response = await fetchWithAuth(`/api/tournaments/extend-players?tournamentId=${tournament.id}`)
       const data = await response.json()
 
       if (data.success) {
