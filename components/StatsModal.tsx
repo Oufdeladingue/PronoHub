@@ -443,6 +443,16 @@ export default function StatsModal({
         // Initialiser la selection sur le match le plus recent (index 0)
         setHomeSelectedIndex(0)
         setAwaySelectedIndex(0)
+
+        // Vérifier si on doit afficher directement le classement
+        const totalFormMatches = (statsData.homeTeamForm?.length || 0) + (statsData.awayTeamForm?.length || 0)
+        const hasEnoughFormData = totalFormMatches >= 5
+        const hasEnoughTrendsData = statsData.predictionTrends !== null
+
+        // Si pas assez de données de forme ET pas assez de pronostics, afficher directement le classement
+        if (!hasEnoughFormData && !hasEnoughTrendsData) {
+          setShowStandings(true)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue')
       } finally {
@@ -452,6 +462,36 @@ export default function StatsModal({
 
     fetchStats()
   }, [matchId, tournamentId, competitionId, homeTeamId, awayTeamId, homeTeamName, awayTeamName])
+
+  // Calculer si on a assez de données pour afficher les sections
+  const hasEnoughFormData = data ? (data.homeTeamForm.length + data.awayTeamForm.length) >= 5 : false
+  const hasEnoughTrendsData = data?.predictionTrends !== null
+  const showOnlyStandings = data && !hasEnoughFormData && !hasEnoughTrendsData
+
+  // Si pas assez de données, afficher directement le classement
+  if (showOnlyStandings && showStandings) {
+    return (
+      <StandingsModal
+        competitionId={competitionId}
+        competitionEmblem={data?.competitionEmblem}
+        competitionCustomEmblemColor={data?.competitionCustomEmblemColor}
+        competitionCustomEmblemWhite={data?.competitionCustomEmblemWhite}
+        highlightTeamIds={[homeTeamId, awayTeamId]}
+        onClose={onClose}
+      />
+    )
+  }
+
+  // Pendant le chargement initial, afficher un loader
+  if (loading || (showOnlyStandings && !showStandings)) {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="theme-card p-8 rounded-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900] mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -506,41 +546,43 @@ export default function StatsModal({
               </div>
             ) : data ? (
               <>
-                {/* Forme des equipes */}
-                <div>
-                  <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                    Forme recente
-                  </h4>
-                  <div className="space-y-4">
-                    <TeamFormSection
-                      teamName={data.homeTeamName}
-                      teamCrest={data.homeTeamCrest}
-                      matches={data.homeTeamForm}
-                      selectedIndex={homeSelectedIndex}
-                      onSelectIndex={setHomeSelectedIndex}
-                      dotColor="bg-blue-500"
-                      competitionEmblem={data.competitionEmblem}
-                      competitionCustomEmblemColor={data.competitionCustomEmblemColor}
-                      competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
-                      position={data.homeTeamPosition}
-                    />
-                    <TeamFormSection
-                      teamName={data.awayTeamName}
-                      teamCrest={data.awayTeamCrest}
-                      matches={data.awayTeamForm}
-                      selectedIndex={awaySelectedIndex}
-                      onSelectIndex={setAwaySelectedIndex}
-                      dotColor="bg-[#ff9900]"
-                      competitionEmblem={data.competitionEmblem}
-                      competitionCustomEmblemColor={data.competitionCustomEmblemColor}
-                      competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
-                      position={data.awayTeamPosition}
-                    />
+                {/* Forme des equipes - masqué si moins de 5 matchs au total */}
+                {hasEnoughFormData && (
+                  <div>
+                    <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      Forme recente
+                    </h4>
+                    <div className="space-y-4">
+                      <TeamFormSection
+                        teamName={data.homeTeamName}
+                        teamCrest={data.homeTeamCrest}
+                        matches={data.homeTeamForm}
+                        selectedIndex={homeSelectedIndex}
+                        onSelectIndex={setHomeSelectedIndex}
+                        dotColor="bg-blue-500"
+                        competitionEmblem={data.competitionEmblem}
+                        competitionCustomEmblemColor={data.competitionCustomEmblemColor}
+                        competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
+                        position={data.homeTeamPosition}
+                      />
+                      <TeamFormSection
+                        teamName={data.awayTeamName}
+                        teamCrest={data.awayTeamCrest}
+                        matches={data.awayTeamForm}
+                        selectedIndex={awaySelectedIndex}
+                        onSelectIndex={setAwaySelectedIndex}
+                        dotColor="bg-[#ff9900]"
+                        competitionEmblem={data.competitionEmblem}
+                        competitionCustomEmblemColor={data.competitionCustomEmblemColor}
+                        competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
+                        position={data.awayTeamPosition}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Lien vers le classement */}
                 <button
@@ -548,13 +590,13 @@ export default function StatsModal({
                   className="w-full flex items-center justify-center gap-2 py-2 text-sm text-blue-600 dark:text-[#ff9900] hover:text-blue-700 dark:hover:text-[#ffaa33] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Voir le classement
                 </button>
 
-                {/* Tendances de pronostics - masqué si pas de données */}
-                {data.predictionTrends && (
+                {/* Tendances de pronostics - masqué si moins de 5 pronostics */}
+                {hasEnoughTrendsData && data.predictionTrends && (
                   <div>
                     <h4 className="text-sm font-semibold theme-text mb-2 flex items-center gap-2">
                       <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="currentColor" viewBox="0 0 24 24">
