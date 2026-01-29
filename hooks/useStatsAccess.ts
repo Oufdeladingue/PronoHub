@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 type AccessReason = 'admin' | 'elite' | 'platinium' | 'lifetime' | 'tournament' | 'none'
 
@@ -36,7 +37,7 @@ export function useStatsAccess(tournamentId: string): StatsAccessResult {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/stats/access?tournamentId=${tournamentId}`)
+        const response = await fetchWithAuth(`/api/stats/access?tournamentId=${tournamentId}`)
 
         if (!response.ok) {
           throw new Error('Erreur lors de la vérification de l\'accès')
