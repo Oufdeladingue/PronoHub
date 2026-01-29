@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import StandingsModal from './StandingsModal'
+import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface TeamFormMatch {
   matchId: string
@@ -432,7 +433,7 @@ export default function StatsModal({
           awayTeamName
         })
 
-        const response = await fetch(`/api/stats/match/${matchId}?${params}`)
+        const response = await fetchWithAuth(`/api/stats/match/${matchId}?${params}`)
 
         if (!response.ok) {
           throw new Error('Erreur lors du chargement des statistiques')
