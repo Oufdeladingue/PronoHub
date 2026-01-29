@@ -83,7 +83,7 @@ export function useTrophyNotifications() {
             // Charger les infos du match déclencheur
             try {
               const matchResponse = await fetchWithAuth(
-                `/api/user/trophy-unlock-info?trophyType=${trophy.trophy_type}&unlockedAt=${trophy.unlocked_at}`
+                `/api/user/trophy-unlock-info?trophyType=${encodeURIComponent(trophy.trophy_type)}&unlockedAt=${encodeURIComponent(trophy.unlocked_at)}`
               )
               const matchData = await matchResponse.json()
 
@@ -126,7 +126,7 @@ export function useTrophyNotifications() {
             // Charger les infos du match déclencheur
             try {
               const matchResponse = await fetchWithAuth(
-                `/api/user/trophy-unlock-info?trophyType=${trophy.trophy_type}&unlockedAt=${trophy.unlocked_at}`
+                `/api/user/trophy-unlock-info?trophyType=${encodeURIComponent(trophy.trophy_type)}&unlockedAt=${encodeURIComponent(trophy.unlocked_at)}`
               )
               const matchData = await matchResponse.json()
 

@@ -5,6 +5,7 @@ import { calculatePoints, type PointsSettings } from '@/lib/scoring'
 // GET - Lecture simple des trophées depuis la BDD (rapide)
 export async function GET(request: Request) {
   try {
+    console.log('[GET /api/user/trophies] Début')
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -16,6 +17,8 @@ export async function GET(request: Request) {
       )
     }
 
+    console.log('[GET /api/user/trophies] User ID:', user.id)
+
     // Récupérer simplement les trophées stockés en BDD
     const { data: userTrophies } = await supabase
       .from('user_trophies')
@@ -23,7 +26,13 @@ export async function GET(request: Request) {
       .eq('user_id', user.id)
       .order('unlocked_at', { ascending: false })
 
+    console.log('[GET /api/user/trophies] Trophées récupérés:', userTrophies?.length || 0)
+    const newTrophies = userTrophies?.filter(t => t.is_new) || []
+    console.log('[GET /api/user/trophies] Trophées is_new:', newTrophies.length, newTrophies.map(t => t.trophy_type))
+
     const hasNewTrophies = userTrophies?.some(t => t.is_new) || false
+
+    console.log('[GET /api/user/trophies] hasNewTrophies:', hasNewTrophies)
 
     return NextResponse.json({
       success: true,
@@ -43,6 +52,7 @@ export async function GET(request: Request) {
 // PUT - Recalcul complet des trophées (OPTIMISÉ)
 export async function PUT(request: Request) {
   try {
+    console.log('[PUT /api/user/trophies] ⚠️  RECALCUL DÉCLENCHÉ')
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -53,6 +63,8 @@ export async function PUT(request: Request) {
         { status: 401 }
       )
     }
+
+    console.log('[PUT /api/user/trophies] User ID:', user.id)
 
     // ============================================
     // ÉTAPE 1 : Charger TOUTES les données en parallèle (4 requêtes)
@@ -637,6 +649,7 @@ export async function PUT(request: Request) {
 // POST - Marquer les trophées comme vus
 export async function POST(request: Request) {
   try {
+    console.log('[POST /api/user/trophies] ⚠️  MARQUAGE COMME VUS DÉCLENCHÉ')
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -648,12 +661,16 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log('[POST /api/user/trophies] User ID:', user.id)
+
     // Marquer tous les trophées comme vus
-    await supabase
+    const result = await supabase
       .from('user_trophies')
       .update({ is_new: false })
       .eq('user_id', user.id)
       .eq('is_new', true)
+
+    console.log('[POST /api/user/trophies] Trophées marqués comme vus')
 
     return NextResponse.json({
       success: true

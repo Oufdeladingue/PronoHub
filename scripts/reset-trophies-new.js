@@ -67,6 +67,11 @@ async function resetTrophiesNew() {
       console.log(`   - ${t.trophy_type} (ID: ${t.id}) -> is_new: ${t.is_new}`)
     })
 
+    console.log('\n⚠️  IMPORTANT: Efface le localStorage "trophy_last_check" dans le navigateur !')
+    console.log('   Ouvre la console du navigateur et tape:')
+    console.log('   localStorage.removeItem("trophy_last_check")')
+    console.log('   Puis recharge la page.')
+
   } catch (error) {
     console.error('❌ Erreur:', error.message)
     console.error('Détails:', error)
