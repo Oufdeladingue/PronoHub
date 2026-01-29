@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
       match: {
         homeTeamName: match.home_team_name,
         awayTeamName: match.away_team_name,
-        homeTeamLogo: match.home_team_logo,
-        awayTeamLogo: match.away_team_logo,
+        homeTeamLogo: match.home_team_crest,
+        awayTeamLogo: match.away_team_crest,
         competitionId: match.competition_id
       }
     })
@@ -159,8 +159,8 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
     return {
       home_team_name: lastMatch.home_team_name,
       away_team_name: lastMatch.away_team_name,
-      home_team_logo: lastMatch.home_team_logo,
-      away_team_logo: lastMatch.away_team_logo,
+      home_team_crest: lastMatch.home_team_crest,
+      away_team_crest: lastMatch.away_team_crest,
       competition_id: tournament.custom_competition_id
     }
   } else {
@@ -181,8 +181,8 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
     return {
       home_team_name: lastMatch.home_team_name || 'Équipe',
       away_team_name: lastMatch.away_team_name || 'Équipe',
-      home_team_logo: lastMatch.home_team_logo,
-      away_team_logo: lastMatch.away_team_logo,
+      home_team_crest: lastMatch.home_team_crest,
+      away_team_crest: lastMatch.away_team_crest,
       competition_id: tournament.competition_id
     }
   }
@@ -277,8 +277,8 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
   const result = {
     home_team_name: match.home_team_name || 'Équipe',
     away_team_name: match.away_team_name || 'Équipe',
-    home_team_logo: match.home_team_logo,
-    away_team_logo: match.away_team_logo,
+    home_team_crest: match.home_team_crest,
+    away_team_crest: match.away_team_crest,
     competition_id: match.competition_id
   }
 
@@ -303,8 +303,8 @@ async function getMatchDetails(supabase: any, matchId: string, tournament: any) 
     return {
       home_team_name: match.home_team_name,
       away_team_name: match.away_team_name,
-      home_team_logo: match.home_team_logo,
-      away_team_logo: match.away_team_logo,
+      home_team_crest: match.home_team_crest,
+      away_team_crest: match.away_team_crest,
       competition_id: tournament.custom_competition_id
     }
   } else {
@@ -323,8 +323,8 @@ async function getMatchDetails(supabase: any, matchId: string, tournament: any) 
     return {
       home_team_name: match.home_team_name || 'Équipe',
       away_team_name: match.away_team_name || 'Équipe',
-      home_team_logo: match.home_team_logo,
-      away_team_logo: match.away_team_logo,
+      home_team_crest: match.home_team_crest,
+      away_team_crest: match.away_team_crest,
       competition_id: tournament.competition_id
     }
   }

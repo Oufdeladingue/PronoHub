@@ -11,19 +11,21 @@ const supabase = createClient(
 
 async function testTrophyAPI() {
   try {
-    const userId = '01b0ec3e-7f3d-458d-ba8d-9efae1c2bf06' // kochroman6@gmail.com
+    const userId = '01b0ec3e-7f3d-458d-ba8d-9efae1c2bf06'
     const trophyType = 'cursed'
     const unlockedAt = '2026-01-29T21:34:39.094+00:00'
-    const unlockDate = new Date(unlockedAt)
 
-    console.log('Testing trophy API...')
+    console.log('=== TEST TROPHY API ===')
     console.log('User ID:', userId)
     console.log('Trophy Type:', trophyType)
-    console.log('Unlock Date:', unlockDate)
+    console.log('Unlocked At:', unlockedAt)
 
-    // Simuler findLastPredictedMatch pour "cursed"
-    console.log('\n1. Recherche des predictions...')
-    const { data: predictions, error: predError } = await supabase
+    const unlockDate = new Date(unlockedAt)
+    console.log('\nDate de déblocage:', unlockDate)
+
+    // Simuler findLastPredictedMatch
+    console.log('\n1. Chercher dans predictions...')
+    const { data: predictions } = await supabase
       .from('predictions')
       .select(`
         match_id,
@@ -36,81 +38,48 @@ async function testTrophyAPI() {
       .eq('user_id', userId)
       .lte('created_at', unlockDate.toISOString())
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(50)
 
-    if (predError) {
-      console.error('Erreur predictions:', predError)
-      return
-    }
+    console.log(`Predictions trouvées: ${predictions?.length || 0}`)
 
-    console.log(`Trouvé ${predictions?.length || 0} predictions`)
+    // Fallback: matchs importés
+    console.log('\n2. Fallback: matchs importés terminés...')
+    const { data: importedMatches, error } = await supabase
+      .from('imported_matches')
+      .select('*')
+      .eq('status', 'FINISHED')
+      .lte('utc_date', unlockDate.toISOString())
+      .order('utc_date', { ascending: false })
+      .limit(1)
 
-    if (!predictions || predictions.length === 0) {
-      console.log('❌ Aucune prediction trouvée')
-      return
-    }
+    console.log('\nRésultat fallback:')
+    console.log('  Found:', importedMatches?.length || 0)
+    console.log('  Error:', error?.message || 'none')
 
-    // Tester la première prediction
-    const pred = predictions[0]
-    console.log('\n2. Première prediction:', pred)
-
-    // Tester getMatchDetails
-    console.log('\n3. Récupération des détails du match...')
-
-    if (pred.tournaments.custom_competition_id) {
-      console.log('Match custom...')
-      const { data: matches, error: matchError } = await supabase
-        .from('custom_competition_matches')
-        .select('*')
-        .eq('id', pred.match_id)
-        .limit(1)
-
-      console.log('Résultat:', matchError || matches)
-    } else {
-      console.log('Match importé...')
-      const { data: matches, error: matchError } = await supabase
-        .from('imported_matches')
-        .select('*')
-        .eq('id', pred.match_id)
-        .limit(1)
-
-      if (matchError) {
-        console.error('Erreur match:', matchError)
-        return
-      }
-
-      if (!matches || matches.length === 0) {
-        console.log('❌ Match non trouvé')
-        return
-      }
-
-      const match = matches[0]
-      console.log('Match trouvé:', match)
-
-      // Tester la récupération des équipes
-      console.log('\n4. Récupération des équipes...')
-      const [homeTeam, awayTeam] = await Promise.all([
-        supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).limit(1),
-        supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).limit(1)
-      ])
-
-      console.log('Home team:', homeTeam)
-      console.log('Away team:', awayTeam)
-
-      if (homeTeam.error || awayTeam.error) {
-        console.error('Erreur teams:', homeTeam.error || awayTeam.error)
-        return
-      }
+    if (importedMatches && importedMatches.length > 0) {
+      const match = importedMatches[0]
+      console.log('\nMatch trouvé:')
+      console.log('  ID:', match.id)
+      console.log('  Home Team Name:', match.home_team_name)
+      console.log('  Away Team Name:', match.away_team_name)
+      console.log('  Home Team Crest:', match.home_team_crest)
+      console.log('  Away Team Crest:', match.away_team_crest)
+      console.log('  Competition ID:', match.competition_id)
+      console.log('  Status:', match.status)
+      console.log('  Date:', match.utc_date)
 
       const result = {
-        home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
-        away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
-        home_team_logo: homeTeam.data?.[0]?.logo,
-        away_team_logo: awayTeam.data?.[0]?.logo,
-        competition_id: pred.tournaments.competition_id
+        home_team_name: match.home_team_name || 'Équipe',
+        away_team_name: match.away_team_name || 'Équipe',
+        home_team_crest: match.home_team_crest,
+        away_team_crest: match.away_team_crest,
+        competition_id: match.competition_id
       }
 
-      console.log('\n✅ Résultat final:', result)
+      console.log('\n✅ Résultat final:')
+      console.log(JSON.stringify(result, null, 2))
+    } else {
+      console.log('\n❌ Aucun match trouvé')
     }
 
   } catch (error) {

@@ -12,8 +12,8 @@ interface TrophyCelebrationModalProps {
     triggerMatch?: {
       homeTeamName: string
       awayTeamName: string
-      homeTeamLogo: string | null
-      awayTeamLogo: string | null
+      homeTeamCrest: string | null
+      awayTeamCrest: string | null
       competitionId: number
     }
   }
@@ -61,7 +61,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     console.log('[Download] Début du téléchargement')
 
     try {
-      // APPROCHE RADICALE: Cloner l'élément et nettoyer les classes problématiques
+      // APPROCHE ULTRA-RADICALE: Cloner et supprimer TOUTES les classes Tailwind problématiques
       const clone = cardRef.current.cloneNode(true) as HTMLElement
       console.log('[Download] Clone créé')
 
@@ -72,22 +72,41 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         console.log('[Download] Stars container supprimé')
       }
 
-      // Remplacer tous les éléments blur-2xl par des divs simples avec background rgba
-      const glowEffects = clone.querySelectorAll('.blur-2xl')
-      console.log('[Download] Glow effects trouvés:', glowEffects.length)
+      // Supprimer TOUTES les classes qui contiennent blur, opacity, animate
+      const allElements = clone.querySelectorAll('*')
+      console.log('[Download] Éléments à nettoyer:', allElements.length)
 
-      glowEffects.forEach((el, index) => {
+      allElements.forEach((el) => {
         const htmlEl = el as HTMLElement
-        console.log(`[Download] Glow ${index} classes avant:`, Array.from(htmlEl.classList))
-        // Supprimer la classe blur-2xl et animate-pulse
-        htmlEl.classList.remove('blur-2xl', 'animate-pulse')
-        console.log(`[Download] Glow ${index} classes après:`, Array.from(htmlEl.classList))
-        // Appliquer un style inline simple
+        const classesToRemove: string[] = []
+
+        htmlEl.classList.forEach(className => {
+          // Supprimer toutes les classes qui peuvent causer des problèmes avec lab()
+          if (
+            className.includes('blur') ||
+            className.includes('opacity') ||
+            className.includes('animate') ||
+            className.includes('bg-opacity')
+          ) {
+            classesToRemove.push(className)
+          }
+        })
+
+        classesToRemove.forEach(cls => htmlEl.classList.remove(cls))
+      })
+
+      console.log('[Download] Classes problématiques supprimées')
+
+      // Appliquer les effets visuels en inline uniquement
+      const glowEffects = clone.querySelectorAll('.absolute.inset-0.rounded-full')
+      glowEffects.forEach((el) => {
+        const htmlEl = el as HTMLElement
         htmlEl.style.backgroundColor = themeColor
         htmlEl.style.filter = 'blur(40px)'
         htmlEl.style.opacity = '0.4'
-        console.log(`[Download] Glow ${index} styles appliqués:`, htmlEl.style.cssText)
       })
+
+      console.log('[Download] Styles inline appliqués')
 
       // Insérer le clone hors de la vue
       clone.style.position = 'fixed'
@@ -291,9 +310,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               <div className="flex items-center justify-center gap-3">
                 {/* Équipe domicile */}
                 <div className="flex flex-col items-center flex-1">
-                  {trophy.triggerMatch.homeTeamLogo ? (
+                  {trophy.triggerMatch.homeTeamCrest ? (
                     <img
-                      src={trophy.triggerMatch.homeTeamLogo}
+                      src={trophy.triggerMatch.homeTeamCrest}
                       alt={trophy.triggerMatch.homeTeamName}
                       width={36}
                       height={36}
@@ -317,9 +336,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
                 {/* Équipe extérieur */}
                 <div className="flex flex-col items-center flex-1">
-                  {trophy.triggerMatch.awayTeamLogo ? (
+                  {trophy.triggerMatch.awayTeamCrest ? (
                     <img
-                      src={trophy.triggerMatch.awayTeamLogo}
+                      src={trophy.triggerMatch.awayTeamCrest}
                       alt={trophy.triggerMatch.awayTeamName}
                       width={36}
                       height={36}

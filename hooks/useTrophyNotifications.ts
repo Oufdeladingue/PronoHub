@@ -17,8 +17,8 @@ interface TrophyNotification extends Trophy {
   triggerMatch?: {
     homeTeamName: string
     awayTeamName: string
-    homeTeamLogo: string | null
-    awayTeamLogo: string | null
+    homeTeamCrest: string | null
+    awayTeamCrest: string | null
     competitionId: number
   }
 }
