@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
-import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
+import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 
 interface PlayerStats {
   playerId: string
@@ -327,7 +327,8 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               .filter(matchday => hasMatchdayStarted(matchday))
               .map(matchday => {
                 const stage = matchdayStages[matchday]
-                const matchdayLabel = getStageShortLabel(stage, matchday)
+                const leg = getLegNumber(matchday, matchdayStages)
+                const matchdayLabel = getStageShortLabel(stage, matchday, undefined, leg)
                 const isFinished = isMatchdayFinished(matchday)
                 return (
                   <button

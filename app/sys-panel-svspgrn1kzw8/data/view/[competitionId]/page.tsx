@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/AdminLayout'
-import { getStageShortLabel, getStageLabel, type StageType } from '@/lib/stage-formatter'
+import { getStageShortLabel, getStageLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 
 interface Match {
   id: string
@@ -209,7 +209,9 @@ export default function ViewCompetitionPage() {
           <div className="flex flex-wrap gap-2 pb-2">
             {data.matchdays.map((matchday) => {
               const stage = data.stagesByMatchday?.[matchday] as StageType | null
-              const matchdayLabel = getStageShortLabel(stage, matchday)
+              const stagesMap = (data.stagesByMatchday || {}) as Record<number, StageType | null>
+              const leg = getLegNumber(matchday, stagesMap)
+              const matchdayLabel = getStageShortLabel(stage, matchday, undefined, leg)
               const isKnockout = stage && ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'THIRD_PLACE', 'LAST_32', 'PLAYOFFS'].includes(stage)
 
               return (

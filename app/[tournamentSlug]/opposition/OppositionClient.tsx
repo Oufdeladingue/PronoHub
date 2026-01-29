@@ -10,7 +10,7 @@ import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
-import { getStageShortLabel, type StageType } from '@/lib/stage-formatter'
+import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
@@ -1839,7 +1839,9 @@ export default function OppositionClient({
                         const stage = matchdayStages[matchday]
                         // Vérifier si des matchs existent pour cette journée
                         const hasMatchesForMatchday = allMatches.some((m: any) => m.matchday === matchday)
-                        const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday)
+                        // Calculer le leg (Aller/Retour) pour les phases knockout
+                        const leg = getLegNumber(matchday, matchdayStages)
+                        const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday, leg)
                         const showWarning = shouldShowMatchdayWarning(matchday)
                         return (
                           <button

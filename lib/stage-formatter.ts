@@ -104,8 +104,9 @@ export function getStageLabel(stage: StageType, matchday?: number): string {
  * @param stage Le stage de la compétition (peut être null si pas encore connu)
  * @param matchday Le numéro de journée
  * @param hasMatches Indique si des matchs existent pour cette journée (optionnel)
+ * @param leg Le numéro du leg pour les phases à élimination (1=Aller, 2=Retour)
  */
-export function getStageShortLabel(stage: StageType, matchday?: number, hasMatches?: boolean): string {
+export function getStageShortLabel(stage: StageType, matchday?: number, hasMatches?: boolean, leg?: number): string {
   // Si pas de stage et pas de matchs pour cette journée, afficher "-"
   // (journée future dont le stage n'est pas encore connu)
   if (!stage && hasMatches === false) {
@@ -119,8 +120,8 @@ export function getStageShortLabel(stage: StageType, matchday?: number, hasMatch
 
   const baseLabel = STAGE_SHORT_TRANSLATIONS[stage] || stage
 
-  // Pour les phases à élimination directe, ajouter aller/retour si matchday est fourni
-  const isKnockoutStage = [
+  // Pour les phases à élimination directe avec aller-retour, ajouter le leg
+  const isTwoLeggedKnockout = [
     'PLAYOFFS',
     'LAST_32',
     'LAST_16',
@@ -129,8 +130,8 @@ export function getStageShortLabel(stage: StageType, matchday?: number, hasMatch
     'SEMI_FINALS'
   ].includes(stage)
 
-  if (isKnockoutStage && matchday && [1, 2].includes(matchday)) {
-    return `${baseLabel} ${matchday === 1 ? 'A' : 'R'}`
+  if (isTwoLeggedKnockout && leg && [1, 2].includes(leg)) {
+    return `${baseLabel} ${leg === 1 ? 'A' : 'R'}`
   }
 
   // Pour la phase de poule, ajouter le numéro de journée
@@ -139,6 +140,49 @@ export function getStageShortLabel(stage: StageType, matchday?: number, hasMatch
   }
 
   return baseLabel
+}
+
+/**
+ * Calcule le numéro de leg (1=Aller, 2=Retour) pour une journée donnée
+ * en analysant les journées consécutives avec le même stage knockout
+ * @param matchday La journée dont on veut connaître le leg
+ * @param matchdayStages Map des stages par journée
+ * @returns 1 (Aller), 2 (Retour) ou undefined si pas applicable
+ */
+export function getLegNumber(
+  matchday: number,
+  matchdayStages: Record<number, StageType | null>
+): number | undefined {
+  const stage = matchdayStages[matchday]
+
+  // Pas de leg pour les phases non-knockout
+  if (!stage) return undefined
+
+  const twoLeggedStages = [
+    'PLAYOFFS',
+    'LAST_32',
+    'LAST_16',
+    'ROUND_OF_16',
+    'QUARTER_FINALS',
+    'SEMI_FINALS'
+  ]
+
+  if (!twoLeggedStages.includes(stage)) return undefined
+
+  // Chercher si la journée précédente a le même stage (donc on est en retour)
+  const prevStage = matchdayStages[matchday - 1]
+  if (prevStage === stage) {
+    return 2 // Retour
+  }
+
+  // Chercher si la journée suivante a le même stage (donc on est en aller)
+  const nextStage = matchdayStages[matchday + 1]
+  if (nextStage === stage) {
+    return 1 // Aller
+  }
+
+  // Stage unique (match simple, pas d'aller-retour)
+  return undefined
 }
 
 /**
