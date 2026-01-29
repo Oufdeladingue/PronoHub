@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { fetchWithAuth } from '@/lib/supabase/client'
+import { openExternalUrl } from '@/lib/capacitor'
 
 interface StatsExplanationModalProps {
   tournamentId: string
@@ -20,7 +22,7 @@ export default function StatsExplanationModal({
     try {
       const purchaseType = type === 'tournament' ? 'stats_access_tournament' : 'stats_access_lifetime'
 
-      const response = await fetch('/api/stripe/create-checkout-session', {
+      const response = await fetchWithAuth('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -33,7 +35,9 @@ export default function StatsExplanationModal({
       const data = await response.json()
 
       if (data.url) {
-        window.location.href = data.url
+        // Utiliser openExternalUrl pour ouvrir Stripe (gère Capacitor et web)
+        await openExternalUrl(data.url)
+        onClose() // Fermer la modale après redirection
       } else {
         throw new Error(data.error || 'Erreur lors de la création de la session')
       }
