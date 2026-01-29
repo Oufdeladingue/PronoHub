@@ -1011,7 +1011,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
                     <td style="padding: 8px 0;"><a href="${baseUrl}/profile" style="color: #94a3b8; text-decoration: none; font-size: 13px;">⚙️ Gérer mes alertes</a></td>
                   </tr>
                   <tr>
-                    <td style="padding: 8px 0;"><a href="${baseUrl}/premium" style="color: #ff9900; text-decoration: none; font-size: 13px;">⭐ Passer Premium</a></td>
+                    <td style="padding: 8px 0;"><a href="${baseUrl}/pricing" style="color: #ff9900; text-decoration: none; font-size: 13px;">⭐ Passer Premium</a></td>
                   </tr>
                 </table>
               </div>
@@ -1100,7 +1100,7 @@ Configure tes alertes pour recevoir des rappels :
 🎯 Pronostiquer : ${tournamentUrl}/opposition
 🏆 Classement : ${tournamentUrl}/classement
 💬 Tchat : ${tournamentUrl}/tchat
-⭐ Passer Premium : ${baseUrl}/premium
+⭐ Passer Premium : ${baseUrl}/pricing
 
 Tu participes à ${userActiveTournaments} tournoi${userActiveTournaments > 1 ? 's' : ''} actif${userActiveTournaments > 1 ? 's' : ''}.
 
@@ -1803,7 +1803,7 @@ export function getNewPlayerJoinedTemplate(props: NewPlayerJoinedEmailProps) {
                 <p style="margin: 0 0 8px; color: #c4b5fd; font-size: 14px;">
                   ⭐ Besoin de plus de places ?
                 </p>
-                <a href="${baseUrl}/premium" style="color: #fbbf24; font-size: 14px; font-weight: 600; text-decoration: none;">
+                <a href="${baseUrl}/pricing" style="color: #fbbf24; font-size: 14px; font-weight: 600; text-decoration: none;">
                   Passe Premium pour élargir ton tournoi →
                 </a>
               </div>
@@ -1852,7 +1852,7 @@ ${isFull ? '🎯 Ton tournoi est complet ! Tu peux maintenant le lancer.' : canL
 
 ${isFull || canLaunchTournament ? `🚀 Lancer le tournoi : ${tournamentUrl}/settings` : ''}
 👉 Voir le tournoi : ${tournamentUrl}
-⭐ Passer Premium : ${baseUrl}/premium
+⭐ Passer Premium : ${baseUrl}/pricing
 
 ---
 © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
