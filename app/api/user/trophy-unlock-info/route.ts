@@ -173,15 +173,15 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
 
     // Récupérer les noms des équipes
     const [homeTeam, awayTeam] = await Promise.all([
-      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.home_team_id).single(),
-      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.away_team_id).single()
+      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.home_team_id).limit(1),
+      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.away_team_id).limit(1)
     ])
 
     return {
-      home_team_name: homeTeam.data?.name || 'Équipe',
-      away_team_name: awayTeam.data?.name || 'Équipe',
-      home_team_logo: homeTeam.data?.logo,
-      away_team_logo: awayTeam.data?.logo,
+      home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
+      away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
+      home_team_logo: homeTeam.data?.[0]?.logo,
+      away_team_logo: awayTeam.data?.[0]?.logo,
       competition_id: tournament.competition_id
     }
   }
@@ -260,15 +260,15 @@ async function getMatchDetails(supabase: any, matchId: string, tournament: any) 
     const match = matches[0]
 
     const [homeTeam, awayTeam] = await Promise.all([
-      supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).single(),
-      supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).single()
+      supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).limit(1),
+      supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).limit(1)
     ])
 
     return {
-      home_team_name: homeTeam.data?.name || 'Équipe',
-      away_team_name: awayTeam.data?.name || 'Équipe',
-      home_team_logo: homeTeam.data?.logo,
-      away_team_logo: awayTeam.data?.logo,
+      home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
+      away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
+      home_team_logo: homeTeam.data?.[0]?.logo,
+      away_team_logo: awayTeam.data?.[0]?.logo,
       competition_id: tournament.competition_id
     }
   }
