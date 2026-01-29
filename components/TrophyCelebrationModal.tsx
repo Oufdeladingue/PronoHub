@@ -61,78 +61,145 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     console.log('[Download] Début du téléchargement')
 
     try {
-      // APPROCHE ULTRA-RADICALE: Cloner et supprimer TOUTES les classes Tailwind problématiques
-      const clone = cardRef.current.cloneNode(true) as HTMLElement
-      console.log('[Download] Clone créé')
+      // APPROCHE FROM SCRATCH: Créer un nouveau div avec ZÉRO Tailwind, que du inline
+      const captureDiv = document.createElement('div')
+      captureDiv.style.cssText = `
+        width: 384px;
+        background: #000000;
+        border-radius: 16px;
+        border: 3px solid ${themeColor};
+        padding: 20px;
+        padding-top: 56px;
+        position: fixed;
+        left: -9999px;
+        top: 0;
+      `
 
-      // Supprimer physiquement le conteneur d'étoiles du clone
-      const starsInClone = clone.querySelector('.stars-container')
-      if (starsInClone) {
-        starsInClone.remove()
-        console.log('[Download] Stars container supprimé')
+      // Logo
+      const logo = document.createElement('img')
+      logo.src = '/images/logo.png'
+      logo.style.cssText = 'position: absolute; top: 12px; left: 12px; width: 40px; height: 40px;'
+      captureDiv.appendChild(logo)
+
+      // Titre
+      const title = document.createElement('h2')
+      title.textContent = 'Bravo, un trophée de plus sur l'étagère !'
+      title.style.cssText = `
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 16px;
+        color: ${themeColor};
+      `
+      captureDiv.appendChild(title)
+
+      // Image trophée
+      const trophyImg = document.createElement('img')
+      trophyImg.src = trophy.imagePath
+      trophyImg.style.cssText = 'display: block; margin: 0 auto 16px; width: 140px; height: 140px;'
+      captureDiv.appendChild(trophyImg)
+
+      // Nom du trophée
+      const trophyName = document.createElement('h3')
+      trophyName.textContent = trophy.name
+      trophyName.style.cssText = 'font-size: 24px; font-weight: bold; color: white; text-align: center; margin-bottom: 8px;'
+      captureDiv.appendChild(trophyName)
+
+      // Description
+      const desc = document.createElement('p')
+      desc.textContent = trophy.description
+      desc.style.cssText = 'font-size: 16px; color: #D1D5DB; text-align: center; margin-bottom: 8px; font-style: italic;'
+      captureDiv.appendChild(desc)
+
+      // Date
+      const unlockedDate = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+      const date = document.createElement('p')
+      date.textContent = `Débloqué le ${unlockedDate}`
+      date.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 16px;'
+      captureDiv.appendChild(date)
+
+      // Match déclencheur
+      if (trophy.triggerMatch) {
+        const matchDiv = document.createElement('div')
+        matchDiv.style.cssText = 'background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 16px;'
+
+        const matchLabel = document.createElement('p')
+        matchLabel.textContent = 'Match déclencheur'
+        matchLabel.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 8px;'
+        matchDiv.appendChild(matchLabel)
+
+        const matchContent = document.createElement('div')
+        matchContent.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 12px;'
+
+        // Home team
+        const homeDiv = document.createElement('div')
+        homeDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
+        if (trophy.triggerMatch.homeTeamCrest) {
+          const homeImg = document.createElement('img')
+          homeImg.src = trophy.triggerMatch.homeTeamCrest
+          homeImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
+          homeDiv.appendChild(homeImg)
+        }
+        const homeName = document.createElement('p')
+        homeName.textContent = trophy.triggerMatch.homeTeamName
+        homeName.style.cssText = 'font-size: 12px; font-weight: 500; color: white; text-align: center;'
+        homeDiv.appendChild(homeName)
+        matchContent.appendChild(homeDiv)
+
+        // VS
+        const vs = document.createElement('span')
+        vs.textContent = 'vs'
+        vs.style.cssText = 'font-size: 18px; font-weight: bold; color: #6B7280;'
+        matchContent.appendChild(vs)
+
+        // Away team
+        const awayDiv = document.createElement('div')
+        awayDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
+        if (trophy.triggerMatch.awayTeamCrest) {
+          const awayImg = document.createElement('img')
+          awayImg.src = trophy.triggerMatch.awayTeamCrest
+          awayImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
+          awayDiv.appendChild(awayImg)
+        }
+        const awayName = document.createElement('p')
+        awayName.textContent = trophy.triggerMatch.awayTeamName
+        awayName.style.cssText = 'font-size: 12px; font-weight: 500; color: white; text-align: center;'
+        awayDiv.appendChild(awayName)
+        matchContent.appendChild(awayDiv)
+
+        matchDiv.appendChild(matchContent)
+        captureDiv.appendChild(matchDiv)
       }
 
-      // Supprimer TOUTES les classes qui contiennent blur, opacity, animate
-      const allElements = clone.querySelectorAll('*')
-      console.log('[Download] Éléments à nettoyer:', allElements.length)
+      // Footer
+      const footer = document.createElement('div')
+      footer.style.cssText = 'border-top: 1px solid #1F2937; padding-top: 12px;'
+      const footerText = document.createElement('p')
+      footerText.textContent = 'pronohub.club'
+      footerText.style.cssText = 'font-size: 12px; color: #9CA3AF; font-weight: 500; text-align: center;'
+      footer.appendChild(footerText)
+      captureDiv.appendChild(footer)
 
-      allElements.forEach((el) => {
-        const htmlEl = el as HTMLElement
-        const classesToRemove: string[] = []
+      document.body.appendChild(captureDiv)
+      console.log('[Download] Div from scratch créé et ajouté au DOM')
 
-        htmlEl.classList.forEach(className => {
-          // Supprimer toutes les classes qui peuvent causer des problèmes avec lab()
-          if (
-            className.includes('blur') ||
-            className.includes('opacity') ||
-            className.includes('animate') ||
-            className.includes('bg-opacity')
-          ) {
-            classesToRemove.push(className)
-          }
-        })
-
-        classesToRemove.forEach(cls => htmlEl.classList.remove(cls))
-      })
-
-      console.log('[Download] Classes problématiques supprimées')
-
-      // Appliquer les effets visuels en inline uniquement
-      const glowEffects = clone.querySelectorAll('.absolute.inset-0.rounded-full')
-      glowEffects.forEach((el) => {
-        const htmlEl = el as HTMLElement
-        htmlEl.style.backgroundColor = themeColor
-        htmlEl.style.filter = 'blur(40px)'
-        htmlEl.style.opacity = '0.4'
-      })
-
-      console.log('[Download] Styles inline appliqués')
-
-      // Insérer le clone hors de la vue
-      clone.style.position = 'fixed'
-      clone.style.left = '-9999px'
-      clone.style.top = '0'
-      document.body.appendChild(clone)
-      console.log('[Download] Clone ajouté au DOM')
-
-      // Attendre que le clone soit rendu
-      await new Promise(resolve => setTimeout(resolve, 100))
-      console.log('[Download] Attente terminée, début capture')
+      await new Promise(resolve => setTimeout(resolve, 200))
+      console.log('[Download] Début capture')
 
       const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(captureDiv, {
         backgroundColor: '#000000',
         scale: 2,
-        logging: true,
         useCORS: true,
         allowTaint: true
       })
 
       console.log('[Download] Capture réussie')
-
-      // Supprimer le clone du DOM
-      document.body.removeChild(clone)
-      console.log('[Download] Clone supprimé du DOM')
+      document.body.removeChild(captureDiv)
 
       canvas.toBlob((blob) => {
         if (blob) {
