@@ -7,11 +7,13 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[trophy-unlock-info] Début de la requête')
     const supabase = await createClient()
 
     // Vérifier l'authentification
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
+      console.log('[trophy-unlock-info] User non authentifié')
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
@@ -19,7 +21,10 @@ export async function GET(request: NextRequest) {
     const trophyType = searchParams.get('trophyType')
     const unlockedAt = searchParams.get('unlockedAt')
 
+    console.log('[trophy-unlock-info] Params:', { trophyType, unlockedAt, userId: user.id })
+
     if (!trophyType || !unlockedAt) {
+      console.log('[trophy-unlock-info] Paramètres manquants')
       return NextResponse.json(
         { error: 'Paramètres manquants' },
         { status: 400 }
@@ -28,6 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Convertir la date de déblocage en timestamp
     const unlockDate = new Date(unlockedAt)
+    console.log('[trophy-unlock-info] Date de déblocage:', unlockDate)
 
     // Stratégie : trouver le dernier match terminé avant la date de déblocage
     // qui correspond au type de trophée
@@ -208,13 +214,19 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
 
   // Parcourir les predictions pour trouver un match terminé
   for (const pred of predictions) {
-    const matchDetails = await getMatchDetails(supabase, pred.match_id, pred.tournaments)
-    if (matchDetails) {
-      // Vérifier si le match est terminé
-      const isFinished = await isMatchFinished(supabase, pred.match_id, pred.tournaments)
-      if (isFinished) {
-        return matchDetails
+    try {
+      const matchDetails = await getMatchDetails(supabase, pred.match_id, pred.tournaments)
+      if (matchDetails) {
+        // Vérifier si le match est terminé
+        const isFinished = await isMatchFinished(supabase, pred.match_id, pred.tournaments)
+        if (isFinished) {
+          return matchDetails
+        }
       }
+    } catch (error) {
+      // Si erreur sur ce match, passer au suivant
+      console.log(`[trophy-unlock-info] Erreur sur match ${pred.match_id}, passage au suivant`)
+      continue
     }
   }
 
