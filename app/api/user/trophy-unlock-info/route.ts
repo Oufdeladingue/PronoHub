@@ -177,17 +177,12 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
 
     const lastMatch = lastMatches[0]
 
-    // Récupérer les noms des équipes
-    const [homeTeam, awayTeam] = await Promise.all([
-      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.home_team_id).limit(1),
-      supabase.from('imported_teams').select('name, logo').eq('id', lastMatch.away_team_id).limit(1)
-    ])
-
+    // Les noms et logos sont directement dans la table imported_matches
     return {
-      home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
-      away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
-      home_team_logo: homeTeam.data?.[0]?.logo,
-      away_team_logo: awayTeam.data?.[0]?.logo,
+      home_team_name: lastMatch.home_team_name || 'Équipe',
+      away_team_name: lastMatch.away_team_name || 'Équipe',
+      home_team_logo: lastMatch.home_team_logo,
+      away_team_logo: lastMatch.away_team_logo,
       competition_id: tournament.competition_id
     }
   }
@@ -259,17 +254,12 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
 
   const match = importedMatches[0]
 
-  // Récupérer les équipes
-  const [homeTeam, awayTeam] = await Promise.all([
-    supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).limit(1),
-    supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).limit(1)
-  ])
-
+  // Les noms et logos sont directement dans la table imported_matches
   return {
-    home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
-    away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
-    home_team_logo: homeTeam.data?.[0]?.logo,
-    away_team_logo: awayTeam.data?.[0]?.logo,
+    home_team_name: match.home_team_name || 'Équipe',
+    away_team_name: match.away_team_name || 'Équipe',
+    home_team_logo: match.home_team_logo,
+    away_team_logo: match.away_team_logo,
     competition_id: match.competition_id
   }
 }
@@ -307,16 +297,12 @@ async function getMatchDetails(supabase: any, matchId: string, tournament: any) 
 
     const match = matches[0]
 
-    const [homeTeam, awayTeam] = await Promise.all([
-      supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).limit(1),
-      supabase.from('imported_teams').select('name, logo').eq('id', match.away_team_id).limit(1)
-    ])
-
+    // Les noms et logos sont directement dans la table imported_matches
     return {
-      home_team_name: homeTeam.data?.[0]?.name || 'Équipe',
-      away_team_name: awayTeam.data?.[0]?.name || 'Équipe',
-      home_team_logo: homeTeam.data?.[0]?.logo,
-      away_team_logo: awayTeam.data?.[0]?.logo,
+      home_team_name: match.home_team_name || 'Équipe',
+      away_team_name: match.away_team_name || 'Équipe',
+      home_team_logo: match.home_team_logo,
+      away_team_logo: match.away_team_logo,
       competition_id: tournament.competition_id
     }
   }
