@@ -486,6 +486,14 @@ export default function OppositionClient({
         }
       }
 
+      // Si cette journée n'a pas de matchs, c'est une journée future
+      // (ex: phase éliminatoire pas encore importée)
+      // On la sélectionne car c'est la prochaine à venir
+      if (!firstMatchTime) {
+        setSelectedMatchday(matchday)
+        return
+      }
+
       if (firstMatchTime) {
         const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30min avant
         const now = new Date()
