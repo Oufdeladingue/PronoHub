@@ -46,9 +46,9 @@ export interface TournamentStartedEmailProps {
     exactScore: number
     correctResult: number
     correctGoalDiff: number
-    bonusEnabled: boolean
-    bonusPoints?: number
-    defaultPredictionMaxPoints: number
+    bonusMatchEnabled: boolean // Match bonus (double points sur un match aléatoire)
+    earlyPredictionBonus: boolean // Prime d'avant-match (+1 si tous pronos avant début journée)
+    defaultPredictionMaxPoints: number // Score vierge (max points si 0-0 par défaut)
   }
   userActiveTournaments: number
 }
@@ -836,20 +836,40 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
     <tr><td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Prono par défaut (max)</td><td style="padding: 6px 0; color: #ef4444; font-size: 13px; text-align: right; font-weight: 600;">${rules.defaultPredictionMaxPoints} pts max</td></tr>
   `
 
-  // Bonus HTML (explication détaillée)
-  const bonusHtml = rules.bonusEnabled ? `
+  // Bonus HTML (explication des règles spéciales activées)
+  const hasBonuses = rules.bonusMatchEnabled || rules.earlyPredictionBonus || rules.defaultPredictionMaxPoints < 3
+
+  const bonusHtml = hasBonuses ? `
     <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
-      <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">🎰 Bonus "Double ou Quitté"</h3>
-      <p style="margin: 0 0 8px; color: #e0e0e0; font-size: 13px; line-height: 1.5;">
-        Ce tournoi a le <strong style="color: #ff9900;">bonus activé</strong> ! Sur chaque journée, tu peux miser sur UN match de ton choix :
-      </p>
-      <ul style="margin: 8px 0; padding-left: 20px; color: #94a3b8; font-size: 13px; line-height: 1.8;">
-        <li>✅ Si ton prono est <strong style="color: #22c55e;">correct</strong> : tu gagnes <strong style="color: #ff9900;">+${rules.bonusPoints || 0} points bonus</strong></li>
-        <li>❌ Si ton prono est <strong style="color: #ef4444;">faux</strong> : tu perds <strong style="color: #ef4444;">${rules.bonusPoints || 0} points</strong></li>
-      </ul>
-      <p style="margin: 0; color: #64748b; font-size: 12px;">
-        💡 Stratégie : choisis un match dont tu es sûr du résultat !
-      </p>
+      <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">⚙️ Règles spéciales du tournoi</h3>
+
+      ${rules.bonusMatchEnabled ? `
+      <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #1e293b;">
+        <p style="margin: 0 0 6px; color: #22c55e; font-size: 14px; font-weight: 600;">⚡ Match bonus</p>
+        <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5;">
+          Chaque journée, un match est choisi <strong style="color: #ff9900;">aléatoirement</strong> et rapporte le <strong style="color: #22c55e;">double de points</strong> pour <strong>tous</strong> les participants.
+        </p>
+      </div>
+      ` : ''}
+
+      ${rules.earlyPredictionBonus ? `
+      <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #1e293b;">
+        <p style="margin: 0 0 6px; color: #3b82f6; font-size: 14px; font-weight: 600;">🏃 Prime d'avant-match</p>
+        <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5;">
+          <strong style="color: #3b82f6;">+1 point</strong> supplémentaire si <strong>tous tes pronos</strong> sont renseignés <strong>avant le début de la journée</strong> de compétition.
+        </p>
+      </div>
+      ` : ''}
+
+      ${rules.defaultPredictionMaxPoints < 3 ? `
+      <div style="${rules.bonusMatchEnabled || rules.earlyPredictionBonus ? '' : 'margin-bottom: 0;'}">
+        <p style="margin: 0 0 6px; color: #ef4444; font-size: 14px; font-weight: 600;">💤 Prono par défaut (oubli)</p>
+        <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5;">
+          En cas d'oubli, un <strong>0-0</strong> est automatiquement attribué et peut rapporter <strong style="color: #ef4444;">au mieux ${rules.defaultPredictionMaxPoints} point${rules.defaultPredictionMaxPoints > 1 ? 's' : ''}</strong>.
+          ${rules.defaultPredictionMaxPoints === 0 ? ' <span style="color: #ef4444;">(aucun point possible !)</span>' : ''}
+        </p>
+      </div>
+      ` : ''}
     </div>
   ` : ''
 

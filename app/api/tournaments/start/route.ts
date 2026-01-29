@@ -433,9 +433,9 @@ async function sendTournamentLaunchNotifications(
             exactScore: tournament.points_exact_score || 3,
             correctResult: tournament.points_correct_result || 1,
             correctGoalDiff: tournament.points_goal_diff || 2,
-            bonusEnabled: tournament.bonus_match || false,
-            bonusPoints: tournament.bonus_points || 5,
-            defaultPredictionMaxPoints: tournament.default_prediction_max_points || 1
+            bonusMatchEnabled: tournament.bonus_match || false,
+            earlyPredictionBonus: tournament.early_prediction_bonus || false,
+            defaultPredictionMaxPoints: tournament.scoring_default_prediction_max ?? 1
           },
           userActiveTournaments: participantTournamentCounts[p.user_id] || 1
         })

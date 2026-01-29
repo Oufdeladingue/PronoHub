@@ -449,13 +449,19 @@ export async function GET(
 
     const rankings = calculateRankings(playersArray, previousRankings)
 
+    // Vérifier si des journées du tournoi n'ont pas encore de matchs importés
+    // (ex: phases éliminatoires pas encore commencées)
+    const matchdaysWithMatches = new Set(allMatches?.map(m => m.matchday) || [])
+    const hasPendingMatchdays = matchdaysToCalculate.some(md => !matchdaysWithMatches.has(md))
+
     return NextResponse.json({
       rankings,
       matchday: matchday ? parseInt(matchday) : null,
       pointsSettings,
       matchesFinished: finishedMatches?.length || 0,
       matchesTotal: allMatches?.length || 0,
-      hasInProgressMatches
+      hasInProgressMatches,
+      hasPendingMatchdays // true si des journées futures n'ont pas encore de matchs
     })
 
   } catch (error: any) {
