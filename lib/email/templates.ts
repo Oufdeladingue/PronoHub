@@ -1031,12 +1031,21 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
 
   const participantsText = participants.map(p => `  • ${p.username}${p.isCaptain ? ' (cap.)' : ''}`).join('\n')
 
-  const bonusText = rules.bonusEnabled ? `
-🎰 BONUS "DOUBLE OU QUITTÉ"
-Ce tournoi a le bonus activé ! Sur chaque journée, tu peux miser sur UN match :
-- ✅ Prono correct : +${rules.bonusPoints || 0} points bonus
-- ❌ Prono faux : -${rules.bonusPoints || 0} points
-Stratégie : choisis un match dont tu es sûr du résultat !
+  // Génère le texte des règles spéciales
+  const hasBonusesText = rules.bonusMatchEnabled || rules.earlyPredictionBonus || rules.defaultPredictionMaxPoints < 3
+  const bonusTextParts: string[] = []
+  if (rules.bonusMatchEnabled) {
+    bonusTextParts.push('⚡ MATCH BONUS : Chaque journée, un match aléatoire rapporte le double de points pour tous.')
+  }
+  if (rules.earlyPredictionBonus) {
+    bonusTextParts.push('🏃 PRIME D\'AVANT-MATCH : +1 point si tous tes pronos sont validés avant le début de la journée.')
+  }
+  if (rules.defaultPredictionMaxPoints < 3) {
+    bonusTextParts.push(`💤 PRONO PAR DÉFAUT : En cas d'oubli, le 0-0 automatique rapporte au mieux ${rules.defaultPredictionMaxPoints} point${rules.defaultPredictionMaxPoints > 1 ? 's' : ''}.`)
+  }
+  const bonusText = hasBonusesText ? `
+⚙️ RÈGLES SPÉCIALES
+${bonusTextParts.join('\n')}
 ` : ''
 
   const text = `
