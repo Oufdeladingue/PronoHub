@@ -44,13 +44,64 @@ play-store/
 
 ## Checklist avant publication
 
-- [ ] Icône 512x512 créée
-- [ ] Feature graphic 1024x500 créée
-- [ ] Minimum 2 screenshots téléphone
-- [ ] Description courte rédigée (80 car max)
-- [ ] Description longue rédigée (4000 car max)
+- [x] Icône 512x512 créée ✅
+- [x] Feature graphic 1024x500 créée ✅
+- [x] Minimum 2 screenshots téléphone (5 faits) ✅
+- [x] Description courte rédigée (80 car max) ✅
+- [x] Description longue rédigée (4000 car max) ✅
 - [ ] Privacy Policy URL prête
 - [ ] Content rating questionnaire rempli
+
+---
+
+## 🚀 PROCHAINES ÉTAPES (Publication Play Store)
+
+### 1. Générer l'AAB signé
+```bash
+cd android
+./gradlew bundleRelease
+```
+Le fichier sera dans : `android/app/build/outputs/bundle/release/app-release.aab`
+
+### 2. Créer la fiche sur Google Play Console
+1. Aller sur https://play.google.com/console
+2. Créer une application > Android
+3. Remplir les infos de base :
+   - Nom : **PronoHub**
+   - Langue par défaut : **Français**
+
+### 3. Configurer la fiche Store
+- **Description courte** : copier depuis `texts/description-short.txt`
+- **Description longue** : copier depuis `texts/description-long.txt`
+- **Icône** : uploader `graphics/icon-512.png`
+- **Feature graphic** : uploader `graphics/feature-graphic.png`
+- **Screenshots** : uploader les 5 images de `screenshots/phone/`
+
+### 4. Remplir les sections obligatoires
+- **Catégorie** : Sports
+- **Coordonnées** : Email de contact
+- **Privacy Policy** : URL de ta politique de confidentialité
+  - Si pas encore créée, utiliser https://www.pronohub.club/privacy
+- **Content rating** : Remplir le questionnaire (quelques minutes)
+- **Target audience** : 18+ (paris/pronostics)
+- **Ads** : Non (pas de pubs)
+
+### 5. Uploader l'AAB
+- Section "Production" > "Créer une release"
+- Uploader le fichier `app-release.aab`
+- Notes de version : "Première version de PronoHub"
+
+### 6. Soumettre pour review
+- Vérifier que tout est vert dans la checklist Play Console
+- Soumettre pour examen (1-7 jours généralement)
+
+---
+
+## ⚠️ Points d'attention
+
+1. **Compte développeur Google** : 25$ one-time fee si pas déjà fait
+2. **Privacy Policy** : Obligatoire, doit être accessible publiquement
+3. **Keystore** : Ne JAMAIS perdre le keystore, sinon impossible de mettre à jour l'app
 
 ## Outils recommandés
 
