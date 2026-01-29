@@ -59,10 +59,21 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
     setIsDownloading(true)
     try {
-      // Masquer temporairement les éléments avec animations complexes
+      // Masquer temporairement tous les éléments avec classes Tailwind qui causent des problèmes
       const starsContainer = cardRef.current.querySelector('.stars-container') as HTMLElement
+      const glowEffect = cardRef.current.querySelector('.blur-2xl') as HTMLElement
+
+      // Sauvegarder les styles originaux
+      const originalStyles: { element: HTMLElement; display: string }[] = []
+
       if (starsContainer) {
+        originalStyles.push({ element: starsContainer, display: starsContainer.style.display })
         starsContainer.style.display = 'none'
+      }
+
+      if (glowEffect) {
+        originalStyles.push({ element: glowEffect, display: glowEffect.style.display })
+        glowEffect.style.display = 'none'
       }
 
       const html2canvas = (await import('html2canvas')).default
@@ -71,13 +82,18 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         scale: 2,
         logging: false,
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
+        ignoreElements: (element) => {
+          // Ignorer les éléments avec des animations ou des effets complexes
+          return element.classList?.contains('animate-pulse') ||
+                 element.classList?.contains('animate-fall-star')
+        }
       })
 
-      // Remettre les étoiles
-      if (starsContainer) {
-        starsContainer.style.display = ''
-      }
+      // Restaurer les styles originaux
+      originalStyles.forEach(({ element, display }) => {
+        element.style.display = display
+      })
 
       canvas.toBlob((blob) => {
         if (blob) {
