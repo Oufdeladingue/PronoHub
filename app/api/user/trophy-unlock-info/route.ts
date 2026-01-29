@@ -97,12 +97,12 @@ async function findLastBonusMatch(supabase: any, userId: string, unlockDate: Dat
     .lte('created_at', unlockDate.toISOString())
     .order('created_at', { ascending: false })
     .limit(1)
-    .single()
 
-  if (!data) return null
+  if (!data || data.length === 0) return null
 
+  const prediction = data[0]
   // Récupérer les détails du match
-  return await getMatchDetails(supabase, data.match_id, data.tournaments)
+  return await getMatchDetails(supabase, prediction.match_id, prediction.tournaments)
 }
 
 async function findLastTournamentMatch(supabase: any, userId: string, unlockDate: Date) {
@@ -138,16 +138,17 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
 
     const matchdayIds = matchdays.map((m: any) => m.id)
 
-    const { data: lastMatch } = await supabase
+    const { data: lastMatches } = await supabase
       .from('custom_competition_matches')
       .select('*')
       .in('custom_matchday_id', matchdayIds)
       .eq('status', 'FINISHED')
       .order('cached_utc_date', { ascending: false })
       .limit(1)
-      .single()
 
-    if (!lastMatch) return null
+    if (!lastMatches || lastMatches.length === 0) return null
+
+    const lastMatch = lastMatches[0]
 
     return {
       home_team_name: lastMatch.home_team_name,
@@ -158,16 +159,17 @@ async function findLastTournamentMatch(supabase: any, userId: string, unlockDate
     }
   } else {
     // Compétition importée
-    const { data: lastMatch } = await supabase
+    const { data: lastMatches } = await supabase
       .from('imported_matches')
       .select('*')
       .eq('competition_id', tournament.competition_id)
       .eq('status', 'FINISHED')
       .order('utc_date', { ascending: false })
       .limit(1)
-      .single()
 
-    if (!lastMatch) return null
+    if (!lastMatches || lastMatches.length === 0) return null
+
+    const lastMatch = lastMatches[0]
 
     // Récupérer les noms des équipes
     const [homeTeam, awayTeam] = await Promise.all([
@@ -228,13 +230,15 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
 async function getMatchDetails(supabase: any, matchId: string, tournament: any) {
   if (tournament.custom_competition_id) {
     // Match custom
-    const { data: match } = await supabase
+    const { data: matches } = await supabase
       .from('custom_competition_matches')
       .select('*')
       .eq('id', matchId)
-      .single()
+      .limit(1)
 
-    if (!match) return null
+    if (!matches || matches.length === 0) return null
+
+    const match = matches[0]
 
     return {
       home_team_name: match.home_team_name,
@@ -245,13 +249,15 @@ async function getMatchDetails(supabase: any, matchId: string, tournament: any) 
     }
   } else {
     // Match importé
-    const { data: match } = await supabase
+    const { data: matches } = await supabase
       .from('imported_matches')
       .select('*')
       .eq('id', matchId)
-      .single()
+      .limit(1)
 
-    if (!match) return null
+    if (!matches || matches.length === 0) return null
+
+    const match = matches[0]
 
     const [homeTeam, awayTeam] = await Promise.all([
       supabase.from('imported_teams').select('name, logo').eq('id', match.home_team_id).single(),
@@ -275,16 +281,16 @@ async function isMatchFinished(supabase: any, matchId: string, tournament: any):
       .from('custom_competition_matches')
       .select('status')
       .eq('id', matchId)
-      .single()
+      .limit(1)
 
-    return data?.status === 'FINISHED'
+    return data && data.length > 0 && data[0].status === 'FINISHED'
   } else {
     const { data } = await supabase
       .from('imported_matches')
       .select('status')
       .eq('id', matchId)
-      .single()
+      .limit(1)
 
-    return data?.status === 'FINISHED'
+    return data && data.length > 0 && data[0].status === 'FINISHED'
   }
 }

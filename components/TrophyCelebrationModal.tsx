@@ -59,13 +59,25 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
     setIsDownloading(true)
     try {
+      // Masquer temporairement les éléments avec animations complexes
+      const starsContainer = cardRef.current.querySelector('.stars-container') as HTMLElement
+      if (starsContainer) {
+        starsContainer.style.display = 'none'
+      }
+
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: bgColor,
         scale: 2,
         logging: false,
-        useCORS: true
+        useCORS: true,
+        allowTaint: true
       })
+
+      // Remettre les étoiles
+      if (starsContainer) {
+        starsContainer.style.display = ''
+      }
 
       canvas.toBlob((blob) => {
         if (blob) {
@@ -124,8 +136,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   return (
     <div
       className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${
-        isVisible ? 'bg-black bg-opacity-60' : 'bg-black bg-opacity-0 pointer-events-none'
+        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
+      style={{
+        backgroundColor: isVisible ? 'rgba(0, 0, 0, 0.6)' : 'transparent'
+      }}
       onClick={onClose}
     >
       {/* Carte de célébration */}
@@ -142,7 +157,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         {/* Logo PronoHub en haut à gauche */}
         <div className="absolute top-3 left-3 z-20">
           <img
-            src="/logo.png"
+            src="/images/logo.png"
             alt="PronoHub"
             width={40}
             height={40}
@@ -162,7 +177,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         </button>
 
         {/* Étoiles animées en arrière-plan qui tombent */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden stars-container">
           {[...Array(30)].map((_, i) => (
             <div
               key={i}
