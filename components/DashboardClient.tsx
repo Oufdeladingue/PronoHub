@@ -8,6 +8,8 @@ import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
 import { fetchWithAuth } from '@/lib/supabase/client'
 import { openExternalUrl } from '@/lib/capacitor'
+import { useTrophyNotifications } from '@/hooks/useTrophyNotifications'
+import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -130,6 +132,9 @@ function DashboardContent({
     inviteCode?: string
   } | null>(null)
   const [isUsingSlot, setIsUsingSlot] = useState(false)
+
+  // Hook pour détecter les nouveaux trophées
+  const { currentTrophy, hasNewTrophies, closeCurrentTrophy } = useTrophyNotifications()
 
   // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
   useEffect(() => {
@@ -1397,6 +1402,14 @@ function DashboardContent({
         </div>
       </main>
       <Footer />
+
+      {/* Modale de célébration pour les nouveaux trophées */}
+      {currentTrophy && (
+        <TrophyCelebrationModal
+          trophy={currentTrophy}
+          onClose={closeCurrentTrophy}
+        />
+      )}
     </div>
   )
 }

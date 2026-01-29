@@ -44,124 +44,191 @@ export async function GET() {
       )
     }
 
-    // Récupérer les données supplémentaires pour chaque tournoi
-    const tournamentsWithCounts = await Promise.all(
-      tournaments.map(async (tournament: any) => {
-        let competitionName = 'N/A'
-        let competitionId = tournament.competition_id
-
-        // Récupérer le nom de la compétition (standard ou custom)
-        if (tournament.custom_competition_id) {
-          // Compétition custom
-          const { data: customCompetition } = await supabase
-            .from('custom_competitions')
-            .select('name')
-            .eq('id', tournament.custom_competition_id)
-            .single()
-          competitionName = customCompetition?.name ? `Custom: ${customCompetition.name}` : 'Custom'
-          competitionId = tournament.custom_competition_id
-        } else if (tournament.competition_id) {
-          // Compétition importée standard
-          const { data: competition } = await supabase
-            .from('competitions')
-            .select('name')
-            .eq('id', tournament.competition_id)
-            .single()
-          competitionName = competition?.name || 'N/A'
-        }
-
-        // Récupérer le username du créateur
-        const { data: creator } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', tournament.creator_id)
-          .single()
-
-        // Compter les participants
-        const { count: participantsCount } = await supabase
-          .from('tournament_participants')
-          .select('*', { count: 'exact', head: true })
-          .eq('tournament_id', tournament.id)
-
-        // Calculer le gain total du tournoi (crédit créateur + participations payantes)
-        let totalRevenue = 0
-
-        // Crédit créateur utilisé pour ce tournoi
-        const { data: creatorPurchase } = await supabase
-          .from('tournament_purchases')
-          .select('amount')
-          .eq('used_for_tournament_id', tournament.id)
-          .eq('used', true)
-          .single()
-        if (creatorPurchase?.amount) {
-          totalRevenue += creatorPurchase.amount
-        }
-
-        // Participations payantes (slot_invite, platinium_participation)
-        const { data: participantPurchases } = await supabase
-          .from('tournament_purchases')
-          .select('amount')
-          .eq('tournament_id', tournament.id)
-          .eq('used', true)
-          .in('purchase_type', ['slot_invite', 'platinium_participation'])
-        if (participantPurchases) {
-          totalRevenue += participantPurchases.reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
-        }
-
-        // Récupérer la date de fin prévue (dernier match du tournoi)
-        let endDate: string | null = null
-
-        if (tournament.custom_competition_id) {
-          // Tournoi custom : récupérer les journées puis les matchs
-          const { data: matchdays } = await supabase
-            .from('custom_competition_matchdays')
-            .select('id')
-            .eq('custom_competition_id', tournament.custom_competition_id)
-
-          if (matchdays && matchdays.length > 0) {
-            const matchdayIds = matchdays.map((m: any) => m.id)
-            const { data: customMatches } = await supabase
-              .from('custom_competition_matches')
-              .select('cached_utc_date')
-              .in('custom_matchday_id', matchdayIds)
-              .not('cached_utc_date', 'is', null)
-              .order('cached_utc_date', { ascending: false })
-              .limit(1)
-            if (customMatches && customMatches.length > 0) {
-              endDate = customMatches[0].cached_utc_date
-            }
-          }
-        } else if (tournament.competition_id) {
-          // Tournoi standard : récupérer le dernier match importé
-          const { data: lastMatch } = await supabase
-            .from('imported_matches')
-            .select('utc_date')
-            .eq('competition_id', tournament.competition_id)
-            .not('utc_date', 'is', null)
-            .order('utc_date', { ascending: false })
-            .limit(1)
-          if (lastMatch && lastMatch.length > 0) {
-            endDate = lastMatch[0].utc_date
-          }
-        }
-
-        return {
-          id: tournament.id,
-          name: tournament.name,
-          slug: tournament.slug,
-          status: tournament.status,
-          tournament_type: tournament.tournament_type || 'free',
-          competition_id: competitionId,
-          custom_competition_id: tournament.custom_competition_id,
-          competition_name: competitionName,
-          created_at: tournament.created_at,
-          creator_username: creator?.username || 'N/A',
-          participants_count: participantsCount || 0,
-          total_revenue: totalRevenue,
-          end_date: endDate,
-        }
+    if (!tournaments || tournaments.length === 0) {
+      return NextResponse.json({
+        tournaments: [],
+        count: 0,
       })
-    )
+    }
+
+    // Optimisation : récupérer toutes les données en parallèle avec des requêtes groupées
+    const tournamentIds = tournaments.map(t => t.id)
+    const competitionIds = tournaments.map(t => t.competition_id).filter(Boolean)
+    const customCompetitionIds = tournaments.map(t => t.custom_competition_id).filter(Boolean)
+    const creatorIds = [...new Set(tournaments.map(t => t.creator_id))]
+
+    const [
+      allCompetitions,
+      allCustomCompetitions,
+      allProfiles,
+      allParticipantsCounts,
+      allCreatorPurchases,
+      allParticipantPurchases,
+      allCustomMatchdays,
+      allImportedMatches
+    ] = await Promise.all([
+      // Récupérer toutes les compétitions standard
+      competitionIds.length > 0 ? supabase
+        .from('competitions')
+        .select('id, name')
+        .in('id', competitionIds)
+        .then(r => r.data || []) : Promise.resolve([]),
+
+      // Récupérer toutes les compétitions custom
+      customCompetitionIds.length > 0 ? supabase
+        .from('custom_competitions')
+        .select('id, name')
+        .in('id', customCompetitionIds)
+        .then(r => r.data || []) : Promise.resolve([]),
+
+      // Récupérer tous les profils créateurs
+      supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', creatorIds)
+        .then(r => r.data || []),
+
+      // Compter les participants pour tous les tournois
+      supabase
+        .from('tournament_participants')
+        .select('tournament_id')
+        .in('tournament_id', tournamentIds)
+        .then(r => r.data || []),
+
+      // Récupérer tous les crédits créateurs
+      supabase
+        .from('tournament_purchases')
+        .select('used_for_tournament_id, amount')
+        .in('used_for_tournament_id', tournamentIds)
+        .eq('used', true)
+        .then(r => r.data || []),
+
+      // Récupérer toutes les participations payantes
+      supabase
+        .from('tournament_purchases')
+        .select('tournament_id, amount')
+        .in('tournament_id', tournamentIds)
+        .eq('used', true)
+        .in('purchase_type', ['slot_invite', 'platinium_participation'])
+        .then(r => r.data || []),
+
+      // Récupérer les journées custom pour toutes les compétitions custom
+      customCompetitionIds.length > 0 ? supabase
+        .from('custom_competition_matchdays')
+        .select('id, custom_competition_id')
+        .in('custom_competition_id', customCompetitionIds)
+        .then(r => r.data || []) : Promise.resolve([]),
+
+      // Récupérer les derniers matchs importés pour toutes les compétitions
+      competitionIds.length > 0 ? supabase
+        .from('imported_matches')
+        .select('competition_id, utc_date')
+        .in('competition_id', competitionIds)
+        .not('utc_date', 'is', null)
+        .order('utc_date', { ascending: false })
+        .then(r => r.data || []) : Promise.resolve([])
+    ])
+
+    // Récupérer les matchs custom si nécessaire
+    const customMatchdayIds = allCustomMatchdays.map((m: any) => m.id)
+    const allCustomMatches = customMatchdayIds.length > 0 ? await supabase
+      .from('custom_competition_matches')
+      .select('custom_matchday_id, cached_utc_date')
+      .in('custom_matchday_id', customMatchdayIds)
+      .not('cached_utc_date', 'is', null)
+      .order('cached_utc_date', { ascending: false })
+      .then(r => r.data || []) : []
+
+    // Créer des maps pour un accès rapide
+    const competitionsMap = new Map(allCompetitions.map((c: any) => [c.id, c.name]))
+    const customCompetitionsMap = new Map(allCustomCompetitions.map((c: any) => [c.id, c.name]))
+    const profilesMap = new Map(allProfiles.map((p: any) => [p.id, p.username]))
+
+    const participantsCountMap = new Map<string, number>()
+    allParticipantsCounts.forEach((p: any) => {
+      participantsCountMap.set(p.tournament_id, (participantsCountMap.get(p.tournament_id) || 0) + 1)
+    })
+
+    const revenueMap = new Map<string, number>()
+    allCreatorPurchases.forEach((p: any) => {
+      revenueMap.set(p.used_for_tournament_id, (revenueMap.get(p.used_for_tournament_id) || 0) + (p.amount || 0))
+    })
+    allParticipantPurchases.forEach((p: any) => {
+      revenueMap.set(p.tournament_id, (revenueMap.get(p.tournament_id) || 0) + (p.amount || 0))
+    })
+
+    const customMatchdayMap = new Map<number, number[]>()
+    allCustomMatchdays.forEach((m: any) => {
+      if (!customMatchdayMap.has(m.custom_competition_id)) {
+        customMatchdayMap.set(m.custom_competition_id, [])
+      }
+      customMatchdayMap.get(m.custom_competition_id)!.push(m.id)
+    })
+
+    const lastMatchDateMap = new Map<number, string>()
+    allImportedMatches.forEach((m: any) => {
+      if (!lastMatchDateMap.has(m.competition_id)) {
+        lastMatchDateMap.set(m.competition_id, m.utc_date)
+      }
+    })
+
+    const customMatchesMap = new Map<number, string[]>()
+    allCustomMatches.forEach((m: any) => {
+      if (!customMatchesMap.has(m.custom_matchday_id)) {
+        customMatchesMap.set(m.custom_matchday_id, [])
+      }
+      customMatchesMap.get(m.custom_matchday_id)!.push(m.cached_utc_date)
+    })
+
+    // Construire les résultats
+    const tournamentsWithCounts = tournaments.map((tournament: any) => {
+      let competitionName = 'N/A'
+      let competitionId = tournament.competition_id
+
+      if (tournament.custom_competition_id) {
+        competitionName = customCompetitionsMap.get(tournament.custom_competition_id)
+          ? `Custom: ${customCompetitionsMap.get(tournament.custom_competition_id)}`
+          : 'Custom'
+        competitionId = tournament.custom_competition_id
+      } else if (tournament.competition_id) {
+        competitionName = competitionsMap.get(tournament.competition_id) || 'N/A'
+      }
+
+      const creatorUsername = profilesMap.get(tournament.creator_id) || 'N/A'
+      const participantsCount = participantsCountMap.get(tournament.id) || 0
+      const totalRevenue = revenueMap.get(tournament.id) || 0
+
+      let endDate: string | null = null
+      if (tournament.custom_competition_id) {
+        const matchdayIds = customMatchdayMap.get(tournament.custom_competition_id) || []
+        const dates: string[] = []
+        matchdayIds.forEach(mdId => {
+          const mdDates = customMatchesMap.get(mdId) || []
+          dates.push(...mdDates)
+        })
+        if (dates.length > 0) {
+          endDate = dates.sort().reverse()[0]
+        }
+      } else if (tournament.competition_id) {
+        endDate = lastMatchDateMap.get(tournament.competition_id) || null
+      }
+
+      return {
+        id: tournament.id,
+        name: tournament.name,
+        slug: tournament.slug,
+        status: tournament.status,
+        tournament_type: tournament.tournament_type || 'free',
+        competition_id: competitionId,
+        custom_competition_id: tournament.custom_competition_id,
+        competition_name: competitionName,
+        created_at: tournament.created_at,
+        creator_username: creatorUsername,
+        participants_count: participantsCount,
+        total_revenue: totalRevenue,
+        end_date: endDate,
+      }
+    })
 
     return NextResponse.json({
       tournaments: tournamentsWithCounts,

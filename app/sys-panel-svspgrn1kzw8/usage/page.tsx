@@ -1221,7 +1221,9 @@ export default function AdminUsagePage() {
                                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
                                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
                                         <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
-                                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Stats</th>
+                                        {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Stats</th>
+                                        )}
                                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
                                       </tr>
                                     </thead>
@@ -1242,34 +1244,36 @@ export default function AdminUsagePage() {
                                           </td>
                                           <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
                                           <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
-                                          <td className="px-3 py-2 text-center">
-                                            {p.has_stats_access ? (
-                                              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                                p.stats_access_type === 'lifetime'
-                                                  ? 'bg-pink-100 text-pink-700'
-                                                  : 'bg-rose-100 text-rose-700'
-                                              }`}>
-                                                {p.stats_access_type === 'lifetime' ? '∞' : 'T'}
-                                              </span>
-                                            ) : (
-                                              <button
-                                                onClick={() => {
-                                                  handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
-                                                  // Rafraîchir les données du tournoi après attribution
-                                                  setTimeout(() => {
-                                                    if (detailModal.tournament) {
-                                                      openDetailModal(detailModal.tournament)
-                                                    }
-                                                  }, 500)
-                                                }}
-                                                disabled={addingCredit?.userId === p.user_id}
-                                                className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
-                                                title="Attribuer accès stats pour ce tournoi"
-                                              >
-                                                {addingCredit?.userId === p.user_id ? '...' : '+'}
-                                              </button>
-                                            )}
-                                          </td>
+                                          {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                            <td className="px-3 py-2 text-center">
+                                              {p.has_stats_access ? (
+                                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                                  p.stats_access_type === 'lifetime'
+                                                    ? 'bg-pink-100 text-pink-700'
+                                                    : 'bg-rose-100 text-rose-700'
+                                                }`}>
+                                                  {p.stats_access_type === 'lifetime' ? '∞' : 'T'}
+                                                </span>
+                                              ) : (
+                                                <button
+                                                  onClick={() => {
+                                                    handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
+                                                    // Rafraîchir les données du tournoi après attribution
+                                                    setTimeout(() => {
+                                                      if (detailModal.tournament) {
+                                                        openDetailModal(detailModal.tournament)
+                                                      }
+                                                    }, 500)
+                                                  }}
+                                                  disabled={addingCredit?.userId === p.user_id}
+                                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
+                                                  title="Attribuer accès stats pour ce tournoi"
+                                                >
+                                                  {addingCredit?.userId === p.user_id ? '...' : '+'}
+                                                </button>
+                                              )}
+                                            </td>
+                                          )}
                                           <td className="px-3 py-2 text-gray-500">
                                             {new Date(p.joined_at).toLocaleDateString('fr-FR', {
                                               day: '2-digit', month: '2-digit', year: '2-digit'
@@ -1295,30 +1299,34 @@ export default function AdminUsagePage() {
                                             onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
                                           />
                                           <span className="font-medium text-gray-900 text-sm">{p.username}</span>
-                                          {p.has_stats_access ? (
-                                            <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                              p.stats_access_type === 'lifetime'
-                                                ? 'bg-pink-100 text-pink-700'
-                                                : 'bg-rose-100 text-rose-700'
-                                            }`}>
-                                              {p.stats_access_type === 'lifetime' ? '∞ Stats' : 'Stats'}
-                                            </span>
-                                          ) : (
-                                            <button
-                                              onClick={() => {
-                                                handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
-                                                setTimeout(() => {
-                                                  if (detailModal.tournament) {
-                                                    openDetailModal(detailModal.tournament)
-                                                  }
-                                                }, 500)
-                                              }}
-                                              disabled={addingCredit?.userId === p.user_id}
-                                              className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
-                                              title="Attribuer accès stats"
-                                            >
-                                              {addingCredit?.userId === p.user_id ? '...' : '+ Stats'}
-                                            </button>
+                                          {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                            <>
+                                              {p.has_stats_access ? (
+                                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                                  p.stats_access_type === 'lifetime'
+                                                    ? 'bg-pink-100 text-pink-700'
+                                                    : 'bg-rose-100 text-rose-700'
+                                                }`}>
+                                                  {p.stats_access_type === 'lifetime' ? '∞ Stats' : 'Stats'}
+                                                </span>
+                                              ) : (
+                                                <button
+                                                  onClick={() => {
+                                                    handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
+                                                    setTimeout(() => {
+                                                      if (detailModal.tournament) {
+                                                        openDetailModal(detailModal.tournament)
+                                                      }
+                                                    }, 500)
+                                                  }}
+                                                  disabled={addingCredit?.userId === p.user_id}
+                                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
+                                                  title="Attribuer accès stats"
+                                                >
+                                                  {addingCredit?.userId === p.user_id ? '...' : '+ Stats'}
+                                                </button>
+                                              )}
+                                            </>
                                           )}
                                         </div>
                                       </div>
@@ -1353,7 +1361,22 @@ export default function AdminUsagePage() {
                       )}
                     </div>
 
-                    <div className="p-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+                    <div className="p-4 border-t border-gray-200 flex justify-between flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          if (detailModal.detail) {
+                            const url = `/${detailModal.detail.slug}/opposition`
+                            window.open(url, '_blank', 'noopener,noreferrer')
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Visiter en guest
+                      </button>
                       <button
                         onClick={closeDetailModal}
                         className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"

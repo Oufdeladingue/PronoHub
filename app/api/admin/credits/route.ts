@@ -60,105 +60,159 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur lors de la récupération des utilisateurs' }, { status: 500 })
     }
 
-    // Récupérer les stats pour chaque utilisateur
-    const userStats = await Promise.all(
-      (usersData || []).map(async (user) => {
-        const { data: participations } = await adminClient
-          .from('tournament_participants')
-          .select(`
-            tournament_id,
-            participant_role,
-            invite_type,
-            has_paid,
-            tournaments (
-              tournament_type,
-              creator_id
-            )
-          `)
-          .eq('user_id', user.id)
+    if (!usersData || usersData.length === 0) {
+      return NextResponse.json({
+        success: true,
+        users: [],
+        totalCount: 0,
+        page,
+        pageSize
+      })
+    }
 
-        const { count: availableSlots } = await adminClient
-          .from('tournament_purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'slot_invite')
-          .eq('used', false)
+    // Optimisation : récupérer toutes les données en parallèle avec des requêtes groupées
+    const userIds = usersData.map(u => u.id)
 
-        const { count: platiniumCredits } = await adminClient
-          .from('tournament_purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'tournament_creation')
-          .eq('tournament_subtype', 'platinium_solo')
-          .eq('status', 'completed')
-          .eq('used', false)
+    const [
+      allParticipations,
+      allSlotCredits,
+      allPlatiniumSoloCredits,
+      allPlatiniumGroupCredits,
+      allDurationExtensionCredits
+    ] = await Promise.all([
+      // Récupérer toutes les participations en une seule requête
+      adminClient
+        .from('tournament_participants')
+        .select(`
+          user_id,
+          tournament_id,
+          participant_role,
+          invite_type,
+          has_paid,
+          tournaments (
+            tournament_type,
+            creator_id
+          )
+        `)
+        .in('user_id', userIds)
+        .then(r => r.data || []),
 
-        const { count: platiniumPrepaid11Credits } = await adminClient
-          .from('tournament_purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'tournament_creation')
-          .eq('tournament_subtype', 'platinium_group')
-          .eq('status', 'completed')
-          .eq('used', false)
+      // Récupérer tous les slots disponibles
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('purchase_type', 'slot_invite')
+        .eq('used', false)
+        .then(r => r.data || []),
 
-        const { count: durationExtensionCredits } = await adminClient
-          .from('tournament_purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('purchase_type', 'duration_extension')
-          .eq('status', 'completed')
-          .eq('used', false)
+      // Récupérer tous les crédits platinium solo
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('purchase_type', 'tournament_creation')
+        .eq('tournament_subtype', 'platinium_solo')
+        .eq('status', 'completed')
+        .eq('used', false)
+        .then(r => r.data || []),
 
-        const stats = {
-          freeKick: { total: 0, paidSlot: 0 },
-          oneShot: { total: 0, paid: 0 },
-          elite: { total: 0, paid: 0 },
-          platinium: { total: 0, paid: 0 },
-          corpo: { total: 0, paid: 0 }
-        }
+      // Récupérer tous les crédits platinium prepaid 11
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('purchase_type', 'tournament_creation')
+        .eq('tournament_subtype', 'platinium_group')
+        .eq('status', 'completed')
+        .eq('used', false)
+        .then(r => r.data || []),
 
-        ;(participations || []).forEach((p: any) => {
-          const tournamentType = p.tournaments?.tournament_type
-          const isCreator = p.tournaments?.creator_id === user.id
-          const hasPaid = p.has_paid || p.invite_type === 'paid_slot'
+      // Récupérer tous les crédits d'extension de durée
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id')
+        .in('user_id', userIds)
+        .eq('purchase_type', 'duration_extension')
+        .eq('status', 'completed')
+        .eq('used', false)
+        .then(r => r.data || [])
+    ])
 
-          switch (tournamentType) {
-            case 'free':
-              stats.freeKick.total++
-              if (p.invite_type === 'paid_slot') stats.freeKick.paidSlot++
-              break
-            case 'oneshot':
-              stats.oneShot.total++
-              if (hasPaid || isCreator) stats.oneShot.paid++
-              break
-            case 'elite':
-              stats.elite.total++
-              if (hasPaid || isCreator) stats.elite.paid++
-              break
-            case 'platinium':
-              stats.platinium.total++
-              if (hasPaid) stats.platinium.paid++
-              break
-            case 'enterprise':
-              stats.corpo.total++
-              if (hasPaid) stats.corpo.paid++
-              break
-          }
-        })
+    // Créer des maps pour regrouper par user_id
+    const participationsMap = new Map<string, any[]>()
+    allParticipations.forEach((p: any) => {
+      if (!participationsMap.has(p.user_id)) {
+        participationsMap.set(p.user_id, [])
+      }
+      participationsMap.get(p.user_id)!.push(p)
+    })
 
-        return {
-          userId: user.id,
-          username: user.username || 'Sans nom',
-          avatar: user.avatar || 'avatar1',
-          ...stats,
-          availableSlots: availableSlots || 0,
-          platiniumCredits: platiniumCredits || 0,
-          platiniumPrepaid11Credits: platiniumPrepaid11Credits || 0,
-          durationExtensionCredits: durationExtensionCredits || 0
+    const countByUser = (data: any[]) => {
+      const map = new Map<string, number>()
+      data.forEach((item: any) => {
+        map.set(item.user_id, (map.get(item.user_id) || 0) + 1)
+      })
+      return map
+    }
+
+    const slotsMap = countByUser(allSlotCredits)
+    const platiniumSoloMap = countByUser(allPlatiniumSoloCredits)
+    const platiniumGroupMap = countByUser(allPlatiniumGroupCredits)
+    const durationExtensionMap = countByUser(allDurationExtensionCredits)
+
+    // Construire les stats pour chaque utilisateur
+    const userStats = usersData.map((user) => {
+      const participations = participationsMap.get(user.id) || []
+
+      const stats = {
+        freeKick: { total: 0, paidSlot: 0 },
+        oneShot: { total: 0, paid: 0 },
+        elite: { total: 0, paid: 0 },
+        platinium: { total: 0, paid: 0 },
+        corpo: { total: 0, paid: 0 }
+      }
+
+      participations.forEach((p: any) => {
+        const tournamentType = p.tournaments?.tournament_type
+        const isCreator = p.tournaments?.creator_id === user.id
+        const hasPaid = p.has_paid || p.invite_type === 'paid_slot'
+
+        switch (tournamentType) {
+          case 'free':
+            stats.freeKick.total++
+            if (p.invite_type === 'paid_slot') stats.freeKick.paidSlot++
+            break
+          case 'oneshot':
+            stats.oneShot.total++
+            if (hasPaid || isCreator) stats.oneShot.paid++
+            break
+          case 'elite':
+            stats.elite.total++
+            if (hasPaid || isCreator) stats.elite.paid++
+            break
+          case 'platinium':
+            stats.platinium.total++
+            if (hasPaid) stats.platinium.paid++
+            break
+          case 'enterprise':
+            stats.corpo.total++
+            if (hasPaid) stats.corpo.paid++
+            break
         }
       })
-    )
+
+      return {
+        userId: user.id,
+        username: user.username || 'Sans nom',
+        avatar: user.avatar || 'avatar1',
+        ...stats,
+        availableSlots: slotsMap.get(user.id) || 0,
+        platiniumCredits: platiniumSoloMap.get(user.id) || 0,
+        platiniumPrepaid11Credits: platiniumGroupMap.get(user.id) || 0,
+        durationExtensionCredits: durationExtensionMap.get(user.id) || 0
+      }
+    })
 
     return NextResponse.json({
       success: true,
