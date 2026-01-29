@@ -6,6 +6,7 @@ import { CheckCircle, Loader2, AlertCircle, ArrowRight, Trophy, Clock, Users, Ar
 import Link from 'next/link'
 import { isCapacitor } from '@/lib/capacitor'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { invalidateStatsAccessCache } from '@/hooks/useStatsAccess'
 
 /**
  * Détecte si on est dans un navigateur externe (Chrome Custom Tab)
@@ -108,6 +109,15 @@ function PaymentSuccessContent() {
             setMessage('Votre credit d\'extension a ete ajoute ! Choisissez la duree sur la page du tournoi.')
           } else if (data.purchaseType === 'player_extension') {
             setMessage('Capacite du tournoi augmentee de 5 joueurs !')
+          } else if (data.purchaseType === 'stats_access_tournament') {
+            setMessage('Acces aux statistiques active pour ce tournoi !')
+            // Invalider le cache pour que l'acces soit visible immediatement
+            const tournamentIdParam = searchParams.get('tournament')
+            invalidateStatsAccessCache(tournamentIdParam || undefined)
+          } else if (data.purchaseType === 'stats_access_lifetime') {
+            setMessage('Acces aux statistiques active pour tous vos tournois !')
+            // Invalider tout le cache stats
+            invalidateStatsAccessCache()
           } else {
             setMessage('Paiement confirme avec succes !')
           }
