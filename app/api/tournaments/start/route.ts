@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       competition = {
         id: customCompetition.id,
         name: customCompetition.name,
-        current_matchday: firstPlayableMatchday - 1, // Pour que starting_matchday = firstPlayableMatchday
+        current_matchday: (firstPlayableMatchday ?? 1) - 1, // Pour que starting_matchday = firstPlayableMatchday
         total_matchdays: lastMatchdayNumber // Utiliser le dernier matchday_number réel
       }
 
