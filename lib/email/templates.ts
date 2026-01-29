@@ -31,6 +31,7 @@ export interface TournamentStartedEmailProps {
   tournamentName: string
   tournamentSlug: string
   competitionName: string
+  isCustomCompetition?: boolean // true si compétition personnalisée (Best of Week)
   participants: Array<{
     username: string
     isCaptain: boolean
@@ -812,6 +813,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
     tournamentName,
     tournamentSlug,
     competitionName,
+    isCustomCompetition,
     participants,
     matchdayRange,
     firstMatchDate,
@@ -822,6 +824,11 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+
+  // Texte de la compétition (custom = explication détaillée)
+  const competitionDisplay = isCustomCompetition
+    ? 'Tournoi personnalisé reprenant les plus belles affiches de la semaine des différents championnats et coupes d\'Europe'
+    : competitionName
 
   // Liste des participants avec (cap.)
   const participantsHtml = participants.map(p =>
@@ -910,10 +917,19 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
               <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📋 Infos du tournoi</h3>
                 <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${isCustomCompetition ? `
+                  <tr>
+                    <td colspan="2" style="padding: 6px 0;">
+                      <span style="color: #94a3b8; font-size: 13px;">Compétition</span><br>
+                      <span style="color: #ff9900; font-size: 12px; line-height: 1.4; display: block; margin-top: 4px;">${competitionDisplay}</span>
+                    </td>
+                  </tr>
+                  ` : `
                   <tr>
                     <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Compétition</td>
                     <td style="padding: 6px 0; color: #ff9900; font-size: 13px; text-align: right; font-weight: 600;">${competitionName}</td>
                   </tr>
+                  `}
                   <tr>
                     <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Journées</td>
                     <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right;">J${matchdayRange.start} → J${matchdayRange.end}</td>
@@ -1056,7 +1072,7 @@ Salut ${username} !
 Prépare-toi à devenir le roi du prono ! 👑
 
 📋 INFOS DU TOURNOI
-- Compétition : ${competitionName}
+- Compétition : ${competitionDisplay}
 - Journées : J${matchdayRange.start} → J${matchdayRange.end}
 - Matchs à pronostiquer : ${matchdayRange.totalMatches} matchs
 - Premier match : ${firstMatchDate}

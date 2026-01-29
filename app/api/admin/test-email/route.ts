@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { email, type = 'tournament_started' } = body
+    const { email, type = 'tournament_started', isCustomCompetition = false } = body
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 })
@@ -27,9 +27,10 @@ export async function POST(request: Request) {
     if (type === 'tournament_started') {
       const result = await sendTournamentStartedEmail(email, {
         username: 'Rom\'s',
-        tournamentName: 'Ligue des Champions 2024/25',
-        tournamentSlug: 'ligue-des-champions-2024',
-        competitionName: 'UEFA Champions League',
+        tournamentName: isCustomCompetition ? 'Best of Week #12' : 'Ligue des Champions 2024/25',
+        tournamentSlug: isCustomCompetition ? 'best-of-week-12' : 'ligue-des-champions-2024',
+        competitionName: isCustomCompetition ? 'Best of Week' : 'UEFA Champions League',
+        isCustomCompetition,
         participants: [
           { username: 'Rom\'s', isCaptain: true },
           { username: 'Alex', isCaptain: false },

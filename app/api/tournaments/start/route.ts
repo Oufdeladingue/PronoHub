@@ -421,6 +421,7 @@ async function sendTournamentLaunchNotifications(
           tournamentName: tournament.name,
           tournamentSlug: tournament.slug,
           competitionName: competition.name,
+          isCustomCompetition: !!tournament.custom_competition_id,
           participants: participantsList,
           matchdayRange: {
             start: startingMatchday,
