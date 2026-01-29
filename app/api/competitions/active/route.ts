@@ -30,10 +30,10 @@ export async function GET() {
         .or(`current_season_end_date.is.null,current_season_end_date.gte.${today}`)
         .order('name'),
 
-      // 2. Compétitions personnalisées actives (avec matchdays en une seule requête)
+      // 2. Compétitions personnalisées actives (avec matchdays et leurs matchs pour calculer les dates)
       supabase
         .from('custom_competitions')
-        .select('*, custom_competition_matchdays(id, status)')
+        .select('*, custom_competition_matchdays(id, matchday_number, status, custom_competition_matches(cached_utc_date))')
         .eq('is_active', true)
         .order('name'),
 
@@ -167,17 +167,43 @@ export async function GET() {
     }
 
     // Formater les compétitions personnalisées (matchdays déjà inclus via la requête)
-    const customCompetitionsFormatted = (customCompetitions || []).map((customComp: any) => {
-      // Compter les journées non terminées pour la page de création de tournoi
-      const matchdays = customComp.custom_competition_matchdays || []
-      const pendingMatchdays = matchdays.filter(
-        (md: { id: string; status: string }) => md.status !== 'completed'
-      ).length
+    // Calculer la date de clôture (30 min avant le premier match jouable)
+    const now = new Date()
+    const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
+    const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
 
-      // Pour les compétitions custom (Best of Week), on utilise le nombre de journées en attente
+    const customCompetitionsFormatted = (customCompetitions || []).map((customComp: any) => {
+      // Compter les journées RÉELLEMENT jouables basées sur les dates des matchs
+      const matchdays = customComp.custom_competition_matchdays || []
+
+      // Calculer le nombre de journées où au moins un match est encore jouable
+      let playableMatchdays = 0
+      let firstPlayableMatchdayNumber: number | null = null
+
+      for (const md of matchdays) {
+        const matches = md.custom_competition_matches || []
+        // Une journée est jouable si au moins un match a une date future (avec buffer 30min)
+        const hasPlayableMatch = matches.some((m: any) => m.cached_utc_date && m.cached_utc_date > closingTime)
+
+        if (hasPlayableMatch) {
+          playableMatchdays++
+          if (firstPlayableMatchdayNumber === null) {
+            firstPlayableMatchdayNumber = md.matchday_number
+          }
+        }
+      }
+
+      // Fallback: si aucune journée trouvée par les dates, utiliser le statut
+      if (playableMatchdays === 0) {
+        playableMatchdays = matchdays.filter(
+          (md: { id: string; status: string }) => md.status !== 'completed'
+        ).length
+      }
+
+      // Pour les compétitions custom (Best of Week), on utilise le nombre de journées jouables
       // Si aucune journée n'existe encore, on met une valeur par défaut de 10
       // Le flag hide_matchdays_badge permet de ne pas afficher le badge sur le vestiaire
-      const remainingMatchdays = pendingMatchdays > 0 ? pendingMatchdays : 10
+      const remainingMatchdays = playableMatchdays > 0 ? playableMatchdays : 10
 
       return {
         id: `custom_${customComp.id}`,
