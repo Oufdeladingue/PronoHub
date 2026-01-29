@@ -43,19 +43,35 @@ export async function GET(request: NextRequest) {
     // Pour la plupart des trophées, on cherche le dernier match terminé avant le déblocage
     // Exception : certains trophées nécessitent de chercher dans les predictions ou journeys
 
-    if (trophyType.includes('bonus')) {
-      // Trophées bonus : chercher un match bonus
-      match = await findLastBonusMatch(supabase, user.id, unlockDate)
-    } else if (trophyType.includes('tournament') || trophyType === 'legend' || trophyType === 'abyssal' || trophyType === 'poulidor' || trophyType === 'ultra_dominator') {
-      // Trophées de fin de tournoi : chercher le dernier match du tournoi qui s'est terminé
-      match = await findLastTournamentMatch(supabase, user.id, unlockDate)
-    } else if (trophyType.includes('king') || trophyType.includes('lantern') || trophyType.includes('spiral')) {
-      // Trophées de journée : chercher le dernier match de la journée qui s'est terminée
-      match = await findLastMatchdayMatch(supabase, user.id, unlockDate)
-    } else {
-      // Trophées généraux (correct_result, exact_score, opportunist, nostradamus, cursed)
-      // Chercher le dernier match prédit par l'utilisateur avant le déblocage
-      match = await findLastPredictedMatch(supabase, user.id, unlockDate)
+    // SIMPLIFICATION: Utiliser TOUJOURS le fallback qui fonctionne
+    // Chercher directement le dernier match importé terminé avant le unlock
+    console.log('[trophy-unlock-info] Utilisation du fallback direct')
+    const { data: importedMatches, error: matchError } = await supabase
+      .from('imported_matches')
+      .select('*')
+      .eq('status', 'FINISHED')
+      .lte('utc_date', unlockDate.toISOString())
+      .order('utc_date', { ascending: false })
+      .limit(1)
+
+    console.log('[trophy-unlock-info] Résultat:', {
+      found: importedMatches?.length || 0,
+      error: matchError?.message
+    })
+
+    if (matchError) {
+      console.error('[trophy-unlock-info] Erreur SQL:', matchError)
+      throw matchError
+    }
+
+    if (importedMatches && importedMatches.length > 0) {
+      match = {
+        home_team_name: importedMatches[0].home_team_name || 'Équipe',
+        away_team_name: importedMatches[0].away_team_name || 'Équipe',
+        home_team_crest: importedMatches[0].home_team_crest,
+        away_team_crest: importedMatches[0].away_team_crest,
+        competition_id: importedMatches[0].competition_id
+      }
     }
 
     if (!match) {
