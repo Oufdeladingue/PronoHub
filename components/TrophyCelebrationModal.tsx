@@ -83,7 +83,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
       // Titre
       const title = document.createElement('h2')
-      title.textContent = 'Bravo, un trophée de plus sur l'étagère !'
+      title.textContent = 'Bravo, un trophée de plus sur l\'étagère !'
       title.style.cssText = `
         font-size: 20px;
         font-weight: bold;
