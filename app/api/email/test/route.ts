@@ -156,6 +156,7 @@ export async function POST(request: NextRequest) {
             totalMatches: 144
           },
           firstMatchDate: 'Mardi 17 septembre à 18h45',
+          firstMatchDeadline: '18h15',
           rules: {
             exactScore: 3,
             correctResult: 1,
