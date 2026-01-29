@@ -168,7 +168,7 @@ export async function GET() {
 
     // Formater les compétitions personnalisées (matchdays déjà inclus via la requête)
     // Calculer la date de clôture (30 min avant le premier match jouable)
-    const now = new Date()
+    // Note: `now` est déjà défini à la ligne 82
     const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
     const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
 

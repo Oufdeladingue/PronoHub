@@ -42,6 +42,9 @@ next-env.d.ts
 .idea
 nul
 
+# Claude MCP config
+.mcp.json
+
 # Android signing
 android/keystore.properties
 *.jks

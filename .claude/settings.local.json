@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(*)",
       "Bash(npx create-next-app@latest:*)",
       "Bash(node:*)",
       "Bash(npm:*)",
@@ -81,7 +82,15 @@
       "Bash(git -C \"c:/Users/mjardin/Desktop/PronoHub\" show 2b0a4cc~1:app/api/admin/credits/add/route.ts)",
       "Bash(git diff-tree:*)",
       "Bash(\"app/api/admin/custom-competitions/[id]/matchdays/[matchdayId]/matches/route.ts\")",
-      "WebFetch(domain:developers.facebook.com)"
+      "WebFetch(domain:developers.facebook.com)",
+      "Bash(cat:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(cmd /c \"where npx\")",
+      "mcp__adb__adb_devices",
+      "mcp__adb__adb_shell",
+      "mcp__adb__dump_image",
+      "mcp__adb__adb_pull",
+      "mcp__adb__inspect_ui"
     ],
     "deny": [],
     "ask": []
