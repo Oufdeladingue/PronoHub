@@ -234,15 +234,20 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
 }
 
 async function findLastPredictedMatch(supabase: any, userId: string, unlockDate: Date) {
+  console.log('[trophy-unlock-info] findLastPredictedMatch appelée')
+
   // D'abord essayer avec les predictions (peut avoir des matchs orphelins)
   const matchFromPredictions = await findLastMatchdayMatch(supabase, userId, unlockDate)
-  if (matchFromPredictions) return matchFromPredictions
+  if (matchFromPredictions) {
+    console.log('[trophy-unlock-info] Match trouvé via predictions:', matchFromPredictions)
+    return matchFromPredictions
+  }
 
   // Fallback: chercher directement dans tous les matchs terminés importés avant le unlock
   // pour gérer le cas où toutes les predictions pointent vers des matchs custom supprimés
   console.log('[trophy-unlock-info] Fallback: recherche dans imported_matches')
 
-  const { data: importedMatches } = await supabase
+  const { data: importedMatches, error } = await supabase
     .from('imported_matches')
     .select('*')
     .eq('status', 'FINISHED')
@@ -250,18 +255,35 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
     .order('utc_date', { ascending: false })
     .limit(1)
 
-  if (!importedMatches || importedMatches.length === 0) return null
+  console.log('[trophy-unlock-info] Fallback result:', {
+    found: importedMatches?.length || 0,
+    error: error?.message,
+    match: importedMatches?.[0]
+  })
+
+  if (error) {
+    console.error('[trophy-unlock-info] Erreur SQL fallback:', error)
+    throw error
+  }
+
+  if (!importedMatches || importedMatches.length === 0) {
+    console.log('[trophy-unlock-info] Aucun match importé trouvé')
+    return null
+  }
 
   const match = importedMatches[0]
 
   // Les noms et logos sont directement dans la table imported_matches
-  return {
+  const result = {
     home_team_name: match.home_team_name || 'Équipe',
     away_team_name: match.away_team_name || 'Équipe',
     home_team_logo: match.home_team_logo,
     away_team_logo: match.away_team_logo,
     competition_id: match.competition_id
   }
+
+  console.log('[trophy-unlock-info] Result final:', result)
+  return result
 }
 
 // Helper pour récupérer les détails d'un match

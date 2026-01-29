@@ -58,26 +58,35 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     if (!cardRef.current || isDownloading) return
 
     setIsDownloading(true)
+    console.log('[Download] Début du téléchargement')
+
     try {
       // APPROCHE RADICALE: Cloner l'élément et nettoyer les classes problématiques
       const clone = cardRef.current.cloneNode(true) as HTMLElement
+      console.log('[Download] Clone créé')
 
       // Supprimer physiquement le conteneur d'étoiles du clone
       const starsInClone = clone.querySelector('.stars-container')
       if (starsInClone) {
         starsInClone.remove()
+        console.log('[Download] Stars container supprimé')
       }
 
       // Remplacer tous les éléments blur-2xl par des divs simples avec background rgba
       const glowEffects = clone.querySelectorAll('.blur-2xl')
-      glowEffects.forEach((el) => {
+      console.log('[Download] Glow effects trouvés:', glowEffects.length)
+
+      glowEffects.forEach((el, index) => {
         const htmlEl = el as HTMLElement
+        console.log(`[Download] Glow ${index} classes avant:`, Array.from(htmlEl.classList))
         // Supprimer la classe blur-2xl et animate-pulse
         htmlEl.classList.remove('blur-2xl', 'animate-pulse')
+        console.log(`[Download] Glow ${index} classes après:`, Array.from(htmlEl.classList))
         // Appliquer un style inline simple
         htmlEl.style.backgroundColor = themeColor
         htmlEl.style.filter = 'blur(40px)'
         htmlEl.style.opacity = '0.4'
+        console.log(`[Download] Glow ${index} styles appliqués:`, htmlEl.style.cssText)
       })
 
       // Insérer le clone hors de la vue
@@ -85,21 +94,26 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       clone.style.left = '-9999px'
       clone.style.top = '0'
       document.body.appendChild(clone)
+      console.log('[Download] Clone ajouté au DOM')
 
       // Attendre que le clone soit rendu
       await new Promise(resolve => setTimeout(resolve, 100))
+      console.log('[Download] Attente terminée, début capture')
 
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(clone, {
         backgroundColor: '#000000',
         scale: 2,
-        logging: false,
+        logging: true,
         useCORS: true,
         allowTaint: true
       })
 
+      console.log('[Download] Capture réussie')
+
       // Supprimer le clone du DOM
       document.body.removeChild(clone)
+      console.log('[Download] Clone supprimé du DOM')
 
       canvas.toBlob((blob) => {
         if (blob) {
@@ -111,11 +125,13 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           link.click()
           document.body.removeChild(link)
           URL.revokeObjectURL(url)
+          console.log('[Download] Téléchargement déclenché')
         }
         setIsDownloading(false)
       })
     } catch (error) {
-      console.error('Error downloading image:', error)
+      console.error('[Download] Error downloading image:', error)
+      console.error('[Download] Error stack:', (error as Error).stack)
       alert('Erreur lors du téléchargement de l\'image')
       setIsDownloading(false)
     }
