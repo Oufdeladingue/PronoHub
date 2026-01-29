@@ -1244,7 +1244,7 @@ export default function AdminUsagePage() {
                                           </td>
                                           <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
                                           <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
-                                          {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                          {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
                                             <td className="px-3 py-2 text-center">
                                               {p.has_stats_access ? (
                                                 <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
@@ -1299,7 +1299,7 @@ export default function AdminUsagePage() {
                                             onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
                                           />
                                           <span className="font-medium text-gray-900 text-sm">{p.username}</span>
-                                          {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                          {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
                                             <>
                                               {p.has_stats_access ? (
                                                 <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
