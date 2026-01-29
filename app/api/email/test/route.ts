@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
             exactScore: 3,
             correctResult: 1,
             correctGoalDiff: 2,
-            bonusEnabled: true,
-            bonusPoints: 5,
+            bonusMatchEnabled: true,
+            earlyPredictionBonus: true,
             defaultPredictionMaxPoints: 1
           },
           userActiveTournaments: 3
