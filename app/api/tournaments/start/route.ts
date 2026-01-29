@@ -79,22 +79,72 @@ export async function POST(request: NextRequest) {
         .order('matchday_number', { ascending: true })
 
       const totalMatchdays = matchdays?.length || 0
-      const completedMatchdays = matchdays?.filter(m => m.status === 'completed').length || 0
-
-      // Pour les compétitions custom, on utilise les vrais matchday_number (pas séquentiels à partir de 1)
-      // On doit récupérer le premier matchday_number non complété
-      const firstAvailableMatchday = matchdays?.find(m => m.status !== 'completed')
-      const firstMatchdayNumber = firstAvailableMatchday?.matchday_number || matchdays?.[0]?.matchday_number || 1
       const lastMatchdayNumber = matchdays?.[matchdays.length - 1]?.matchday_number || totalMatchdays
+
+      // Récupérer les matchs custom pour trouver la première journée RÉELLEMENT jouable (basé sur les dates)
+      const now = new Date()
+      const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
+      const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
+
+      // Récupérer tous les matchs custom avec leurs dates
+      const matchdayIds = matchdays?.map(md => md.id) || []
+      const { data: customMatches } = await supabase
+        .from('custom_competition_matches')
+        .select('custom_matchday_id, cached_utc_date')
+        .in('custom_matchday_id', matchdayIds)
+
+      // Créer un mapping matchday_id -> matchday_number
+      const matchdayIdToNumber: Record<string, number> = {}
+      matchdays?.forEach(md => { matchdayIdToNumber[md.id] = md.matchday_number })
+
+      // Grouper les matchs par journée et trouver la première journée où le premier match n'est pas encore clôturé
+      let firstPlayableMatchday: number | null = null
+
+      if (customMatches && customMatches.length > 0) {
+        const matchesByMatchday: Record<number, string[]> = {}
+        customMatches.forEach(match => {
+          const matchdayNumber = matchdayIdToNumber[match.custom_matchday_id]
+          if (matchdayNumber) {
+            if (!matchesByMatchday[matchdayNumber]) {
+              matchesByMatchday[matchdayNumber] = []
+            }
+            if (match.cached_utc_date) {
+              matchesByMatchday[matchdayNumber].push(match.cached_utc_date)
+            }
+          }
+        })
+
+        // Trouver la première journée où le premier match n'est pas encore clôturé
+        const sortedMatchdays = Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b)
+
+        for (const matchday of sortedMatchdays) {
+          const matchDates = matchesByMatchday[matchday]
+          if (matchDates.length === 0) continue
+          // Trier les dates pour trouver le premier match de la journée
+          const firstMatchDate = matchDates.sort()[0]
+
+          // Si le premier match de cette journée n'est pas encore clôturé, c'est la journée de départ
+          if (firstMatchDate > closingTime) {
+            firstPlayableMatchday = matchday
+            break
+          }
+        }
+      }
+
+      // Fallback sur la première journée non-completed si aucune journée trouvée par les dates
+      if (!firstPlayableMatchday) {
+        const firstAvailableMatchday = matchdays?.find(m => m.status !== 'completed')
+        firstPlayableMatchday = firstAvailableMatchday?.matchday_number || matchdays?.[0]?.matchday_number || 1
+      }
 
       competition = {
         id: customCompetition.id,
         name: customCompetition.name,
-        current_matchday: firstMatchdayNumber - 1, // Pour que starting_matchday = firstMatchdayNumber
+        current_matchday: firstPlayableMatchday - 1, // Pour que starting_matchday = firstPlayableMatchday
         total_matchdays: lastMatchdayNumber // Utiliser le dernier matchday_number réel
       }
 
-      console.log('[START] Custom competition found:', customCompetition.name, 'Total matchdays:', totalMatchdays, 'Completed:', completedMatchdays, 'First available:', firstMatchdayNumber, 'Last:', lastMatchdayNumber)
+      console.log('[START] Custom competition found:', customCompetition.name, 'Total matchdays:', totalMatchdays, 'First playable:', firstPlayableMatchday, 'Last:', lastMatchdayNumber)
     } else if (tournament.competition_id) {
       // Compétition importée classique
       console.log('[START] Looking for competition with ID:', tournament.competition_id)
