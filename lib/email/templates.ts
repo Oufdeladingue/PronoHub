@@ -2403,3 +2403,227 @@ On commence à penser que tu regardes le foot sans vraiment le comprendre… �
     subject
   }
 }
+
+// Interface pour l'email de modification de matchs (journées custom)
+export interface MatchdayChangesEmailProps {
+  username: string
+  tournamentName: string
+  tournamentSlug: string
+  competitionName: string
+  matchdayNumber: number
+  changes: Array<{
+    type: 'add' | 'remove'
+    homeTeam: string
+    awayTeam: string
+    matchDate: string // Format: "Samedi 8 février à 21h00"
+  }>
+  totalMatchesInMatchday: number
+}
+
+// Template: Notification de modifications sur une journée
+export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
+  const {
+    username,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    matchdayNumber,
+    changes,
+    totalMatchesInMatchday
+  } = props
+
+  const baseUrl = 'https://www.pronohub.club'
+  const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
+
+  const addedMatches = changes.filter(c => c.type === 'add')
+  const removedMatches = changes.filter(c => c.type === 'remove')
+
+  // Générer le HTML pour les matchs ajoutés
+  const addedMatchesHtml = addedMatches.length > 0 ? `
+    <div style="background-color: #14532d; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+      <h3 style="margin: 0 0 12px; color: #22c55e; font-size: 16px;">✅ Match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} (${addedMatches.length})</h3>
+      ${addedMatches.map(match => `
+        <div style="background-color: #166534; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+          <p style="margin: 0 0 4px; color: #fff; font-size: 15px; font-weight: 600;">
+            ${match.homeTeam} - ${match.awayTeam}
+          </p>
+          <p style="margin: 0; color: #86efac; font-size: 13px;">
+            📅 ${match.matchDate}
+          </p>
+        </div>
+      `).join('')}
+    </div>
+  ` : ''
+
+  // Générer le HTML pour les matchs retirés
+  const removedMatchesHtml = removedMatches.length > 0 ? `
+    <div style="background-color: #7f1d1d; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+      <h3 style="margin: 0 0 12px; color: #ef4444; font-size: 16px;">❌ Match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} (${removedMatches.length})</h3>
+      ${removedMatches.map(match => `
+        <div style="background-color: #991b1b; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+          <p style="margin: 0 0 4px; color: #fff; font-size: 15px; font-weight: 600; text-decoration: line-through;">
+            ${match.homeTeam} - ${match.awayTeam}
+          </p>
+          <p style="margin: 0; color: #fca5a5; font-size: 13px;">
+            📅 ${match.matchDate}
+          </p>
+        </div>
+      `).join('')}
+    </div>
+  ` : ''
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mise à jour de la Journée ${matchdayNumber}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 700;">🔄 Mise à jour J${matchdayNumber}</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                La <strong style="color: #3b82f6;">Journée ${matchdayNumber}</strong> de ton tournoi <strong style="color: #ff9900;">${tournamentName}</strong> a été mise à jour.
+              </p>
+
+              <!-- Résumé -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: #3b82f6; font-size: 28px; font-weight: 700;">J${matchdayNumber}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">Journée</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: ${addedMatches.length > 0 ? '#22c55e' : '#64748b'}; font-size: 28px; font-weight: 700;">+${addedMatches.length}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">ajouté${addedMatches.length > 1 ? 's' : ''}</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: ${removedMatches.length > 0 ? '#ef4444' : '#64748b'}; font-size: 28px; font-weight: 700;">-${removedMatches.length}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">retiré${removedMatches.length > 1 ? 's' : ''}</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                      <span style="display: block; color: #fff; font-size: 28px; font-weight: 700;">${totalMatchesInMatchday}</span>
+                      <span style="color: #94a3b8; font-size: 12px;">matchs total</span>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Compétition -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
+                <p style="margin: 0; color: #94a3b8; font-size: 14px;">
+                  🏆 <strong style="color: #ff9900;">${competitionName}</strong>
+                </p>
+              </div>
+
+              <!-- Détails des changements -->
+              ${addedMatchesHtml}
+              ${removedMatchesHtml}
+
+              <!-- Message -->
+              <div style="background-color: #1e3a5f; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #3b82f6;">
+                <p style="margin: 0; color: #93c5fd; font-size: 14px; line-height: 1.5;">
+                  <strong>💡 Rappel :</strong> ${addedMatches.length > 0 ? 'Pense à pronostiquer les nouveaux matchs !' : 'Tes pronostics sur les matchs retirés ne seront plus comptabilisés.'}
+                </p>
+              </div>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${tournamentUrl}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                  Voir les matchs de la journée
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="${baseUrl}/profile" style="color: #64748b; font-size: 12px; text-decoration: none;">Gérer mes notifications</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  // Version texte
+  const addedMatchesText = addedMatches.length > 0 ? `
+✅ MATCH${addedMatches.length > 1 ? 'S' : ''} AJOUTÉ${addedMatches.length > 1 ? 'S' : ''} (${addedMatches.length})
+${addedMatches.map(m => `  + ${m.homeTeam} - ${m.awayTeam}\n    📅 ${m.matchDate}`).join('\n')}
+` : ''
+
+  const removedMatchesText = removedMatches.length > 0 ? `
+❌ MATCH${removedMatches.length > 1 ? 'S' : ''} RETIRÉ${removedMatches.length > 1 ? 'S' : ''} (${removedMatches.length})
+${removedMatches.map(m => `  - ${m.homeTeam} - ${m.awayTeam}\n    📅 ${m.matchDate}`).join('\n')}
+` : ''
+
+  const text = `
+🔄 Mise à jour de la Journée ${matchdayNumber}
+
+Salut ${username} !
+
+La Journée ${matchdayNumber} de ton tournoi "${tournamentName}" a été mise à jour.
+
+📊 RÉSUMÉ
+---
+J${matchdayNumber} • +${addedMatches.length} ajouté${addedMatches.length > 1 ? 's' : ''} • -${removedMatches.length} retiré${removedMatches.length > 1 ? 's' : ''} • ${totalMatchesInMatchday} matchs total
+
+🏆 ${competitionName}
+${addedMatchesText}${removedMatchesText}
+💡 ${addedMatches.length > 0 ? 'Pense à pronostiquer les nouveaux matchs !' : 'Tes pronostics sur les matchs retirés ne seront plus comptabilisés.'}
+
+👉 Voir les matchs : ${tournamentUrl}
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+Gérer mes notifications : ${baseUrl}/profile
+  `.trim()
+
+  // Sujet dynamique
+  let subject: string
+  if (addedMatches.length > 0 && removedMatches.length === 0) {
+    subject = `🔄 ${addedMatches.length} match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} à la J${matchdayNumber} - ${tournamentName}`
+  } else if (removedMatches.length > 0 && addedMatches.length === 0) {
+    subject = `🔄 ${removedMatches.length} match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} de la J${matchdayNumber} - ${tournamentName}`
+  } else {
+    subject = `🔄 Mise à jour J${matchdayNumber} : ${addedMatches.length} ajouté${addedMatches.length > 1 ? 's' : ''}, ${removedMatches.length} retiré${removedMatches.length > 1 ? 's' : ''} - ${tournamentName}`
+  }
+
+  return {
+    html,
+    text,
+    subject
+  }
+}

@@ -141,7 +141,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; matchdayId: string }> }
 ) {
   try {
-    const { matchdayId } = await params
+    const { id: competitionId, matchdayId } = await params
     const supabase = await createClient()
 
     // Vérifier que l'utilisateur est admin
@@ -226,6 +226,22 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to add match', details: error.message }, { status: 500 })
     }
 
+    // Enregistrer le changement pour notification différée
+    await supabase
+      .from('custom_matchday_changes')
+      .insert({
+        matchday_id: matchdayId,
+        custom_competition_id: competitionId,
+        change_type: 'add',
+        match_id: match.id,
+        football_data_match_id: importedMatch.football_data_match_id,
+        cached_home_team: importedMatch.home_team_name,
+        cached_away_team: importedMatch.away_team_name,
+        cached_utc_date: importedMatch.utc_date,
+        cached_competition_name: competition?.name || null,
+        created_by: user.id
+      })
+
     return NextResponse.json({
       success: true,
       match,
@@ -243,6 +259,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; matchdayId: string }> }
 ) {
   try {
+    const { id: competitionId, matchdayId } = await params
     const supabase = await createClient()
 
     // Vérifier que l'utilisateur est admin
@@ -268,6 +285,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID du match requis' }, { status: 400 })
     }
 
+    // Récupérer les infos du match AVANT suppression pour le tracking
+    const { data: matchToDelete } = await supabase
+      .from('custom_competition_matches')
+      .select('id, football_data_match_id, cached_home_team, cached_away_team, cached_utc_date, cached_competition_name')
+      .eq('id', matchId)
+      .single()
+
     const { error } = await supabase
       .from('custom_competition_matches')
       .delete()
@@ -276,6 +300,24 @@ export async function DELETE(
     if (error) {
       console.error('Error removing match:', error)
       return NextResponse.json({ error: 'Failed to remove match' }, { status: 500 })
+    }
+
+    // Enregistrer le changement pour notification différée
+    if (matchToDelete) {
+      await supabase
+        .from('custom_matchday_changes')
+        .insert({
+          matchday_id: matchdayId,
+          custom_competition_id: competitionId,
+          change_type: 'remove',
+          match_id: null, // Le match est supprimé
+          football_data_match_id: matchToDelete.football_data_match_id,
+          cached_home_team: matchToDelete.cached_home_team,
+          cached_away_team: matchToDelete.cached_away_team,
+          cached_utc_date: matchToDelete.cached_utc_date,
+          cached_competition_name: matchToDelete.cached_competition_name,
+          created_by: user.id
+        })
     }
 
     return NextResponse.json({

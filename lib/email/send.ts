@@ -17,6 +17,7 @@ import {
   getNewPlayerJoinedTemplate,
   getMultiTournamentReminderTemplate,
   getInactiveUserReminderTemplate,
+  getMatchdayChangesTemplate,
   EmailTemplateProps,
   ReminderEmailProps,
   TournamentStartedEmailProps,
@@ -25,7 +26,8 @@ import {
   TournamentInviteDetailedEmailProps,
   NewPlayerJoinedEmailProps,
   MultiTournamentReminderEmailProps,
-  InactiveUserReminderEmailProps
+  InactiveUserReminderEmailProps,
+  MatchdayChangesEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -207,4 +209,13 @@ export async function sendTournamentStartedAdminAlert(
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getTournamentStartedAlertTemplate(props)
   return sendEmail(ADMIN_EMAIL, subject, html, text)
+}
+
+// Email notification de modifications de journée (compétitions custom)
+export async function sendMatchdayChangesEmail(
+  to: string,
+  props: MatchdayChangesEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getMatchdayChangesTemplate(props)
+  return sendEmail(to, subject, html, text)
 }
