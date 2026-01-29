@@ -43,6 +43,7 @@ interface RankingsData {
   matchesFinished: number
   matchesTotal: number
   hasInProgressMatches?: boolean
+  hasPendingMatchdays?: boolean
 }
 
 interface TournamentRankingsProps {
@@ -527,7 +528,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                     {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
                     {' / '}
                     {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
-                    {rankingsData.matchesFinished === rankingsData.matchesTotal && rankingsData.matchesTotal > 0 && ' : classement final'}
+                    {rankingsData.matchesFinished === rankingsData.matchesTotal && rankingsData.matchesTotal > 0 && !rankingsData.hasPendingMatchdays && ' : classement final'}
                   </>
                 ) : rankingsData.matchesFinished === 0 ? (
                   // Journée où aucun match n'a encore eu lieu
