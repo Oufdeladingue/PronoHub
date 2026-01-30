@@ -303,7 +303,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   return (
     <div
-      className={`fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
       onClick={onClose}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { fetchWithAuth } from '@/lib/supabase/client'
 
 interface Trophy {
@@ -196,8 +196,11 @@ export function useTrophyNotifications() {
     nextTrophy()
   }
 
-  // Fonction pour simuler l'affichage d'un trophée (dev/debug)
-  const simulateTrophy = (trophyType?: string) => {
+  // Référence stable pour la simulation (évite stale closure)
+  const simulateTrophyRef = useRef<(type?: string) => void>()
+
+  // Mettre à jour la référence à chaque rendu
+  simulateTrophyRef.current = (trophyType?: string) => {
     const type = trophyType || 'exact_score'
     const info = getTrophyInfo(type)
 
@@ -229,7 +232,6 @@ export function useTrophyNotifications() {
   // Exposer la fonction de simulation sur window (dev uniquement)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Liste des types de trophées disponibles
       const trophyTypes = [
         'correct_result', 'exact_score', 'king_of_day', 'double_king',
         'opportunist', 'nostradamus', 'lantern', 'downward_spiral',
@@ -242,13 +244,16 @@ export function useTrophyNotifications() {
           console.log('Types disponibles:', trophyTypes.join(', '))
           return
         }
-        simulateTrophy(type)
+        // Utiliser la ref pour éviter stale closure
+        simulateTrophyRef.current?.(type)
       }
 
       console.log('[TrophyNotifications] window.testTrophyModal() disponible')
-      console.log('Usage: testTrophyModal() ou testTrophyModal("legend")')
     }
   }, [])
+
+  // Wrapper stable pour simulateTrophy
+  const simulateTrophy = (type?: string) => simulateTrophyRef.current?.(type)
 
   return {
     newTrophies,
@@ -258,7 +263,7 @@ export function useTrophyNotifications() {
     isChecking,
     closeCurrentTrophy,
     markAllAsViewed: markTrophiesAsViewed,
-    simulateTrophy // Exposer pour debug
+    simulateTrophy
   }
 }
 
