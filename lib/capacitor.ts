@@ -28,6 +28,13 @@ interface CapacitorGlobal {
     Browser?: {
       open: (options: { url: string }) => Promise<void>
     }
+    Filesystem?: {
+      writeFile: (options: { path: string; data: string; directory: string; recursive?: boolean }) => Promise<{ uri: string }>
+      getUri: (options: { path: string; directory: string }) => Promise<{ uri: string }>
+    }
+    Share?: {
+      share: (options: { title?: string; text?: string; url?: string; files?: string[] }) => Promise<void>
+    }
   }
 }
 
@@ -300,5 +307,64 @@ export async function configureStatusBar(color: string = '#1e293b'): Promise<voi
     await statusBar.setOverlaysWebView({ overlay: false })
   } catch (e) {
     console.warn('[StatusBar] Erreur configuration:', e)
+  }
+}
+
+/**
+ * Sauvegarde un Blob en tant que fichier image sur Android
+ * Utilise Filesystem pour sauvegarder dans le dossier Documents
+ * puis Share pour proposer le partage/téléchargement
+ */
+export async function saveImageToDevice(blob: Blob, filename: string): Promise<boolean> {
+  const cap = getCapacitor()
+  const filesystem = cap?.Plugins?.Filesystem
+  const share = cap?.Plugins?.Share
+
+  if (!filesystem) {
+    console.warn('[Capacitor] Filesystem plugin non disponible')
+    return false
+  }
+
+  try {
+    // Convertir le blob en base64
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const result = reader.result as string
+        // Retirer le préfixe "data:image/png;base64,"
+        const base64Data = result.split(',')[1]
+        resolve(base64Data)
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+
+    // Sauvegarder dans le dossier Documents (accessible par l'utilisateur)
+    const result = await filesystem.writeFile({
+      path: filename,
+      data: base64,
+      directory: 'DOCUMENTS',
+      recursive: true
+    })
+
+    console.log('[Capacitor] Image sauvegardée:', result.uri)
+
+    // Utiliser Share pour permettre à l'utilisateur de sauvegarder/partager
+    if (share) {
+      try {
+        await share.share({
+          title: 'Trophée PronoHub',
+          files: [result.uri]
+        })
+      } catch (e) {
+        // L'utilisateur a peut-être annulé le partage, c'est OK
+        console.log('[Capacitor] Share annulé ou erreur:', e)
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('[Capacitor] Erreur sauvegarde image:', error)
+    return false
   }
 }
