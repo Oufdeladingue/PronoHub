@@ -309,13 +309,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  // Le contenu de la modale
+  // Le contenu de la modale (styles inline pour garantir l'affichage sur mobile)
   const modalContent = (
     <div
       id="trophy-modal-backdrop"
-      data-testid="trophy-modal"
       style={{
-        // Styles inline pour garantir l'affichage sur mobile
         position: 'fixed',
         top: 0,
         left: 0,
@@ -328,9 +326,8 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        // DEBUG: toujours visible, pas d'animation
-        visibility: 'visible',
-        opacity: 1
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 200ms ease'
       }}
       onClick={onClose}
       role="dialog"
@@ -348,7 +345,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           borderRadius: '24px',
           border: theme === 'dark' ? '1px solid rgba(245, 184, 0, 0.25)' : '1px solid rgba(59, 130, 246, 0.25)',
           boxShadow: '0 24px 80px rgba(0,0,0,0.65)',
-          background: gradientBg
+          background: gradientBg,
+          transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.98) translateY(8px)',
+          opacity: isVisible ? 1 : 0,
+          transition: 'all 200ms ease-out'
         }}
         onClick={(e) => e.stopPropagation()}
       >
