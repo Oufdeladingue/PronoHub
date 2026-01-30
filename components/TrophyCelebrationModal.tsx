@@ -316,6 +316,61 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   console.log('[TrophyCelebrationModal] Rendering portal for trophy:', trophy.name)
 
+  // DEBUG: Injecter directement dans le DOM pour contourner tout problème React/Portal
+  useEffect(() => {
+    if (mounted && trophy) {
+      console.log('[TrophyCelebrationModal] DEBUG: Creating overlay element directly')
+      const existingOverlay = document.getElementById('trophy-debug-overlay')
+      if (existingOverlay) {
+        existingOverlay.remove()
+      }
+
+      const overlay = document.createElement('div')
+      overlay.id = 'trophy-debug-overlay'
+      overlay.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: rgba(0, 0, 0, 0.9) !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        pointer-events: auto !important;
+      `
+      overlay.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
+          <h2 style="color: black; margin: 0 0 10px;">DEBUG: ${trophy.name}</h2>
+          <p style="color: #666; margin: 0 0 15px;">${trophy.description}</p>
+          <button id="trophy-debug-close" style="background: #F5B800; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+            FERMER
+          </button>
+        </div>
+      `
+      document.body.appendChild(overlay)
+
+      const closeBtn = document.getElementById('trophy-debug-close')
+      if (closeBtn) {
+        closeBtn.onclick = () => {
+          overlay.remove()
+          onClose()
+        }
+      }
+      overlay.onclick = (e) => {
+        if (e.target === overlay) {
+          overlay.remove()
+          onClose()
+        }
+      }
+
+      return () => {
+        overlay.remove()
+      }
+    }
+  }, [mounted, trophy, onClose])
+
   return createPortal(
     <div
       className={`fixed inset-0 flex items-center justify-center p-4 bg-black/80 transition-opacity duration-200 ${
