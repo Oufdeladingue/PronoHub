@@ -107,7 +107,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       const header = document.createElement('div')
       header.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px;'
       header.innerHTML = `
-        <img src="/images/logo.png" style="width: 32px; height: 32px;" />
+        <img src="/images/logo.png" style="height: 28px; width: auto;" />
         <span style="font-size: 16px; font-weight: 800; color: ${themeColor}; letter-spacing: 0.12em; text-transform: uppercase;">TROPHÉE DÉBLOQUÉ</span>
       `
       captureDiv.appendChild(header)
@@ -294,7 +294,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             <img
               src="/images/logo.png"
               alt="PronoHub"
-              className="w-8 h-8"
+              className="h-7 w-auto object-contain"
             />
             <h1
               id="trophy-title"
