@@ -240,36 +240,56 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   // Download
   const handleDownload = async () => {
-    if (isDownloading) return
+    // Debug alert pour Android WebView (car console peut ne pas fonctionner)
+    try {
+      alert('[DEBUG] Download button clicked!')
+    } catch {}
+    console.log('[Download] Button clicked')
+
+    if (isDownloading) {
+      console.log('[Download] Already downloading, skipping')
+      return
+    }
     setIsDownloading(true)
     try {
+      console.log('[Download] Generating image...')
+      alert('[DEBUG] Generating image...')
       const blob = await generateTrophyImage()
+      console.log('[Download] Blob result:', blob ? `${blob.size} bytes` : 'null')
+      alert(`[DEBUG] Blob: ${blob ? `${blob.size} bytes` : 'null'}`)
+
       if (blob) {
         const filename = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
 
         // Essayer d'abord Web Share API (fonctionne sur mobile Android/iOS)
+        console.log('[Download] navigator.share:', !!navigator.share, 'canShare:', !!navigator.canShare)
         if (navigator.share && navigator.canShare) {
           try {
             const file = new File([blob], filename, { type: 'image/png' })
-            if (navigator.canShare({ files: [file] })) {
+            const canShareFiles = navigator.canShare({ files: [file] })
+            console.log('[Download] canShare files:', canShareFiles)
+            if (canShareFiles) {
+              console.log('[Download] Calling navigator.share...')
               await navigator.share({
                 title: `Trophée PronoHub - ${trophy.name}`,
                 files: [file]
               })
+              console.log('[Download] Share successful')
               setIsDownloading(false)
               return
             }
           } catch (e: any) {
+            console.log('[Download] Share error:', e.name, e.message)
             // Utilisateur a annulé = pas d'erreur
             if (e.name === 'AbortError') {
               setIsDownloading(false)
               return
             }
-            console.log('[Download] Web Share failed, trying fallback:', e)
           }
         }
 
         // Fallback: téléchargement classique (desktop)
+        console.log('[Download] Using fallback download method')
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -278,11 +298,14 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         link.click()
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
+      } else {
+        console.log('[Download] No blob generated')
       }
     } catch (error) {
       console.error('[Download] Error:', error)
     }
     setIsDownloading(false)
+    console.log('[Download] Done')
   }
 
   // Share
@@ -581,7 +604,17 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
               {/* Download */}
               <button
-                onClick={handleDownload}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDownload()
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleDownload()
+                }}
                 disabled={isDownloading}
                 className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] disabled:opacity-50 bg-black/20"
                 style={{ border: `1px solid ${themeColor}50` }}
