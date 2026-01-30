@@ -511,7 +511,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           <button
             ref={continueButtonRef}
             onClick={onClose}
-            className="mt-6 w-full rounded-full py-4 font-extrabold text-black tracking-wide transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black shadow-[0_14px_30px_rgba(0,0,0,0.45)]"
+            className="mt-5 w-full rounded-full py-3 text-sm font-bold text-black tracking-wide transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black shadow-[0_10px_24px_rgba(0,0,0,0.40)]"
             style={{
               background: buttonGradient,
               '--tw-ring-color': `${themeColor}85`
