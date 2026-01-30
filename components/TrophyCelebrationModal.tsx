@@ -314,23 +314,29 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  // Le contenu de la modale
+  // Le contenu de la modale - VERSION SIMPLIFIÉE POUR DEBUG
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
-        isVisible ? 'opacity-100' : 'opacity-0'
-      }`}
+      id="trophy-modal-backdrop"
+      data-testid="trophy-modal"
       style={{
-        // Styles inline pour garantir l'affichage sur mobile
+        // Styles inline UNIQUEMENT pour garantir l'affichage sur mobile
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+        width: '100vw',
+        height: '100vh',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        // Force visibility
+        visibility: 'visible',
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 200ms ease'
       }}
       onClick={onClose}
       role="dialog"
@@ -339,10 +345,19 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     >
       {/* Modal Container */}
       <div
-        className={`relative w-full max-w-[420px] rounded-3xl ${borderColorClass} border shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition duration-200 ease-out ${
-          isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.98] translate-y-2'
-        }`}
-        style={{ background: gradientBg }}
+        id="trophy-modal-container"
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: '420px',
+          borderRadius: '24px',
+          border: theme === 'dark' ? '1px solid rgba(245, 184, 0, 0.25)' : '1px solid rgba(59, 130, 246, 0.25)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.65)',
+          background: gradientBg,
+          transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.98) translateY(8px)',
+          opacity: isVisible ? 1 : 0,
+          transition: 'all 200ms ease-out'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
