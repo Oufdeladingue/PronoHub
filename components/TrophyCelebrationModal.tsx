@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -315,7 +314,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     return null
   }
 
-  return createPortal(
+  console.log('[TrophyCelebrationModal] Rendering modal (no portal)')
+
+  return (
     <div
       className="fixed inset-0 flex items-center justify-center p-4 bg-black/80"
       style={{
@@ -543,7 +544,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           </button>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   )
 }
