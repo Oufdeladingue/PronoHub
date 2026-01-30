@@ -583,86 +583,118 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Match Card */}
           {trophy.triggerMatch && (
             <div className="mt-7 mx-auto" style={{ width: '372px' }}>
-              <div className="relative" style={{ height: '248px' }}>
-                {/* Image de fond (cadre décoratif) */}
-                <img
-                  src={`/images/match-decisif-frame.png?t=${Date.now()}`}
-                  alt=""
+              <div
+                className="relative"
+                style={{
+                  width: '372px',
+                  height: '180px',
+                  borderRadius: '18px',
+                  background: `radial-gradient(120% 120% at 50% 0%, ${themeColor}40 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 100%)`,
+                  border: `1px solid ${themeColor}59`,
+                  boxShadow: `inset 0 0 0 1px ${themeColor}26, 0 0 20px ${themeColor}26`
+                }}
+              >
+                {/* Encoche top pour le titre */}
+                <div
                   style={{
-                    width: '372px',
-                    height: '248px',
-                    objectFit: 'fill',
-                    display: 'block'
+                    position: 'absolute',
+                    top: '-1px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '160px',
+                    height: '28px',
+                    background: `radial-gradient(120% 120% at 50% 0%, ${themeColor}40 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 100%)`,
+                    border: `1px solid ${themeColor}59`,
+                    borderBottom: 'none',
+                    borderRadius: '0 0 12px 12px'
                   }}
                 />
 
-                {/* Contenu par-dessus l'image */}
-                <div className="absolute inset-0 flex flex-col justify-center px-4" style={{ paddingTop: '35px', paddingBottom: '20px' }}>
-                  <div className="flex items-center justify-between">
-                    {/* Home */}
-                    <div className="flex-1 flex flex-col items-center">
-                      {trophy.triggerMatch.homeTeamCrest ? (
-                        <img
-                          src={getProxiedUrl(trophy.triggerMatch.homeTeamCrest) ?? undefined}
-                          alt={trophy.triggerMatch.homeTeamName}
-                          className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
-                          crossOrigin="anonymous"
-                          onError={(e) => {
-                            ;(e.target as HTMLImageElement).style.display = 'none'
-                          }}
-                        />
-                      ) : (
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
-                      )}
-                      <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
-                        {trophy.triggerMatch.homeTeamName}
-                      </p>
-                    </div>
+                {/* Titre */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    padding: '0 14px',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    color: themeColor,
+                    textShadow: `0 0 8px ${themeColor}73`,
+                    background: 'rgba(0,0,0,0.6)',
+                    borderRadius: '10px',
+                    zIndex: 10
+                  }}
+                >
+                  Match décisif
+                </div>
 
-                    {/* Score pill with glow */}
-                    <div className="relative mx-2">
-                      {/* Halo doré */}
-                      <div
-                        className="absolute inset-0 -m-2 rounded-full blur-xl opacity-60"
-                        style={{
-                          background: `radial-gradient(circle, ${themeColor}60 0%, transparent 70%)`
+                {/* Contenu du match */}
+                <div className="absolute inset-0 flex items-center justify-between px-6" style={{ paddingTop: '35px' }}>
+                  {/* Home */}
+                  <div className="flex-1 flex flex-col items-center">
+                    {trophy.triggerMatch.homeTeamCrest ? (
+                      <img
+                        src={getProxiedUrl(trophy.triggerMatch.homeTeamCrest) ?? undefined}
+                        alt={trophy.triggerMatch.homeTeamName}
+                        className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                        crossOrigin="anonymous"
+                        onError={(e) => {
+                          ;(e.target as HTMLImageElement).style.display = 'none'
                         }}
                       />
-                      {/* Score */}
-                      <div
-                        className="relative z-10 px-2.5 py-1.5 rounded-xl border bg-black/30"
-                        style={{ borderColor: `${themeColor}35` }}
-                      >
-                        <span className="text-[28px] font-extrabold tracking-wide" style={{ color: themeColor }}>
-                          {scoreDisplay}
-                        </span>
-                      </div>
-                    </div>
+                    ) : (
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
+                    )}
+                    <p className="mt-2 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[100px] font-medium">
+                      {trophy.triggerMatch.homeTeamName}
+                    </p>
+                  </div>
 
-                    {/* Away */}
-                    <div className="flex-1 flex flex-col items-center">
-                      {trophy.triggerMatch.awayTeamCrest ? (
-                        <img
-                          src={getProxiedUrl(trophy.triggerMatch.awayTeamCrest) ?? undefined}
-                          alt={trophy.triggerMatch.awayTeamName}
-                          className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
-                          crossOrigin="anonymous"
-                          onError={(e) => {
-                            ;(e.target as HTMLImageElement).style.display = 'none'
-                          }}
-                        />
-                      ) : (
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
-                      )}
-                      <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
-                        {trophy.triggerMatch.awayTeamName}
-                      </p>
+                  {/* Score pill with glow */}
+                  <div className="relative mx-3">
+                    {/* Halo doré */}
+                    <div
+                      className="absolute inset-0 -m-2 rounded-full blur-xl opacity-60"
+                      style={{
+                        background: `radial-gradient(circle, ${themeColor}60 0%, transparent 70%)`
+                      }}
+                    />
+                    {/* Score */}
+                    <div
+                      className="relative z-10 px-3 py-2 rounded-xl border bg-black/30"
+                      style={{ borderColor: `${themeColor}35` }}
+                    >
+                      <span className="text-3xl font-extrabold tracking-wide" style={{ color: themeColor }}>
+                        {scoreDisplay}
+                      </span>
                     </div>
+                  </div>
+
+                  {/* Away */}
+                  <div className="flex-1 flex flex-col items-center">
+                    {trophy.triggerMatch.awayTeamCrest ? (
+                      <img
+                        src={getProxiedUrl(trophy.triggerMatch.awayTeamCrest) ?? undefined}
+                        alt={trophy.triggerMatch.awayTeamName}
+                        className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                        crossOrigin="anonymous"
+                        onError={(e) => {
+                          ;(e.target as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
+                    )}
+                    <p className="mt-2 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[100px] font-medium">
+                      {trophy.triggerMatch.awayTeamName}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Date en dessous de l'image */}
+              {/* Date en dessous */}
               <p className="mt-3 text-xs text-white/55 text-center">
                 Débloqué le {unlockedDate}
               </p>
