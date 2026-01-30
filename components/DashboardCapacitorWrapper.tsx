@@ -28,6 +28,7 @@ export default function DashboardCapacitorWrapper() {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [dataReady, setDataReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -55,11 +56,10 @@ export default function DashboardCapacitorWrapper() {
 
         const data = await response.json()
         setDashboardData(data)
-        setLoadingPercent(100)
+        setDataReady(true) // Signaler que les données sont prêtes
       } catch (err: any) {
         console.error('[DashboardCapacitor] Error:', err)
         setError(err.message)
-      } finally {
         setIsLoading(false)
       }
     }
@@ -67,19 +67,37 @@ export default function DashboardCapacitorWrapper() {
     loadDashboard()
   }, [router])
 
-  // Animation de chargement
+  // Animation de chargement progressive
   useEffect(() => {
     if (!isLoading) return
+
     const interval = setInterval(() => {
       setLoadingPercent(prev => {
-        if (prev < 60) return prev + 3
-        if (prev < 85) return prev + 1.5
-        if (prev < 95) return prev + 0.5
-        return prev
+        // Si les données sont prêtes, accélérer vers 100%
+        if (dataReady) {
+          if (prev >= 100) return 100
+          return Math.min(100, prev + 8)
+        }
+        // Sinon, progression lente jusqu'à 90%
+        if (prev < 50) return prev + 2.5
+        if (prev < 75) return prev + 1.5
+        if (prev < 90) return prev + 0.8
+        return prev // Plafonner à 90% tant que les données ne sont pas là
       })
     }, 50)
+
     return () => clearInterval(interval)
-  }, [isLoading])
+  }, [isLoading, dataReady])
+
+  // Quand on atteint 100%, attendre un court instant puis masquer le loader
+  useEffect(() => {
+    if (loadingPercent >= 100 && dataReady) {
+      const timeout = setTimeout(() => {
+        setIsLoading(false)
+      }, 400) // Laisser voir le 100% pendant 400ms
+      return () => clearTimeout(timeout)
+    }
+  }, [loadingPercent, dataReady])
 
   if (isLoading) {
     return (
