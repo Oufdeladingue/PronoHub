@@ -309,42 +309,24 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  // Créer un container pour le modal en dehors de l'arbre React
-  useEffect(() => {
-    if (!mounted) return
-
-    // Créer le container s'il n'existe pas
-    let container = document.getElementById('trophy-modal-root')
-    if (!container) {
-      container = document.createElement('div')
-      container.id = 'trophy-modal-root'
-      document.body.appendChild(container)
-    }
-
-    return () => {
-      // Cleanup au démontage
-      const el = document.getElementById('trophy-modal-root')
-      if (el && el.childNodes.length === 0) {
-        el.remove()
-      }
-    }
-  }, [mounted])
-
   // Ne pas rendre côté serveur
   if (!mounted) {
     return null
   }
 
-  // Récupérer le container
-  const container = document.getElementById('trophy-modal-root')
+  // Créer le container de manière synchrone s'il n'existe pas
+  let container = document.getElementById('trophy-modal-root')
   if (!container) {
-    console.log('[TrophyCelebrationModal] Container not found, creating...')
-    return null
+    container = document.createElement('div')
+    container.id = 'trophy-modal-root'
+    container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 2147483647; pointer-events: none;'
+    document.body.appendChild(container)
+    console.log('[TrophyCelebrationModal] Created #trophy-modal-root container')
   }
 
-  console.log('[TrophyCelebrationModal] Rendering modal via ReactDOM.createPortal to #trophy-modal-root')
+  console.log('[TrophyCelebrationModal] Rendering modal via createPortal')
 
-  // Utiliser ReactDOM.createRoot pour le rendu
+  // Utiliser ReactDOM.createPortal
   const { createPortal } = require('react-dom')
 
   return createPortal(
