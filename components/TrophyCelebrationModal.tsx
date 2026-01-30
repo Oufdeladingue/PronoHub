@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
+// Note: createPortal n'est plus nécessaire car le composant est rendu
+// en dehors du conteneur overflow-y-auto dans DashboardClient
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -565,18 +566,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     </div>
   )
 
-  // Ne pas rendre côté serveur (évite erreur d'hydratation)
-  if (!mounted) {
-    console.log('[TrophyModal] Not mounted yet, returning null')
-    return null
-  }
+  // Rendre directement - le composant est maintenant en dehors du conteneur overflow
+  // dans DashboardClient.tsx, donc pas besoin de createPortal
+  console.log('[TrophyModal] Rendering modal directly, mounted:', mounted)
 
-  console.log('[TrophyModal] Creating portal to document.body')
-  console.log('[TrophyModal] document.body exists:', !!document.body)
-
-  // Utiliser createPortal pour rendre directement dans body
-  // Cela sort la modale des stacking contexts créés par overflow-y-auto
-  const portal = createPortal(modalContent, document.body)
-  console.log('[TrophyModal] Portal created:', portal)
-  return portal
+  // On retourne le contenu directement (pas de createPortal nécessaire)
+  return modalContent
 }
