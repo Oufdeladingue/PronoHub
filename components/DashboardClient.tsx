@@ -136,6 +136,11 @@ function DashboardContent({
   // Hook pour détecter les nouveaux trophées
   const { currentTrophy, hasNewTrophies, closeCurrentTrophy } = useTrophyNotifications()
 
+  // DEBUG: Log quand currentTrophy change
+  useEffect(() => {
+    console.log('[DashboardClient] currentTrophy changed:', currentTrophy ? currentTrophy.name : null)
+  }, [currentTrophy])
+
   // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
   useEffect(() => {
     const handleVisibilityChange = () => {
