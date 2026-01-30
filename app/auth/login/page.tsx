@@ -18,6 +18,7 @@ function LoginForm() {
   const [redirecting, setRedirecting] = useState(false)
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo')
@@ -69,16 +70,32 @@ function LoginForm() {
 
       const interval = setInterval(() => {
         setLoadingPercent(prev => {
-          // Accélérer progressivement jusqu'à 90%, puis ralentir
-          if (prev < 60) return prev + 3
-          if (prev < 85) return prev + 2
-          if (prev < 95) return prev + 0.5
-          return prev
+          // Si on a une redirection en attente, accélérer vers 100%
+          if (pendingRedirect) {
+            if (prev >= 100) return 100
+            return Math.min(100, prev + 8)
+          }
+          // Sinon, progression lente jusqu'à 85%
+          if (prev < 50) return prev + 2.5
+          if (prev < 70) return prev + 1.5
+          if (prev < 85) return prev + 0.8
+          return prev // Plafonner à 85% tant qu'on n'est pas prêt
         })
       }, 50)
       return () => clearInterval(interval)
     }
-  }, [redirecting])
+  }, [redirecting, pendingRedirect])
+
+  // Quand on atteint 100%, naviguer après un court délai
+  useEffect(() => {
+    if (loadingPercent >= 100 && pendingRedirect) {
+      const timeout = setTimeout(() => {
+        router.push(pendingRedirect)
+        router.refresh()
+      }, 400) // Laisser voir le 100% pendant 400ms
+      return () => clearTimeout(timeout)
+    }
+  }, [loadingPercent, pendingRedirect, router])
 
   // Gestion de l'authentification OAuth Google
   const handleGoogleSignIn = async () => {
@@ -242,8 +259,9 @@ function LoginForm() {
         const redirectPath = redirectTo
           ? decodeURIComponent(redirectTo)
           : (data.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
-        router.push(redirectPath)
-        router.refresh()
+
+        // Déclencher l'accélération vers 100% puis la navigation
+        setPendingRedirect(redirectPath)
       }
     } catch (err: any) {
       setError(err.message)
