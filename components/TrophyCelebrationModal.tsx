@@ -411,7 +411,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             opacity: 1;
           }
           100% {
-            transform: translateY(100vh) rotate(360deg);
+            transform: translateY(calc(100% + 40px)) rotate(360deg);
             opacity: 0;
           }
         }
@@ -432,33 +432,20 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             transform: scale(1);
           }
         }
-        .glitter-particle {
-          position: absolute;
-          width: 8px;
-          height: 8px;
-          background: linear-gradient(45deg, #FFD700, #FFA500);
-          clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-          animation: glitter-fall linear infinite;
-          pointer-events: none;
-          filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8));
+        @keyframes modal-slide-fall {
+          0% {
+            transform: translateX(-100%) translateY(-50%) rotate(-5deg);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(0) translateY(0) rotate(0deg);
+            opacity: 1;
+          }
         }
         .trophy-heartbeat {
           animation: trophy-heartbeat 2s ease-in-out infinite;
         }
       `}</style>
-
-      {/* Paillettes dorées */}
-      {glitters.map((glitter) => (
-        <div
-          key={glitter.id}
-          className="glitter-particle"
-          style={{
-            left: `${glitter.left}%`,
-            animationDelay: `${glitter.delay}s`,
-            animationDuration: `${glitter.duration}s`
-          }}
-        />
-      ))}
 
       {/* Modal Container */}
       <div
@@ -472,12 +459,33 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           border: theme === 'dark' ? '1px solid rgba(245, 184, 0, 0.25)' : '1px solid rgba(59, 130, 246, 0.25)',
           boxShadow: '0 24px 80px rgba(0,0,0,0.65)',
           background: gradientBg,
-          transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.98) translateY(8px)',
+          animation: isVisible ? 'modal-slide-fall 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' : 'none',
           opacity: isVisible ? 1 : 0,
-          transition: 'all 200ms ease-out'
+          overflow: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Paillettes dorées (à l'intérieur de la modale) */}
+        {glitters.map((glitter) => (
+          <div
+            key={glitter.id}
+            style={{
+              position: 'absolute',
+              left: `${glitter.left}%`,
+              width: '8px',
+              height: '8px',
+              background: 'linear-gradient(45deg, #FFD700, #FFA500)',
+              clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+              animation: 'glitter-fall linear infinite',
+              animationDelay: `${glitter.delay}s`,
+              animationDuration: `${glitter.duration}s`,
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+              zIndex: 1
+            }}
+          />
+        ))}
+
         {/* Close button */}
         <button
           onClick={onClose}
@@ -490,7 +498,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         </button>
 
         {/* Content */}
-        <div className="px-6 pt-5 pb-6">
+        <div className="px-6 pt-5 pb-6 relative z-10">
           {/* Header premium (logo centré) */}
           <div className="text-center">
             <img
