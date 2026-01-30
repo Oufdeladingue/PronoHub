@@ -583,12 +583,79 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Match Card */}
           {trophy.triggerMatch && (
             <div className="mt-7 mx-auto" style={{ width: '372px' }}>
-              {/* Image de fond uniquement */}
-              <img
-                src={`/images/match-decisif-frame.png?t=${Date.now()}`}
-                alt="Match décisif"
-                style={{ width: '100%', display: 'block' }}
-              />
+              <div className="relative">
+                {/* Image de fond (cadre décoratif) */}
+                <img
+                  src={`/images/match-decisif-frame.png?t=${Date.now()}`}
+                  alt=""
+                  style={{ width: '372px', display: 'block' }}
+                />
+
+                {/* Contenu par-dessus l'image */}
+                <div className="absolute inset-0 flex flex-col justify-center px-4" style={{ paddingTop: '40px', paddingBottom: '20px' }}>
+                  <div className="flex items-center justify-between">
+                    {/* Home */}
+                    <div className="flex-1 flex flex-col items-center">
+                      {trophy.triggerMatch.homeTeamCrest ? (
+                        <img
+                          src={getProxiedUrl(trophy.triggerMatch.homeTeamCrest) ?? undefined}
+                          alt={trophy.triggerMatch.homeTeamName}
+                          className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
+                      )}
+                      <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
+                        {trophy.triggerMatch.homeTeamName}
+                      </p>
+                    </div>
+
+                    {/* Score pill with glow */}
+                    <div className="relative mx-2">
+                      {/* Halo doré */}
+                      <div
+                        className="absolute inset-0 -m-2 rounded-full blur-xl opacity-60"
+                        style={{
+                          background: `radial-gradient(circle, ${themeColor}60 0%, transparent 70%)`
+                        }}
+                      />
+                      {/* Score */}
+                      <div
+                        className="relative z-10 px-2.5 py-1.5 rounded-xl border bg-black/30"
+                        style={{ borderColor: `${themeColor}35` }}
+                      >
+                        <span className="text-[28px] font-extrabold tracking-wide" style={{ color: themeColor }}>
+                          {scoreDisplay}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Away */}
+                    <div className="flex-1 flex flex-col items-center">
+                      {trophy.triggerMatch.awayTeamCrest ? (
+                        <img
+                          src={getProxiedUrl(trophy.triggerMatch.awayTeamCrest) ?? undefined}
+                          alt={trophy.triggerMatch.awayTeamName}
+                          className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
+                          crossOrigin="anonymous"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
+                      )}
+                      <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
+                        {trophy.triggerMatch.awayTeamName}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Date en dessous de l'image */}
               <p className="mt-3 text-xs text-white/55 text-center">
