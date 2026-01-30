@@ -34,11 +34,12 @@ export async function GET(request: NextRequest) {
     // Récupérer l'image
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'PronoHub/1.0'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     })
 
     if (!response.ok) {
+      console.error('[proxy-image] Fetch failed:', url, 'Status:', response.status)
       return NextResponse.json({ error: 'Image non trouvée' }, { status: response.status })
     }
 
