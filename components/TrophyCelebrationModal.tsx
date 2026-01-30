@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -37,27 +38,20 @@ interface TrophyCelebrationModalProps {
 }
 
 export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebrationModalProps) {
-  console.log('[TrophyCelebrationModal] Component called with trophy:', trophy?.name)
+  console.log('[TrophyModal] Render called, trophy:', trophy?.name)
 
+  // Tous les hooks DOIVENT être appelés avant tout return conditionnel
   const [isVisible, setIsVisible] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [mounted, setMounted] = useState(false)
-  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
   const continueButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Portal: créer/trouver le container côté client
+  console.log('[TrophyModal] State - mounted:', mounted, 'isVisible:', isVisible)
+
+  // Marquer comme monté côté client (pour éviter erreur d'hydratation)
   useEffect(() => {
-    let container = document.getElementById('trophy-modal-root')
-    if (!container) {
-      // Fallback: créer le container s'il n'existe pas
-      container = document.createElement('div')
-      container.id = 'trophy-modal-root'
-      container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 2147483647; pointer-events: none;'
-      document.body.appendChild(container)
-      console.log('[TrophyCelebrationModal] Created fallback #trophy-modal-root')
-    }
-    setPortalContainer(container)
+    console.log('[TrophyModal] useEffect mount - setting mounted to true')
     setMounted(true)
   }, [])
 
@@ -106,7 +100,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     year: 'numeric'
   }).format(new Date(trophy.unlocked_at))
 
-  // Génère l'image du trophée pour partage/download (gardée)
+  // Génère l'image du trophée pour partage/download
   const generateTrophyImage = useCallback(async (): Promise<Blob | null> => {
     try {
       const captureDiv = document.createElement('div')
@@ -320,26 +314,23 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  // Ne pas rendre côté serveur ou si le container n'est pas prêt
-  if (!mounted || !portalContainer) {
-    return null
-  }
-
-  // Import createPortal depuis react-dom
-  const { createPortal } = require('react-dom')
-
-  return createPortal(
+  // Le contenu de la modale
+  const modalContent = (
     <div
-      className="fixed inset-0 flex items-center justify-center p-4 bg-black/80"
+      className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
       style={{
-        zIndex: 2147483647,
+        // Styles inline pour garantir l'affichage sur mobile
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100vw',
-        height: '100vh'
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
       onClick={onClose}
       role="dialog"
@@ -556,7 +547,21 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           </button>
         </div>
       </div>
-    </div>,
-    portalContainer
+    </div>
   )
+
+  // Ne pas rendre côté serveur (évite erreur d'hydratation)
+  if (!mounted) {
+    console.log('[TrophyModal] Not mounted yet, returning null')
+    return null
+  }
+
+  console.log('[TrophyModal] Creating portal to document.body')
+  console.log('[TrophyModal] document.body exists:', !!document.body)
+
+  // Utiliser createPortal pour rendre directement dans body
+  // Cela sort la modale des stacking contexts créés par overflow-y-auto
+  const portal = createPortal(modalContent, document.body)
+  console.log('[TrophyModal] Portal created:', portal)
+  return portal
 }

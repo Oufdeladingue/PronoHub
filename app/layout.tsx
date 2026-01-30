@@ -120,8 +120,6 @@ export default function RootLayout({
             </UserProvider>
           </ThemeProvider>
         </CapacitorSessionProvider>
-        {/* Portal root for trophy celebration modal - must be outside all overflow:hidden containers */}
-        <div id="trophy-modal-root" style={{ position: 'fixed', top: 0, left: 0, zIndex: 2147483647, pointerEvents: 'none' }} />
       </body>
     </html>
   );

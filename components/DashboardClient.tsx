@@ -139,6 +139,9 @@ function DashboardContent({
   // DEBUG: Log quand currentTrophy change
   useEffect(() => {
     console.log('[DashboardClient] currentTrophy changed:', currentTrophy ? currentTrophy.name : null)
+    if (currentTrophy) {
+      console.log('[DashboardClient] Trophy data:', JSON.stringify(currentTrophy, null, 2))
+    }
   }, [currentTrophy])
 
   // Reset loading quand l'app revient au premier plan (retour depuis Stripe sur Android)
