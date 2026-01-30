@@ -286,7 +286,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   }
 
   // Share
-  const handleShare = async (platform: 'whatsapp' | 'facebook') => {
+  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'messenger') => {
     const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\n\nRejoins-moi sur pronohub.club`
 
     // Try Web Share API with file first
@@ -309,12 +309,29 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       }
     }
 
-    // Fallback
+    // Fallback URLs par plateforme
     if (platform === 'facebook') {
       const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.pronohub.club')}&quote=${encodeURIComponent(text)}`
       window.open(shareUrl, '_blank', 'width=600,height=400')
     } else if (platform === 'whatsapp') {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+    } else if (platform === 'messenger') {
+      // Messenger share link (ouvre l'app Messenger sur mobile ou le site web)
+      const messengerUrl = `fb-messenger://share/?link=${encodeURIComponent('https://www.pronohub.club')}&app_id=0`
+      // Fallback vers la version web si l'app n'est pas installée
+      const webFallback = `https://www.facebook.com/dialog/send?link=${encodeURIComponent('https://www.pronohub.club')}&app_id=0&redirect_uri=${encodeURIComponent('https://www.pronohub.club')}`
+
+      // Essayer d'ouvrir l'app, sinon fallback web
+      const iframe = document.createElement('iframe')
+      iframe.style.display = 'none'
+      iframe.src = messengerUrl
+      document.body.appendChild(iframe)
+
+      setTimeout(() => {
+        document.body.removeChild(iframe)
+        // Si on est toujours sur la page, ouvrir la version web
+        window.open(webFallback, '_blank', 'width=600,height=400')
+      }, 500)
     }
   }
 
@@ -546,6 +563,19 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               >
                 <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+              </button>
+
+              {/* Messenger */}
+              <button
+                onClick={() => handleShare('messenger')}
+                className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] bg-black/20"
+                style={{ border: `1px solid ${themeColor}50` }}
+                aria-label="Partager sur Messenger"
+                title="Messenger"
+              >
+                <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
+                  <path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.975 12-11.111S18.627 0 12 0zm1.191 14.963l-3.055-3.26-5.963 3.26L10.732 8l3.131 3.259L19.752 8l-6.561 6.963z" />
                 </svg>
               </button>
 
