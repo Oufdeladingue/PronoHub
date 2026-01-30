@@ -1,16 +1,17 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import Image from 'next/image'
+import { useEffect, useState, useRef, useCallback } from 'react'
+
+// Couleurs
+const GOLD = '#F5B800'
+const GOLD_BORDER = 'rgba(245, 184, 0, 0.35)'
 
 // Helper pour convertir une URL externe en URL proxy
 const getProxiedUrl = (url: string | null): string | null => {
   if (!url) return null
-  // Si c'est déjà une URL locale ou data URL, ne pas proxifier
   if (url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:')) {
     return url
   }
-  // Proxifier les URLs externes
   return `/api/proxy-image?url=${encodeURIComponent(url)}`
 }
 
@@ -26,6 +27,8 @@ interface TrophyCelebrationModalProps {
       homeTeamCrest: string | null
       awayTeamCrest: string | null
       competitionId: number
+      homeScore?: number
+      awayScore?: number
     }
   }
   onClose: () => void
@@ -33,296 +36,127 @@ interface TrophyCelebrationModalProps {
 
 export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebrationModalProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
-  const cardRef = useRef<HTMLDivElement>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const continueButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Détecter le thème actif
+  // Animation d'entrée
   useEffect(() => {
-    const currentTheme = localStorage.getItem('theme') as 'dark' | 'light' || 'dark'
-    setTheme(currentTheme)
-  }, [])
-
-  // Animation d'entrée après 100ms (très rapide)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true)
-    }, 100)
-
+    const timer = setTimeout(() => setIsVisible(true), 50)
     return () => clearTimeout(timer)
   }, [])
 
-  // Formater la date de déblocage
+  // Focus sur le bouton Continuer à l'ouverture
+  useEffect(() => {
+    if (isVisible && continueButtonRef.current) {
+      continueButtonRef.current.focus()
+    }
+  }, [isVisible])
+
+  // Bloquer le scroll du body
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  // Fermer avec ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
+  // Formater la date
   const unlockedDate = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: 'long',
+    day: 'numeric',
+    month: 'short',
     year: 'numeric'
   })
 
-  // Couleurs selon le thème
-  const themeColor = theme === 'dark' ? '#F59E0B' : '#3B82F6' // amber-500 : blue-500
-  const bgColor = '#000000'
-  const borderColor = themeColor
-
-  // Fonction pour télécharger l'image
-  const downloadImage = async () => {
-    if (!cardRef.current || isDownloading) return
-
-    setIsDownloading(true)
-    console.log('[Download] Début du téléchargement')
-
+  // Génère l'image du trophée pour partage/download
+  const generateTrophyImage = useCallback(async (): Promise<Blob | null> => {
     try {
-      // APPROCHE FROM SCRATCH: Créer un nouveau div avec ZÉRO Tailwind, que du inline
       const captureDiv = document.createElement('div')
       captureDiv.style.cssText = `
-        width: 384px;
-        background: #000000;
-        border-radius: 16px;
-        border: 3px solid ${themeColor};
-        padding: 20px;
-        padding-top: 56px;
+        width: 420px;
+        background: linear-gradient(180deg, #1a1408 0%, #0d0d0d 30%, #000000 100%);
+        border-radius: 24px;
+        border: 1px solid ${GOLD_BORDER};
+        padding: 24px;
         position: fixed;
         left: -9999px;
         top: 0;
+        font-family: system-ui, -apple-system, sans-serif;
       `
 
-      // Logo
-      const logo = document.createElement('img')
-      logo.src = '/images/logo.png'
-      logo.style.cssText = 'position: absolute; top: 12px; left: 12px; width: 40px; height: 40px;'
-      captureDiv.appendChild(logo)
-
-      // Titre
-      const title = document.createElement('h2')
-      title.textContent = 'Bravo, un trophée de plus sur l\'étagère !'
-      title.style.cssText = `
-        font-size: 20px;
-        font-weight: bold;
-        text-align: center;
-        margin-bottom: 16px;
-        color: ${themeColor};
+      // Header avec lignes décoratives
+      const header = document.createElement('div')
+      header.style.cssText = 'text-align: center; margin-bottom: 16px;'
+      header.innerHTML = `
+        <div style="font-size: 40px; margin-bottom: 8px;">🏆</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+          <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, ${GOLD});"></div>
+          <div style="font-size: 16px; font-weight: bold; color: ${GOLD}; letter-spacing: 0.1em; white-space: nowrap;">TROPHÉE DÉBLOQUÉ</div>
+          <div style="flex: 1; height: 1px; background: linear-gradient(90deg, ${GOLD}, transparent);"></div>
+        </div>
       `
-      captureDiv.appendChild(title)
+      captureDiv.appendChild(header)
 
-      // Image trophée
-      const trophyImg = document.createElement('img')
-      trophyImg.src = trophy.imagePath
-      trophyImg.style.cssText = 'display: block; margin: 0 auto 16px; width: 140px; height: 140px;'
-      captureDiv.appendChild(trophyImg)
+      // Trophy image (l'image contient déjà le cercle bleu et le ruban)
+      const trophyContainer = document.createElement('div')
+      trophyContainer.style.cssText = 'display: flex; justify-content: center; margin-bottom: 12px;'
+      trophyContainer.innerHTML = `<img src="${trophy.imagePath}" style="width: 160px; height: 160px; object-fit: contain;" />`
+      captureDiv.appendChild(trophyContainer)
 
-      // Nom du trophée
-      const trophyName = document.createElement('h3')
-      trophyName.textContent = trophy.name
-      trophyName.style.cssText = 'font-size: 24px; font-weight: bold; color: white; text-align: center; margin-bottom: 8px;'
-      captureDiv.appendChild(trophyName)
+      // Trophy name & description
+      const info = document.createElement('div')
+      info.style.cssText = 'text-align: center; margin-bottom: 16px;'
+      info.innerHTML = `
+        <h2 style="font-size: 26px; font-weight: bold; color: white; margin: 0 0 6px 0;">${trophy.name}</h2>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.6); margin: 0;">${trophy.description}</p>
+      `
+      captureDiv.appendChild(info)
 
-      // Description
-      const desc = document.createElement('p')
-      desc.textContent = trophy.description
-      desc.style.cssText = 'font-size: 16px; color: #D1D5DB; text-align: center; margin-bottom: 8px; font-style: italic;'
-      captureDiv.appendChild(desc)
-
-      // Date
-      const unlockedDate = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })
-      const date = document.createElement('p')
-      date.textContent = `Débloqué le ${unlockedDate}`
-      date.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 16px;'
-      captureDiv.appendChild(date)
-
-      // Match déclencheur
+      // Match card
       if (trophy.triggerMatch) {
-        const matchDiv = document.createElement('div')
-        matchDiv.style.cssText = 'background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 16px;'
-
-        const matchLabel = document.createElement('p')
-        matchLabel.textContent = 'Match déclencheur'
-        matchLabel.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 8px;'
-        matchDiv.appendChild(matchLabel)
-
-        const matchContent = document.createElement('div')
-        matchContent.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 12px;'
-
-        // Home team
-        const homeDiv = document.createElement('div')
-        homeDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
-        if (trophy.triggerMatch.homeTeamCrest) {
-          const homeImg = document.createElement('img')
-          // Utiliser le proxy pour éviter les erreurs CORS
-          homeImg.src = getProxiedUrl(trophy.triggerMatch.homeTeamCrest) || ''
-          homeImg.crossOrigin = 'anonymous'
-          homeImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
-          homeDiv.appendChild(homeImg)
-        }
-        const homeName = document.createElement('p')
-        homeName.textContent = trophy.triggerMatch.homeTeamName
-        homeName.style.cssText = 'font-size: 12px; font-weight: 500; color: white; text-align: center;'
-        homeDiv.appendChild(homeName)
-        matchContent.appendChild(homeDiv)
-
-        // VS
-        const vs = document.createElement('span')
-        vs.textContent = 'vs'
-        vs.style.cssText = 'font-size: 18px; font-weight: bold; color: #6B7280;'
-        matchContent.appendChild(vs)
-
-        // Away team
-        const awayDiv = document.createElement('div')
-        awayDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
-        if (trophy.triggerMatch.awayTeamCrest) {
-          const awayImg = document.createElement('img')
-          // Utiliser le proxy pour éviter les erreurs CORS
-          awayImg.src = getProxiedUrl(trophy.triggerMatch.awayTeamCrest) || ''
-          awayImg.crossOrigin = 'anonymous'
-          awayImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
-          awayDiv.appendChild(awayImg)
-        }
-        const awayName = document.createElement('p')
-        awayName.textContent = trophy.triggerMatch.awayTeamName
-        awayName.style.cssText = 'font-size: 12px; font-weight: 500; color: white; text-align: center;'
-        awayDiv.appendChild(awayName)
-        matchContent.appendChild(awayDiv)
-
-        matchDiv.appendChild(matchContent)
-        captureDiv.appendChild(matchDiv)
+        const hasScore = trophy.triggerMatch.homeScore !== undefined && trophy.triggerMatch.awayScore !== undefined
+        const matchCard = document.createElement('div')
+        matchCard.style.cssText = `
+          background: rgba(30, 30, 30, 0.8);
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.1);
+          padding: 14px;
+          margin-bottom: 16px;
+        `
+        matchCard.innerHTML = `
+          <div style="color: ${GOLD}; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 10px;">Match décisif</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 1; text-align: center;">
+              ${trophy.triggerMatch.homeTeamCrest ? `<img src="${getProxiedUrl(trophy.triggerMatch.homeTeamCrest)}" crossorigin="anonymous" style="width: 44px; height: 44px; margin: 0 auto 4px; display: block;" />` : '<div style="width: 44px; height: 44px; margin: 0 auto 4px; background: #333; border-radius: 50%;"></div>'}
+              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.2;">${trophy.triggerMatch.homeTeamName}</div>
+            </div>
+            <div style="font-size: ${hasScore ? '32px' : '28px'}; font-weight: bold; color: ${GOLD}; padding: 0 8px;">${hasScore ? `${trophy.triggerMatch.homeScore} - ${trophy.triggerMatch.awayScore}` : 'vs'}</div>
+            <div style="flex: 1; text-align: center;">
+              ${trophy.triggerMatch.awayTeamCrest ? `<img src="${getProxiedUrl(trophy.triggerMatch.awayTeamCrest)}" crossorigin="anonymous" style="width: 44px; height: 44px; margin: 0 auto 4px; display: block;" />` : '<div style="width: 44px; height: 44px; margin: 0 auto 4px; background: #333; border-radius: 50%;"></div>'}
+              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.2;">${trophy.triggerMatch.awayTeamName}</div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">Débloqué le ${unlockedDate}</div>
+        `
+        captureDiv.appendChild(matchCard)
       }
 
       // Footer
       const footer = document.createElement('div')
-      footer.style.cssText = 'border-top: 1px solid #1F2937; padding-top: 12px;'
-      const footerText = document.createElement('p')
-      footerText.textContent = 'pronohub.club'
-      footerText.style.cssText = 'font-size: 12px; color: #9CA3AF; font-weight: 500; text-align: center;'
-      footer.appendChild(footerText)
+      footer.style.cssText = 'text-align: center; padding-top: 12px; border-top: 1px solid #222;'
+      footer.innerHTML = `<div style="font-size: 12px; color: #555;">pronohub.club</div>`
       captureDiv.appendChild(footer)
 
       document.body.appendChild(captureDiv)
-      console.log('[Download] Div from scratch créé et ajouté au DOM')
-
-      await new Promise(resolve => setTimeout(resolve, 200))
-      console.log('[Download] Début capture')
-
-      const html2canvas = (await import('html2canvas')).default
-      const canvas = await html2canvas(captureDiv, {
-        backgroundColor: '#000000',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true
-      })
-
-      console.log('[Download] Capture réussie')
-      document.body.removeChild(captureDiv)
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
-          console.log('[Download] Téléchargement déclenché')
-        }
-        setIsDownloading(false)
-      })
-    } catch (error) {
-      console.error('[Download] Error downloading image:', error)
-      console.error('[Download] Error stack:', (error as Error).stack)
-      alert('Erreur lors du téléchargement de l\'image')
-      setIsDownloading(false)
-    }
-  }
-
-  // Génère l'image du trophée et retourne un Blob
-  const generateTrophyImage = async (): Promise<Blob | null> => {
-    try {
-      // Créer un div pour la capture (même logique que downloadImage)
-      const captureDiv = document.createElement('div')
-      captureDiv.style.cssText = `
-        width: 384px;
-        background: #000000;
-        border-radius: 16px;
-        border: 3px solid ${themeColor};
-        padding: 20px;
-        padding-top: 56px;
-        position: fixed;
-        left: -9999px;
-        top: 0;
-      `
-
-      // Logo
-      const logo = document.createElement('img')
-      logo.src = '/images/logo.png'
-      logo.style.cssText = 'position: absolute; top: 12px; left: 12px; width: 40px; height: 40px;'
-      captureDiv.appendChild(logo)
-
-      // Titre
-      const title = document.createElement('h2')
-      title.textContent = 'Bravo, un trophée de plus sur l\'étagère !'
-      title.style.cssText = `font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 16px; color: ${themeColor};`
-      captureDiv.appendChild(title)
-
-      // Image trophée
-      const trophyImg = document.createElement('img')
-      trophyImg.src = trophy.imagePath
-      trophyImg.style.cssText = 'display: block; margin: 0 auto 16px; width: 140px; height: 140px;'
-      captureDiv.appendChild(trophyImg)
-
-      // Nom du trophée
-      const trophyName = document.createElement('h3')
-      trophyName.textContent = trophy.name
-      trophyName.style.cssText = 'font-size: 24px; font-weight: bold; color: white; text-align: center; margin-bottom: 8px;'
-      captureDiv.appendChild(trophyName)
-
-      // Description
-      const desc = document.createElement('p')
-      desc.textContent = trophy.description
-      desc.style.cssText = 'font-size: 16px; color: #D1D5DB; text-align: center; margin-bottom: 8px; font-style: italic;'
-      captureDiv.appendChild(desc)
-
-      // Date
-      const dateStr = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
-        day: 'numeric', month: 'long', year: 'numeric'
-      })
-      const date = document.createElement('p')
-      date.textContent = `Débloqué le ${dateStr}`
-      date.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 16px;'
-      captureDiv.appendChild(date)
-
-      // Match déclencheur (simplifié sans images externes pour éviter CORS)
-      if (trophy.triggerMatch) {
-        const matchDiv = document.createElement('div')
-        matchDiv.style.cssText = 'background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 16px;'
-
-        const matchLabel = document.createElement('p')
-        matchLabel.textContent = 'Match déclencheur'
-        matchLabel.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 8px;'
-        matchDiv.appendChild(matchLabel)
-
-        const matchText = document.createElement('p')
-        matchText.textContent = `${trophy.triggerMatch.homeTeamName} vs ${trophy.triggerMatch.awayTeamName}`
-        matchText.style.cssText = 'font-size: 14px; font-weight: 500; color: white; text-align: center;'
-        matchDiv.appendChild(matchText)
-
-        captureDiv.appendChild(matchDiv)
-      }
-
-      // Footer
-      const footer = document.createElement('div')
-      footer.style.cssText = 'border-top: 1px solid #1F2937; padding-top: 12px;'
-      const footerText = document.createElement('p')
-      footerText.textContent = 'pronohub.club'
-      footerText.style.cssText = 'font-size: 12px; color: #9CA3AF; font-weight: 500; text-align: center;'
-      footer.appendChild(footerText)
-      captureDiv.appendChild(footer)
-
-      document.body.appendChild(captureDiv)
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(captureDiv, {
@@ -341,327 +175,271 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       console.error('[generateTrophyImage] Error:', error)
       return null
     }
+  }, [trophy, unlockedDate])
+
+  // Download
+  const handleDownload = async () => {
+    if (isDownloading) return
+    setIsDownloading(true)
+    try {
+      const blob = await generateTrophyImage()
+      if (blob) {
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+    } catch (error) {
+      console.error('[Download] Error:', error)
+      alert('Erreur lors du téléchargement')
+    }
+    setIsDownloading(false)
   }
 
-  // Fonction pour partager avec image via Web Share API
-  const shareWithImage = async (platform: 'facebook' | 'whatsapp' | 'other') => {
-    const text = `🎉 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\nRejoins-moi sur pronohub.club`
+  // Share
+  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'download') => {
+    if (platform === 'download') {
+      handleDownload()
+      return
+    }
 
-    // Essayer le partage avec fichier d'abord (mobile)
+    const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\n\nRejoins-moi sur pronohub.club`
+
+    // Try Web Share API with file first
     if (navigator.share && navigator.canShare) {
       try {
         const blob = await generateTrophyImage()
         if (blob) {
-          const file = new File([blob], `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
-
-          // Vérifier si le partage de fichiers est supporté
+          const file = new File([blob], `pronohub-trophy.png`, { type: 'image/png' })
           if (navigator.canShare({ files: [file] })) {
             await navigator.share({
               title: `Trophée PronoHub - ${trophy.name}`,
               text: text,
               files: [file]
             })
-            return // Succès, on s'arrête là
+            return
           }
         }
       } catch (error: any) {
-        // L'utilisateur a annulé ou erreur - on continue avec le fallback
-        if (error.name !== 'AbortError') {
-          console.log('[Share] Web Share avec fichier non supporté, fallback...')
-        } else {
-          return // L'utilisateur a annulé, ne pas ouvrir le fallback
-        }
+        if (error.name === 'AbortError') return
+        console.log('[Share] Fallback to URL share')
       }
     }
 
-    // Fallback: partage classique (liens/texte uniquement)
+    // Fallback
     if (platform === 'facebook') {
-      const url = 'https://www.pronohub.club'
-      const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+      const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://www.pronohub.club')}&quote=${encodeURIComponent(text)}`
       window.open(shareUrl, '_blank', 'width=600,height=400')
     } else if (platform === 'whatsapp') {
-      const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
-      window.open(shareUrl, '_blank')
-    } else {
-      // Autres - copier dans le presse-papier
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `Trophée PronoHub - ${trophy.name}`,
-            text: text,
-            url: 'https://www.pronohub.club'
-          })
-        } catch {
-          navigator.clipboard.writeText(text)
-          alert('Texte copié dans le presse-papier !')
-        }
-      } else {
-        navigator.clipboard.writeText(text)
-        alert('Texte copié dans le presse-papier !')
-      }
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
     }
   }
 
-  // Fonction pour partager sur Facebook
-  const shareOnFacebook = () => shareWithImage('facebook')
-
-  // Fonction pour partager sur WhatsApp
-  const shareOnWhatsApp = () => shareWithImage('whatsapp')
-
-  // Fonction pour partager avec le Web Share API (autres options)
-  const shareOther = () => shareWithImage('other')
+  const hasScore = trophy.triggerMatch?.homeScore !== undefined && trophy.triggerMatch?.awayScore !== undefined
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center p-4 transition-opacity duration-300 ${
-        isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      className={`fixed inset-0 z-100 flex items-center justify-center p-4 transition-all duration-300 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
       }`}
-      style={{
-        backgroundColor: isVisible ? 'rgba(0, 0, 0, 0.6)' : 'transparent'
-      }}
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
       onClick={onClose}
     >
-      {/* Carte de célébration */}
+      {/* Modal */}
       <div
-        ref={cardRef}
-        className={`relative w-full max-w-sm bg-black rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ${
-          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        className={`relative w-[92vw] max-w-[400px] rounded-3xl overflow-hidden transform transition-all duration-300 ${
+          isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
         }`}
         style={{
-          border: `3px solid ${borderColor}`
+          background: 'linear-gradient(180deg, #1a1408 0%, #0d0d0d 25%, #000000 100%)',
+          border: `1px solid ${GOLD_BORDER}`,
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.8)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Logo PronoHub en haut à gauche */}
-        <div className="absolute top-3 left-3 z-20">
-          <img
-            src="/images/logo.png"
-            alt="PronoHub"
-            width={40}
-            height={40}
-            className="drop-shadow-lg"
-          />
-        </div>
-
-        {/* Bouton fermer en haut à droite */}
+        {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white hover:bg-opacity-10 transition"
-          style={{ color: themeColor }}
+          className="absolute top-3 right-3 z-10 w-10 h-10 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
+          style={{ color: 'rgba(255,255,255,0.5)' }}
+          aria-label="Fermer"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Étoiles animées en arrière-plan qui tombent */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden stars-container">
-          {[...Array(30)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-fall-star"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `-20px`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${3 + Math.random() * 4}s`
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={themeColor} opacity="0.7">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
-            </div>
-          ))}
-        </div>
-
-        {/* Contenu */}
-        <div className="relative p-5 pt-14">
-          {/* Titre */}
-          <h2
-            className="text-xl font-bold text-center mb-4"
-            style={{ color: themeColor }}
-          >
-            Bravo, un trophée de plus sur l'étagère !
-          </h2>
-
-          {/* Image du trophée */}
-          <div className="mb-4 flex justify-center">
-            <div className="relative">
-              <div
-                className="absolute inset-0 rounded-full blur-2xl opacity-40 animate-pulse"
-                style={{ backgroundColor: themeColor }}
-              ></div>
-              <img
-                src={trophy.imagePath}
-                alt={trophy.name}
-                width={140}
-                height={140}
-                className="relative z-10 drop-shadow-2xl"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/trophy/default.png'
-                }}
-              />
+        {/* Content */}
+        <div className="p-5 pt-6">
+          {/* Header avec lignes décoratives */}
+          <div className="text-center mb-3">
+            <div className="text-4xl mb-2">🏆</div>
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD})` }}></div>
+              <h1
+                className="text-sm font-bold uppercase tracking-[0.15em] whitespace-nowrap"
+                style={{ color: GOLD }}
+              >
+                Trophée débloqué
+              </h1>
+              <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }}></div>
             </div>
           </div>
 
-          {/* Nom du trophée */}
-          <h3 className="text-2xl font-bold text-white text-center mb-2">
-            {trophy.name}
-          </h3>
+          {/* Trophy Image (contient déjà le cercle bleu et le ruban) */}
+          <div className="flex justify-center mb-3">
+            <img
+              src={trophy.imagePath}
+              alt={trophy.name}
+              className="w-40 h-40 object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/trophy/default.png'
+              }}
+            />
+          </div>
 
-          {/* Description du trophée */}
-          <p className="text-base text-gray-300 text-center mb-2 italic">
-            {trophy.description}
-          </p>
+          {/* Trophy Name & Description */}
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold text-white mb-1">
+              {trophy.name}
+            </h2>
+            <p className="text-sm text-white/60">
+              {trophy.description}
+            </p>
+          </div>
 
-          {/* Match déclencheur */}
+          {/* Match Card */}
           {trophy.triggerMatch && (
             <div
-              className="rounded-lg p-3 mb-4 shadow-inner"
-              style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+              className="rounded-2xl p-3.5 mb-4"
+              style={{
+                backgroundColor: 'rgba(30, 30, 30, 0.8)',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}
             >
-              <p className="text-xs text-gray-400 mb-2 text-center">
-                Débloqué le {unlockedDate} grâce à :
+              <p className="text-xs font-semibold text-center mb-2.5" style={{ color: GOLD }}>
+                Match décisif
               </p>
-              <div className="flex items-center justify-center gap-3">
-                {/* Équipe domicile */}
-                <div className="flex flex-col items-center flex-1">
+              <div className="flex items-center justify-between">
+                {/* Home */}
+                <div className="flex-1 flex flex-col items-center">
                   {trophy.triggerMatch.homeTeamCrest ? (
                     <img
                       src={trophy.triggerMatch.homeTeamCrest}
                       alt={trophy.triggerMatch.homeTeamName}
-                      width={36}
-                      height={36}
-                      className="mb-1"
+                      className="w-11 h-11 mb-1"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-9 h-9 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
-                      <span className="text-lg">⚽</span>
+                    <div className="w-11 h-11 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
+                      <span className="text-xl">⚽</span>
                     </div>
                   )}
-                  <p className="text-xs font-medium text-white text-center line-clamp-2">
+                  <p className="text-[11px] text-white/80 text-center leading-tight line-clamp-2 px-1">
                     {trophy.triggerMatch.homeTeamName}
                   </p>
                 </div>
 
-                {/* VS */}
-                <span className="text-lg font-bold text-gray-500">vs</span>
+                {/* Score */}
+                <div className="px-2">
+                  {hasScore ? (
+                    <span className="text-[32px] font-bold" style={{ color: GOLD }}>
+                      {trophy.triggerMatch.homeScore} - {trophy.triggerMatch.awayScore}
+                    </span>
+                  ) : (
+                    <span className="text-2xl font-bold" style={{ color: GOLD }}>vs</span>
+                  )}
+                </div>
 
-                {/* Équipe extérieur */}
-                <div className="flex flex-col items-center flex-1">
+                {/* Away */}
+                <div className="flex-1 flex flex-col items-center">
                   {trophy.triggerMatch.awayTeamCrest ? (
                     <img
                       src={trophy.triggerMatch.awayTeamCrest}
                       alt={trophy.triggerMatch.awayTeamName}
-                      width={36}
-                      height={36}
-                      className="mb-1"
+                      className="w-11 h-11 mb-1"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-9 h-9 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
-                      <span className="text-lg">⚽</span>
+                    <div className="w-11 h-11 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
+                      <span className="text-xl">⚽</span>
                     </div>
                   )}
-                  <p className="text-xs font-medium text-white text-center line-clamp-2">
+                  <p className="text-[11px] text-white/80 text-center leading-tight line-clamp-2 px-1">
                     {trophy.triggerMatch.awayTeamName}
                   </p>
                 </div>
               </div>
+              <p className="text-[11px] text-gray-500 text-center mt-2.5">
+                Débloqué le {unlockedDate}
+              </p>
             </div>
           )}
 
-          {/* Boutons de partage */}
-          <div className="space-y-2 mb-4">
-            <p className="text-sm font-medium text-gray-300 text-center">
-              Chambrage sur les réseaux
+          {/* Share Zone */}
+          <div className="mb-4">
+            <p className="text-white text-sm text-center mb-3">
+              🔥 Partage ton exploit
             </p>
-
-            <div className="flex gap-2 justify-center items-center">
-              {/* Facebook */}
-              <button
-                onClick={shareOnFacebook}
-                className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white hover:bg-opacity-10 transition"
-                title="Facebook"
-              >
-                <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </button>
-
+            <div className="flex justify-center gap-4">
               {/* WhatsApp */}
               <button
-                onClick={shareOnWhatsApp}
-                className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white hover:bg-opacity-10 transition"
+                onClick={() => handleShare('whatsapp')}
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95"
+                style={{ border: `2px solid ${GOLD}` }}
                 title="WhatsApp"
               >
-                <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill={GOLD} viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.304-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
               </button>
 
-              {/* Télécharger */}
+              {/* Facebook */}
               <button
-                onClick={downloadImage}
-                disabled={isDownloading}
-                className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white hover:bg-opacity-10 transition disabled:opacity-50"
-                title="Télécharger"
+                onClick={() => handleShare('facebook')}
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95"
+                style={{ border: `2px solid ${GOLD}` }}
+                title="Facebook"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={themeColor} strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <svg className="w-6 h-6" fill={GOLD} viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </button>
 
-              {/* Autres */}
+              {/* Download */}
               <button
-                onClick={shareOther}
-                className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white hover:bg-opacity-10 transition"
-                title="Autres"
+                onClick={() => handleShare('download')}
+                disabled={isDownloading}
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95 disabled:opacity-50"
+                style={{ border: `2px solid ${GOLD}` }}
+                title="Télécharger"
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={themeColor} strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={GOLD} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="pt-3 border-t border-gray-800">
-            <p className="text-xs text-gray-400 font-medium text-center">
-              pronohub.club
-            </p>
-          </div>
+          {/* CTA Button */}
+          <button
+            ref={continueButtonRef}
+            onClick={onClose}
+            className="w-full py-3.5 rounded-full text-black font-bold text-sm tracking-wide transition-all active:scale-[0.98] hover:brightness-110"
+            style={{ backgroundColor: GOLD }}
+          >
+            CONTINUER →
+          </button>
         </div>
       </div>
-
-      {/* Styles pour l'animation des étoiles qui tombent */}
-      <style jsx>{`
-        @keyframes fall-star {
-          0% {
-            transform: translateY(-20px) rotate(0deg);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(calc(100vh + 20px)) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        .animate-fall-star {
-          animation: fall-star linear infinite;
-        }
-      `}</style>
     </div>
   )
 }
