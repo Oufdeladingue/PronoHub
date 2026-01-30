@@ -43,10 +43,21 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [mounted, setMounted] = useState(false)
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null)
   const continueButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Portal: attendre que le composant soit monté côté client
+  // Portal: créer/trouver le container côté client
   useEffect(() => {
+    let container = document.getElementById('trophy-modal-root')
+    if (!container) {
+      // Fallback: créer le container s'il n'existe pas
+      container = document.createElement('div')
+      container.id = 'trophy-modal-root'
+      container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 2147483647; pointer-events: none;'
+      document.body.appendChild(container)
+      console.log('[TrophyCelebrationModal] Created fallback #trophy-modal-root')
+    }
+    setPortalContainer(container)
     setMounted(true)
   }, [])
 
@@ -309,15 +320,8 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  // Ne pas rendre côté serveur
-  if (!mounted) {
-    return null
-  }
-
-  // Trouver le container pré-créé dans layout.tsx
-  const container = document.getElementById('trophy-modal-root')
-  if (!container) {
-    console.error('[TrophyCelebrationModal] #trophy-modal-root not found in DOM')
+  // Ne pas rendre côté serveur ou si le container n'est pas prêt
+  if (!mounted || !portalContainer) {
     return null
   }
 
@@ -553,6 +557,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         </div>
       </div>
     </div>,
-    container
+    portalContainer
   )
 }
