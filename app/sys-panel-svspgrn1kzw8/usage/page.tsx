@@ -337,7 +337,7 @@ export default function AdminUsagePage() {
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const [tournamentsPageSize, setTournamentsPageSize] = useState(20)
 
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
@@ -520,15 +520,15 @@ export default function AdminUsagePage() {
     return result
   }, [tournaments, filterText, filterType, filterStatus, sortColumn, sortDirection])
 
-  const totalPages = Math.ceil(filteredAndSortedTournaments.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredAndSortedTournaments.length / tournamentsPageSize)
   const paginatedTournaments = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredAndSortedTournaments.slice(start, start + itemsPerPage)
-  }, [filteredAndSortedTournaments, currentPage])
+    const start = (currentPage - 1) * tournamentsPageSize
+    return filteredAndSortedTournaments.slice(start, start + tournamentsPageSize)
+  }, [filteredAndSortedTournaments, currentPage, tournamentsPageSize])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [filterText, filterType, filterStatus])
+  }, [filterText, filterType, filterStatus, tournamentsPageSize])
 
   const handleSort = (column: keyof Tournament) => {
     if (sortColumn === column) {
@@ -976,28 +976,49 @@ export default function AdminUsagePage() {
               )}
 
               {/* Pagination */}
-              {filteredAndSortedTournaments.length > 0 && totalPages > 1 && (
-                <div className="bg-white rounded-lg shadow border border-gray-200 mt-4">
-                  <div className="px-4 py-3 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <div className="text-sm text-gray-600">
-                      Page {currentPage} sur {totalPages}
+              {filteredAndSortedTournaments.length > 0 && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 p-4 bg-slate-800 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-white">
+                      <span className="font-semibold text-purple-400">{filteredAndSortedTournaments.length}</span> tournoi{filteredAndSortedTournaments.length > 1 ? 's' : ''}
+                      {filteredAndSortedTournaments.length > 0 && (
+                        <span className="text-slate-400 ml-2">
+                          ({(currentPage - 1) * tournamentsPageSize + 1}-{Math.min(currentPage * tournamentsPageSize, filteredAndSortedTournaments.length)})
+                        </span>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-slate-300">Afficher :</label>
+                      <select
+                        value={tournamentsPageSize}
+                        onChange={(e) => setTournamentsPageSize(Number(e.target.value))}
+                        className="px-2 py-1 border border-slate-600 rounded text-sm bg-slate-700 text-white"
                       >
-                        Précédent
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Suivant
-                      </button>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-slate-300">
+                      Page <span className="font-semibold text-white">{currentPage}</span> / {totalPages || 1}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages || 1, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                    >
+                      →
+                    </button>
                   </div>
                 </div>
               )}
