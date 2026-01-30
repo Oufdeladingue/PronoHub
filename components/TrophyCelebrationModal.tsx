@@ -3,6 +3,17 @@
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 
+// Helper pour convertir une URL externe en URL proxy
+const getProxiedUrl = (url: string | null): string | null => {
+  if (!url) return null
+  // Si c'est déjà une URL locale ou data URL, ne pas proxifier
+  if (url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url
+  }
+  // Proxifier les URLs externes
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`
+}
+
 interface TrophyCelebrationModalProps {
   trophy: {
     name: string
@@ -140,7 +151,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         homeDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
         if (trophy.triggerMatch.homeTeamCrest) {
           const homeImg = document.createElement('img')
-          homeImg.src = trophy.triggerMatch.homeTeamCrest
+          // Utiliser le proxy pour éviter les erreurs CORS
+          homeImg.src = getProxiedUrl(trophy.triggerMatch.homeTeamCrest) || ''
+          homeImg.crossOrigin = 'anonymous'
           homeImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
           homeDiv.appendChild(homeImg)
         }
@@ -161,7 +174,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         awayDiv.style.cssText = 'display: flex; flex-direction: column; align-items: center; flex: 1;'
         if (trophy.triggerMatch.awayTeamCrest) {
           const awayImg = document.createElement('img')
-          awayImg.src = trophy.triggerMatch.awayTeamCrest
+          // Utiliser le proxy pour éviter les erreurs CORS
+          awayImg.src = getProxiedUrl(trophy.triggerMatch.awayTeamCrest) || ''
+          awayImg.crossOrigin = 'anonymous'
           awayImg.style.cssText = 'width: 36px; height: 36px; margin-bottom: 4px;'
           awayDiv.appendChild(awayImg)
         }
@@ -223,39 +238,178 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     }
   }
 
-  // Fonction pour partager sur Facebook
-  const shareOnFacebook = () => {
-    const url = `https://www.pronohub.club/trophies/${encodeURIComponent(trophy.name)}`
-    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-    window.open(shareUrl, '_blank', 'width=600,height=400')
-  }
+  // Génère l'image du trophée et retourne un Blob
+  const generateTrophyImage = async (): Promise<Blob | null> => {
+    try {
+      // Créer un div pour la capture (même logique que downloadImage)
+      const captureDiv = document.createElement('div')
+      captureDiv.style.cssText = `
+        width: 384px;
+        background: #000000;
+        border-radius: 16px;
+        border: 3px solid ${themeColor};
+        padding: 20px;
+        padding-top: 56px;
+        position: fixed;
+        left: -9999px;
+        top: 0;
+      `
 
-  // Fonction pour partager sur WhatsApp
-  const shareOnWhatsApp = () => {
-    const text = `🎉 J'ai débloqué le trophée "${trophy.name}" sur PronoHub ! ${trophy.description}\nRejoins-moi sur pronohub.club`
-    const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
-    window.open(shareUrl, '_blank')
-  }
+      // Logo
+      const logo = document.createElement('img')
+      logo.src = '/images/logo.png'
+      logo.style.cssText = 'position: absolute; top: 12px; left: 12px; width: 40px; height: 40px;'
+      captureDiv.appendChild(logo)
 
-  // Fonction pour partager avec le Web Share API (autres options)
-  const shareOther = async () => {
-    const text = `🎉 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\n\nRejoins-moi sur pronohub.club`
+      // Titre
+      const title = document.createElement('h2')
+      title.textContent = 'Bravo, un trophée de plus sur l\'étagère !'
+      title.style.cssText = `font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 16px; color: ${themeColor};`
+      captureDiv.appendChild(title)
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Trophée PronoHub - ${trophy.name}`,
-          text: text,
-          url: 'https://www.pronohub.club'
-        })
-      } catch (error) {
-        console.log('Partage annulé')
+      // Image trophée
+      const trophyImg = document.createElement('img')
+      trophyImg.src = trophy.imagePath
+      trophyImg.style.cssText = 'display: block; margin: 0 auto 16px; width: 140px; height: 140px;'
+      captureDiv.appendChild(trophyImg)
+
+      // Nom du trophée
+      const trophyName = document.createElement('h3')
+      trophyName.textContent = trophy.name
+      trophyName.style.cssText = 'font-size: 24px; font-weight: bold; color: white; text-align: center; margin-bottom: 8px;'
+      captureDiv.appendChild(trophyName)
+
+      // Description
+      const desc = document.createElement('p')
+      desc.textContent = trophy.description
+      desc.style.cssText = 'font-size: 16px; color: #D1D5DB; text-align: center; margin-bottom: 8px; font-style: italic;'
+      captureDiv.appendChild(desc)
+
+      // Date
+      const dateStr = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      })
+      const date = document.createElement('p')
+      date.textContent = `Débloqué le ${dateStr}`
+      date.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 16px;'
+      captureDiv.appendChild(date)
+
+      // Match déclencheur (simplifié sans images externes pour éviter CORS)
+      if (trophy.triggerMatch) {
+        const matchDiv = document.createElement('div')
+        matchDiv.style.cssText = 'background: rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-bottom: 16px;'
+
+        const matchLabel = document.createElement('p')
+        matchLabel.textContent = 'Match déclencheur'
+        matchLabel.style.cssText = 'font-size: 12px; color: #9CA3AF; text-align: center; margin-bottom: 8px;'
+        matchDiv.appendChild(matchLabel)
+
+        const matchText = document.createElement('p')
+        matchText.textContent = `${trophy.triggerMatch.homeTeamName} vs ${trophy.triggerMatch.awayTeamName}`
+        matchText.style.cssText = 'font-size: 14px; font-weight: 500; color: white; text-align: center;'
+        matchDiv.appendChild(matchText)
+
+        captureDiv.appendChild(matchDiv)
       }
-    } else {
-      navigator.clipboard.writeText(text)
-      alert('Texte copié dans le presse-papier !')
+
+      // Footer
+      const footer = document.createElement('div')
+      footer.style.cssText = 'border-top: 1px solid #1F2937; padding-top: 12px;'
+      const footerText = document.createElement('p')
+      footerText.textContent = 'pronohub.club'
+      footerText.style.cssText = 'font-size: 12px; color: #9CA3AF; font-weight: 500; text-align: center;'
+      footer.appendChild(footerText)
+      captureDiv.appendChild(footer)
+
+      document.body.appendChild(captureDiv)
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(captureDiv, {
+        backgroundColor: '#000000',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      })
+
+      document.body.removeChild(captureDiv)
+
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), 'image/png')
+      })
+    } catch (error) {
+      console.error('[generateTrophyImage] Error:', error)
+      return null
     }
   }
+
+  // Fonction pour partager avec image via Web Share API
+  const shareWithImage = async (platform: 'facebook' | 'whatsapp' | 'other') => {
+    const text = `🎉 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\nRejoins-moi sur pronohub.club`
+
+    // Essayer le partage avec fichier d'abord (mobile)
+    if (navigator.share && navigator.canShare) {
+      try {
+        const blob = await generateTrophyImage()
+        if (blob) {
+          const file = new File([blob], `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
+
+          // Vérifier si le partage de fichiers est supporté
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              title: `Trophée PronoHub - ${trophy.name}`,
+              text: text,
+              files: [file]
+            })
+            return // Succès, on s'arrête là
+          }
+        }
+      } catch (error: any) {
+        // L'utilisateur a annulé ou erreur - on continue avec le fallback
+        if (error.name !== 'AbortError') {
+          console.log('[Share] Web Share avec fichier non supporté, fallback...')
+        } else {
+          return // L'utilisateur a annulé, ne pas ouvrir le fallback
+        }
+      }
+    }
+
+    // Fallback: partage classique (liens/texte uniquement)
+    if (platform === 'facebook') {
+      const url = 'https://www.pronohub.club'
+      const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+      window.open(shareUrl, '_blank', 'width=600,height=400')
+    } else if (platform === 'whatsapp') {
+      const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`
+      window.open(shareUrl, '_blank')
+    } else {
+      // Autres - copier dans le presse-papier
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Trophée PronoHub - ${trophy.name}`,
+            text: text,
+            url: 'https://www.pronohub.club'
+          })
+        } catch {
+          navigator.clipboard.writeText(text)
+          alert('Texte copié dans le presse-papier !')
+        }
+      } else {
+        navigator.clipboard.writeText(text)
+        alert('Texte copié dans le presse-papier !')
+      }
+    }
+  }
+
+  // Fonction pour partager sur Facebook
+  const shareOnFacebook = () => shareWithImage('facebook')
+
+  // Fonction pour partager sur WhatsApp
+  const shareOnWhatsApp = () => shareWithImage('whatsapp')
+
+  // Fonction pour partager avec le Web Share API (autres options)
+  const shareOther = () => shareWithImage('other')
 
   return (
     <div
