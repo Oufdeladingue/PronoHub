@@ -427,7 +427,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       <style>{`
         @keyframes glitter-fall-modal {
           0% {
-            transform: translateY(-20px) rotate(0deg);
+            transform: translateY(0) rotate(0deg);
             opacity: 0;
           }
           10% {
@@ -437,7 +437,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             opacity: 1;
           }
           100% {
-            transform: translateY(calc(100% + 600px)) rotate(360deg);
+            transform: translateY(800px) rotate(360deg);
             opacity: 0;
           }
         }
@@ -487,36 +487,64 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           background: gradientBg,
           animation: isVisible ? 'modal-slide-fall 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' : 'none',
           opacity: isVisible ? 1 : 0,
-          overflow: 'hidden'
+          overflow: 'hidden',
+          isolation: 'isolate'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Paillettes dorées (sur toute la modale) */}
-        {glitters.map((glitter) => (
-          <div
-            key={glitter.id}
-            style={{
-              position: 'absolute',
-              left: `${glitter.left}%`,
-              top: 0,
-              width: '8px',
-              height: '8px',
-              background: 'linear-gradient(45deg, #FFD700, #FFA500)',
-              clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-              animation: 'glitter-fall-modal linear infinite',
-              animationDelay: `${glitter.delay}s`,
-              animationDuration: `${glitter.duration}s`,
-              pointerEvents: 'none',
-              filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
-              zIndex: 0
-            }}
-          />
-        ))}
+        {/* Container pour confiner les paillettes */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          borderRadius: '24px',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}>
+          {/* Paillettes dorées (confinées dans la modale) */}
+          {glitters.map((glitter) => (
+            <div
+              key={glitter.id}
+              style={{
+                position: 'absolute',
+                left: `${glitter.left}%`,
+                top: '-20px',
+                width: '8px',
+                height: '8px',
+                background: 'linear-gradient(45deg, #FFD700, #FFA500)',
+                clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+                animation: 'glitter-fall-modal linear infinite',
+                animationDelay: `${glitter.delay}s`,
+                animationDuration: `${glitter.duration}s`,
+                pointerEvents: 'none',
+                filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+                zIndex: 0
+              }}
+            />
+          ))}
+        </div>
 
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 h-11 w-11 flex items-center justify-center rounded-full transition-colors hover:bg-white/5"
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 9999,
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '9999px',
+            transition: 'background-color 200ms',
+            cursor: 'pointer',
+            border: 'none',
+            background: 'rgba(0, 0, 0, 0.3)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)'}
           aria-label="Fermer"
         >
           <svg className="w-5 h-5 text-white/55" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -582,11 +610,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
           {/* Match Card */}
           {trophy.triggerMatch && (
-            <div className="mt-7 mx-auto" style={{ width: '372px' }}>
+            <div className="mt-7 mx-auto" style={{ width: '100%', maxWidth: '372px' }}>
               <div
                 className="relative"
                 style={{
-                  width: '372px',
+                  width: '100%',
                   height: '140px',
                   borderRadius: '18px',
                   background: `radial-gradient(120% 120% at 50% 0%, ${themeColor}40 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 100%)`,

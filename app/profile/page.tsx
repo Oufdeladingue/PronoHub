@@ -1704,7 +1704,7 @@ function ProfileContent() {
       <LockedBadgeModal
         isOpen={showLockedBadgeModal}
         onClose={() => setShowLockedBadgeModal(false)}
-        theme={theme}
+        theme="gold"
       />
 
       {/* Modale de succès changement de mot de passe */}
