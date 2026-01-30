@@ -134,7 +134,25 @@ function DashboardContent({
   const [isUsingSlot, setIsUsingSlot] = useState(false)
 
   // Hook pour détecter les nouveaux trophées
-  const { currentTrophy, hasNewTrophies, closeCurrentTrophy } = useTrophyNotifications()
+  const { currentTrophy, hasNewTrophies, closeCurrentTrophy, simulateTrophy } = useTrophyNotifications()
+
+  // État pour le debug tap counter
+  const [debugTapCount, setDebugTapCount] = useState(0)
+  const [debugTapTimer, setDebugTapTimer] = useState<NodeJS.Timeout | null>(null)
+
+  // Handler pour déclencher le test modal (5 taps rapides)
+  const handleDebugTap = () => {
+    if (debugTapTimer) clearTimeout(debugTapTimer)
+    const newCount = debugTapCount + 1
+    setDebugTapCount(newCount)
+    if (newCount >= 5) {
+      simulateTrophy('exact_score')
+      setDebugTapCount(0)
+    } else {
+      const timer = setTimeout(() => setDebugTapCount(0), 1000)
+      setDebugTapTimer(timer)
+    }
+  }
 
   // DEBUG: Log quand currentTrophy change
   useEffect(() => {
@@ -325,7 +343,12 @@ function DashboardContent({
         {/* Section Mes tournois en premier */}
         <div className="theme-card mb-8">
           <div className="mb-4">
-            <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">Mes tournois</h2>
+            <h2
+              className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left cursor-pointer select-none"
+              onClick={handleDebugTap}
+            >
+              Mes tournois {debugTapCount > 0 && <span className="text-xs opacity-50">({debugTapCount})</span>}
+            </h2>
 
             {/* Version Desktop - affichage direct */}
             <p className="hidden md:flex text-sm theme-text-secondary mt-1 flex-wrap items-center gap-x-5 gap-y-1">
