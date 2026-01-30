@@ -109,11 +109,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         box-shadow: 0 24px 80px rgba(0,0,0,0.65);
       `
 
-      // Header premium (icône + titre centré)
+      // Header premium (logo + titre centré)
       const header = document.createElement('div')
       header.style.cssText = 'text-align:center; margin-bottom: 12px;'
       header.innerHTML = `
-        <div style="font-size: 22px; line-height: 1; margin-bottom: 8px;">🏆</div>
+        <img src="/images/logo.png" style="height: 28px; width: auto; margin: 0 auto 8px; display: block;" />
         <div style="font-size: 16px; font-weight: 900; color: ${themeColor}; letter-spacing: 0.14em; text-transform: uppercase;">TROPHÉE DÉBLOQUÉ</div>
       `
       captureDiv.appendChild(header)
@@ -332,9 +332,13 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
         {/* Content */}
         <div className="px-6 pt-5 pb-6">
-          {/* Header premium (trophée centré) */}
+          {/* Header premium (logo centré) */}
           <div className="text-center">
-            <div className="text-[22px] leading-none">🏆</div>
+            <img
+              src="/images/logo.png"
+              alt="PronoHub"
+              className="h-7 w-auto mx-auto object-contain"
+            />
             <h1
               id="trophy-title"
               className="mt-2 text-[15px] font-extrabold uppercase tracking-[0.16em]"
