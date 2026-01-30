@@ -197,7 +197,7 @@ export function useTrophyNotifications() {
   }
 
   // Référence stable pour la simulation (évite stale closure)
-  const simulateTrophyRef = useRef<(type?: string) => void>()
+  const simulateTrophyRef = useRef<((type?: string) => void) | undefined>(undefined)
 
   // Mettre à jour la référence à chaque rendu
   simulateTrophyRef.current = (trophyType?: string) => {
