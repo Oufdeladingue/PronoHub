@@ -583,16 +583,21 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Match Card */}
           {trophy.triggerMatch && (
             <div className="mt-7 mx-auto" style={{ width: '372px' }}>
-              <div className="relative">
+              <div className="relative" style={{ height: '248px' }}>
                 {/* Image de fond (cadre décoratif) */}
                 <img
                   src={`/images/match-decisif-frame.png?t=${Date.now()}`}
                   alt=""
-                  style={{ width: '372px', display: 'block' }}
+                  style={{
+                    width: '372px',
+                    height: '248px',
+                    objectFit: 'fill',
+                    display: 'block'
+                  }}
                 />
 
                 {/* Contenu par-dessus l'image */}
-                <div className="absolute inset-0 flex flex-col justify-center px-4" style={{ paddingTop: '40px', paddingBottom: '20px' }}>
+                <div className="absolute inset-0 flex flex-col justify-center px-4" style={{ paddingTop: '35px', paddingBottom: '20px' }}>
                   <div className="flex items-center justify-between">
                     {/* Home */}
                     <div className="flex-1 flex flex-col items-center">
