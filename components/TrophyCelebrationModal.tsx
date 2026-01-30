@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { isCapacitor, saveImageToDevice } from '@/lib/capacitor'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -248,29 +247,37 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       if (blob) {
         const filename = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
 
-        // Sur Android (Capacitor), utiliser Filesystem + Share
-        if (isCapacitor()) {
-          const success = await saveImageToDevice(blob, filename)
-          if (!success) {
-            // Fallback: essayer Web Share API
-            if (navigator.share && navigator.canShare) {
-              const file = new File([blob], filename, { type: 'image/png' })
-              if (navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file] })
-              }
+        // Essayer d'abord Web Share API (fonctionne sur mobile Android/iOS)
+        if (navigator.share && navigator.canShare) {
+          try {
+            const file = new File([blob], filename, { type: 'image/png' })
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                title: `Trophée PronoHub - ${trophy.name}`,
+                files: [file]
+              })
+              setIsDownloading(false)
+              return
             }
+          } catch (e: any) {
+            // Utilisateur a annulé = pas d'erreur
+            if (e.name === 'AbortError') {
+              setIsDownloading(false)
+              return
+            }
+            console.log('[Download] Web Share failed, trying fallback:', e)
           }
-        } else {
-          // Sur le web, utiliser le téléchargement classique
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = filename
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          URL.revokeObjectURL(url)
         }
+
+        // Fallback: téléchargement classique (desktop)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
       }
     } catch (error) {
       console.error('[Download] Error:', error)
