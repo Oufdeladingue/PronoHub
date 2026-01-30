@@ -592,7 +592,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             >
               {/* Image de fond du cadre */}
               <img
-                src="/images/match-decisif-frame.png"
+                src="/images/match-decisif-frame.png?v=2"
                 alt=""
                 style={{ maxWidth: '100%', maxHeight: '100%', display: 'block' }}
               />
