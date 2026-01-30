@@ -38,6 +38,8 @@ interface TrophyCelebrationModalProps {
 }
 
 export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebrationModalProps) {
+  console.log('[TrophyCelebrationModal] Component called with trophy:', trophy?.name)
+
   const [isVisible, setIsVisible] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
