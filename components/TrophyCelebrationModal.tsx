@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 
-// Couleurs
+// Couleur or
 const GOLD = '#F5B800'
-const GOLD_BORDER = 'rgba(245, 184, 0, 0.35)'
 
 // Helper pour convertir une URL externe en URL proxy
 const getProxiedUrl = (url: string | null): string | null => {
@@ -41,7 +40,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   // Animation d'entrée
   useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 50)
+    const timer = setTimeout(() => setIsVisible(true), 30)
     return () => clearTimeout(timer)
   }, [])
 
@@ -69,12 +68,12 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     return () => window.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
-  // Formater la date
-  const unlockedDate = new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
-    day: 'numeric',
+  // Formater la date FR
+  const unlockedDate = new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
     month: 'short',
     year: 'numeric'
-  })
+  }).format(new Date(trophy.unlocked_at))
 
   // Génère l'image du trophée pour partage/download
   const generateTrophyImage = useCallback(async (): Promise<Blob | null> => {
@@ -82,9 +81,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       const captureDiv = document.createElement('div')
       captureDiv.style.cssText = `
         width: 420px;
-        background: linear-gradient(180deg, #1a1408 0%, #0d0d0d 30%, #000000 100%);
+        background: linear-gradient(180deg, #0B0B0C 0%, #050506 100%);
         border-radius: 24px;
-        border: 1px solid ${GOLD_BORDER};
+        border: 1px solid rgba(245, 184, 0, 0.25);
         padding: 24px;
         position: fixed;
         left: -9999px;
@@ -92,31 +91,32 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         font-family: system-ui, -apple-system, sans-serif;
       `
 
-      // Header avec lignes décoratives
+      // Header
       const header = document.createElement('div')
-      header.style.cssText = 'text-align: center; margin-bottom: 16px;'
+      header.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px;'
       header.innerHTML = `
-        <div style="font-size: 40px; margin-bottom: 8px;">🏆</div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-          <div style="flex: 1; height: 1px; background: linear-gradient(90deg, transparent, ${GOLD});"></div>
-          <div style="font-size: 16px; font-weight: bold; color: ${GOLD}; letter-spacing: 0.1em; white-space: nowrap;">TROPHÉE DÉBLOQUÉ</div>
-          <div style="flex: 1; height: 1px; background: linear-gradient(90deg, ${GOLD}, transparent);"></div>
-        </div>
+        <span style="font-size: 28px;">🏆</span>
+        <span style="font-size: 16px; font-weight: 800; color: ${GOLD}; letter-spacing: 0.12em; text-transform: uppercase;">TROPHÉE DÉBLOQUÉ</span>
       `
       captureDiv.appendChild(header)
 
-      // Trophy image (l'image contient déjà le cercle bleu et le ruban)
+      // Separator
+      const sep = document.createElement('div')
+      sep.style.cssText = `height: 1px; width: 100%; background: linear-gradient(90deg, transparent, rgba(245,184,0,0.35), transparent); margin-bottom: 16px;`
+      captureDiv.appendChild(sep)
+
+      // Trophy image
       const trophyContainer = document.createElement('div')
       trophyContainer.style.cssText = 'display: flex; justify-content: center; margin-bottom: 12px;'
-      trophyContainer.innerHTML = `<img src="${trophy.imagePath}" style="width: 160px; height: 160px; object-fit: contain;" />`
+      trophyContainer.innerHTML = `<img src="${trophy.imagePath}" style="width: 156px; height: 156px; object-fit: contain;" />`
       captureDiv.appendChild(trophyContainer)
 
       // Trophy name & description
       const info = document.createElement('div')
       info.style.cssText = 'text-align: center; margin-bottom: 16px;'
       info.innerHTML = `
-        <h2 style="font-size: 26px; font-weight: bold; color: white; margin: 0 0 6px 0;">${trophy.name}</h2>
-        <p style="font-size: 14px; color: rgba(255,255,255,0.6); margin: 0;">${trophy.description}</p>
+        <h2 style="font-size: 28px; font-weight: 800; color: white; margin: 0 0 4px 0;">${trophy.name}</h2>
+        <p style="font-size: 14px; color: rgba(255,255,255,0.7); margin: 0;">${trophy.description}</p>
       `
       captureDiv.appendChild(info)
 
@@ -125,10 +125,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         const hasScore = trophy.triggerMatch.homeScore !== undefined && trophy.triggerMatch.awayScore !== undefined
         const matchCard = document.createElement('div')
         matchCard.style.cssText = `
-          background: rgba(30, 30, 30, 0.8);
+          background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%);
           border-radius: 16px;
           border: 1px solid rgba(255,255,255,0.1);
-          padding: 14px;
+          padding: 14px 16px;
           margin-bottom: 16px;
         `
         matchCard.innerHTML = `
@@ -136,23 +136,23 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="flex: 1; text-align: center;">
               ${trophy.triggerMatch.homeTeamCrest ? `<img src="${getProxiedUrl(trophy.triggerMatch.homeTeamCrest)}" crossorigin="anonymous" style="width: 44px; height: 44px; margin: 0 auto 4px; display: block;" />` : '<div style="width: 44px; height: 44px; margin: 0 auto 4px; background: #333; border-radius: 50%;"></div>'}
-              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.2;">${trophy.triggerMatch.homeTeamName}</div>
+              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.3;">${trophy.triggerMatch.homeTeamName}</div>
             </div>
-            <div style="font-size: ${hasScore ? '32px' : '28px'}; font-weight: bold; color: ${GOLD}; padding: 0 8px;">${hasScore ? `${trophy.triggerMatch.homeScore} - ${trophy.triggerMatch.awayScore}` : 'vs'}</div>
+            <div style="font-size: 32px; font-weight: 800; color: ${GOLD}; padding: 0 12px; letter-spacing: 0.05em;">${hasScore ? `${trophy.triggerMatch.homeScore} - ${trophy.triggerMatch.awayScore}` : 'VS'}</div>
             <div style="flex: 1; text-align: center;">
               ${trophy.triggerMatch.awayTeamCrest ? `<img src="${getProxiedUrl(trophy.triggerMatch.awayTeamCrest)}" crossorigin="anonymous" style="width: 44px; height: 44px; margin: 0 auto 4px; display: block;" />` : '<div style="width: 44px; height: 44px; margin: 0 auto 4px; background: #333; border-radius: 50%;"></div>'}
-              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.2;">${trophy.triggerMatch.awayTeamName}</div>
+              <div style="font-size: 11px; color: rgba(255,255,255,0.8); line-height: 1.3;">${trophy.triggerMatch.awayTeamName}</div>
             </div>
           </div>
-          <div style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">Débloqué le ${unlockedDate}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); text-align: center; margin-top: 10px;">Débloqué le ${unlockedDate}</div>
         `
         captureDiv.appendChild(matchCard)
       }
 
       // Footer
       const footer = document.createElement('div')
-      footer.style.cssText = 'text-align: center; padding-top: 12px; border-top: 1px solid #222;'
-      footer.innerHTML = `<div style="font-size: 12px; color: #555;">pronohub.club</div>`
+      footer.style.cssText = 'text-align: center; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);'
+      footer.innerHTML = `<div style="font-size: 12px; color: rgba(255,255,255,0.4);">pronohub.club</div>`
       captureDiv.appendChild(footer)
 
       document.body.appendChild(captureDiv)
@@ -160,7 +160,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
       const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(captureDiv, {
-        backgroundColor: '#000000',
+        backgroundColor: '#050506',
         scale: 2,
         useCORS: true,
         allowTaint: true
@@ -195,18 +195,12 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       }
     } catch (error) {
       console.error('[Download] Error:', error)
-      alert('Erreur lors du téléchargement')
     }
     setIsDownloading(false)
   }
 
   // Share
-  const handleShare = async (platform: 'whatsapp' | 'facebook' | 'download') => {
-    if (platform === 'download') {
-      handleDownload()
-      return
-    }
-
+  const handleShare = async (platform: 'whatsapp' | 'facebook') => {
     const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\n\nRejoins-moi sur pronohub.club`
 
     // Try Web Share API with file first
@@ -226,7 +220,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         }
       } catch (error: any) {
         if (error.name === 'AbortError') return
-        console.log('[Share] Fallback to URL share')
       }
     }
 
@@ -243,59 +236,63 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   return (
     <div
-      className={`fixed inset-0 z-100 flex items-center justify-center p-4 transition-all duration-300 ${
+      className={`fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="trophy-title"
     >
-      {/* Modal */}
+      {/* Modal Container */}
       <div
-        className={`relative w-[92vw] max-w-[400px] rounded-3xl overflow-hidden transform transition-all duration-300 ${
-          isVisible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+        className={`relative w-full max-w-[420px] rounded-3xl border border-[#F5B800]/25 shadow-[0_24px_80px_rgba(0,0,0,0.65)] transition duration-200 ease-out ${
+          isVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-[0.98] translate-y-2'
         }`}
         style={{
-          background: 'linear-gradient(180deg, #1a1408 0%, #0d0d0d 25%, #000000 100%)',
-          border: `1px solid ${GOLD_BORDER}`,
-          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.8)'
+          background: 'radial-gradient(120% 80% at 50% 0%, rgba(245,184,0,0.18) 0%, rgba(0,0,0,0) 45%), radial-gradient(120% 120% at 50% 100%, rgba(245,184,0,0.08) 0%, rgba(0,0,0,0) 60%), linear-gradient(180deg, #0B0B0C 0%, #050506 100%)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-10 w-10 h-10 flex items-center justify-center rounded-full transition-colors hover:bg-white/10"
-          style={{ color: 'rgba(255,255,255,0.5)' }}
+          className="absolute top-3 right-3 z-10 h-11 w-11 flex items-center justify-center rounded-full transition-colors hover:bg-white/5"
           aria-label="Fermer"
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
         {/* Content */}
-        <div className="p-5 pt-6">
-          {/* Header avec lignes décoratives */}
-          <div className="text-center mb-3">
-            <div className="text-4xl mb-2">🏆</div>
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD})` }}></div>
-              <h1
-                className="text-sm font-bold uppercase tracking-[0.15em] whitespace-nowrap"
-                style={{ color: GOLD }}
-              >
-                Trophée débloqué
-              </h1>
-              <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${GOLD}, transparent)` }}></div>
-            </div>
+        <div className="px-6 pt-5 pb-6">
+          {/* Header compact */}
+          <div className="flex items-center justify-center gap-2.5">
+            <span className="text-[28px]">🏆</span>
+            <h1
+              id="trophy-title"
+              className="text-base font-extrabold uppercase tracking-[0.12em]"
+              style={{ color: GOLD }}
+            >
+              Trophée débloqué
+            </h1>
           </div>
 
-          {/* Trophy Image (contient déjà le cercle bleu et le ruban) */}
-          <div className="flex justify-center mb-3">
+          {/* Separator gradient */}
+          <div className="mt-3 h-px w-full bg-gradient-to-r from-transparent via-[#F5B800]/35 to-transparent" />
+
+          {/* Trophy Image with subtle glow */}
+          <div className="relative mt-4 flex justify-center">
+            {/* Subtle sparkle/glow behind */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full opacity-25 blur-2xl"
+              style={{ background: `radial-gradient(circle, ${GOLD} 0%, transparent 70%)` }}
+            />
             <img
               src={trophy.imagePath}
               alt={trophy.name}
-              className="w-40 h-40 object-contain"
+              className="relative z-10 w-[156px] h-[156px] object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/trophy/default.png'
               }}
@@ -303,11 +300,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           </div>
 
           {/* Trophy Name & Description */}
-          <div className="text-center mb-4">
-            <h2 className="text-2xl font-bold text-white mb-1">
+          <div className="mt-3 text-center">
+            <h2 className="text-3xl font-extrabold text-white">
               {trophy.name}
             </h2>
-            <p className="text-sm text-white/60">
+            <p className="mt-1 text-sm text-white/70">
               {trophy.description}
             </p>
           </div>
@@ -315,15 +312,16 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Match Card */}
           {trophy.triggerMatch && (
             <div
-              className="rounded-2xl p-3.5 mb-4"
+              className="mt-5 rounded-2xl border border-white/10 px-4 py-4"
               style={{
-                backgroundColor: 'rgba(30, 30, 30, 0.8)',
-                border: '1px solid rgba(255,255,255,0.08)'
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%)'
               }}
             >
-              <p className="text-xs font-semibold text-center mb-2.5" style={{ color: GOLD }}>
+              <p className="text-sm font-semibold text-center mb-3" style={{ color: GOLD }}>
                 Match décisif
               </p>
+
+              {/* Teams row */}
               <div className="flex items-center justify-between">
                 {/* Home */}
                 <div className="flex-1 flex flex-col items-center">
@@ -331,30 +329,29 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     <img
                       src={trophy.triggerMatch.homeTeamCrest}
                       alt={trophy.triggerMatch.homeTeamName}
-                      className="w-11 h-11 mb-1"
+                      className="w-11 h-11 sm:w-[52px] sm:h-[52px]"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-11 h-11 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
+                    <div className="w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-full bg-white/10 flex items-center justify-center">
                       <span className="text-xl">⚽</span>
                     </div>
                   )}
-                  <p className="text-[11px] text-white/80 text-center leading-tight line-clamp-2 px-1">
+                  <p className="mt-1.5 text-xs text-white/80 text-center leading-tight line-clamp-2 max-w-[100px]">
                     {trophy.triggerMatch.homeTeamName}
                   </p>
                 </div>
 
                 {/* Score */}
-                <div className="px-2">
-                  {hasScore ? (
-                    <span className="text-[32px] font-bold" style={{ color: GOLD }}>
-                      {trophy.triggerMatch.homeScore} - {trophy.triggerMatch.awayScore}
-                    </span>
-                  ) : (
-                    <span className="text-2xl font-bold" style={{ color: GOLD }}>vs</span>
-                  )}
+                <div className="px-3">
+                  <span
+                    className="text-4xl font-extrabold tracking-wide"
+                    style={{ color: GOLD }}
+                  >
+                    {hasScore ? `${trophy.triggerMatch.homeScore} - ${trophy.triggerMatch.awayScore}` : 'VS'}
+                  </span>
                 </div>
 
                 {/* Away */}
@@ -363,39 +360,41 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     <img
                       src={trophy.triggerMatch.awayTeamCrest}
                       alt={trophy.triggerMatch.awayTeamName}
-                      className="w-11 h-11 mb-1"
+                      className="w-11 h-11 sm:w-[52px] sm:h-[52px]"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-11 h-11 mb-1 rounded-full bg-gray-700 flex items-center justify-center">
+                    <div className="w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-full bg-white/10 flex items-center justify-center">
                       <span className="text-xl">⚽</span>
                     </div>
                   )}
-                  <p className="text-[11px] text-white/80 text-center leading-tight line-clamp-2 px-1">
+                  <p className="mt-1.5 text-xs text-white/80 text-center leading-tight line-clamp-2 max-w-[100px]">
                     {trophy.triggerMatch.awayTeamName}
                   </p>
                 </div>
               </div>
-              <p className="text-[11px] text-gray-500 text-center mt-2.5">
+
+              {/* Date */}
+              <p className="mt-3 text-xs text-white/50 text-center">
                 Débloqué le {unlockedDate}
               </p>
             </div>
           )}
 
           {/* Share Zone */}
-          <div className="mb-4">
-            <p className="text-white text-sm text-center mb-3">
+          <div className="mt-5">
+            <p className="text-sm text-white/85 font-medium text-center mb-3">
               🔥 Partage ton exploit
             </p>
             <div className="flex justify-center gap-4">
               {/* WhatsApp */}
               <button
                 onClick={() => handleShare('whatsapp')}
-                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95"
-                style={{ border: `2px solid ${GOLD}` }}
+                className="h-12 w-12 rounded-full border border-[#F5B800]/35 bg-black/20 flex items-center justify-center transition hover:bg-[#F5B800]/10 active:scale-[0.98]"
                 title="WhatsApp"
+                aria-label="Partager sur WhatsApp"
               >
                 <svg className="w-6 h-6" fill={GOLD} viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.304-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
@@ -405,9 +404,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               {/* Facebook */}
               <button
                 onClick={() => handleShare('facebook')}
-                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95"
-                style={{ border: `2px solid ${GOLD}` }}
+                className="h-12 w-12 rounded-full border border-[#F5B800]/35 bg-black/20 flex items-center justify-center transition hover:bg-[#F5B800]/10 active:scale-[0.98]"
                 title="Facebook"
+                aria-label="Partager sur Facebook"
               >
                 <svg className="w-6 h-6" fill={GOLD} viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -416,11 +415,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
               {/* Download */}
               <button
-                onClick={() => handleShare('download')}
+                onClick={handleDownload}
                 disabled={isDownloading}
-                className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:bg-[rgba(245,184,0,0.15)] active:scale-95 disabled:opacity-50"
-                style={{ border: `2px solid ${GOLD}` }}
+                className="h-12 w-12 rounded-full border border-[#F5B800]/35 bg-black/20 flex items-center justify-center transition hover:bg-[#F5B800]/10 active:scale-[0.98] disabled:opacity-50"
                 title="Télécharger"
+                aria-label="Télécharger l'image"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={GOLD} strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -433,8 +432,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           <button
             ref={continueButtonRef}
             onClick={onClose}
-            className="w-full py-3.5 rounded-full text-black font-bold text-sm tracking-wide transition-all active:scale-[0.98] hover:brightness-110"
-            style={{ backgroundColor: GOLD }}
+            className="mt-6 w-full rounded-full py-4 font-extrabold text-black tracking-wide transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-[#F5B800]/50 focus:ring-offset-2 focus:ring-offset-black"
+            style={{
+              background: 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
+            }}
           >
             CONTINUER →
           </button>
