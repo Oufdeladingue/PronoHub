@@ -249,6 +249,17 @@ export function useTrophyNotifications() {
       }
 
       console.log('[TrophyNotifications] window.testTrophyModal() disponible')
+
+      // Permettre le test via URL: ?testTrophy=1 ou ?testTrophy=exact_score
+      const urlParams = new URLSearchParams(window.location.search)
+      const testTrophyParam = urlParams.get('testTrophy')
+      if (testTrophyParam) {
+        // Petit délai pour laisser le composant se monter
+        setTimeout(() => {
+          const type = testTrophyParam === '1' ? 'exact_score' : testTrophyParam
+          simulateTrophyRef.current?.(type)
+        }, 500)
+      }
     }
   }, [])
 
