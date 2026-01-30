@@ -39,28 +39,42 @@ export async function GET(
       return NextResponse.json({ error: 'Tournoi non trouvé' }, { status: 404 })
     }
 
-    // Récupérer la compétition
-    const competitionResult = tournament.custom_competition_id
-      ? await supabase
-          .from('custom_competitions')
-          .select('name, code, custom_emblem_white, custom_emblem_color')
-          .eq('id', tournament.custom_competition_id)
-          .single()
-      : tournament.competition_id
-        ? await supabase
-            .from('competitions')
-            .select('name, code, emblem')
-            .eq('id', tournament.competition_id)
-            .single()
-        : { data: null, error: null }
-
-    // Calculer les statistiques dynamiquement (points, rangs, nombre de pronos)
+    // Lancer en parallèle: compétition, stats participants, et créateur
     const adminClient = createAdminClient()
-    const participantsDetails = await calculateTournamentStats({
-      supabase: adminClient,
-      tournamentId,
-      includeDetailedStats: false
-    })
+
+    const [competitionResult, participantsDetails, creatorProfile] = await Promise.all([
+      // Compétition
+      tournament.custom_competition_id
+        ? supabase
+            .from('custom_competitions')
+            .select('name, code, custom_emblem_white, custom_emblem_color')
+            .eq('id', tournament.custom_competition_id)
+            .single()
+        : tournament.competition_id
+          ? supabase
+              .from('competitions')
+              .select('name, code, emblem')
+              .eq('id', tournament.competition_id)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
+
+      // Calculer les statistiques dynamiquement (points, rangs, nombre de pronos)
+      calculateTournamentStats({
+        supabase: adminClient,
+        tournamentId,
+        includeDetailedStats: false
+      }),
+
+      // Créateur
+      tournament.creator_id
+        ? supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', tournament.creator_id)
+            .single()
+            .then(res => res.data)
+        : Promise.resolve(null)
+    ])
 
     // Récupérer les achats d'accès stats pour ce tournoi
     const participantIds = participantsDetails.map(p => p.user_id)
@@ -118,16 +132,8 @@ export async function GET(
       is_custom: !!tournament.custom_competition_id
     } : null
 
-    // Récupérer le username du créateur
-    let creatorUsername = 'Inconnu'
-    if (tournament.creator_id) {
-      const { data: creatorProfile } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', tournament.creator_id)
-        .single()
-      creatorUsername = creatorProfile?.username || 'Inconnu'
-    }
+    // Username du créateur (déjà récupéré en parallèle)
+    const creatorUsername = creatorProfile?.username || 'Inconnu'
 
     return NextResponse.json({
       success: true,

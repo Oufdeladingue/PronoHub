@@ -98,6 +98,50 @@ interface DetailModalState {
   loading: boolean
 }
 
+interface UserDetailPurchase {
+  id: string
+  purchase_type: string
+  tournament_subtype: string | null
+  amount: number
+  status: string
+  created_at: string
+  tournament_name?: string
+}
+
+interface UserDetailTrophy {
+  trophy_type: string
+  unlocked_at: string
+}
+
+interface UserDetail {
+  id: string
+  username: string
+  avatar: string
+  email: string | null
+  created_at: string
+  role: string
+  tournaments: {
+    total: number
+    active: number
+    finished: number
+    draft: number
+  }
+  credits: Record<string, number>
+  purchases: {
+    total: number
+    totalSpent: number
+    details: UserDetailPurchase[]
+  }
+  trophies: UserDetailTrophy[]
+}
+
+interface UserDetailModalState {
+  userId: string | null
+  username: string | null
+  detail: UserDetail | null
+  loading: boolean
+}
+
 interface UserStats {
   userId: string
   username: string
@@ -330,6 +374,13 @@ export default function AdminUsagePage() {
     loading: false
   })
 
+  const [userDetailModal, setUserDetailModal] = useState<UserDetailModalState>({
+    userId: null,
+    username: null,
+    detail: null,
+    loading: false
+  })
+
   // États pour tri, filtrage et pagination des tournois
   const [sortColumn, setSortColumn] = useState<keyof Tournament | ''>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
@@ -464,6 +515,26 @@ export default function AdminUsagePage() {
 
   const closeDetailModal = () => {
     setDetailModal({ tournament: null, detail: null, loading: false })
+  }
+
+  // Ouvrir la modale de détail utilisateur
+  const openUserDetailModal = async (userId: string, username: string) => {
+    setUserDetailModal({ userId, username, detail: null, loading: true })
+    try {
+      const response = await fetch(`/api/admin/user/${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserDetailModal(prev => ({ ...prev, detail: data.user, loading: false }))
+      } else {
+        setUserDetailModal(prev => ({ ...prev, loading: false }))
+      }
+    } catch {
+      setUserDetailModal(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  const closeUserDetailModal = () => {
+    setUserDetailModal({ userId: null, username: null, detail: null, loading: false })
   }
 
   // Filtrage et tri des tournois
@@ -1250,7 +1321,11 @@ export default function AdminUsagePage() {
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                       {detailModal.detail.participants.map((p) => (
-                                        <tr key={p.user_id} className="hover:bg-gray-50">
+                                        <tr
+                                          key={p.user_id}
+                                          className="hover:bg-purple-50 cursor-pointer transition-colors"
+                                          onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                        >
                                           <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
                                           <td className="px-3 py-2">
                                             <div className="flex items-center gap-2">
@@ -1260,7 +1335,7 @@ export default function AdminUsagePage() {
                                                 className="w-6 h-6 rounded-full"
                                                 onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
                                               />
-                                              <span className="font-medium text-gray-900">{p.username}</span>
+                                              <span className="font-medium text-gray-900 hover:text-purple-700">{p.username}</span>
                                             </div>
                                           </td>
                                           <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
@@ -1277,7 +1352,8 @@ export default function AdminUsagePage() {
                                                 </span>
                                               ) : (
                                                 <button
-                                                  onClick={() => {
+                                                  onClick={(e) => {
+                                                    e.stopPropagation()
                                                     handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
                                                     // Rafraîchir les données du tournoi après attribution
                                                     setTimeout(() => {
@@ -1309,7 +1385,11 @@ export default function AdminUsagePage() {
                                 {/* Version mobile */}
                                 <div className="md:hidden space-y-2">
                                   {detailModal.detail.participants.map((p) => (
-                                    <div key={p.user_id} className="p-3 border border-gray-200 rounded-lg bg-white">
+                                    <div
+                                      key={p.user_id}
+                                      className="p-3 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                                      onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                    >
                                       <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
                                           <span className="text-xs text-gray-500 font-medium">#{p.rank || '-'}</span>
@@ -1332,7 +1412,8 @@ export default function AdminUsagePage() {
                                                 </span>
                                               ) : (
                                                 <button
-                                                  onClick={() => {
+                                                  onClick={(e) => {
+                                                    e.stopPropagation()
                                                     handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
                                                     setTimeout(() => {
                                                       if (detailModal.tournament) {
@@ -1681,6 +1762,235 @@ export default function AdminUsagePage() {
                       </div>
                     </button>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal détail utilisateur */}
+      {userDetailModal.userId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={closeUserDetailModal}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Détail du joueur
+                </h3>
+                <button
+                  onClick={closeUserDetailModal}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1">
+              {userDetailModal.loading ? (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="animate-spin h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Chargement...
+                </div>
+              ) : userDetailModal.detail ? (
+                <div className="space-y-4">
+                  {/* Header: Avatar + Nom + Email */}
+                  <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
+                    <img
+                      src={getAvatarUrl(userDetailModal.detail.avatar || 'avatar1')}
+                      alt={userDetailModal.detail.username}
+                      className="w-14 h-14 rounded-full border-2 border-purple-200"
+                    />
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-gray-900">{userDetailModal.detail.username}</h4>
+                      {userDetailModal.detail.email && (
+                        <p className="text-sm text-gray-500">{userDetailModal.detail.email}</p>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        Inscrit le {new Date(userDetailModal.detail.created_at).toLocaleDateString('fr-FR', {
+                          day: '2-digit', month: 'long', year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    {userDetailModal.detail.role && userDetailModal.detail.role !== 'user' && (
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-700 uppercase">
+                        {userDetailModal.detail.role}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Tournois */}
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Tournois</h5>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div className="p-2 bg-blue-50 rounded-lg">
+                        <div className="text-xl font-bold text-blue-700">{userDetailModal.detail.tournaments.total}</div>
+                        <div className="text-xs text-blue-600">Total</div>
+                      </div>
+                      <div className="p-2 bg-green-50 rounded-lg">
+                        <div className="text-xl font-bold text-green-700">{userDetailModal.detail.tournaments.active}</div>
+                        <div className="text-xs text-green-600">En cours</div>
+                      </div>
+                      <div className="p-2 bg-gray-50 rounded-lg">
+                        <div className="text-xl font-bold text-gray-700">{userDetailModal.detail.tournaments.finished}</div>
+                        <div className="text-xs text-gray-600">Terminés</div>
+                      </div>
+                      <div className="p-2 bg-yellow-50 rounded-lg">
+                        <div className="text-xl font-bold text-yellow-700">{userDetailModal.detail.tournaments.draft}</div>
+                        <div className="text-xs text-yellow-600">Brouillon</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Crédits */}
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Crédits disponibles</h5>
+                    {Object.keys(userDetailModal.detail.credits).length === 0 ? (
+                      <p className="text-sm text-gray-400">Aucun crédit</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {userDetailModal.detail.credits.free_kick && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700">
+                            Free-Kick: {userDetailModal.detail.credits.free_kick}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.one_shot && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-cyan-100 text-cyan-700">
+                            One-Shot: {userDetailModal.detail.credits.one_shot}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.elite && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-amber-100 text-amber-700">
+                            Elite: {userDetailModal.detail.credits.elite}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.platinium && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-700">
+                            Platinium: {userDetailModal.detail.credits.platinium}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.slots && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-indigo-100 text-indigo-700">
+                            Slots: {userDetailModal.detail.credits.slots}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.stats_lifetime && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-pink-100 text-pink-700">
+                            Stats ∞: {userDetailModal.detail.credits.stats_lifetime}
+                          </span>
+                        )}
+                        {userDetailModal.detail.credits.stats_tournament && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-rose-100 text-rose-700">
+                            Stats T: {userDetailModal.detail.credits.stats_tournament}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Achats */}
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">
+                      Achats ({userDetailModal.detail.purchases.total})
+                      {userDetailModal.detail.purchases.totalSpent > 0 && (
+                        <span className="ml-2 font-normal text-green-600">
+                          Total: {userDetailModal.detail.purchases.totalSpent.toFixed(2)}€
+                        </span>
+                      )}
+                    </h5>
+                    {userDetailModal.detail.purchases.details.length === 0 ? (
+                      <p className="text-sm text-gray-400">Aucun achat</p>
+                    ) : (
+                      <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg">
+                        <table className="min-w-full text-xs">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-2 py-1 text-left text-gray-500">Type</th>
+                              <th className="px-2 py-1 text-left text-gray-500">Détail</th>
+                              <th className="px-2 py-1 text-right text-gray-500">Montant</th>
+                              <th className="px-2 py-1 text-right text-gray-500">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {userDetailModal.detail.purchases.details.map((p) => (
+                              <tr key={p.id}>
+                                <td className="px-2 py-1 text-gray-700">
+                                  {p.purchase_type === 'tournament_creation' ? 'Création' :
+                                   p.purchase_type === 'participant_slot' ? 'Slot' :
+                                   p.purchase_type === 'stats_access_lifetime' ? 'Stats ∞' :
+                                   p.purchase_type === 'stats_access_tournament' ? 'Stats T' :
+                                   p.purchase_type}
+                                </td>
+                                <td className="px-2 py-1 text-gray-500">
+                                  {p.tournament_subtype || p.tournament_name || '-'}
+                                </td>
+                                <td className="px-2 py-1 text-right text-gray-700">
+                                  {p.amount > 0 ? `${p.amount.toFixed(2)}€` : 'Gratuit'}
+                                </td>
+                                <td className="px-2 py-1 text-right text-gray-400">
+                                  {new Date(p.created_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit', month: '2-digit', year: '2-digit'
+                                  })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trophées */}
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">
+                      Trophées débloqués ({userDetailModal.detail.trophies.length})
+                    </h5>
+                    {userDetailModal.detail.trophies.length === 0 ? (
+                      <p className="text-sm text-gray-400">Aucun trophée</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {userDetailModal.detail.trophies.map((t) => {
+                          const trophyLabels: Record<string, string> = {
+                            'correct_result': 'Veinard',
+                            'exact_score': 'Analyste',
+                            'king_of_day': 'King of Day',
+                            'double_king': 'Roi du Doublé',
+                            'opportunist': 'Opportuniste',
+                            'nostradamus': 'Nostradamus',
+                            'lantern': 'Lanterne-rouge',
+                            'downward_spiral': 'Spirale infernale',
+                            'bonus_profiteer': 'Profiteur',
+                            'bonus_optimizer': 'Optimisateur',
+                            'ultra_dominator': 'Ultra-dominateur',
+                            'poulidor': 'Poulidor',
+                            'cursed': 'Maudit',
+                            'tournament_winner': 'Ballon d\'or',
+                            'legend': 'Légende',
+                            'abyssal': 'Abyssal'
+                          }
+                          return (
+                            <span
+                              key={t.trophy_type}
+                              className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800"
+                              title={`Débloqué le ${new Date(t.unlocked_at).toLocaleDateString('fr-FR')}`}
+                            >
+                              🏆 {trophyLabels[t.trophy_type] || t.trophy_type}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-red-500">
+                  Erreur lors du chargement des informations.
                 </div>
               )}
             </div>
