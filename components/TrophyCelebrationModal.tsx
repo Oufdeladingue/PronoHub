@@ -440,7 +440,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             animationDuration: `${glitter.duration}s`,
             pointerEvents: 'none',
             filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
-            zIndex: 1
+            zIndex: 0
           }}
         />
       ))}
@@ -582,17 +582,17 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
           {/* Match Card */}
           {trophy.triggerMatch && (
-            <div className="relative mt-7" style={{ width: '100%', maxWidth: '372px', margin: '28px auto 0', minHeight: '140px' }}>
+            <div className="relative mt-7" style={{ width: '100%', maxWidth: '372px', margin: '28px auto 0' }}>
               {/* Image de fond du cadre */}
               <img
                 src="/images/match-decisif-frame.png"
                 alt=""
-                className="absolute top-0 left-0 w-full pointer-events-none"
-                style={{ zIndex: 0, height: 'auto' }}
+                className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
+                style={{ zIndex: 0, borderRadius: '18px' }}
               />
 
               {/* Contenu par-dessus l'image */}
-              <div className="relative px-4" style={{ zIndex: 1, paddingTop: '30px', paddingBottom: '16px' }}>
+              <div className="relative px-4 py-4" style={{ zIndex: 1, paddingTop: '32px' }}>
                 <div className="flex items-center justify-between">
                   {/* Home */}
                   <div className="flex-1 flex flex-col items-center">
