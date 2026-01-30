@@ -240,50 +240,28 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   // Download
   const handleDownload = async () => {
-    // Debug alert pour Android WebView (car console peut ne pas fonctionner)
-    try {
-      alert('[DEBUG] Download button clicked!')
-    } catch {}
-    console.log('[Download] Button clicked')
-
-    if (isDownloading) {
-      console.log('[Download] Already downloading, skipping')
-      return
-    }
+    if (isDownloading) return
     setIsDownloading(true)
+
     try {
-      console.log('[Download] Generating image...')
-      alert('[DEBUG] Generating image...')
       const blob = await generateTrophyImage()
-      console.log('[Download] Blob result:', blob ? `${blob.size} bytes` : 'null')
-      alert(`[DEBUG] Blob: ${blob ? `${blob.size} bytes` : 'null'}`)
 
       if (blob) {
         const filename = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
 
-        // Essayer d'abord Web Share API (fonctionne sur mobile Android/iOS)
-        const hasShare = !!navigator.share
-        const hasCanShare = !!navigator.canShare
-        alert(`[DEBUG] Share API: share=${hasShare}, canShare=${hasCanShare}`)
-
+        // Essayer d'abord Web Share API (fonctionne sur mobile Android/iOS natif)
         if (navigator.share && navigator.canShare) {
           try {
             const file = new File([blob], filename, { type: 'image/png' })
-            const canShareFiles = navigator.canShare({ files: [file] })
-            alert(`[DEBUG] canShare files: ${canShareFiles}`)
-
-            if (canShareFiles) {
-              alert('[DEBUG] Calling navigator.share...')
+            if (navigator.canShare({ files: [file] })) {
               await navigator.share({
                 title: `Trophée PronoHub - ${trophy.name}`,
                 files: [file]
               })
-              alert('[DEBUG] Share successful!')
               setIsDownloading(false)
               return
             }
           } catch (e: any) {
-            alert(`[DEBUG] Share error: ${e.name} - ${e.message}`)
             // Utilisateur a annulé = pas d'erreur
             if (e.name === 'AbortError') {
               setIsDownloading(false)
@@ -292,8 +270,8 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           }
         }
 
-        // Fallback: téléchargement classique (desktop)
-        alert('[DEBUG] Using fallback download (link click)')
+        // Fallback: essayer plusieurs méthodes
+        // Méthode 1: téléchargement classique (desktop)
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -301,21 +279,31 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-        alert('[DEBUG] Fallback download done')
-      } else {
-        alert('[DEBUG] No blob generated')
+
+        // Méthode 2: Si on est dans un WebView Android, ouvrir l'image dans un nouvel onglet
+        // L'utilisateur pourra faire un appui long pour sauvegarder
+        const userAgent = navigator.userAgent || ''
+        const isAndroidWebView = /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
+        if (isAndroidWebView) {
+          // Attendre un peu puis ouvrir dans un nouvel onglet
+          setTimeout(() => {
+            window.open(url, '_blank')
+          }, 100)
+          alert('📱 Appuyez longuement sur l\'image pour la sauvegarder')
+        }
+
+        // Nettoyer après un délai
+        setTimeout(() => URL.revokeObjectURL(url), 5000)
       }
     } catch (error) {
       console.error('[Download] Error:', error)
     }
     setIsDownloading(false)
-    console.log('[Download] Done')
   }
 
   // Share
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'messenger') => {
-    const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n${trophy.description}\n\nRejoins-moi sur pronohub.club`
+    const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n\n${trophy.description}\n\nMerci le talent ou la chatte à Dédé ? 😏\n\n👉 Rejoins-moi sur pronohub.club`
 
     // Try Web Share API with file first
     if (navigator.share && navigator.canShare) {
