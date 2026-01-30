@@ -44,6 +44,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [mounted, setMounted] = useState(false)
   const [isAndroidWebView, setIsAndroidWebView] = useState(false)
+  const [glitters, setGlitters] = useState<Array<{ id: number; left: number; delay: number; duration: number }>>([])
   const continueButtonRef = useRef<HTMLButtonElement>(null)
 
   // Marquer comme monté côté client (pour createPortal)
@@ -82,6 +83,17 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     return () => {
       document.body.style.overflow = ''
     }
+  }, [])
+
+  // Générer les paillettes dorées animées
+  useEffect(() => {
+    const glitterArray = Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 3
+    }))
+    setGlitters(glitterArray)
   }, [])
 
   // Fermer avec ESC
@@ -377,13 +389,77 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         justifyContent: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         opacity: isVisible ? 1 : 0,
-        transition: 'opacity 200ms ease'
+        transition: 'opacity 200ms ease',
+        overflow: 'hidden'
       }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="trophy-title"
     >
+      {/* Animations CSS */}
+      <style>{`
+        @keyframes glitter-fall {
+          0% {
+            transform: translateY(-20px) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+        @keyframes trophy-heartbeat {
+          0%, 100% {
+            transform: scale(1);
+          }
+          14% {
+            transform: scale(1.12);
+          }
+          28% {
+            transform: scale(1);
+          }
+          42% {
+            transform: scale(1.12);
+          }
+          56% {
+            transform: scale(1);
+          }
+        }
+        .glitter-particle {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          background: linear-gradient(45deg, #FFD700, #FFA500);
+          clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+          animation: glitter-fall linear infinite;
+          pointer-events: none;
+          filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8));
+        }
+        .trophy-heartbeat {
+          animation: trophy-heartbeat 2s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* Paillettes dorées */}
+      {glitters.map((glitter) => (
+        <div
+          key={glitter.id}
+          className="glitter-particle"
+          style={{
+            left: `${glitter.left}%`,
+            animationDelay: `${glitter.delay}s`,
+            animationDuration: `${glitter.duration}s`
+          }}
+        />
+      ))}
+
       {/* Modal Container */}
       <div
         id="trophy-modal-container"
@@ -452,7 +528,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             <img
               src={trophy.imagePath}
               alt={trophy.name}
-              className="relative z-10 w-[164px] h-[164px] object-contain"
+              className="relative z-10 w-[164px] h-[164px] object-contain trophy-heartbeat"
               onError={(e) => {
                 ;(e.target as HTMLImageElement).src = '/trophy/default.png'
               }}
