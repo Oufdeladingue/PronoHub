@@ -178,22 +178,22 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             <div style="flex:1; text-align:center;">
               ${
                 trophy.triggerMatch.homeTeamCrest
-                  ? `<img src="${getProxiedUrl(trophy.triggerMatch.homeTeamCrest)}" crossorigin="anonymous" style="width: 46px; height: 46px; margin: 0 auto 4px; display:block;" />`
-                  : `<div style="width:46px;height:46px;margin:0 auto 4px;border-radius:999px;background:rgba(255,255,255,0.08)"></div>`
+                  ? `<img src="${getProxiedUrl(trophy.triggerMatch.homeTeamCrest)}" crossorigin="anonymous" style="width: 36px; height: 36px; margin: 0 auto 4px; display:block;" />`
+                  : `<div style="width:36px;height:36px;margin:0 auto 4px;border-radius:999px;background:rgba(255,255,255,0.08)"></div>`
               }
-              <div style="font-size: 11px; color: rgba(255,255,255,0.82); line-height: 1.25;">${trophy.triggerMatch.homeTeamName}</div>
+              <div style="font-size: 10px; color: rgba(255,255,255,0.82); line-height: 1.25;">${trophy.triggerMatch.homeTeamName}</div>
             </div>
 
             <div style="
-              padding: 8px 12px;
-              border-radius: 14px;
+              padding: 6px 10px;
+              border-radius: 12px;
               border: 1px solid ${themeColor}35;
               background: rgba(0,0,0,0.35);
-              font-size: 34px;
+              font-size: 28px;
               font-weight: 900;
               color: ${themeColor};
               letter-spacing: 0.04em;
-              margin: 0 10px;
+              margin: 0 8px;
             ">
               ${scoreDisplay}
             </div>
@@ -201,10 +201,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             <div style="flex:1; text-align:center;">
               ${
                 trophy.triggerMatch.awayTeamCrest
-                  ? `<img src="${getProxiedUrl(trophy.triggerMatch.awayTeamCrest)}" crossorigin="anonymous" style="width: 46px; height: 46px; margin: 0 auto 4px; display:block;" />`
-                  : `<div style="width:46px;height:46px;margin:0 auto 4px;border-radius:999px;background:rgba(255,255,255,0.08)"></div>`
+                  ? `<img src="${getProxiedUrl(trophy.triggerMatch.awayTeamCrest)}" crossorigin="anonymous" style="width: 36px; height: 36px; margin: 0 auto 4px; display:block;" />`
+                  : `<div style="width:36px;height:36px;margin:0 auto 4px;border-radius:999px;background:rgba(255,255,255,0.08)"></div>`
               }
-              <div style="font-size: 11px; color: rgba(255,255,255,0.82); line-height: 1.25;">${trophy.triggerMatch.awayTeamName}</div>
+              <div style="font-size: 10px; color: rgba(255,255,255,0.82); line-height: 1.25;">${trophy.triggerMatch.awayTeamName}</div>
             </div>
           </div>
 
@@ -491,26 +491,26 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     <img
                       src={getProxiedUrl(trophy.triggerMatch.homeTeamCrest) ?? undefined}
                       alt={trophy.triggerMatch.homeTeamName}
-                      className="w-11 h-11 sm:w-[52px] sm:h-[52px] object-contain"
+                      className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
                       crossOrigin="anonymous"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-full bg-white/10" />
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
                   )}
-                  <p className="mt-1.5 text-xs text-white/80 text-center leading-tight line-clamp-2 max-w-[110px]">
+                  <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
                     {trophy.triggerMatch.homeTeamName}
                   </p>
                 </div>
 
                 {/* Score pill */}
                 <div
-                  className="mx-2 px-3 py-2 rounded-2xl border bg-black/30"
+                  className="mx-2 px-2.5 py-1.5 rounded-xl border bg-black/30"
                   style={{ borderColor: `${themeColor}35` }}
                 >
-                  <span className="text-[34px] font-extrabold tracking-wide" style={{ color: themeColor }}>
+                  <span className="text-[28px] font-extrabold tracking-wide" style={{ color: themeColor }}>
                     {scoreDisplay}
                   </span>
                 </div>
@@ -521,16 +521,16 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     <img
                       src={getProxiedUrl(trophy.triggerMatch.awayTeamCrest) ?? undefined}
                       alt={trophy.triggerMatch.awayTeamName}
-                      className="w-11 h-11 sm:w-[52px] sm:h-[52px] object-contain"
+                      className="w-9 h-9 sm:w-10 sm:h-10 object-contain"
                       crossOrigin="anonymous"
                       onError={(e) => {
                         ;(e.target as HTMLImageElement).style.display = 'none'
                       }}
                     />
                   ) : (
-                    <div className="w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-full bg-white/10" />
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10" />
                   )}
-                  <p className="mt-1.5 text-xs text-white/80 text-center leading-tight line-clamp-2 max-w-[110px]">
+                  <p className="mt-1 text-[10px] text-white/80 text-center leading-tight line-clamp-2 max-w-[90px]">
                     {trophy.triggerMatch.awayTeamName}
                   </p>
                 </div>
@@ -613,12 +613,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 </button>
               )}
             </div>
-            {/* Message pour Android WebView */}
-            {isAndroidWebView && (
-              <p className="mt-2 text-xs text-white/50 text-center">
-                💡 Utilise les boutons ci-dessus pour sauvegarder l'image
-              </p>
-            )}
           </div>
 
           {/* CTA Button */}
