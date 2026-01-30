@@ -20,6 +20,8 @@ interface TrophyNotification extends Trophy {
     homeTeamCrest: string | null
     awayTeamCrest: string | null
     competitionId: number
+    homeScore?: number
+    awayScore?: number
   }
 }
 
@@ -213,7 +215,9 @@ export function useTrophyNotifications() {
         awayTeamName: 'Olympique de Marseille',
         homeTeamCrest: 'https://crests.football-data.org/524.png',
         awayTeamCrest: 'https://crests.football-data.org/516.png',
-        competitionId: 2015
+        competitionId: 2015,
+        homeScore: 3,
+        awayScore: 1
       }
     }
 

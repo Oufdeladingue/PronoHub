@@ -70,7 +70,9 @@ export async function GET(request: NextRequest) {
         away_team_name: importedMatches[0].away_team_name || 'Équipe',
         home_team_crest: importedMatches[0].home_team_crest,
         away_team_crest: importedMatches[0].away_team_crest,
-        competition_id: importedMatches[0].competition_id
+        competition_id: importedMatches[0].competition_id,
+        home_score: importedMatches[0].home_score,
+        away_score: importedMatches[0].away_score
       }
     }
 
@@ -88,7 +90,9 @@ export async function GET(request: NextRequest) {
         awayTeamName: match.away_team_name,
         homeTeamCrest: match.home_team_crest,
         awayTeamCrest: match.away_team_crest,
-        competitionId: match.competition_id
+        competitionId: match.competition_id,
+        homeScore: match.home_score,
+        awayScore: match.away_score
       }
     })
   } catch (error: any) {
