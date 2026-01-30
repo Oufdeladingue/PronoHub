@@ -194,6 +194,58 @@ export function useTrophyNotifications() {
     nextTrophy()
   }
 
+  // Fonction pour simuler l'affichage d'un trophée (dev/debug)
+  const simulateTrophy = (trophyType?: string) => {
+    const type = trophyType || 'exact_score'
+    const info = getTrophyInfo(type)
+
+    const fakeTrophy: TrophyNotification = {
+      id: 9999,
+      user_id: 'test-user',
+      trophy_type: type,
+      unlocked_at: new Date().toISOString(),
+      is_new: true,
+      name: info.name,
+      description: info.description,
+      imagePath: info.imagePath,
+      triggerMatch: {
+        homeTeamName: 'Paris Saint-Germain',
+        awayTeamName: 'Olympique de Marseille',
+        homeTeamCrest: 'https://crests.football-data.org/524.png',
+        awayTeamCrest: 'https://crests.football-data.org/516.png',
+        competitionId: 2015
+      }
+    }
+
+    setNewTrophies([fakeTrophy])
+    setCurrentTrophyIndex(0)
+    console.log(`[TrophyNotifications] Simulation du trophée "${info.name}" (${type})`)
+  }
+
+  // Exposer la fonction de simulation sur window (dev uniquement)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Liste des types de trophées disponibles
+      const trophyTypes = [
+        'correct_result', 'exact_score', 'king_of_day', 'double_king',
+        'opportunist', 'nostradamus', 'lantern', 'downward_spiral',
+        'bonus_profiteer', 'bonus_optimizer', 'ultra_dominator',
+        'poulidor', 'cursed', 'tournament_winner', 'legend', 'abyssal'
+      ]
+
+      ;(window as any).testTrophyModal = (type?: string) => {
+        if (type && !trophyTypes.includes(type)) {
+          console.log('Types disponibles:', trophyTypes.join(', '))
+          return
+        }
+        simulateTrophy(type)
+      }
+
+      console.log('[TrophyNotifications] window.testTrophyModal() disponible')
+      console.log('Usage: testTrophyModal() ou testTrophyModal("legend")')
+    }
+  }, [])
+
   return {
     newTrophies,
     currentTrophy: newTrophies[currentTrophyIndex],
@@ -201,7 +253,8 @@ export function useTrophyNotifications() {
     hasNewTrophies: newTrophies.length > 0,
     isChecking,
     closeCurrentTrophy,
-    markAllAsViewed: markTrophiesAsViewed
+    markAllAsViewed: markTrophiesAsViewed,
+    simulateTrophy // Exposer pour debug
   }
 }
 
