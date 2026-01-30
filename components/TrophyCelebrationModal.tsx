@@ -309,14 +309,29 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
   // Ne pas rendre côté serveur
-  if (!mounted) return null
+  if (!mounted) {
+    console.log('[TrophyCelebrationModal] Not mounted yet')
+    return null
+  }
+
+  console.log('[TrophyCelebrationModal] Rendering portal for trophy:', trophy.name)
 
   return createPortal(
     <div
-      className={`fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
+      className={`fixed inset-0 flex items-center justify-center p-4 bg-black/80 transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
-      style={{ zIndex: 99999 }}
+      style={{
+        zIndex: 2147483647, // Maximum z-index possible
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        pointerEvents: 'auto'
+      }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
