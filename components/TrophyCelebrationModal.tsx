@@ -587,7 +587,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 className="relative"
                 style={{
                   width: '372px',
-                  height: '180px',
+                  height: '140px',
                   borderRadius: '18px',
                   background: `radial-gradient(120% 120% at 50% 0%, ${themeColor}40 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 100%)`,
                   border: `1px solid ${themeColor}59`,
@@ -602,7 +602,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     left: '50%',
                     transform: 'translateX(-50%)',
                     width: '160px',
-                    height: '28px',
+                    height: '24px',
                     background: `radial-gradient(120% 120% at 50% 0%, ${themeColor}40 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.95) 100%)`,
                     border: `1px solid ${themeColor}59`,
                     borderBottom: 'none',
@@ -614,12 +614,12 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 <div
                   style={{
                     position: 'absolute',
-                    top: '6px',
+                    top: '4px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    padding: '0 14px',
+                    padding: '0 12px',
                     fontWeight: 700,
-                    fontSize: '15px',
+                    fontSize: '14px',
                     color: themeColor,
                     textShadow: `0 0 8px ${themeColor}73`,
                     background: 'rgba(0,0,0,0.6)',
@@ -631,23 +631,23 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 </div>
 
                 {/* Contenu du match */}
-                <div className="absolute inset-0 flex items-center justify-between px-6" style={{ paddingTop: '35px' }}>
+                <div className="absolute inset-0 flex items-center justify-between px-6" style={{ paddingTop: '26px' }}>
                   {/* Home */}
                   <div className="flex-1 flex flex-col items-center">
                     {trophy.triggerMatch.homeTeamCrest ? (
                       <img
                         src={getProxiedUrl(trophy.triggerMatch.homeTeamCrest) ?? undefined}
                         alt={trophy.triggerMatch.homeTeamName}
-                        className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                        className="w-10 h-10 object-contain"
                         crossOrigin="anonymous"
                         onError={(e) => {
                           ;(e.target as HTMLImageElement).style.display = 'none'
                         }}
                       />
                     ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
+                      <div className="w-10 h-10 rounded-full bg-white/10" />
                     )}
-                    <p className="mt-2 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[100px] font-medium">
+                    <p className="mt-1.5 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[90px] font-medium">
                       {trophy.triggerMatch.homeTeamName}
                     </p>
                   </div>
@@ -663,7 +663,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     />
                     {/* Score */}
                     <div
-                      className="relative z-10 px-3 py-2 rounded-xl border bg-black/30"
+                      className="relative z-10 px-3 py-1.5 rounded-xl border bg-black/30"
                       style={{ borderColor: `${themeColor}35` }}
                     >
                       <span className="text-3xl font-extrabold tracking-wide" style={{ color: themeColor }}>
@@ -678,16 +678,16 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                       <img
                         src={getProxiedUrl(trophy.triggerMatch.awayTeamCrest) ?? undefined}
                         alt={trophy.triggerMatch.awayTeamName}
-                        className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+                        className="w-10 h-10 object-contain"
                         crossOrigin="anonymous"
                         onError={(e) => {
                           ;(e.target as HTMLImageElement).style.display = 'none'
                         }}
                       />
                     ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10" />
+                      <div className="w-10 h-10 rounded-full bg-white/10" />
                     )}
-                    <p className="mt-2 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[100px] font-medium">
+                    <p className="mt-1.5 text-xs text-white/90 text-center leading-tight line-clamp-2 max-w-[90px] font-medium">
                       {trophy.triggerMatch.awayTeamName}
                     </p>
                   </div>
