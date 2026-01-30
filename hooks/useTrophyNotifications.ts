@@ -174,18 +174,20 @@ export function useTrophyNotifications() {
 
   // Marquer tous les trophées comme vus
   const markTrophiesAsViewed = async () => {
+    // Sauvegarder les IDs avant de vider la liste
+    const trophyIds = newTrophies.map(t => t.id)
+
+    // Fermer la modale IMMÉDIATEMENT (pas d'attente API)
+    setNewTrophies([])
+    setCurrentTrophyIndex(0)
+
+    // Appel API en arrière-plan (ne bloque pas l'UI)
     try {
       await fetchWithAuth('/api/user/trophies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trophyIds: newTrophies.map(t => t.id)
-        })
+        body: JSON.stringify({ trophyIds })
       })
-
-      // Vider la liste des nouveaux trophées
-      setNewTrophies([])
-      setCurrentTrophyIndex(0)
     } catch (error) {
       console.error('Error marking trophies as viewed:', error)
     }
