@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -40,7 +41,13 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   const [isVisible, setIsVisible] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [mounted, setMounted] = useState(false)
   const continueButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Portal: attendre que le composant soit monté côté client
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Détecter le thème actif
   useEffect(() => {
@@ -301,7 +308,10 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       ? 'linear-gradient(180deg, #FFD36A 0%, #F5B800 55%, #D99A00 100%)'
       : 'linear-gradient(180deg, #60A5FA 0%, #3B82F6 55%, #2563EB 100%)'
 
-  return (
+  // Ne pas rendre côté serveur
+  if (!mounted) return null
+
+  return createPortal(
     <div
       className={`fixed inset-0 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] transition-opacity duration-200 ${
         isVisible ? 'opacity-100' : 'opacity-0'
@@ -522,6 +532,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
