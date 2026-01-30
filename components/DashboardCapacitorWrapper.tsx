@@ -26,7 +26,17 @@ interface DashboardData {
  */
 export default function DashboardCapacitorWrapper() {
   const [isLoading, setIsLoading] = useState(true)
-  const [loadingPercent, setLoadingPercent] = useState(0)
+  // Récupérer le pourcentage depuis sessionStorage (continuité avec login loader)
+  const [loadingPercent, setLoadingPercent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('loaderPercent')
+      if (saved) {
+        sessionStorage.removeItem('loaderPercent')
+        return parseInt(saved, 10)
+      }
+    }
+    return 0
+  })
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dataReady, setDataReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
