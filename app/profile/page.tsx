@@ -14,6 +14,7 @@ import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { isCapacitor } from '@/lib/capacitor'
 import LogoutButton from '@/components/LogoutButton'
+import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
 
 // Composant jauge en demi-cercle avec couleur dynamique
 function SemiCircleGauge({
@@ -160,6 +161,7 @@ function ProfileContent() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [selectedTrophyForModal, setSelectedTrophyForModal] = useState<any>(null)
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -1259,7 +1261,13 @@ function ProfileContent() {
                       return (
                         <div
                           key={trophy.id}
-                          className={`trophy-card relative ${trophy.is_new ? 'shadow-lg trophy-card-new' : 'trophy-card-unlocked'}`}
+                          onClick={() => setSelectedTrophyForModal({
+                            name: trophyInfo.name,
+                            description: trophyInfo.description,
+                            imagePath: trophyInfo.image,
+                            unlocked_at: trophy.unlocked_at
+                          })}
+                          className={`trophy-card relative cursor-pointer hover:scale-[1.02] transition-transform ${trophy.is_new ? 'shadow-lg trophy-card-new' : 'trophy-card-unlocked'}`}
                         >
                           {/* Badge "NOUVEAU" */}
                           {trophy.is_new && (
@@ -1653,6 +1661,14 @@ function ProfileContent() {
           )}
         </div>
       </main>
+
+      {/* Modale de célébration trophée (quand on clique sur un trophée débloqué) */}
+      {selectedTrophyForModal && (
+        <TrophyCelebrationModal
+          trophy={selectedTrophyForModal}
+          onClose={() => setSelectedTrophyForModal(null)}
+        />
+      )}
 
       {/* Modale de succès changement de mot de passe */}
       {showPasswordSuccessModal && (
