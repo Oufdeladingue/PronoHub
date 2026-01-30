@@ -175,16 +175,30 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
         const matchCard = document.createElement('div')
         matchCard.style.cssText = `
+          position: relative;
           border-radius: 18px;
           border: 1px solid rgba(245,184,0,0.22);
           padding: 14px 14px 12px;
           margin-bottom: 14px;
+          margin-top: 10px;
           background:
             radial-gradient(120% 120% at 50% 0%, ${themeColor}1F 0%, rgba(0,0,0,0) 55%),
             linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%);
         `
         matchCard.innerHTML = `
-          <div style="color:${themeColor}; font-size: 13px; font-weight: 700; text-align:center; margin-bottom: 10px;">Match décisif</div>
+          <div style="
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: ${themeColor};
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 12px;
+            background: linear-gradient(180deg, #0B0B0C 0%, #050506 100%);
+          ">Match décisif</div>
 
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div style="flex:1; text-align:center;">
@@ -196,18 +210,30 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               <div style="font-size: 10px; color: rgba(255,255,255,0.82); line-height: 1.25;">${trophy.triggerMatch.homeTeamName}</div>
             </div>
 
-            <div style="
-              padding: 6px 10px;
-              border-radius: 12px;
-              border: 1px solid ${themeColor}35;
-              background: rgba(0,0,0,0.35);
-              font-size: 28px;
-              font-weight: 900;
-              color: ${themeColor};
-              letter-spacing: 0.04em;
-              margin: 0 8px;
-            ">
-              ${scoreDisplay}
+            <div style="position: relative;">
+              <div style="
+                position: absolute;
+                inset: -8px;
+                background: radial-gradient(circle, ${themeColor}40 0%, transparent 70%);
+                border-radius: 50%;
+                filter: blur(12px);
+                z-index: 0;
+              "></div>
+              <div style="
+                position: relative;
+                z-index: 1;
+                padding: 6px 10px;
+                border-radius: 12px;
+                border: 1px solid ${themeColor}35;
+                background: rgba(0,0,0,0.35);
+                font-size: 28px;
+                font-weight: 900;
+                color: ${themeColor};
+                letter-spacing: 0.04em;
+                margin: 0 8px;
+              ">
+                ${scoreDisplay}
+              </div>
             </div>
 
             <div style="flex:1; text-align:center;">
@@ -556,7 +582,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Match Card */}
           {trophy.triggerMatch && (
             <div
-              className="mt-5 rounded-2xl border px-4 py-4"
+              className="relative mt-7 rounded-2xl border px-4 py-4"
               style={{
                 borderColor: `${themeColor}35`,
                 background:
@@ -564,9 +590,16 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                   'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)'
               }}
             >
-              <p className="text-[13px] font-semibold text-center mb-3" style={{ color: themeColor }}>
+              {/* Label sur le border */}
+              <div
+                className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 text-[11px] font-bold uppercase tracking-wider"
+                style={{
+                  color: themeColor,
+                  background: 'linear-gradient(180deg, #0B0B0C 0%, #050506 100%)'
+                }}
+              >
                 Match décisif
-              </p>
+              </div>
 
               <div className="flex items-center justify-between">
                 {/* Home */}
@@ -589,14 +622,24 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                   </p>
                 </div>
 
-                {/* Score pill */}
-                <div
-                  className="mx-2 px-2.5 py-1.5 rounded-xl border bg-black/30"
-                  style={{ borderColor: `${themeColor}35` }}
-                >
-                  <span className="text-[28px] font-extrabold tracking-wide" style={{ color: themeColor }}>
-                    {scoreDisplay}
-                  </span>
+                {/* Score pill with glow */}
+                <div className="relative mx-2">
+                  {/* Halo doré */}
+                  <div
+                    className="absolute inset-0 -m-2 rounded-full blur-xl opacity-60"
+                    style={{
+                      background: `radial-gradient(circle, ${themeColor}60 0%, transparent 70%)`
+                    }}
+                  />
+                  {/* Score */}
+                  <div
+                    className="relative z-10 px-2.5 py-1.5 rounded-xl border bg-black/30"
+                    style={{ borderColor: `${themeColor}35` }}
+                  >
+                    <span className="text-[28px] font-extrabold tracking-wide" style={{ color: themeColor }}>
+                      {scoreDisplay}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Away */}
