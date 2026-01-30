@@ -262,24 +262,28 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         const filename = `pronohub-trophy-${trophy.name.replace(/\s+/g, '-').toLowerCase()}.png`
 
         // Essayer d'abord Web Share API (fonctionne sur mobile Android/iOS)
-        console.log('[Download] navigator.share:', !!navigator.share, 'canShare:', !!navigator.canShare)
+        const hasShare = !!navigator.share
+        const hasCanShare = !!navigator.canShare
+        alert(`[DEBUG] Share API: share=${hasShare}, canShare=${hasCanShare}`)
+
         if (navigator.share && navigator.canShare) {
           try {
             const file = new File([blob], filename, { type: 'image/png' })
             const canShareFiles = navigator.canShare({ files: [file] })
-            console.log('[Download] canShare files:', canShareFiles)
+            alert(`[DEBUG] canShare files: ${canShareFiles}`)
+
             if (canShareFiles) {
-              console.log('[Download] Calling navigator.share...')
+              alert('[DEBUG] Calling navigator.share...')
               await navigator.share({
                 title: `Trophée PronoHub - ${trophy.name}`,
                 files: [file]
               })
-              console.log('[Download] Share successful')
+              alert('[DEBUG] Share successful!')
               setIsDownloading(false)
               return
             }
           } catch (e: any) {
-            console.log('[Download] Share error:', e.name, e.message)
+            alert(`[DEBUG] Share error: ${e.name} - ${e.message}`)
             // Utilisateur a annulé = pas d'erreur
             if (e.name === 'AbortError') {
               setIsDownloading(false)
@@ -289,7 +293,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         }
 
         // Fallback: téléchargement classique (desktop)
-        console.log('[Download] Using fallback download method')
+        alert('[DEBUG] Using fallback download (link click)')
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -298,8 +302,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         link.click()
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
+        alert('[DEBUG] Fallback download done')
       } else {
-        console.log('[Download] No blob generated')
+        alert('[DEBUG] No blob generated')
       }
     } catch (error) {
       console.error('[Download] Error:', error)
