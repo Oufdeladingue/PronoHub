@@ -15,6 +15,7 @@ import { useUser } from '@/contexts/UserContext'
 import { isCapacitor } from '@/lib/capacitor'
 import LogoutButton from '@/components/LogoutButton'
 import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
+import LockedBadgeModal from '@/components/LockedBadgeModal'
 
 // Composant jauge en demi-cercle avec couleur dynamique
 function SemiCircleGauge({
@@ -163,6 +164,7 @@ function ProfileContent() {
   const [deleteError, setDeleteError] = useState('')
   const [selectedTrophyForModal, setSelectedTrophyForModal] = useState<any>(null)
   const [loadingTrophyModal, setLoadingTrophyModal] = useState(false)
+  const [showLockedBadgeModal, setShowLockedBadgeModal] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -1346,7 +1348,8 @@ function ProfileContent() {
                           return (
                             <div
                               key={trophyType}
-                              className="trophy-card-locked bg-gray-50"
+                              onClick={() => setShowLockedBadgeModal(true)}
+                              className="trophy-card-locked bg-gray-50 cursor-default"
                             >
                               <div className="flex items-center gap-4">
                                 {/* Image du trophée en noir et blanc */}
@@ -1696,6 +1699,13 @@ function ProfileContent() {
           onClose={() => setSelectedTrophyForModal(null)}
         />
       )}
+
+      {/* Modale easter egg (quand on clique sur un badge verrouillé) */}
+      <LockedBadgeModal
+        isOpen={showLockedBadgeModal}
+        onClose={() => setShowLockedBadgeModal(false)}
+        theme={theme}
+      />
 
       {/* Modale de succès changement de mot de passe */}
       {showPasswordSuccessModal && (
