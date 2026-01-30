@@ -423,31 +423,9 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       aria-modal="true"
       aria-labelledby="trophy-title"
     >
-      {/* Paillettes dorées (sur tout le backdrop) */}
-      {glitters.map((glitter) => (
-        <div
-          key={glitter.id}
-          style={{
-            position: 'absolute',
-            left: `${glitter.left}%`,
-            top: 0,
-            width: '8px',
-            height: '8px',
-            background: 'linear-gradient(45deg, #FFD700, #FFA500)',
-            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-            animation: 'glitter-fall linear infinite',
-            animationDelay: `${glitter.delay}s`,
-            animationDuration: `${glitter.duration}s`,
-            pointerEvents: 'none',
-            filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
-            zIndex: 0
-          }}
-        />
-      ))}
-
       {/* Animations CSS */}
       <style>{`
-        @keyframes glitter-fall {
+        @keyframes glitter-fall-modal {
           0% {
             transform: translateY(-20px) rotate(0deg);
             opacity: 0;
@@ -459,7 +437,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             opacity: 1;
           }
           100% {
-            transform: translateY(100vh) rotate(360deg);
+            transform: translateY(calc(100% + 600px)) rotate(360deg);
             opacity: 0;
           }
         }
@@ -513,6 +491,28 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Paillettes dorées (sur toute la modale) */}
+        {glitters.map((glitter) => (
+          <div
+            key={glitter.id}
+            style={{
+              position: 'absolute',
+              left: `${glitter.left}%`,
+              top: 0,
+              width: '8px',
+              height: '8px',
+              background: 'linear-gradient(45deg, #FFD700, #FFA500)',
+              clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+              animation: 'glitter-fall-modal linear infinite',
+              animationDelay: `${glitter.delay}s`,
+              animationDuration: `${glitter.duration}s`,
+              pointerEvents: 'none',
+              filter: 'drop-shadow(0 0 3px rgba(255, 215, 0, 0.8))',
+              zIndex: 0
+            }}
+          />
+        ))}
+
         {/* Close button */}
         <button
           onClick={onClose}
@@ -582,17 +582,17 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
           {/* Match Card */}
           {trophy.triggerMatch && (
-            <div className="relative mt-7" style={{ width: '100%', maxWidth: '372px', margin: '28px auto 0' }}>
+            <div className="relative mt-7" style={{ width: '100%', maxWidth: '372px', margin: '28px auto 0', height: '165px' }}>
               {/* Image de fond du cadre */}
               <img
                 src="/images/match-decisif-frame.png"
                 alt=""
-                className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
-                style={{ zIndex: 0, borderRadius: '18px' }}
+                className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none"
+                style={{ zIndex: 0 }}
               />
 
               {/* Contenu par-dessus l'image */}
-              <div className="relative px-4 py-4" style={{ zIndex: 1, paddingTop: '32px' }}>
+              <div className="relative px-4 py-4" style={{ zIndex: 1, paddingTop: '34px' }}>
                 <div className="flex items-center justify-between">
                   {/* Home */}
                   <div className="flex-1 flex flex-col items-center">
