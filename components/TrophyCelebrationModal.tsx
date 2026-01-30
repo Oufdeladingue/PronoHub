@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-// Note: createPortal n'est plus nécessaire car le composant est rendu
-// en dehors du conteneur overflow-y-auto dans DashboardClient
+import { createPortal } from 'react-dom'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -39,8 +38,6 @@ interface TrophyCelebrationModalProps {
 }
 
 export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebrationModalProps) {
-  console.log('[TrophyModal] Render called, trophy:', trophy?.name)
-
   // Tous les hooks DOIVENT être appelés avant tout return conditionnel
   const [isVisible, setIsVisible] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -48,11 +45,8 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   const [mounted, setMounted] = useState(false)
   const continueButtonRef = useRef<HTMLButtonElement>(null)
 
-  console.log('[TrophyModal] State - mounted:', mounted, 'isVisible:', isVisible)
-
-  // Marquer comme monté côté client (pour éviter erreur d'hydratation)
+  // Marquer comme monté côté client (pour createPortal)
   useEffect(() => {
-    console.log('[TrophyModal] useEffect mount - setting mounted to true')
     setMounted(true)
   }, [])
 
@@ -566,10 +560,11 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     </div>
   )
 
-  // Rendre directement - le composant est maintenant en dehors du conteneur overflow
-  // dans DashboardClient.tsx, donc pas besoin de createPortal
-  console.log('[TrophyModal] Rendering modal directly, mounted:', mounted)
+  // Ne pas rendre côté serveur
+  if (!mounted) {
+    return null
+  }
 
-  // On retourne le contenu directement (pas de createPortal nécessaire)
-  return modalContent
+  // Utiliser createPortal pour échapper au stacking context de overflow-y-auto
+  return createPortal(modalContent, document.body)
 }

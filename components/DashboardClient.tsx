@@ -287,7 +287,6 @@ function DashboardContent({
   }
 
   return (
-    <>
     <div className="theme-bg flex flex-col flex-1 overflow-y-auto">
       <main id="main-content" className="max-w-7xl mx-auto px-4 pt-8 pb-4 w-full" style={{ paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))' }}>
         {/* Bouton Panel Admin pour les super admins */}
@@ -1411,16 +1410,15 @@ function DashboardContent({
         </div>
       </main>
       <Footer />
-    </div>
 
-    {/* Modale de célébration - EN DEHORS du conteneur overflow-y-auto pour éviter stacking context */}
-    {currentTrophy && (
-      <TrophyCelebrationModal
-        trophy={currentTrophy}
-        onClose={closeCurrentTrophy}
-      />
-    )}
-  </>
+      {/* Modale de célébration pour les nouveaux trophées */}
+      {currentTrophy && (
+        <TrophyCelebrationModal
+          trophy={currentTrophy}
+          onClose={closeCurrentTrophy}
+        />
+      )}
+    </div>
   )
 }
 
