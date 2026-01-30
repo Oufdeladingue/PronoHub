@@ -314,19 +314,14 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     return null
   }
 
-  // Créer le container de manière synchrone s'il n'existe pas
-  let container = document.getElementById('trophy-modal-root')
+  // Trouver le container pré-créé dans layout.tsx
+  const container = document.getElementById('trophy-modal-root')
   if (!container) {
-    container = document.createElement('div')
-    container.id = 'trophy-modal-root'
-    container.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 2147483647; pointer-events: none;'
-    document.body.appendChild(container)
-    console.log('[TrophyCelebrationModal] Created #trophy-modal-root container')
+    console.error('[TrophyCelebrationModal] #trophy-modal-root not found in DOM')
+    return null
   }
 
-  console.log('[TrophyCelebrationModal] Rendering modal via createPortal')
-
-  // Utiliser ReactDOM.createPortal
+  // Import createPortal depuis react-dom
   const { createPortal } = require('react-dom')
 
   return createPortal(
