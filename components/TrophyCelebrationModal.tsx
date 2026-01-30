@@ -43,11 +43,16 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [mounted, setMounted] = useState(false)
+  const [isAndroidWebView, setIsAndroidWebView] = useState(false)
   const continueButtonRef = useRef<HTMLButtonElement>(null)
 
   // Marquer comme monté côté client (pour createPortal)
   useEffect(() => {
     setMounted(true)
+    // Détecter Android WebView (le téléchargement ne fonctionne pas dans ce contexte)
+    const userAgent = navigator.userAgent || ''
+    const isWebView = /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
+    setIsAndroidWebView(isWebView)
   }, [])
 
   // Détecter le thème actif
@@ -270,8 +275,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           }
         }
 
-        // Fallback: essayer plusieurs méthodes
-        // Méthode 1: téléchargement classique (desktop)
+        // Fallback: téléchargement classique (desktop/web mobile)
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -279,18 +283,6 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-
-        // Méthode 2: Si on est dans un WebView Android, ouvrir l'image dans un nouvel onglet
-        // L'utilisateur pourra faire un appui long pour sauvegarder
-        const userAgent = navigator.userAgent || ''
-        const isAndroidWebView = /Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)
-        if (isAndroidWebView) {
-          // Attendre un peu puis ouvrir dans un nouvel onglet
-          setTimeout(() => {
-            window.open(url, '_blank')
-          }, 100)
-          alert('📱 Appuyez longuement sur l\'image pour la sauvegarder')
-        }
 
         // Nettoyer après un délai
         setTimeout(() => URL.revokeObjectURL(url), 5000)
@@ -595,30 +587,38 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 </svg>
               </button>
 
-              {/* Download */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleDownload()
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleDownload()
-                }}
-                disabled={isDownloading}
-                className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] disabled:opacity-50 bg-black/20"
-                style={{ border: `1px solid ${themeColor}50` }}
-                aria-label="Télécharger l'image"
-                title="Télécharger"
-              >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={themeColor} strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </button>
+              {/* Download - Masqué sur Android WebView (le téléchargement ne fonctionne pas) */}
+              {!isAndroidWebView && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDownload()
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleDownload()
+                  }}
+                  disabled={isDownloading}
+                  className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] disabled:opacity-50 bg-black/20"
+                  style={{ border: `1px solid ${themeColor}50` }}
+                  aria-label="Télécharger l'image"
+                  title="Télécharger"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={themeColor} strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+              )}
             </div>
+            {/* Message pour Android WebView */}
+            {isAndroidWebView && (
+              <p className="mt-2 text-xs text-white/50 text-center">
+                💡 Utilise les boutons ci-dessus pour sauvegarder l'image
+              </p>
+            )}
           </div>
 
           {/* CTA Button */}
