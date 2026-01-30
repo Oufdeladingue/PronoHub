@@ -162,6 +162,7 @@ function ProfileContent() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [selectedTrophyForModal, setSelectedTrophyForModal] = useState<any>(null)
+  const [loadingTrophyModal, setLoadingTrophyModal] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const { theme, setTheme } = useTheme()
@@ -507,6 +508,37 @@ function ProfileContent() {
       setTrophies(prev => prev.map(t => ({ ...t, is_new: false })))
     } catch (error) {
       console.error('Error marking trophies as seen:', error)
+    }
+  }
+
+  // Ouvrir la modale d'un trophée avec les infos du match déclencheur
+  const openTrophyModal = async (trophy: any) => {
+    const trophyInfo = getTrophyInfo(trophy.trophy_type)
+
+    // Afficher la modale immédiatement avec les infos de base
+    setSelectedTrophyForModal({
+      name: trophyInfo.name,
+      description: trophyInfo.description,
+      imagePath: trophyInfo.image,
+      unlocked_at: trophy.unlocked_at
+    })
+
+    // Charger les infos du match déclencheur en arrière-plan
+    try {
+      const matchResponse = await fetchWithAuth(
+        `/api/user/trophy-unlock-info?trophyType=${encodeURIComponent(trophy.trophy_type)}&unlockedAt=${encodeURIComponent(trophy.unlocked_at)}`
+      )
+      const matchData = await matchResponse.json()
+
+      if (matchData.success && matchData.match) {
+        // Mettre à jour la modale avec les infos du match
+        setSelectedTrophyForModal((prev: any) => ({
+          ...prev,
+          triggerMatch: matchData.match
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading trigger match:', error)
     }
   }
 
@@ -1261,12 +1293,7 @@ function ProfileContent() {
                       return (
                         <div
                           key={trophy.id}
-                          onClick={() => setSelectedTrophyForModal({
-                            name: trophyInfo.name,
-                            description: trophyInfo.description,
-                            imagePath: trophyInfo.image,
-                            unlocked_at: trophy.unlocked_at
-                          })}
+                          onClick={() => openTrophyModal(trophy)}
                           className={`trophy-card relative cursor-pointer hover:scale-[1.02] transition-transform ${trophy.is_new ? 'shadow-lg trophy-card-new' : 'trophy-card-unlocked'}`}
                         >
                           {/* Badge "NOUVEAU" */}
