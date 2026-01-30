@@ -70,10 +70,10 @@ function LoginForm() {
 
       const interval = setInterval(() => {
         setLoadingPercent(prev => {
-          // Si on a une redirection en attente, accélérer vers 100%
+          // Si on a une redirection en attente, accélérer vers 90% (navigation à 90%)
           if (pendingRedirect) {
-            if (prev >= 100) return 100
-            return Math.min(100, prev + 8)
+            if (prev >= 90) return 90
+            return Math.min(90, prev + 5)
           }
           // Sinon, progression lente jusqu'à 85%
           if (prev < 50) return prev + 2.5
@@ -86,14 +86,13 @@ function LoginForm() {
     }
   }, [redirecting, pendingRedirect])
 
-  // Quand on atteint 100%, naviguer après un court délai
+  // Quand on atteint 90%+, stocker le pourcentage et naviguer
   useEffect(() => {
-    if (loadingPercent >= 100 && pendingRedirect) {
-      const timeout = setTimeout(() => {
-        router.push(pendingRedirect)
-        router.refresh()
-      }, 400) // Laisser voir le 100% pendant 400ms
-      return () => clearTimeout(timeout)
+    if (loadingPercent >= 90 && pendingRedirect) {
+      // Stocker le pourcentage pour que le dashboard loading.tsx continue
+      sessionStorage.setItem('loaderPercent', String(Math.round(loadingPercent)))
+      router.push(pendingRedirect)
+      router.refresh()
     }
   }, [loadingPercent, pendingRedirect, router])
 

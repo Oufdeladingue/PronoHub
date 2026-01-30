@@ -17,18 +17,28 @@ const loadingMessages = [
 ]
 
 export default function DashboardLoading() {
-  // Commencer à 85% pour donner l'impression de continuité avec le loader login
-  const [loadingPercent, setLoadingPercent] = useState(85)
+  // Récupérer le pourcentage depuis sessionStorage (continuité avec login loader)
+  const [loadingPercent, setLoadingPercent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('loaderPercent')
+      if (saved) {
+        sessionStorage.removeItem('loaderPercent') // Nettoyer après lecture
+        return parseInt(saved, 10)
+      }
+    }
+    return 85 // Fallback si pas de valeur stockée
+  })
+
   const [loadingMessage] = useState(() =>
     loadingMessages[Math.floor(Math.random() * loadingMessages.length)]
   )
 
-  // Animation qui continue vers 100%
+  // Animation qui continue vers 99%
   useEffect(() => {
     const interval = setInterval(() => {
       setLoadingPercent(prev => {
         if (prev >= 99) return 99 // Rester à 99% jusqu'à ce que le SSR finisse
-        return prev + 0.3
+        return prev + 0.5
       })
     }, 50)
     return () => clearInterval(interval)
