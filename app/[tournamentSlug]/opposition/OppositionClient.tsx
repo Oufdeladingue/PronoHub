@@ -2067,43 +2067,28 @@ export default function OppositionClient({
 
                                   .save-button-wrapper {
                                     position: relative;
-                                    display: inline-flex;
+                                    display: inline-block;
                                     border-radius: 0.5rem;
-                                    isolation: isolate;
                                   }
 
-                                  /* Border-only + shine effect */
-                                  .save-button-wrapper.is-modified::before {
-                                    content: "";
-                                    position: absolute;
-                                    inset: 0;
+                                  /* Gradient tournant sur le wrapper quand modifié */
+                                  .save-button-wrapper.is-modified {
                                     padding: 2px;
-                                    border-radius: inherit;
-                                    z-index: 0;
-                                    pointer-events: none;
                                     background: conic-gradient(
                                       from 0deg,
-                                      transparent 0deg,
-                                      rgba(255,153,0,0) 300deg,
-                                      rgba(255,153,0,.25) 320deg,
-                                      rgba(255,230,170,.95) 334deg,
-                                      rgba(255,153,0,.55) 348deg,
-                                      transparent 360deg
+                                      #ff9900 0deg,
+                                      transparent 60deg,
+                                      transparent 300deg,
+                                      rgba(255,230,170,.95) 330deg,
+                                      #ff9900 360deg
                                     );
-                                    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                                    -webkit-mask-composite: xor;
-                                    mask-composite: exclude;
-                                    filter: drop-shadow(0 0 6px rgba(255,153,0,.55));
                                     animation: spin-border 1.6s linear infinite;
+                                    filter: drop-shadow(0 0 8px rgba(255,153,0,.4));
                                   }
 
-                                  .save-button-wrapper button {
-                                    position: relative;
-                                    z-index: 1;
-                                    display: inline-flex;
-                                    align-items: center;
-                                    gap: 0.5rem;
-                                    padding: 0.375rem 0.75rem;
+                                  /* Bouton par défaut sans bordure quand modifié */
+                                  .save-button-wrapper.is-modified button {
+                                    border: none !important;
                                   }
                                 `}</style>
 
