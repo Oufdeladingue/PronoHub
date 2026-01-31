@@ -2072,28 +2072,13 @@ export default function OppositionClient({
                                     isolation: isolate;
                                   }
 
-                                  /* Border-only + shine */
+                                  /* TEST DEBUG - Rectangle rouge */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
                                     inset: 0;
-                                    padding: 2px;
-                                    border-radius: inherit;
-                                    background: conic-gradient(
-                                      from 0deg,
-                                      transparent 0deg,
-                                      rgba(255,153,0,0.0) 300deg,
-                                      rgba(255,153,0,0.35) 320deg,
-                                      rgba(255,220,140,0.95) 332deg,
-                                      rgba(255,153,0,0.6) 345deg,
-                                      transparent 360deg
-                                    );
-                                    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                                    -webkit-mask-composite: xor;
-                                    mask-composite: exclude;
-                                    filter: drop-shadow(0 0 6px rgba(255,153,0,0.55));
-                                    animation: spin-border 1.8s linear infinite;
-                                    pointer-events: none;
+                                    background: red;
+                                    opacity: 0.4;
                                   }
 
                                   .save-button-wrapper button {
