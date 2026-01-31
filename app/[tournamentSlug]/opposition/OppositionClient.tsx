@@ -106,6 +106,7 @@ export default function OppositionClient({
   tournamentSlug
 }: OppositionClientProps) {
   const searchParams = useSearchParams()
+  const { theme } = useTheme()
 
   // Lire le paramètre ?tab= de l'URL pour déterminer l'onglet initial
   const tabParam = searchParams.get('tab')
