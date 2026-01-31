@@ -2078,7 +2078,7 @@ export default function OppositionClient({
                                     background: transparent;
                                   }
 
-                                  /* Gradient glow - deux halos opposés qui tournent */
+                                  /* Gradient glow thème sombre - deux halos orange opposés */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
@@ -2101,6 +2101,25 @@ export default function OppositionClient({
                                     animation: rotateShine 2s linear infinite;
                                     pointer-events: none;
                                     z-index: 0;
+                                  }
+
+                                  /* Gradient glow thème clair - deux halos bleu opposés */
+                                  .save-button-wrapper.is-modified.light-theme::before {
+                                    background: conic-gradient(
+                                      from 0deg,
+                                      transparent 0deg,
+                                      transparent 80deg,
+                                      #3b82f6 100deg,
+                                      rgba(147,197,253,1) 110deg,
+                                      #3b82f6 120deg,
+                                      transparent 140deg,
+                                      transparent 260deg,
+                                      #3b82f6 280deg,
+                                      rgba(147,197,253,1) 290deg,
+                                      #3b82f6 300deg,
+                                      transparent 320deg,
+                                      transparent 360deg
+                                    );
                                   }
 
                                   /* Bouton au-dessus avec fond pour masquer le centre */
