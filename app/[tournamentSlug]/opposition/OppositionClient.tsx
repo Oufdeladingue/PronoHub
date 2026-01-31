@@ -2079,23 +2079,22 @@ export default function OppositionClient({
                                     content: "";
                                     position: absolute;
                                     inset: 0;
-                                    border-radius: 0.5rem;
+                                    border-radius: inherit;
                                     padding: 2px;
                                     background: conic-gradient(
-                                      from 0deg,
-                                      transparent 0deg,
-                                      #ff9900 90deg,
-                                      transparent 180deg,
-                                      #ff9900 270deg,
-                                      transparent 360deg
+                                      #ff9900,
+                                      transparent 25%,
+                                      #ff9900 50%,
+                                      transparent 75%,
+                                      #ff9900
                                     );
                                     -webkit-mask:
-                                      linear-gradient(#fff 0 0) content-box,
-                                      linear-gradient(#fff 0 0);
+                                      linear-gradient(#000 0 0) content-box,
+                                      linear-gradient(#000 0 0);
                                     -webkit-mask-composite: xor;
                                     mask:
-                                      linear-gradient(#fff 0 0) content-box,
-                                      linear-gradient(#fff 0 0);
+                                      linear-gradient(#000 0 0) content-box,
+                                      linear-gradient(#000 0 0);
                                     mask-composite: exclude;
                                     animation: spin-border 2.5s linear infinite;
                                     z-index: -1;
