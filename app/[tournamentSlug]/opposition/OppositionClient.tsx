@@ -2078,7 +2078,7 @@ export default function OppositionClient({
                                     background: transparent;
                                   }
 
-                                  /* Gradient glow - tourne derrière le bouton */
+                                  /* Gradient glow - deux halos opposés qui tournent */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
@@ -2086,10 +2086,16 @@ export default function OppositionClient({
                                     background: conic-gradient(
                                       from 0deg,
                                       transparent 0deg,
-                                      transparent 270deg,
-                                      #ff9900 310deg,
-                                      rgba(255,230,170,1) 330deg,
-                                      #ff9900 350deg,
+                                      transparent 80deg,
+                                      #ff9900 100deg,
+                                      rgba(255,230,170,1) 110deg,
+                                      #ff9900 120deg,
+                                      transparent 140deg,
+                                      transparent 260deg,
+                                      #ff9900 280deg,
+                                      rgba(255,230,170,1) 290deg,
+                                      #ff9900 300deg,
+                                      transparent 320deg,
                                       transparent 360deg
                                     );
                                     animation: rotateShine 2s linear infinite;
