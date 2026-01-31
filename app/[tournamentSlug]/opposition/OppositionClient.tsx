@@ -2071,45 +2071,33 @@ export default function OppositionClient({
                                     position: relative;
                                     display: inline-flex;
                                     z-index: 0;
+                                    border-radius: 0.5rem;
                                   }
 
-                                  /* Bordure animée (thème sombre) */
+                                  /* Bordure animée avec mask-composite pour suivre les arrondis */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
-                                    inset: -2px;
-                                    border-radius: 0.5rem;
-                                    background: conic-gradient(
-                                      from 0deg,
-                                      transparent 0deg,
-                                      #ff9900 90deg,
-                                      transparent 180deg,
-                                      #ff9900 270deg,
-                                      transparent 360deg
-                                    );
-                                    animation: spin-border 2.5s linear infinite;
-                                    z-index: -1;
-                                  }
-
-                                  /* Bordure animée (thème clair) */
-                                  .save-button-wrapper.is-modified.light-theme::before {
-                                    background: conic-gradient(
-                                      from 0deg,
-                                      transparent 0deg,
-                                      #ff9900 90deg,
-                                      transparent 180deg,
-                                      #ff9900 270deg,
-                                      transparent 360deg
-                                    );
-                                  }
-
-                                  /* Masque pour garder uniquement la bordure visible */
-                                  .save-button-wrapper::after {
-                                    content: "";
-                                    position: absolute;
                                     inset: 0;
-                                    background: inherit;
                                     border-radius: 0.5rem;
+                                    padding: 2px;
+                                    background: conic-gradient(
+                                      from 0deg,
+                                      transparent 0deg,
+                                      #ff9900 90deg,
+                                      transparent 180deg,
+                                      #ff9900 270deg,
+                                      transparent 360deg
+                                    );
+                                    -webkit-mask:
+                                      linear-gradient(#fff 0 0) content-box,
+                                      linear-gradient(#fff 0 0);
+                                    -webkit-mask-composite: xor;
+                                    mask:
+                                      linear-gradient(#fff 0 0) content-box,
+                                      linear-gradient(#fff 0 0);
+                                    mask-composite: exclude;
+                                    animation: spin-border 2.5s linear infinite;
                                     z-index: -1;
                                   }
                                 `}</style>
