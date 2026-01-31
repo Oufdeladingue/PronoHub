@@ -2070,16 +2070,15 @@ export default function OppositionClient({
                                   .save-button-wrapper {
                                     position: relative;
                                     display: inline-block;
+                                    padding: 2px;
                                     border-radius: 0.5rem;
-                                    isolation: isolate;
                                   }
 
-                                  /* Bordure animée avec conic-gradient + mask-composite */
+                                  /* Fond gradient animé */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
                                     inset: 0;
-                                    padding: 2px;
                                     border-radius: inherit;
                                     background: conic-gradient(
                                       from 0deg,
@@ -2089,17 +2088,11 @@ export default function OppositionClient({
                                       transparent 75%,
                                       #ff9900
                                     );
-                                    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                                    -webkit-mask-composite: xor;
-                                    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-                                    mask-composite: exclude;
                                     animation: spin-border 2.5s linear infinite;
-                                    z-index: 0;
                                   }
 
                                   .save-button-wrapper button {
                                     position: relative;
-                                    z-index: 1;
                                     display: flex;
                                   }
                                 `}</style>
