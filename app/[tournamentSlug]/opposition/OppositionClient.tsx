@@ -2433,7 +2433,7 @@ export default function OppositionClient({
                                         <button
                                           onClick={() => savePrediction(match.id)}
                                           disabled={savingPrediction === match.id}
-                                          className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs border-2 border-[#ff9900] bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                          className={`px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed ${isModified ? '' : 'border-2 border-[#ff9900]'}`}
                                           style={{ background: theme === 'light' ? '#f1f5f9' : '#1e293b' }}
                                         >
                                           {savingPrediction === match.id ? (
@@ -2745,7 +2745,7 @@ export default function OppositionClient({
                                           <button
                                             onClick={() => savePrediction(match.id)}
                                             disabled={savingPrediction === match.id}
-                                            className="px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs border-2 border-[#ff9900] bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                            className={`px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed ${isModified ? '' : 'border-2 border-[#ff9900]'}`}
                                             style={{ background: theme === 'light' ? '#f1f5f9' : '#1e293b' }}
                                           >
                                             {savingPrediction === match.id ? (
