@@ -44,6 +44,7 @@ export default function LockedBadgeModal({ isOpen, onClose, theme }: LockedBadge
   const [isVisible, setIsVisible] = useState(false)
   const [randomGif, setRandomGif] = useState('')
   const [randomMessage, setRandomMessage] = useState('')
+  const [gifLoaded, setGifLoaded] = useState(false)
 
   // Couleurs selon le thème
   const themeColors = {
@@ -61,16 +62,30 @@ export default function LockedBadgeModal({ isOpen, onClose, theme }: LockedBadge
 
   useEffect(() => {
     if (isOpen) {
-      // Randomiser le GIF et le message à chaque ouverture
-      setRandomGif(GIFS[Math.floor(Math.random() * GIFS.length)])
-      setRandomMessage(MESSAGES[Math.floor(Math.random() * MESSAGES.length)])
+      // Reset l'état du GIF chargé
+      setGifLoaded(false)
+      setIsVisible(false)
 
-      // Activer l'animation d'entrée
-      requestAnimationFrame(() => {
-        setIsVisible(true)
-      })
+      // Randomiser le GIF et le message à chaque ouverture
+      const newGif = GIFS[Math.floor(Math.random() * GIFS.length)]
+      const newMessage = MESSAGES[Math.floor(Math.random() * MESSAGES.length)]
+
+      setRandomGif(newGif)
+      setRandomMessage(newMessage)
+
+      // Précharger le GIF
+      const img = new Image()
+      img.src = newGif
+      img.onload = () => {
+        setGifLoaded(true)
+        // Délai supplémentaire pour laisser le GIF se préparer
+        setTimeout(() => {
+          setIsVisible(true)
+        }, 150)
+      }
     } else {
       setIsVisible(false)
+      setGifLoaded(false)
     }
   }, [isOpen])
 
@@ -142,15 +157,24 @@ export default function LockedBadgeModal({ isOpen, onClose, theme }: LockedBadge
             className="relative w-full max-w-xs mb-6 rounded-2xl overflow-hidden"
             style={{
               border: `2px solid ${themeColor}60`,
-              boxShadow: `0 0 30px ${themeColor}30`
+              boxShadow: `0 0 30px ${themeColor}30`,
+              minHeight: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.3)'
             }}
           >
-            <img
-              src={randomGif}
-              alt="Easter egg"
-              className="w-full h-auto"
-              style={{ display: 'block' }}
-            />
+            {gifLoaded ? (
+              <img
+                src={randomGif}
+                alt="Easter egg"
+                className="w-full h-auto"
+                style={{ display: 'block' }}
+              />
+            ) : (
+              <div className="w-8 h-8 border-2 border-white/20 border-t-white/70 rounded-full animate-spin" />
+            )}
           </div>
 
           {/* Message sarcastique */}
