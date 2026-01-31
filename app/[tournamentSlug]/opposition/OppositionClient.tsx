@@ -2058,19 +2058,58 @@ export default function OppositionClient({
                                   .bonus-badge {
                                     animation: pulse-bonus 2s ease-in-out infinite;
                                   }
-                                  @keyframes pulse-save {
-                                    0%, 100% {
-                                      transform: scale(1);
-                                      box-shadow: 0 0 0 0 rgba(255, 153, 0, 0.8);
-                                    }
-                                    50% {
-                                      transform: scale(1.08);
-                                      box-shadow: 0 0 12px 4px rgba(255, 153, 0, 0.6);
+
+                                  /* Animation de bordure tournante pour le bouton Enregistrer */
+                                  @keyframes spin-border {
+                                    to {
+                                      transform: rotate(360deg);
                                     }
                                   }
-                                  .animate-pulse-save {
-                                    animation: pulse-save 0.8s ease-in-out infinite;
-                                    transform-origin: right center;
+
+                                  .save-button-wrapper {
+                                    position: relative;
+                                    display: inline-flex;
+                                    z-index: 0;
+                                  }
+
+                                  /* Bordure animée (thème sombre) */
+                                  .save-button-wrapper.is-modified::before {
+                                    content: "";
+                                    position: absolute;
+                                    inset: -2px;
+                                    border-radius: 0.5rem;
+                                    background: conic-gradient(
+                                      from 0deg,
+                                      transparent 0deg,
+                                      #ff9900 90deg,
+                                      transparent 180deg,
+                                      #ff9900 270deg,
+                                      transparent 360deg
+                                    );
+                                    animation: spin-border 2.5s linear infinite;
+                                    z-index: -1;
+                                  }
+
+                                  /* Bordure animée (thème clair) */
+                                  .save-button-wrapper.is-modified.light-theme::before {
+                                    background: conic-gradient(
+                                      from 0deg,
+                                      transparent 0deg,
+                                      #ff9900 90deg,
+                                      transparent 180deg,
+                                      #ff9900 270deg,
+                                      transparent 360deg
+                                    );
+                                  }
+
+                                  /* Masque pour garder uniquement la bordure visible */
+                                  .save-button-wrapper::after {
+                                    content: "";
+                                    position: absolute;
+                                    inset: 0;
+                                    background: inherit;
+                                    border-radius: 0.5rem;
+                                    z-index: -1;
                                   }
                                 `}</style>
 
@@ -2389,23 +2428,26 @@ export default function OppositionClient({
                                         </button>
                                       </div>
                                     ) : (
-                                      <button
-                                        onClick={() => savePrediction(match.id)}
-                                        disabled={savingPrediction === match.id}
-                                        className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                      >
-                                        {savingPrediction === match.id ? (
-                                          <>
-                                            <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            <span>Envoi...</span>
-                                          </>
-                                        ) : (
-                                          <span>Enregistrer</span>
-                                        )}
-                                      </button>
+                                      <div className={`save-button-wrapper ${isModified ? 'is-modified' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
+                                        <button
+                                          onClick={() => savePrediction(match.id)}
+                                          disabled={savingPrediction === match.id}
+                                          className="px-3 py-1.5 rounded-lg transition font-semibold flex items-center gap-2 text-xs border-2 border-[#ff9900] bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                          style={{ background: theme === 'light' ? '#f1f5f9' : '#1e293b' }}
+                                        >
+                                          {savingPrediction === match.id ? (
+                                            <>
+                                              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                              </svg>
+                                              <span>Envoi...</span>
+                                            </>
+                                          ) : (
+                                            <span>Enregistrer</span>
+                                          )}
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -2698,25 +2740,26 @@ export default function OppositionClient({
                                           </button>
                                         </div>
                                       ) : (
-                                        <button
-                                          onClick={() => savePrediction(match.id)}
-                                          disabled={savingPrediction === match.id}
-                                          className={`px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs bg-[#ff9900] text-[#111] hover:bg-[#e68a00] disabled:bg-gray-400 disabled:cursor-not-allowed ${
-                                            isModified ? 'animate-pulse-save' : ''
-                                          }`}
-                                        >
-                                          {savingPrediction === match.id ? (
-                                            <>
-                                              <svg className="animate-spin h-3.5 w-3.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                              </svg>
-                                              <span className="hidden xl:inline">Envoi...</span>
-                                            </>
-                                          ) : (
-                                            <span className="hidden xl:inline">Enregistrer</span>
-                                          )}
-                                        </button>
+                                        <div className={`save-button-wrapper ${isModified ? 'is-modified' : ''} ${theme === 'light' ? 'light-theme' : ''}`}>
+                                          <button
+                                            onClick={() => savePrediction(match.id)}
+                                            disabled={savingPrediction === match.id}
+                                            className="px-2 py-1 rounded-lg transition font-semibold flex items-center gap-1.5 text-xs border-2 border-[#ff9900] bg-[#1e293b] dark:bg-[#1e293b] text-[#ff9900] hover:bg-[#2d3b52] dark:hover:bg-[#2d3b52] disabled:border-gray-400 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed"
+                                            style={{ background: theme === 'light' ? '#f1f5f9' : '#1e293b' }}
+                                          >
+                                            {savingPrediction === match.id ? (
+                                              <>
+                                                <svg className="animate-spin h-3.5 w-3.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                <span className="hidden xl:inline">Envoi...</span>
+                                              </>
+                                            ) : (
+                                              <span className="hidden xl:inline">Enregistrer</span>
+                                            )}
+                                          </button>
+                                        </div>
                                       )}
                                     </div>
                                   </div>
