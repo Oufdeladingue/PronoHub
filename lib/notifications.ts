@@ -55,13 +55,13 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     prefKey: 'email_mention',
     defaultTitle: 'Mention dans une discussion 💬',
     defaultBody: 'Quelqu\'un t\'a mentionné dans une discussion de tournoi.',
-    clickAction: '/dashboard',
+    clickAction: '/dashboard', // Sera remplacé dynamiquement par /{tournamentSlug}/opposition?tab=tchat
   },
   badge_unlocked: {
     prefKey: 'email_badge_unlocked',
     defaultTitle: 'Nouveau badge débloqué ! 🏅',
     defaultBody: 'Félicitations ! Tu as débloqué un nouveau badge.',
-    clickAction: '/profile',
+    clickAction: '/profile?tab=trophees',
   },
   new_matches: {
     prefKey: 'email_new_matches',

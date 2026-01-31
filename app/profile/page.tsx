@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useTheme } from '@/contexts/ThemeContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -120,7 +120,12 @@ function SemiCircleGauge({
 
 function ProfileContent() {
   const { refreshUserData } = useUser()
-  const [activeTab, setActiveTab] = useState('profil')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const initialTab = tabParam && ['profil', 'stats', 'trophees', 'securite', 'abonnement'].includes(tabParam)
+    ? tabParam
+    : 'profil'
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [username, setUsername] = useState('')
   const [initialUsername, setInitialUsername] = useState('')
