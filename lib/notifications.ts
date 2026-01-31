@@ -51,6 +51,24 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'Un nouveau joueur a rejoint ton tournoi.',
     clickAction: '/dashboard',
   },
+  mention: {
+    prefKey: 'email_mention',
+    defaultTitle: 'Mention dans une discussion 💬',
+    defaultBody: 'Quelqu\'un t\'a mentionné dans une discussion de tournoi.',
+    clickAction: '/dashboard',
+  },
+  badge_unlocked: {
+    prefKey: 'email_badge_unlocked',
+    defaultTitle: 'Nouveau badge débloqué ! 🏅',
+    defaultBody: 'Félicitations ! Tu as débloqué un nouveau badge.',
+    clickAction: '/profile',
+  },
+  new_matches: {
+    prefKey: 'email_new_matches',
+    defaultTitle: 'Nouvelles rencontres ajoutées ⚽',
+    defaultBody: 'De nouveaux matchs ont été ajoutés à ton tournoi.',
+    clickAction: '/dashboard',
+  },
 }
 
 /**

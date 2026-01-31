@@ -133,6 +133,12 @@ function getPreferenceKey(type: NotificationType): string {
       return 'email_invite'
     case 'player_joined':
       return 'email_player_joined'
+    case 'mention':
+      return 'email_mention'
+    case 'badge_unlocked':
+      return 'email_badge_unlocked'
+    case 'new_matches':
+      return 'email_new_matches'
     default:
       return 'email_reminder'
   }

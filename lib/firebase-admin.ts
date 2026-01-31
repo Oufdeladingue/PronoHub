@@ -58,6 +58,9 @@ export type NotificationType =
   | 'tournament_end'     // Fin de tournoi
   | 'invite'             // Invitation à un tournoi
   | 'player_joined'      // Joueur a rejoint (pour capitaine)
+  | 'mention'            // Mention dans une discussion (@user)
+  | 'badge_unlocked'     // Nouveau badge/trophée débloqué
+  | 'new_matches'        // Nouvelles rencontres ajoutées au tournoi
 
 /**
  * Envoyer une notification push à un utilisateur

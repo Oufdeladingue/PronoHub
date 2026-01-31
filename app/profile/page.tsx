@@ -153,6 +153,9 @@ function ProfileContent() {
     email_tournament_end: false,     // Récap fin de tournoi
     email_invite: true,              // Invitation à un tournoi
     email_player_joined: true,       // Quand un joueur rejoint (si capitaine)
+    email_mention: true,             // Mention dans une discussion (@user)
+    email_badge_unlocked: true,      // Nouveau badge/trophée débloqué
+    email_new_matches: true,         // Nouvelles rencontres ajoutées
   })
   const [savingNotifications, setSavingNotifications] = useState(false)
   const [notificationSaved, setNotificationSaved] = useState(false)
@@ -1520,6 +1523,57 @@ function ProfileContent() {
                       onClick={() => handleNotificationToggle('email_player_joined')}
                       disabled={savingNotifications}
                       className={`toggle-switch ${notificationPrefs.email_player_joined ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Mention dans discussion */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Mention dans une discussion</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir une notification quand quelqu'un vous mentionne (@user) dans une discussion de tournoi
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_mention')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_mention ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Badge débloqué */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Nouveau badge débloqué</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir une notification quand vous débloquez un nouveau badge ou trophée
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_badge_unlocked')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_badge_unlocked ? 'active' : ''}`}
+                    >
+                      <span className="toggle-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  {/* Nouvelles rencontres */}
+                  <div className="pref-item">
+                    <div className="flex-1 pr-4">
+                      <p className="text-sm font-medium theme-text">Nouvelles rencontres</p>
+                      <p className="text-xs theme-text-secondary">
+                        Recevoir une notification quand de nouveaux matchs sont ajoutés à un tournoi auquel vous participez
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleNotificationToggle('email_new_matches')}
+                      disabled={savingNotifications}
+                      className={`toggle-switch ${notificationPrefs.email_new_matches ? 'active' : ''}`}
                     >
                       <span className="toggle-switch-knob"></span>
                     </button>
