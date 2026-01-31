@@ -2062,37 +2062,43 @@ export default function OppositionClient({
 
                                   /* Animation de bordure tournante pour le bouton Enregistrer */
                                   @keyframes spin-border {
-                                    to {
-                                      transform: rotate(360deg);
-                                    }
+                                    to { transform: rotate(360deg); }
                                   }
 
                                   .save-button-wrapper {
                                     position: relative;
                                     display: inline-block;
-                                    padding: 2px;
                                     border-radius: 0.5rem;
+                                    isolation: isolate;
                                   }
 
-                                  /* Fond gradient animé */
+                                  /* Border-only + shine */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
                                     inset: 0;
+                                    padding: 2px;
                                     border-radius: inherit;
                                     background: conic-gradient(
                                       from 0deg,
-                                      #ff9900,
-                                      transparent 25%,
-                                      #ff9900 50%,
-                                      transparent 75%,
-                                      #ff9900
+                                      transparent 0deg,
+                                      rgba(255,153,0,0.0) 300deg,
+                                      rgba(255,153,0,0.35) 320deg,
+                                      rgba(255,220,140,0.95) 332deg,
+                                      rgba(255,153,0,0.6) 345deg,
+                                      transparent 360deg
                                     );
-                                    animation: spin-border 2.5s linear infinite;
+                                    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                                    -webkit-mask-composite: xor;
+                                    mask-composite: exclude;
+                                    filter: drop-shadow(0 0 6px rgba(255,153,0,0.55));
+                                    animation: spin-border 1.8s linear infinite;
+                                    pointer-events: none;
                                   }
 
                                   .save-button-wrapper button {
                                     position: relative;
+                                    z-index: 1;
                                     display: flex;
                                   }
                                 `}</style>
