@@ -2069,40 +2069,28 @@ export default function OppositionClient({
 
                                   .save-button-wrapper {
                                     position: relative;
-                                    display: inline-flex;
-                                    isolation: isolate;
+                                    display: inline-block;
+                                    padding: 2px;
                                     border-radius: 0.5rem;
+                                    background: transparent;
                                   }
 
-                                  /* Bordure animée avec mask-composite pour suivre les arrondis */
-                                  .save-button-wrapper.is-modified::before {
-                                    content: "";
-                                    position: absolute;
-                                    inset: 0;
-                                    border-radius: inherit;
-                                    padding: 2px;
+                                  /* Bordure animée avec conic-gradient */
+                                  .save-button-wrapper.is-modified {
                                     background: conic-gradient(
+                                      from 0deg,
                                       #ff9900,
                                       transparent 25%,
                                       #ff9900 50%,
                                       transparent 75%,
                                       #ff9900
                                     );
-                                    -webkit-mask:
-                                      linear-gradient(#000 0 0) content-box,
-                                      linear-gradient(#000 0 0);
-                                    -webkit-mask-composite: xor;
-                                    mask:
-                                      linear-gradient(#000 0 0) content-box,
-                                      linear-gradient(#000 0 0);
-                                    mask-composite: exclude;
                                     animation: spin-border 2.5s linear infinite;
-                                    z-index: 0;
                                   }
 
                                   .save-button-wrapper button {
-                                    position: relative;
-                                    z-index: 1;
+                                    display: flex;
+                                    border-radius: calc(0.5rem - 2px);
                                   }
                                 `}</style>
 
