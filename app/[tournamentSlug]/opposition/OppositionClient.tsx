@@ -426,88 +426,34 @@ export default function OppositionClient({
   const findNextMatchdayToPlay = async (matchdays: number[]) => {
     if (!tournament) return
 
-    const supabase = createClient()
+    const now = new Date()
 
-    // Pour chaque journée, vérifier si elle est clôturée
+    // Pour chaque journée, vérifier si elle a des matchs encore éditables
     for (const matchday of matchdays) {
-      let firstMatchTime: Date | null = null
+      // Récupérer tous les matchs de cette journée depuis allMatches (déjà chargé)
+      const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
 
-      if (tournament.custom_competition_id) {
-        // Compétition custom
-        const { data: matchdayData } = await supabase
-          .from('custom_competition_matchdays')
-          .select('id')
-          .eq('custom_competition_id', tournament.custom_competition_id)
-          .eq('matchday_number', matchday)
-          .single()
-
-        if (matchdayData) {
-          // Récupérer le premier match avec son football_data_match_id
-          const { data: customMatch } = await supabase
-            .from('custom_competition_matches')
-            .select('football_data_match_id, cached_utc_date')
-            .eq('custom_matchday_id', matchdayData.id)
-            .order('cached_utc_date', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (customMatch) {
-            // Si on a le football_data_match_id, récupérer la date à jour depuis imported_matches
-            if (customMatch.football_data_match_id) {
-              const { data: importedMatch } = await supabase
-                .from('imported_matches')
-                .select('utc_date')
-                .eq('football_data_match_id', customMatch.football_data_match_id)
-                .single()
-
-              if (importedMatch) {
-                firstMatchTime = new Date(importedMatch.utc_date)
-              } else {
-                // Fallback sur le cache
-                firstMatchTime = new Date(customMatch.cached_utc_date)
-              }
-            } else {
-              // Fallback sur le cache si pas de football_data_match_id
-              firstMatchTime = new Date(customMatch.cached_utc_date)
-            }
-          }
-        }
-      } else if (tournament.competition_id) {
-        // Compétition importée classique
-        const { data: matchesData } = await supabase
-          .from('imported_matches')
-          .select('utc_date')
-          .eq('competition_id', tournament.competition_id)
-          .eq('matchday', matchday)
-          .order('utc_date', { ascending: true })
-          .limit(1)
-
-        if (matchesData && matchesData.length > 0) {
-          firstMatchTime = new Date(matchesData[0].utc_date)
-        }
-      }
-
-      // Si cette journée n'a pas de matchs, c'est une journée future
-      // (ex: phase éliminatoire pas encore importée)
-      // On la sélectionne car c'est la prochaine à venir
-      if (!firstMatchTime) {
+      if (matchdayMatches.length === 0) {
+        // Journée future sans matchs encore chargés, la sélectionner
         setSelectedMatchday(matchday)
         return
       }
 
-      if (firstMatchTime) {
-        const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30min avant
-        const now = new Date()
+      // Vérifier si au moins un match de cette journée est encore éditable (>30min avant coup d'envoi)
+      const hasEditableMatches = matchdayMatches.some(match => {
+        const matchTime = new Date(match.utc_date)
+        const lockTime = new Date(matchTime.getTime() - 30 * 60 * 1000) // 30min avant
+        return now < lockTime // Match encore éditable
+      })
 
-        // Si cette journée n'est pas encore clôturée, on la sélectionne
-        if (now < closingTime) {
-          setSelectedMatchday(matchday)
-          return
-        }
+      // Si cette journée a au moins un match éditable, la sélectionner
+      if (hasEditableMatches) {
+        setSelectedMatchday(matchday)
+        return
       }
     }
 
-    // Si toutes les journées sont clôturées, sélectionner la dernière
+    // Si aucune journée n'a de matchs éditables, sélectionner la dernière
     setSelectedMatchday(matchdays[matchdays.length - 1])
   }
 
