@@ -2061,7 +2061,7 @@ export default function OppositionClient({
                                   }
 
                                   /* Animation de bordure tournante pour le bouton Enregistrer */
-                                  @keyframes spin-border {
+                                  @keyframes rotateShine {
                                     to { transform: rotate(360deg); }
                                   }
 
@@ -2071,32 +2071,50 @@ export default function OppositionClient({
                                     border-radius: 0.5rem;
                                   }
 
-                                  /* Wrapper avec padding pour la bordure */
-                                  .save-button-wrapper.is-modified {
-                                    padding: 2px;
-                                    background: #1e293b;
-                                  }
-
-                                  /* Gradient tournant en ::before */
+                                  /* Border mask layer - crée l'effet bordure uniquement */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
-                                    inset: -2px;
+                                    inset: 0;
+                                    padding: 2px;
+                                    border-radius: inherit;
+                                    background: linear-gradient(#000, #000) content-box,
+                                                linear-gradient(#000, #000);
+                                    -webkit-mask: linear-gradient(#fff 0 0) content-box,
+                                                  linear-gradient(#fff 0 0);
+                                    -webkit-mask-composite: xor;
+                                    mask-composite: exclude;
+                                    pointer-events: none;
+                                    z-index: 1;
+                                  }
+
+                                  /* Gradient glow - tourne sous le mask */
+                                  .save-button-wrapper.is-modified::after {
+                                    content: "";
+                                    position: absolute;
+                                    inset: -250px;
                                     border-radius: inherit;
                                     background: conic-gradient(
                                       from 0deg,
-                                      #ff9900 0deg,
-                                      transparent 60deg,
-                                      transparent 300deg,
-                                      rgba(255,230,170,.95) 330deg,
-                                      #ff9900 360deg
+                                      transparent,
+                                      rgba(255,230,170,0.8),
+                                      #ff9900,
+                                      rgba(255,230,170,0.8),
+                                      transparent 50%,
+                                      transparent
                                     );
-                                    z-index: -1;
-                                    animation: spin-border 1.6s linear infinite;
-                                    filter: drop-shadow(0 0 8px rgba(255,153,0,.4));
+                                    animation: rotateShine 2s linear infinite;
+                                    pointer-events: none;
+                                    z-index: 0;
                                   }
 
-                                  /* Bouton par défaut sans bordure quand modifié */
+                                  /* Bouton au-dessus du mask */
+                                  .save-button-wrapper button {
+                                    position: relative;
+                                    z-index: 2;
+                                  }
+
+                                  /* Bouton sans bordure quand modifié */
                                   .save-button-wrapper.is-modified button {
                                     border: none !important;
                                   }
