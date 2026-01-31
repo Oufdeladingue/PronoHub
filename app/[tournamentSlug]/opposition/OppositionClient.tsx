@@ -2069,53 +2069,38 @@ export default function OppositionClient({
                                     position: relative;
                                     display: inline-block;
                                     border-radius: 0.5rem;
+                                    overflow: hidden;
                                   }
 
-                                  /* Border mask layer - crée l'effet bordure uniquement */
+                                  /* Wrapper avec padding pour créer l'espace bordure */
+                                  .save-button-wrapper.is-modified {
+                                    padding: 2px;
+                                    background: transparent;
+                                  }
+
+                                  /* Gradient glow - tourne derrière le bouton */
                                   .save-button-wrapper.is-modified::before {
                                     content: "";
                                     position: absolute;
-                                    inset: 0;
-                                    padding: 2px;
-                                    border-radius: inherit;
-                                    background: linear-gradient(#000, #000) content-box,
-                                                linear-gradient(#000, #000);
-                                    -webkit-mask: linear-gradient(#fff 0 0) content-box,
-                                                  linear-gradient(#fff 0 0);
-                                    -webkit-mask-composite: xor;
-                                    mask-composite: exclude;
-                                    pointer-events: none;
-                                    z-index: 1;
-                                  }
-
-                                  /* Gradient glow - tourne sous le mask */
-                                  .save-button-wrapper.is-modified::after {
-                                    content: "";
-                                    position: absolute;
-                                    inset: -250px;
-                                    border-radius: inherit;
+                                    inset: -100px;
                                     background: conic-gradient(
                                       from 0deg,
-                                      transparent,
-                                      rgba(255,230,170,0.8),
-                                      #ff9900,
-                                      rgba(255,230,170,0.8),
-                                      transparent 50%,
-                                      transparent
+                                      transparent 0deg,
+                                      transparent 270deg,
+                                      #ff9900 310deg,
+                                      rgba(255,230,170,1) 330deg,
+                                      #ff9900 350deg,
+                                      transparent 360deg
                                     );
                                     animation: rotateShine 2s linear infinite;
                                     pointer-events: none;
                                     z-index: 0;
                                   }
 
-                                  /* Bouton au-dessus du mask */
-                                  .save-button-wrapper button {
-                                    position: relative;
-                                    z-index: 2;
-                                  }
-
-                                  /* Bouton sans bordure quand modifié */
+                                  /* Bouton au-dessus avec fond pour masquer le centre */
                                   .save-button-wrapper.is-modified button {
+                                    position: relative;
+                                    z-index: 1;
                                     border: none !important;
                                   }
                                 `}</style>
