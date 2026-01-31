@@ -2071,9 +2071,18 @@ export default function OppositionClient({
                                     border-radius: 0.5rem;
                                   }
 
-                                  /* Gradient tournant sur le wrapper quand modifié */
+                                  /* Wrapper avec padding pour la bordure */
                                   .save-button-wrapper.is-modified {
                                     padding: 2px;
+                                    background: #1e293b;
+                                  }
+
+                                  /* Gradient tournant en ::before */
+                                  .save-button-wrapper.is-modified::before {
+                                    content: "";
+                                    position: absolute;
+                                    inset: -2px;
+                                    border-radius: inherit;
                                     background: conic-gradient(
                                       from 0deg,
                                       #ff9900 0deg,
@@ -2082,6 +2091,7 @@ export default function OppositionClient({
                                       rgba(255,230,170,.95) 330deg,
                                       #ff9900 360deg
                                     );
+                                    z-index: -1;
                                     animation: spin-border 1.6s linear infinite;
                                     filter: drop-shadow(0 0 8px rgba(255,153,0,.4));
                                   }
