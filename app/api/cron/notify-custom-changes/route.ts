@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendMatchdayChangesEmail } from '@/lib/email/send'
-import { sendPushNotification } from '@/lib/firebase-admin'
+import { sendNotificationToUser } from '@/lib/notifications'
 
 // Configuration
 const DELAY_HOURS = 1 // Délai avant notification (1 heure)
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Trouver les tournois concernés par ces compétitions custom
-    //    et les participants de chaque tournoi
+    //    et les participants de chaque tournoi (avec leurs préférences)
     const { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
       .select(`
@@ -157,7 +157,8 @@ export async function GET(request: NextRequest) {
             id,
             email,
             username,
-            fcm_token
+            fcm_token,
+            notification_preferences
           )
         )
       `)
@@ -206,7 +207,13 @@ export async function GET(request: NextRequest) {
     // Grouper les envois par (tournament, user)
     const notificationsToSend: Array<{
       tournament: typeof tournaments[0]
-      user: { id: string; email: string | null; username: string | null; fcm_token: string | null }
+      user: {
+        id: string
+        email: string | null
+        username: string | null
+        fcm_token: string | null
+        notification_preferences: any
+      }
       matchdayId: string
       matchdayNumber: number
       competitionName: string
@@ -243,7 +250,8 @@ export async function GET(request: NextRequest) {
               id: profile.id,
               email: profile.email,
               username: profile.username,
-              fcm_token: profile.fcm_token
+              fcm_token: profile.fcm_token,
+              notification_preferences: profile.notification_preferences || {}
             },
             matchdayId,
             matchdayNumber: matchdayInfo.number,
@@ -256,7 +264,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`[CUSTOM-CHANGES] ${notificationsToSend.length} notifications à envoyer`)
 
-    // Envoyer les notifications
+    // Envoyer les notifications (avec vérification des préférences)
     for (const notification of notificationsToSend) {
       const {
         tournament,
@@ -275,8 +283,56 @@ export async function GET(request: NextRequest) {
         matchDate: change.cached_utc_date ? formatMatchDate(change.cached_utc_date) : 'Date à déterminer'
       }))
 
-      // Envoyer l'email
-      if (user.email) {
+      const addedCount = matchdayChanges.filter(c => c.change_type === 'add').length
+      const removedCount = matchdayChanges.filter(c => c.change_type === 'remove').length
+
+      // Construire le message
+      let notificationBody = ''
+      if (addedCount > 0 && removedCount === 0) {
+        notificationBody = `${addedCount} match${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''} à la J${matchdayNumber} de ${tournament.name}`
+      } else if (removedCount > 0 && addedCount === 0) {
+        notificationBody = `${removedCount} match${removedCount > 1 ? 's' : ''} retiré${removedCount > 1 ? 's' : ''} de la J${matchdayNumber} de ${tournament.name}`
+      } else {
+        notificationBody = `J${matchdayNumber} de ${tournament.name} mise à jour: ${addedCount} ajouté${addedCount > 1 ? 's' : ''}, ${removedCount} retiré${removedCount > 1 ? 's' : ''}`
+      }
+
+      // Utiliser sendNotificationToUser qui vérifie automatiquement les préférences
+      try {
+        const result = await sendNotificationToUser(
+          user.id,
+          'new_matches',
+          {
+            title: `Nouvelles rencontres - ${tournament.name}`,
+            body: notificationBody,
+            tournamentSlug: tournament.slug,
+            data: {
+              tournamentName: tournament.name,
+              matchdayNumber: String(matchdayNumber),
+              addedCount: String(addedCount),
+              removedCount: String(removedCount)
+            }
+          }
+        )
+
+        if (result) {
+          pushSent++
+          console.log(`[CUSTOM-CHANGES] Notification envoyée à user ${user.id} pour J${matchdayNumber}`)
+        } else {
+          pushFailed++
+          console.log(`[CUSTOM-CHANGES] Notification skipped pour user ${user.id} (pas de token ou préférence désactivée)`)
+        }
+      } catch (err) {
+        pushFailed++
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+        errors.push(`User ${user.id}: ${errorMsg}`)
+      }
+
+      // Envoyer l'email détaillé (garde l'ancien système pour l'email riche)
+      // Vérifier d'abord les préférences email
+      const prefs = user.notification_preferences || {}
+      const emailEnabled = prefs.email_new_matches !== false // Par défaut activé
+
+      if (user.email && emailEnabled) {
         try {
           const result = await sendMatchdayChangesEmail(user.email, {
             username: user.username || 'Joueur',
@@ -300,42 +356,8 @@ export async function GET(request: NextRequest) {
           const errorMsg = err instanceof Error ? err.message : 'Unknown error'
           errors.push(`Email ${user.email}: ${errorMsg}`)
         }
-      }
-
-      // Envoyer la notification push
-      if (user.fcm_token) {
-        try {
-          const addedCount = matchdayChanges.filter(c => c.change_type === 'add').length
-          const removedCount = matchdayChanges.filter(c => c.change_type === 'remove').length
-
-          let pushBody = ''
-          if (addedCount > 0 && removedCount === 0) {
-            pushBody = `${addedCount} match${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''} à la J${matchdayNumber}`
-          } else if (removedCount > 0 && addedCount === 0) {
-            pushBody = `${removedCount} match${removedCount > 1 ? 's' : ''} retiré${removedCount > 1 ? 's' : ''} de la J${matchdayNumber}`
-          } else {
-            pushBody = `J${matchdayNumber} mise à jour: ${addedCount} ajouté${addedCount > 1 ? 's' : ''}, ${removedCount} retiré${removedCount > 1 ? 's' : ''}`
-          }
-
-          const pushResult = await sendPushNotification(
-            user.fcm_token,
-            `🔄 ${tournament.name}`,
-            pushBody,
-            {
-              type: 'matchday_changes',
-              tournamentSlug: tournament.slug,
-              url: `/${tournament.slug}/opposition`
-            }
-          )
-
-          if (pushResult) {
-            pushSent++
-          } else {
-            pushFailed++
-          }
-        } catch (err) {
-          pushFailed++
-        }
+      } else if (!emailEnabled) {
+        console.log(`[CUSTOM-CHANGES] Email skipped pour ${user.email} (préférence désactivée)`)
       }
     }
 
