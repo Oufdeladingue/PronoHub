@@ -2127,6 +2127,19 @@ export default function OppositionClient({
                                     position: relative;
                                     z-index: 1;
                                     border: none !important;
+                                    transition: background-color 0.2s ease, color 0.2s ease;
+                                  }
+
+                                  /* Hover thème sombre - fond orange, texte sombre */
+                                  .save-button-wrapper.is-modified button:hover:not(:disabled) {
+                                    background: #ff9900 !important;
+                                    color: #1e293b !important;
+                                  }
+
+                                  /* Hover thème clair - fond bleu vif, texte blanc */
+                                  .save-button-wrapper.is-modified.light-theme button:hover:not(:disabled) {
+                                    background: #3b82f6 !important;
+                                    color: #ffffff !important;
                                   }
                                 `}</style>
 
