@@ -2070,7 +2070,7 @@ export default function OppositionClient({
                                   .save-button-wrapper {
                                     position: relative;
                                     display: inline-flex;
-                                    z-index: 0;
+                                    isolation: isolate;
                                     border-radius: 0.5rem;
                                   }
 
@@ -2097,7 +2097,12 @@ export default function OppositionClient({
                                       linear-gradient(#000 0 0);
                                     mask-composite: exclude;
                                     animation: spin-border 2.5s linear infinite;
-                                    z-index: -1;
+                                    z-index: 0;
+                                  }
+
+                                  .save-button-wrapper button {
+                                    position: relative;
+                                    z-index: 1;
                                   }
                                 `}</style>
 
