@@ -146,6 +146,8 @@ export default function OppositionClient({
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({})
   const [allPredictions, setAllPredictions] = useState<Record<string, Prediction>>({}) // Toutes les prédictions de l'utilisateur pour tous les matchs
   const [savingPrediction, setSavingPrediction] = useState<string | null>(null)
+  const [successPrediction, setSuccessPrediction] = useState<string | null>(null) // Track successful save for visual feedback
+  const [errorPrediction, setErrorPrediction] = useState<string | null>(null) // Track failed save for visual feedback
   const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [savedPredictions, setSavedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos sauvegardés
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos modifiés
@@ -1309,9 +1311,17 @@ export default function OppositionClient({
       // Mettre à jour également allPredictions pour que les avertissements se mettent à jour
       setAllPredictions(prev => ({ ...prev, [matchId]: prediction }))
 
+      // Show success feedback with vivid border for 500ms
+      setSuccessPrediction(matchId)
+      setTimeout(() => setSuccessPrediction(null), 500)
+
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement du pronostic:', err)
       alert('Erreur lors de l\'enregistrement')
+
+      // Show error feedback with red border for 500ms
+      setErrorPrediction(matchId)
+      setTimeout(() => setErrorPrediction(null), 500)
     } finally {
       setSavingPrediction(null)
     }
@@ -1986,12 +1996,24 @@ export default function OppositionClient({
                               borderColor = 'border-green-400 dark:border-green-500'
                             }
 
+                            // Déterminer les classes pour les effets visuels
+                            const isSaving = savingPrediction === match.id
+                            const isSuccess = successPrediction === match.id
+                            const isError = errorPrediction === match.id
+
+                            const wrapperClasses = `match-card-wrapper ${
+                              isSaving ? `is-saving ${theme === 'light' ? 'light-theme' : ''}` : ''
+                            }`
+
+                            const cardClasses = `relative flex flex-col p-[10px] theme-card hover:shadow-lg transition border-2 ${borderColor} ${
+                              isSuccess ? `match-card-success ${theme === 'light' ? 'light-theme' : ''}` : ''
+                            } ${
+                              isError ? 'match-card-error' : ''
+                            }`
+
                             return (
-                              <div
-                                key={match.id}
-                                className={`relative flex flex-col p-[10px] theme-card hover:shadow-lg transition border-2 ${borderColor}`}
-                              >
-                                <style jsx>{`
+                              <div key={match.id} className={wrapperClasses}>
+                                <style jsx global>{`
                                   @keyframes pulse-bonus {
                                     0%, 100% {
                                       opacity: 1;
@@ -2088,6 +2110,7 @@ export default function OppositionClient({
                                     color: #ffffff !important;
                                   }
                                 `}</style>
+                                <div className={cardClasses}>
 
                                 {/* Affichage MOBILE uniquement */}
                                 <div className={`md:hidden relative ${isClosed ? 'opacity-75' : ''}`}>
@@ -2908,6 +2931,7 @@ export default function OppositionClient({
                                     )}
                                   </div>
                                 )}
+                              </div>
                               </div>
                             )
                           })}
