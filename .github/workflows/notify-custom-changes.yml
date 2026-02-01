@@ -2,7 +2,8 @@ name: Notify Custom Competition Changes
 
 on:
   schedule:
-    # Toutes les 30 minutes pour traiter les modifications après le délai d'1h
+    # Toutes les 30 minutes pour réactivité, mais avec early exit si pas de changements
+    # Grâce au système de flag: 0-48 exécutions réelles/jour au lieu de 48 systématiques
     - cron: '0,30 * * * *'
 
   # Permet de déclencher manuellement depuis GitHub UI

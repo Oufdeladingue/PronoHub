@@ -212,30 +212,36 @@ function EchauffementPageContent() {
   }, [tournament?.id])
 
   // Vérifier si le tournoi a été lancé (pour les participants non-capitaines)
+  // Utilise Supabase Realtime au lieu de polling pour économiser les appels API
   useEffect(() => {
     if (!tournament?.id || !tournamentSlug) return
 
-    // Vérifier le statut du tournoi toutes les 3 secondes
-    const checkTournamentStatus = async () => {
-      try {
-        const supabase = createClient()
-        const { data } = await supabase
-          .from('tournaments')
-          .select('status')
-          .eq('id', tournament.id)
-          .single()
+    const supabase = createClient()
 
-        // Si le tournoi est passé en "active", rediriger vers la page opposition
-        if (data?.status === 'active') {
-          window.location.href = `/${tournamentSlug}/opposition`
+    // S'abonner aux changements de statut du tournoi via Realtime
+    const tournamentStatusChannel = supabase
+      .channel(`tournament-status-${tournament.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tournaments',
+          filter: `id=eq.${tournament.id}`
+        },
+        (payload) => {
+          console.log('[Echauffement] Tournament status changed:', payload)
+          // Si le tournoi est passé en "active", rediriger vers la page opposition
+          if (payload.new.status === 'active') {
+            window.location.href = `/${tournamentSlug}/opposition`
+          }
         }
-      } catch (err) {
-        console.error('Error checking tournament status:', err)
-      }
-    }
+      )
+      .subscribe()
 
-    const statusInterval = setInterval(checkTournamentStatus, 3000)
-    return () => clearInterval(statusInterval)
+    return () => {
+      supabase.removeChannel(tournamentStatusChannel)
+    }
   }, [tournament?.id, tournamentSlug])
 
   // Timer en temps réel pour le compte à rebours

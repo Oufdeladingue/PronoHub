@@ -51,6 +51,29 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
     const now = new Date()
 
+    // 0. Vérifier s'il y a des changements en attente (early exit pour économiser les ressources)
+    const { data: queue } = await supabase
+      .from('notification_queue')
+      .select('has_pending_custom_changes, last_check_custom_changes')
+      .eq('id', 1)
+      .single()
+
+    if (!queue?.has_pending_custom_changes) {
+      console.log('[CUSTOM-CHANGES] Aucun changement en attente, skip')
+      // Mettre à jour le timestamp de check
+      await supabase
+        .from('notification_queue')
+        .update({ last_check_custom_changes: now.toISOString() })
+        .eq('id', 1)
+
+      return NextResponse.json({
+        success: true,
+        message: 'Aucun changement en attente',
+        processed: 0,
+        skipped: true
+      })
+    }
+
     // Calculer la date limite (changements datant de plus d'1 heure)
     const delayDate = new Date(now)
     delayDate.setHours(delayDate.getHours() - DELAY_HOURS)
@@ -177,6 +200,15 @@ export async function GET(request: NextRequest) {
         .from('custom_matchday_changes')
         .update({ notified_at: now.toISOString() })
         .in('id', changes.map(c => c.id))
+
+      // Réinitialiser le flag
+      await supabase
+        .from('notification_queue')
+        .update({
+          has_pending_custom_changes: false,
+          last_check_custom_changes: now.toISOString()
+        })
+        .eq('id', 1)
 
       return NextResponse.json({
         success: true,
@@ -367,6 +399,15 @@ export async function GET(request: NextRequest) {
       .from('custom_matchday_changes')
       .update({ notified_at: now.toISOString() })
       .in('id', changeIds)
+
+    // 8. Réinitialiser le flag de changements en attente + update last_check
+    await supabase
+      .from('notification_queue')
+      .update({
+        has_pending_custom_changes: false,
+        last_check_custom_changes: now.toISOString()
+      })
+      .eq('id', 1)
 
     console.log(`[CUSTOM-CHANGES] Terminé: ${emailsSent} emails, ${pushSent} push envoyés`)
 

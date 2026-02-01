@@ -118,6 +118,44 @@ export async function GET(request: NextRequest) {
     // 3. Construire la map des matchs manquants par utilisateur
     const userMissingMap = new Map<string, UserMissingMatches>()
 
+    // Récupérer TOUS les participants de TOUS les tournois en une seule requête
+    const tournamentIds = relevantTournaments.map(t => t.id)
+    const { data: allParticipants } = await supabase
+      .from('tournament_participants')
+      .select('tournament_id, user_id, profiles(id, username, email, notification_preferences, fcm_token)')
+      .in('tournament_id', tournamentIds)
+
+    if (!allParticipants || allParticipants.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'Aucun participant dans les tournois actifs',
+        processed: 0,
+        skipped: 0
+      })
+    }
+
+    // Grouper participants par tournoi
+    const participantsByTournament = new Map<string, typeof allParticipants>()
+    for (const p of allParticipants) {
+      if (!participantsByTournament.has(p.tournament_id)) {
+        participantsByTournament.set(p.tournament_id, [])
+      }
+      participantsByTournament.get(p.tournament_id)!.push(p)
+    }
+
+    // Récupérer TOUTES les predictions en une seule requête
+    const allMatchIds = upcomingMatches.map(m => m.id)
+    const { data: allPredictions } = await supabase
+      .from('predictions')
+      .select('user_id, match_id, tournament_id')
+      .in('tournament_id', tournamentIds)
+      .in('match_id', allMatchIds)
+
+    // Créer un set global des pronostics (tournament_id:user_id:match_id)
+    const predictedSet = new Set(
+      (allPredictions || []).map(p => `${p.tournament_id}:${p.user_id}:${p.match_id}`)
+    )
+
     for (const tournament of relevantTournaments) {
       // Matchs concernés pour ce tournoi
       const tournamentMatches = upcomingMatches.filter(m =>
@@ -128,53 +166,19 @@ export async function GET(request: NextRequest) {
 
       if (tournamentMatches.length === 0) continue
 
-      // Récupérer les participants du tournoi avec leurs préférences
-      const { data: participants } = await supabase
-        .from('tournament_participants')
-        .select('user_id')
-        .eq('tournament_id', tournament.id)
-
-      if (!participants || participants.length === 0) continue
-
-      const userIds = participants.map(p => p.user_id)
-
-      // Récupérer les profils avec préférences
-      const { data: userProfiles } = await supabase
-        .from('profiles')
-        .select('id, username, notification_preferences, fcm_token')
-        .in('id', userIds)
-
-      // Récupérer les emails
-      const userEmails = new Map<string, string>()
-      for (const userId of userIds) {
-        const { data: authUser } = await supabase.auth.admin.getUserById(userId)
-        if (authUser?.user?.email) {
-          userEmails.set(userId, authUser.user.email)
-        }
-      }
+      const participants = participantsByTournament.get(tournament.id) || []
+      if (participants.length === 0) continue
 
       // Filtrer les utilisateurs qui ont activé les rappels
-      const eligibleUsers = (userProfiles || []).filter(p =>
-        p.notification_preferences?.email_reminder === true
-      )
-
-      // Récupérer les pronostics existants pour tous les matchs de ce tournoi
-      const matchIds = tournamentMatches.map(m => m.id)
-      const { data: existingPredictions } = await supabase
-        .from('predictions')
-        .select('user_id, match_id')
-        .eq('tournament_id', tournament.id)
-        .in('match_id', matchIds)
-
-      // Créer un set des pronostics existants (user_id:match_id)
-      const predictedSet = new Set(
-        (existingPredictions || []).map(p => `${p.user_id}:${p.match_id}`)
-      )
+      const eligibleUsers = participants.filter(p => {
+        const profile = p.profiles as any
+        return profile && profile.notification_preferences?.email_reminder === true && profile.email
+      })
 
       // Pour chaque utilisateur éligible, vérifier ses matchs manquants
-      for (const user of eligibleUsers) {
-        const userEmail = userEmails.get(user.id)
-        if (!userEmail) continue
+      for (const participant of eligibleUsers) {
+        const profile = participant.profiles as any
+        if (!profile?.email) continue
 
         // Vérifier les heures calmes
         const currentHour = now.getHours()
@@ -184,23 +188,23 @@ export async function GET(request: NextRequest) {
 
         // Trouver les matchs non pronostiqués
         const missingMatches = tournamentMatches.filter(m =>
-          !predictedSet.has(`${user.id}:${m.id}`)
+          !predictedSet.has(`${tournament.id}:${profile.id}:${m.id}`)
         )
 
         if (missingMatches.length === 0) continue
 
         // Ajouter à la map
-        if (!userMissingMap.has(user.id)) {
-          userMissingMap.set(user.id, {
-            user_id: user.id,
-            email: userEmail,
-            username: user.username || 'Joueur',
-            fcm_token: user.fcm_token,
+        if (!userMissingMap.has(profile.id)) {
+          userMissingMap.set(profile.id, {
+            user_id: profile.id,
+            email: profile.email,
+            username: profile.username || 'Joueur',
+            fcm_token: profile.fcm_token,
             tournaments: []
           })
         }
 
-        const userData = userMissingMap.get(user.id)!
+        const userData = userMissingMap.get(profile.id)!
         userData.tournaments.push({
           id: tournament.id,
           name: tournament.name,
