@@ -17,56 +17,56 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
 }> = {
   reminder: {
     prefKey: 'email_reminder', // Même préférence pour email et push
-    defaultTitle: 'Pronostics en attente ⚽',
-    defaultBody: 'N\'oublie pas de renseigner tes pronostics avant le coup d\'envoi !',
+    defaultTitle: 'C\'est maintenant ou jamais !',
+    defaultBody: 'Des matchs sont à pronostiquer dans {tournamentName}, un oubli et c\'est toute ta prépa qui tombe à l\'eau...',
     clickAction: '/dashboard',
   },
   tournament_started: {
     prefKey: 'email_tournament_started',
-    defaultTitle: 'Tournoi lancé ! 🚀',
-    defaultBody: 'Le capitaine a lancé le tournoi. C\'est parti !',
+    defaultTitle: 'Le coup d\'envoi est lancé ! ⚽',
+    defaultBody: 'Le tournoi {tournamentName} démarre {firstMatchDate}. En piste champion !',
     clickAction: '/dashboard',
   },
   day_recap: {
     prefKey: 'email_day_recap',
-    defaultTitle: 'Récap de la journée 📊',
-    defaultBody: 'Découvre les résultats et ton classement du jour.',
+    defaultTitle: 'Bilan du jour : qui l\'emporte ? 📊',
+    defaultBody: 'Les résultats de la journée sont tombés. Découvre ton classement et prépare ta revanche.',
     clickAction: '/dashboard',
   },
   tournament_end: {
     prefKey: 'email_tournament_end',
-    defaultTitle: 'Tournoi terminé ! 🏆',
-    defaultBody: 'Le tournoi est terminé. Découvre le classement final !',
+    defaultTitle: 'Rideau ! Le champion est couronné 🏆',
+    defaultBody: '{tournamentName} touche à sa fin. Découvre le podium et les meilleurs buteurs virtuels.',
     clickAction: '/dashboard',
   },
   invite: {
     prefKey: 'email_invite',
-    defaultTitle: 'Invitation à un tournoi 🎯',
-    defaultBody: 'Tu as été invité à rejoindre un tournoi.',
+    defaultTitle: 'On a besoin de toi dans l\'équipe ! 🎯',
+    defaultBody: '{captainName} t\'invite à rejoindre {tournamentName}. Tu es partant ?',
     clickAction: '/vestiaire/rejoindre',
   },
   player_joined: {
     prefKey: 'email_player_joined',
-    defaultTitle: 'Nouveau joueur ! 👋',
-    defaultBody: 'Un nouveau joueur a rejoint ton tournoi.',
+    defaultTitle: 'Un nouveau joueur dans le vestiaire ! 👋',
+    defaultBody: '{playerName} vient de rejoindre {tournamentName}. La concurrence s\'intensifie.',
     clickAction: '/dashboard',
   },
   mention: {
     prefKey: 'email_mention',
-    defaultTitle: 'Mention dans une discussion 💬',
-    defaultBody: 'Quelqu\'un t\'a mentionné dans une discussion de tournoi.',
+    defaultTitle: 'On parle de toi dans le vestiaire ! 💬',
+    defaultBody: '{username} t\'a mentionné dans {tournamentName}. Va voir ce qu\'il se dit.',
     clickAction: '/dashboard', // Sera remplacé dynamiquement par /{tournamentSlug}/opposition?tab=tchat
   },
   badge_unlocked: {
     prefKey: 'email_badge_unlocked',
-    defaultTitle: 'Nouveau badge débloqué ! 🏅',
-    defaultBody: 'Félicitations ! Tu as débloqué un nouveau badge.',
+    defaultTitle: 'Trophée débloqué ! 🏅',
+    defaultBody: 'GG {username} ! Tu viens de décrocher le badge "{badgeName}". Continue sur ta lancée.',
     clickAction: '/profile?tab=trophees',
   },
   new_matches: {
     prefKey: 'email_new_matches',
-    defaultTitle: 'Nouvelles rencontres ajoutées ⚽',
-    defaultBody: 'De nouveaux matchs ont été ajoutés à ton tournoi.',
+    defaultTitle: 'Nouvelles affiches au programme ! ⚽',
+    defaultBody: '{matchCount} nouveau{plural} match{plural} {verb} ajouté{plural} à {tournamentName}. Prépare tes pronos.',
     clickAction: '/dashboard',
   },
 }
@@ -211,9 +211,11 @@ export async function sendPronosticReminder(
   tournamentSlug: string,
   matchCount: number
 ): Promise<boolean> {
+  const config = NOTIFICATION_CONFIG.reminder
+  const body = config.defaultBody.replace('{tournamentName}', tournamentName)
+
   return sendNotificationToUser(userId, 'reminder', {
-    title: `${matchCount} match${matchCount > 1 ? 's' : ''} à pronostiquer`,
-    body: `N'oublie pas tes pronostics pour ${tournamentName} avant le coup d'envoi !`,
+    body,
     tournamentSlug,
     data: { tournamentName, matchCount: String(matchCount) },
   })
@@ -228,9 +230,43 @@ export async function sendTournamentStarted(
   tournamentSlug: string,
   captainId: string
 ): Promise<{ sent: number; skipped: number }> {
+  const supabase = await createClient()
+
+  // Récupérer le premier match du tournoi (celui avec la date la plus proche)
+  const { data: firstMatch } = await supabase
+    .from('matches')
+    .select('scheduled_at')
+    .eq('tournament_id', tournamentId)
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+    .single()
+
+  // Formater la date en français (ex: "samedi 15 mars à 21h00")
+  let firstMatchDate = ''
+  if (firstMatch?.scheduled_at) {
+    const date = new Date(firstMatch.scheduled_at)
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Paris',
+    }
+    const formatted = new Intl.DateTimeFormat('fr-FR', options).format(date)
+    // Format: "samedi 15 mars à 21h00"
+    firstMatchDate = formatted.replace(' à ', ' à ').replace(':', 'h')
+  } else {
+    firstMatchDate = 'bientôt'
+  }
+
+  const config = NOTIFICATION_CONFIG.tournament_started
+  const body = config.defaultBody
+    .replace('{tournamentName}', tournamentName)
+    .replace('{firstMatchDate}', firstMatchDate)
+
   return sendNotificationToTournament(tournamentId, 'tournament_started', {
-    title: `${tournamentName} a commencé ! 🚀`,
-    body: 'Le capitaine a lancé le tournoi. À toi de jouer !',
+    body,
     tournamentSlug,
     excludeUserId: captainId,
   })
@@ -245,9 +281,13 @@ export async function sendPlayerJoined(
   tournamentName: string,
   tournamentSlug: string
 ): Promise<boolean> {
+  const config = NOTIFICATION_CONFIG.player_joined
+  const body = config.defaultBody
+    .replace('{playerName}', playerName)
+    .replace('{tournamentName}', tournamentName)
+
   return sendNotificationToUser(captainId, 'player_joined', {
-    title: `${playerName} a rejoint ${tournamentName}`,
-    body: 'Un nouveau joueur vient de rejoindre ton tournoi !',
+    body,
     tournamentSlug,
     data: { playerName, tournamentName },
   })

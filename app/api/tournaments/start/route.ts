@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendTournamentStartedEmail, sendTournamentStartedAdminAlert } from '@/lib/email'
-import { sendNotificationToTournament } from '@/lib/notifications'
+import { sendTournamentStarted } from '@/lib/notifications'
 
 interface StartTournamentRequest {
   tournamentId: string
@@ -569,18 +569,11 @@ async function sendTournamentLaunchNotifications(
 
     // 8. Envoyer les notifications push
     try {
-      await sendNotificationToTournament(
+      await sendTournamentStarted(
         tournamentId,
-        'tournament_started',
-        {
-          title: `🚀 ${tournament.name} est lancé !`,
-          body: `Le tournoi vient d'être lancé. Premier match : ${firstMatchDate}. À toi de jouer !`,
-          tournamentSlug: tournament.slug,
-          data: {
-            type: 'tournament_started',
-            tournamentSlug: tournament.slug
-          }
-        }
+        tournament.name,
+        tournament.slug,
+        tournament.captain_id
       )
       console.log('[START] Push notifications sent')
     } catch (err) {

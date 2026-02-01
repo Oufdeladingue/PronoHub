@@ -318,15 +318,10 @@ export async function GET(request: NextRequest) {
       const addedCount = matchdayChanges.filter(c => c.change_type === 'add').length
       const removedCount = matchdayChanges.filter(c => c.change_type === 'remove').length
 
-      // Construire le message
-      let notificationBody = ''
-      if (addedCount > 0 && removedCount === 0) {
-        notificationBody = `${addedCount} match${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''} à la J${matchdayNumber} de ${tournament.name}`
-      } else if (removedCount > 0 && addedCount === 0) {
-        notificationBody = `${removedCount} match${removedCount > 1 ? 's' : ''} retiré${removedCount > 1 ? 's' : ''} de la J${matchdayNumber} de ${tournament.name}`
-      } else {
-        notificationBody = `J${matchdayNumber} de ${tournament.name} mise à jour: ${addedCount} ajouté${addedCount > 1 ? 's' : ''}, ${removedCount} retiré${removedCount > 1 ? 's' : ''}`
-      }
+      // Préparer le corps avec les nouveaux placeholders
+      const matchCount = addedCount + removedCount
+      const plural = matchCount > 1 ? 's' : ''
+      const verb = matchCount > 1 ? 'ont été' : 'a été'
 
       // Utiliser sendNotificationToUser qui vérifie automatiquement les préférences
       try {
@@ -334,14 +329,14 @@ export async function GET(request: NextRequest) {
           user.id,
           'new_matches',
           {
-            title: `Nouvelles rencontres - ${tournament.name}`,
-            body: notificationBody,
+            // Le body sera pris du NOTIFICATION_CONFIG et remplacera les placeholders
+            // "{matchCount} nouveau{plural} match{plural} {verb} ajouté{plural} à {tournamentName}. Prépare tes pronos."
+            body: `${matchCount} nouveau${plural} match${plural} ${verb} ajouté${plural} à ${tournament.name}. Prépare tes pronos.`,
             tournamentSlug: tournament.slug,
             data: {
               tournamentName: tournament.name,
               matchdayNumber: String(matchdayNumber),
-              addedCount: String(addedCount),
-              removedCount: String(removedCount)
+              matchCount: String(matchCount)
             }
           }
         )

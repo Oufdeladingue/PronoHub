@@ -486,7 +486,7 @@ export default function StatsModal({
   // Pendant le chargement initial, afficher un loader
   if (loading || (showOnlyStandings && !showStandings)) {
     return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div className="theme-card p-8 rounded-lg" onClick={(e) => e.stopPropagation()}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900] mx-auto"></div>
         </div>
@@ -496,7 +496,7 @@ export default function StatsModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div
           className="theme-card max-w-md w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
