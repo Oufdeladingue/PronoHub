@@ -570,7 +570,12 @@ export default function AdminUsagePage() {
     }
 
     if (filterStatus !== 'all') {
-      result = result.filter(t => t.status === filterStatus)
+      // 'finished' filtre aussi 'completed' (les deux sont "Terminé")
+      if (filterStatus === 'finished') {
+        result = result.filter(t => t.status === 'finished' || t.status === 'completed')
+      } else {
+        result = result.filter(t => t.status === filterStatus)
+      }
     }
 
     if (sortColumn) {
@@ -635,6 +640,7 @@ export default function AdminUsagePage() {
       warmup: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: "À l'échauffement" },
       active: { bg: 'bg-green-100', text: 'text-green-800', label: 'En cours' },
       finished: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Terminé' },
+      completed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Terminé' },
     }
 
     const config = statusConfig[status] || statusConfig.pending
