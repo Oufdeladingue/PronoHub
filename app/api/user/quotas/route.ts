@@ -67,7 +67,7 @@ async function calculateQuotasManually(supabase: any, userId: string): Promise<U
       .select('*', { count: 'exact', head: true })
       .in('id', tournamentIds)
       .eq('tournament_type', 'free')
-      .neq('status', 'completed')
+      .in('status', ['draft', 'active'])
 
     freeParticipationCount = count || 0
   }
@@ -225,7 +225,7 @@ async function determineTournamentTypeManually(
       .select('*', { count: 'exact', head: true })
       .in('id', tournamentIds)
       .eq('tournament_type', 'free')
-      .neq('status', 'completed')
+      .in('status', ['draft', 'active'])
 
     freeParticipationCount = count || 0
   }
