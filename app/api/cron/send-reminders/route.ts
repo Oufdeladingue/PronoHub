@@ -174,12 +174,24 @@ export async function GET(request: NextRequest) {
       .in('custom_competition_id', customCompetitionIds.length > 0 ? customCompetitionIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('status', 'active')
 
+    // Type pour les tournois
+    type TournamentInfo = {
+      id: string
+      name: string
+      slug: string
+      competition_id: number | null
+      custom_competition_id: string | null
+      competition_name: string | null
+      starting_matchday: number | null
+      ending_matchday: number | null
+    }
+
     // Fusionner les tournois (éviter les doublons par ID)
-    const tournamentMap = new Map<string, typeof standardTournaments extends Array<infer T> ? T : never>()
-    for (const t of standardTournaments || []) {
+    const tournamentMap = new Map<string, TournamentInfo>()
+    for (const t of (standardTournaments || []) as TournamentInfo[]) {
       tournamentMap.set(t.id, t)
     }
-    for (const t of customTournaments || []) {
+    for (const t of (customTournaments || []) as TournamentInfo[]) {
       tournamentMap.set(t.id, t)
     }
     const allActiveTournaments = Array.from(tournamentMap.values())
