@@ -71,6 +71,10 @@ async function handleCronRequest(request: Request, isManual: boolean) {
   try {
     const supabase = await createClient()
 
+    // Vérifier si force=true est passé (pour les crons GitHub)
+    const { searchParams } = new URL(request.url)
+    const forceExecution = searchParams.get('force') === 'true'
+
     // Vérification du secret pour les appels Vercel cron
     if (!isManual) {
       const cronSecret = process.env.CRON_SECRET
@@ -120,8 +124,8 @@ async function handleCronRequest(request: Request, isManual: boolean) {
       ? JSON.parse(settingsMap[SETTINGS_KEYS.updateDays])
       : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-    // Vérifications (sauf si appel manuel)
-    if (!isManual) {
+    // Vérifications (sauf si appel manuel ou force=true)
+    if (!isManual && !forceExecution) {
       // Vérifier si les MAJ auto sont activées
       if (!autoUpdateEnabled) {
         console.log('[CRON] Auto-update is disabled')
@@ -151,6 +155,8 @@ async function handleCronRequest(request: Request, isManual: boolean) {
           skipped: true
         })
       }
+    } else if (forceExecution) {
+      console.log('[CRON] Force execution enabled - bypassing time/day checks')
     }
 
     console.log(`[CRON] Starting ${isManual ? 'manual' : 'scheduled'} update...`)
