@@ -9,6 +9,17 @@ const BATCH_SIZE = 50 // Nombre d'utilisateurs à traiter par exécution
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
+// Type pour un match normalisé (imported ou custom)
+interface NormalizedMatch {
+  id: string
+  matchday: number
+  home_team: string
+  away_team: string
+  utc_date: string
+  competition_id: number | null
+  custom_competition_id: string | null
+}
+
 // Type pour stocker les infos par utilisateur
 interface UserMissingMatches {
   user_id: string
@@ -62,20 +73,81 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(now)
     endOfDay.setHours(23, 59, 59, 999)
 
-    // 1. Récupérer les matchs du jour qui n'ont pas encore commencé
-    const { data: upcomingMatches, error: matchesError } = await supabase
+    // 1a. Récupérer les matchs IMPORTÉS du jour qui n'ont pas encore commencé
+    const { data: importedMatches, error: importedMatchesError } = await supabase
       .from('imported_matches')
       .select('id, competition_id, matchday, home_team_name, away_team_name, utc_date')
       .gte('utc_date', now.toISOString())
       .lte('utc_date', endOfDay.toISOString())
       .in('status', ['SCHEDULED', 'TIMED'])
 
-    if (matchesError) {
-      console.error('Error fetching matches:', matchesError)
-      return NextResponse.json({ error: 'Erreur récupération matchs' }, { status: 500 })
+    if (importedMatchesError) {
+      console.error('Error fetching imported matches:', importedMatchesError)
+      return NextResponse.json({ error: 'Erreur récupération matchs importés' }, { status: 500 })
     }
 
-    if (!upcomingMatches || upcomingMatches.length === 0) {
+    // 1b. Récupérer les matchs CUSTOM du jour (via custom_competition_matchdays)
+    // D'abord, récupérer toutes les journées de compétitions custom
+    const { data: customMatchdays } = await supabase
+      .from('custom_competition_matchdays')
+      .select('id, matchday_number, custom_competition_id')
+
+    // Puis récupérer les matchs custom du jour
+    const { data: customMatches, error: customMatchesError } = await supabase
+      .from('custom_competition_matches')
+      .select(`
+        id,
+        custom_matchday_id,
+        imported_match_id,
+        cached_home_team,
+        cached_away_team,
+        cached_utc_date
+      `)
+      .gte('cached_utc_date', now.toISOString())
+      .lte('cached_utc_date', endOfDay.toISOString())
+
+    if (customMatchesError) {
+      console.error('Error fetching custom matches:', customMatchesError)
+      return NextResponse.json({ error: 'Erreur récupération matchs custom' }, { status: 500 })
+    }
+
+    // Créer une map pour les journées custom
+    const customMatchdayMap = new Map<string, { matchday_number: number; custom_competition_id: string }>()
+    for (const md of customMatchdays || []) {
+      customMatchdayMap.set(md.id, { matchday_number: md.matchday_number, custom_competition_id: md.custom_competition_id })
+    }
+
+    // Normaliser les matchs importés
+    const normalizedImportedMatches: NormalizedMatch[] = (importedMatches || []).map(m => ({
+      id: m.id,
+      matchday: m.matchday,
+      home_team: m.home_team_name,
+      away_team: m.away_team_name,
+      utc_date: m.utc_date,
+      competition_id: m.competition_id,
+      custom_competition_id: null
+    }))
+
+    // Normaliser les matchs custom
+    const normalizedCustomMatches: NormalizedMatch[] = (customMatches || [])
+      .filter(m => customMatchdayMap.has(m.custom_matchday_id))
+      .map(m => {
+        const mdInfo = customMatchdayMap.get(m.custom_matchday_id)!
+        return {
+          id: m.imported_match_id || m.id, // Utiliser imported_match_id si disponible, sinon l'ID custom
+          matchday: mdInfo.matchday_number,
+          home_team: m.cached_home_team || 'Équipe A',
+          away_team: m.cached_away_team || 'Équipe B',
+          utc_date: m.cached_utc_date,
+          competition_id: null,
+          custom_competition_id: mdInfo.custom_competition_id
+        }
+      })
+
+    // Fusionner les matchs
+    const allUpcomingMatches = [...normalizedImportedMatches, ...normalizedCustomMatches]
+
+    if (allUpcomingMatches.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'Aucun match dans la fenêtre de rappel',
@@ -84,23 +156,51 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 2. Récupérer les tournois actifs concernés
-    const competitionIds = [...new Set(upcomingMatches.map(m => m.competition_id))]
-    const matchdays = [...new Set(upcomingMatches.map(m => m.matchday))]
+    console.log(`[REMINDERS] ${normalizedImportedMatches.length} matchs importés, ${normalizedCustomMatches.length} matchs custom`)
 
-    const { data: activeTournaments, error: tournamentsError } = await supabase
+    // 2a. Récupérer les tournois actifs avec competition_id
+    const competitionIds = [...new Set(normalizedImportedMatches.map(m => m.competition_id).filter(Boolean))] as number[]
+    const { data: standardTournaments } = await supabase
       .from('tournaments')
-      .select('id, name, slug, competition_id, competition_name, starting_matchday, ending_matchday')
-      .in('competition_id', competitionIds)
+      .select('id, name, slug, competition_id, custom_competition_id, competition_name, starting_matchday, ending_matchday')
+      .in('competition_id', competitionIds.length > 0 ? competitionIds : [-1])
       .eq('status', 'active')
 
-    if (tournamentsError || !activeTournaments) {
-      console.error('Error fetching tournaments:', tournamentsError)
-      return NextResponse.json({ error: 'Erreur récupération tournois' }, { status: 500 })
+    // 2b. Récupérer les tournois actifs avec custom_competition_id
+    const customCompetitionIds = [...new Set(normalizedCustomMatches.map(m => m.custom_competition_id).filter(Boolean))] as string[]
+    const { data: customTournaments } = await supabase
+      .from('tournaments')
+      .select('id, name, slug, competition_id, custom_competition_id, competition_name, starting_matchday, ending_matchday')
+      .in('custom_competition_id', customCompetitionIds.length > 0 ? customCompetitionIds : ['00000000-0000-0000-0000-000000000000'])
+      .eq('status', 'active')
+
+    // Fusionner les tournois (éviter les doublons par ID)
+    const tournamentMap = new Map<string, typeof standardTournaments extends Array<infer T> ? T : never>()
+    for (const t of standardTournaments || []) {
+      tournamentMap.set(t.id, t)
+    }
+    for (const t of customTournaments || []) {
+      tournamentMap.set(t.id, t)
+    }
+    const allActiveTournaments = Array.from(tournamentMap.values())
+
+    // Récupérer les noms des compétitions custom si nécessaire
+    const customCompNames = new Map<string, string>()
+    if (customCompetitionIds.length > 0) {
+      const { data: customComps } = await supabase
+        .from('custom_competitions')
+        .select('id, name')
+        .in('id', customCompetitionIds)
+      for (const cc of customComps || []) {
+        customCompNames.set(cc.id, cc.name)
+      }
     }
 
+    // Calculer les matchdays concernés
+    const matchdays = [...new Set(allUpcomingMatches.map(m => m.matchday))]
+
     // Filtrer les tournois qui couvrent les journées concernées
-    const relevantTournaments = activeTournaments.filter(t => {
+    const relevantTournaments = allActiveTournaments.filter(t => {
       return matchdays.some(md =>
         md >= (t.starting_matchday || 1) && md <= (t.ending_matchday || 999)
       )
@@ -114,6 +214,8 @@ export async function GET(request: NextRequest) {
         skipped: 0
       })
     }
+
+    console.log(`[REMINDERS] ${relevantTournaments.length} tournois actifs concernés`)
 
     // 3. Construire la map des matchs manquants par utilisateur
     const userMissingMap = new Map<string, UserMissingMatches>()
@@ -144,7 +246,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer TOUTES les predictions en une seule requête
-    const allMatchIds = upcomingMatches.map(m => m.id)
+    const allMatchIds = allUpcomingMatches.map(m => m.id)
     const { data: allPredictions } = await supabase
       .from('predictions')
       .select('user_id, match_id, tournament_id')
@@ -157,17 +259,29 @@ export async function GET(request: NextRequest) {
     )
 
     for (const tournament of relevantTournaments) {
-      // Matchs concernés pour ce tournoi
-      const tournamentMatches = upcomingMatches.filter(m =>
-        m.competition_id === tournament.competition_id &&
-        m.matchday >= (tournament.starting_matchday || 1) &&
-        m.matchday <= (tournament.ending_matchday || 999)
-      )
+      // Matchs concernés pour ce tournoi (supports both standard and custom competitions)
+      const tournamentMatches = allUpcomingMatches.filter(m => {
+        // Vérifier la journée
+        if (m.matchday < (tournament.starting_matchday || 1) || m.matchday > (tournament.ending_matchday || 999)) {
+          return false
+        }
+        // Vérifier la compétition (standard ou custom)
+        if (tournament.custom_competition_id) {
+          return m.custom_competition_id === tournament.custom_competition_id
+        } else {
+          return m.competition_id === tournament.competition_id
+        }
+      })
 
       if (tournamentMatches.length === 0) continue
 
       const participants = participantsByTournament.get(tournament.id) || []
       if (participants.length === 0) continue
+
+      // Déterminer le nom de la compétition
+      const competitionName = tournament.custom_competition_id
+        ? (customCompNames.get(tournament.custom_competition_id) || tournament.competition_name || 'Compétition')
+        : (tournament.competition_name || 'Compétition')
 
       // Filtrer les utilisateurs qui ont activé les rappels
       const eligibleUsers = participants.filter(p => {
@@ -209,12 +323,12 @@ export async function GET(request: NextRequest) {
           id: tournament.id,
           name: tournament.name,
           slug: tournament.slug,
-          competition_name: tournament.competition_name,
+          competition_name: competitionName,
           matches: missingMatches.map(m => ({
             id: m.id,
             matchday: m.matchday,
-            home_team: m.home_team_name,
-            away_team: m.away_team_name,
+            home_team: m.home_team,
+            away_team: m.away_team,
             utc_date: m.utc_date
           }))
         })
@@ -379,7 +493,9 @@ export async function GET(request: NextRequest) {
       processed,
       skipped,
       errors: errors.length > 0 ? errors : undefined,
-      matchesFound: upcomingMatches.length,
+      matchesFound: allUpcomingMatches.length,
+      importedMatchesFound: normalizedImportedMatches.length,
+      customMatchesFound: normalizedCustomMatches.length,
       tournamentsFound: relevantTournaments.length,
       usersWithMissingMatches: userMissingMap.size
     })
