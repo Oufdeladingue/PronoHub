@@ -1826,19 +1826,19 @@ export default function AdminUsagePage() {
                       {userDetailModal.detail.email && (
                         <p className="text-sm text-gray-500">{userDetailModal.detail.email}</p>
                       )}
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         Inscrit le {new Date(userDetailModal.detail.created_at).toLocaleDateString('fr-FR', {
                           day: '2-digit', month: 'long', year: 'numeric'
                         })}
                         {userDetailModal.detail.last_seen_at && (
-                          <span className="ml-2">
+                          <span className="ml-2 text-green-600 font-medium">
                             • Dernière visite : {new Date(userDetailModal.detail.last_seen_at).toLocaleDateString('fr-FR', {
                               day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
                           </span>
                         )}
                         {!userDetailModal.detail.last_seen_at && (
-                          <span className="ml-2 text-gray-300">• Jamais connecté</span>
+                          <span className="ml-2 text-orange-500 font-medium">• Jamais connecté</span>
                         )}
                       </p>
                     </div>
