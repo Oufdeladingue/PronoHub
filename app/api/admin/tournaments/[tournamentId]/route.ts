@@ -153,7 +153,7 @@ export async function GET(
         scoring_correct_winner: tournament.scoring_correct_winner ?? 1,
         scoring_draw_with_default_prediction: tournament.scoring_draw_with_default_prediction ?? 0,
         teams_enabled: tournament.teams_enabled || false,
-        bonus_match_enabled: tournament.bonus_match_enabled || false,
+        bonus_match_enabled: tournament.bonus_match || false,
         early_prediction_bonus: tournament.early_prediction_bonus || false,
         all_matchdays: tournament.all_matchdays || false,
         max_participants: tournament.max_players || tournament.max_participants,
