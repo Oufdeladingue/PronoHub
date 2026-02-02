@@ -1,10 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
-import { Database } from '@/types/supabase'
 
-type Tournament = Database['public']['Tables']['tournaments']['Row']
-type ImportedMatch = Database['public']['Tables']['imported_matches']['Row']
-type CustomMatch = Database['public']['Tables']['custom_competition_matches']['Row']
-type CustomMatchday = Database['public']['Tables']['custom_competition_matchdays']['Row']
+// Types simplifiés pour tournament-duration
+type Tournament = {
+  id: string
+  custom_competition_id: string | null
+  competition_id: number | null
+  ending_matchday: number
+  starting_matchday: number | null
+  ending_date: string | null
+}
+
+type ImportedMatch = {
+  id: string
+  competition_id: number
+  matchday: number
+  stage: string | null
+  utc_date: string | null
+  status: string | null
+}
+
+type CustomMatch = {
+  cached_utc_date: string | null
+  custom_matchday_id: string
+}
+
+type CustomMatchday = {
+  id: string
+  matchday_number: number
+  custom_competition_id: string
+}
 
 /**
  * Résultat du recalcul de la durée d'un tournoi
@@ -95,7 +119,7 @@ export async function recalculateTournamentEndingDate(
  * Calcule la ending_date pour une compétition custom
  */
 async function calculateCustomCompetitionEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   customCompetitionId: string,
   endingMatchday: number
 ): Promise<TournamentDurationResult> {
@@ -148,7 +172,7 @@ async function calculateCustomCompetitionEndingDate(
  * Calcule la ending_date pour une compétition importée
  */
 async function calculateImportedCompetitionEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   competitionId: number,
   endingMatchday: number,
   startingMatchday: number
@@ -203,7 +227,7 @@ function isKnockoutCompetition(matches: ImportedMatch[]): boolean {
  * Calcule la ending_date pour une compétition de type championnat (league)
  */
 async function calculateLeagueEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   competitionId: number,
   endingMatchday: number,
   startingMatchday: number,
@@ -232,7 +256,7 @@ async function calculateLeagueEndingDate(
  * Calcule la ending_date pour une compétition à élimination directe
  */
 async function calculateKnockoutEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   competitionId: number,
   endingMatchday: number,
   startingMatchday: number,
@@ -264,7 +288,7 @@ async function calculateKnockoutEndingDate(
  * Estime la ending_date pour une compétition custom sans dates
  */
 async function estimateCustomCompetitionEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   customCompetitionId: string,
   endingMatchday: number
 ): Promise<TournamentDurationResult> {
@@ -343,7 +367,7 @@ async function estimateCustomCompetitionEndingDate(
  * Estime la ending_date pour un championnat sans dates futures
  */
 async function estimateLeagueEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   competitionId: number,
   endingMatchday: number,
   startingMatchday: number,
@@ -407,7 +431,7 @@ async function estimateLeagueEndingDate(
  * Estime la ending_date pour une compétition à élimination avec matchs TBD
  */
 async function estimateKnockoutEndingDate(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   competitionId: number,
   endingMatchday: number,
   startingMatchday: number,
@@ -491,7 +515,7 @@ async function estimateKnockoutEndingDate(
  * Enregistre un événement de modification de durée dans la table de tracking
  */
 async function logDurationEvent(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: any,
   tournamentId: string,
   event: {
     event_type: string
