@@ -131,6 +131,7 @@ interface UserDetail {
   avatar: string
   email: string | null
   created_at: string
+  last_seen_at: string | null
   role: string
   tournaments: {
     total: number
@@ -1829,6 +1830,16 @@ export default function AdminUsagePage() {
                         Inscrit le {new Date(userDetailModal.detail.created_at).toLocaleDateString('fr-FR', {
                           day: '2-digit', month: 'long', year: 'numeric'
                         })}
+                        {userDetailModal.detail.last_seen_at && (
+                          <span className="ml-2">
+                            • Dernière visite : {new Date(userDetailModal.detail.last_seen_at).toLocaleDateString('fr-FR', {
+                              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                        )}
+                        {!userDetailModal.detail.last_seen_at && (
+                          <span className="ml-2 text-gray-300">• Jamais connecté</span>
+                        )}
                       </p>
                     </div>
                     {userDetailModal.detail.role && userDetailModal.detail.role !== 'user' && (

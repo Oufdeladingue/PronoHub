@@ -51,10 +51,10 @@ export async function GET(
       trophiesResult,
       authUserResult
     ] = await Promise.all([
-      // 1. Profil utilisateur (avec préférences de notifications)
+      // 1. Profil utilisateur (avec préférences de notifications et dernière visite)
       adminClient
         .from('profiles')
-        .select('id, username, avatar, created_at, role, notification_preferences')
+        .select('id, username, avatar, created_at, role, notification_preferences, last_seen_at')
         .eq('id', userId)
         .single(),
 
@@ -185,6 +185,7 @@ export async function GET(
         avatar: userProfile.avatar,
         email,
         created_at: userProfile.created_at,
+        last_seen_at: userProfile.last_seen_at,
         role: userProfile.role,
         tournaments: tournamentStats,
         credits: creditsMap,
