@@ -26,7 +26,7 @@ async function checkAndFinishTournaments(
     const { data: tournamentsToCheck, error: tournamentsError } = await supabase
       .from('tournaments')
       .select(`
-        id, name, ending_date, competition_id, custom_competition_id,
+        id, name, ending_date, competition_id, custom_competition_id, all_matchdays,
         competitions(current_season_end_date)
       `)
       .eq('status', 'active')
@@ -39,11 +39,10 @@ async function checkAndFinishTournaments(
 
     console.log(`[SYNC] Found ${tournamentsToCheck.length} tournament(s) to check for completion`)
 
-    // Filtrer et passer en completed uniquement les tournois dont la saison est VRAIMENT terminée
+    // Filtrer et passer en completed uniquement les tournois éligibles
     for (const tournament of tournamentsToCheck) {
       // Pour les tournois custom, on fait confiance à ending_date
       if (tournament.custom_competition_id) {
-        // Tournoi custom - terminer si ending_date est passé
         const { error: updateError } = await supabase
           .from('tournaments')
           .update({ status: 'completed', updated_at: new Date().toISOString() })
@@ -56,25 +55,39 @@ async function checkAndFinishTournaments(
         continue
       }
 
-      // Pour les tournois standard, vérifier aussi que la saison est terminée
-      const competition = tournament.competitions as { current_season_end_date: string | null } | null
-      const seasonEndDate = competition?.current_season_end_date
+      // Pour les tournois avec nombre de journées limité (all_matchdays = false),
+      // on fait confiance à ending_date car le créateur a choisi une durée spécifique
+      if (!tournament.all_matchdays) {
+        const { error: updateError } = await supabase
+          .from('tournaments')
+          .update({ status: 'completed', updated_at: new Date().toISOString() })
+          .eq('id', tournament.id)
 
-      // Si la saison n'est pas encore terminée, ne pas marquer comme completed
-      // (protège contre les compétitions avec phase de poules + knockout où les matchs finaux ne sont pas encore importés)
-      if (seasonEndDate && seasonEndDate > today) {
-        console.log(`[SYNC] Tournament "${tournament.name}" has ending_date passed but season ends ${seasonEndDate} - skipping`)
+        if (!updateError) {
+          console.log(`[SYNC] Limited tournament "${tournament.name}" marked as completed - ending_date: ${tournament.ending_date}`)
+          finishedTournaments.push({ id: tournament.id, name: tournament.name })
+        }
         continue
       }
 
-      // La saison est terminée (ou pas de date de fin de saison connue), on peut terminer le tournoi
+      // Pour les tournois "toutes les journées" (all_matchdays = true),
+      // vérifier aussi que la saison est terminée (protège contre les compétitions avec knockout)
+      const competition = tournament.competitions as { current_season_end_date: string | null } | null
+      const seasonEndDate = competition?.current_season_end_date
+
+      if (seasonEndDate && seasonEndDate > today) {
+        console.log(`[SYNC] Full-season tournament "${tournament.name}" has ending_date passed but season ends ${seasonEndDate} - skipping`)
+        continue
+      }
+
+      // La saison est terminée, on peut terminer le tournoi
       const { error: updateError } = await supabase
         .from('tournaments')
         .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('id', tournament.id)
 
       if (!updateError) {
-        console.log(`[SYNC] Tournament "${tournament.name}" marked as completed - ending_date: ${tournament.ending_date}, season_end: ${seasonEndDate || 'unknown'}`)
+        console.log(`[SYNC] Full-season tournament "${tournament.name}" marked as completed - season_end: ${seasonEndDate || 'unknown'}`)
         finishedTournaments.push({ id: tournament.id, name: tournament.name })
       } else {
         console.error(`[SYNC] Failed to finish tournament ${tournament.id}:`, updateError)
