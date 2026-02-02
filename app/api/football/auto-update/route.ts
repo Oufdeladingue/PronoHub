@@ -276,10 +276,12 @@ async function checkAndFinishTournaments(
 
   try {
     // Récupérer les tournois actifs pour ces compétitions
+    // IMPORTANT: Exclure les tournois custom (custom_competition_id != null) car ils n'ont pas de matchs dans imported_matches
     const { data: activeTournaments, error: tournamentsError } = await supabase
       .from('tournaments')
       .select('id, name, competition_id, starting_matchday, ending_matchday')
       .eq('status', 'active')
+      .is('custom_competition_id', null)
       .in('competition_id', competitionIds)
 
     if (tournamentsError || !activeTournaments || activeTournaments.length === 0) {
