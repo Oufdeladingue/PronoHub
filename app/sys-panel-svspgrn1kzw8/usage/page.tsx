@@ -113,6 +113,18 @@ interface UserDetailTrophy {
   unlocked_at: string
 }
 
+interface UserNotificationPreferences {
+  email_reminder: boolean
+  email_tournament_started: boolean
+  email_day_recap: boolean
+  email_tournament_end: boolean
+  email_invite: boolean
+  email_player_joined: boolean
+  email_mention: boolean
+  email_badge_unlocked: boolean
+  email_new_matches: boolean
+}
+
 interface UserDetail {
   id: string
   username: string
@@ -133,6 +145,7 @@ interface UserDetail {
     details: UserDetailPurchase[]
   }
   trophies: UserDetailTrophy[]
+  notificationPreferences: UserNotificationPreferences
 }
 
 interface UserDetailModalState {
@@ -1986,6 +1999,40 @@ export default function AdminUsagePage() {
                         })}
                       </div>
                     )}
+                  </div>
+
+                  {/* Préférences de notifications */}
+                  <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">
+                      Préférences de notifications
+                    </h5>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs">
+                      {[
+                        { key: 'email_reminder', label: 'Rappels' },
+                        { key: 'email_tournament_started', label: 'Lancement tournoi' },
+                        { key: 'email_day_recap', label: 'Récap journée' },
+                        { key: 'email_tournament_end', label: 'Fin tournoi' },
+                        { key: 'email_invite', label: 'Invitations' },
+                        { key: 'email_player_joined', label: 'Nouveau joueur' },
+                        { key: 'email_mention', label: 'Mentions' },
+                        { key: 'email_badge_unlocked', label: 'Badges' },
+                        { key: 'email_new_matches', label: 'Nouveaux matchs' },
+                      ].map(({ key, label }) => {
+                        const isEnabled = userDetailModal.detail?.notificationPreferences?.[key as keyof UserNotificationPreferences]
+                        return (
+                          <div
+                            key={key}
+                            className={`px-2 py-1 rounded text-center ${
+                              isEnabled
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-600'
+                            }`}
+                          >
+                            {isEnabled ? '✓' : '✗'} {label}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (

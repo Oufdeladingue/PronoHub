@@ -150,12 +150,12 @@ function ProfileContent() {
   const [recalculatingTrophies, setRecalculatingTrophies] = useState(false)
   const [hasNewTrophies, setHasNewTrophies] = useState(false)
   const [lastRefreshMessage, setLastRefreshMessage] = useState('')
-  // Préférences de notifications
+  // Préférences de notifications (tout à true par défaut)
   const [notificationPrefs, setNotificationPrefs] = useState({
-    email_reminder: false,           // Rappel si prono non renseigné (4h avant)
+    email_reminder: true,            // Rappel si prono non renseigné (4h avant)
     email_tournament_started: true,  // Confirmation lancement tournoi par capitaine
-    email_day_recap: false,          // Récap à l'issue d'une journée
-    email_tournament_end: false,     // Récap fin de tournoi
+    email_day_recap: true,           // Récap à l'issue d'une journée
+    email_tournament_end: true,      // Récap fin de tournoi
     email_invite: true,              // Invitation à un tournoi
     email_player_joined: true,       // Quand un joueur rejoint (si capitaine)
     email_mention: true,             // Mention dans une discussion (@user)

@@ -51,10 +51,10 @@ export async function GET(
       trophiesResult,
       authUserResult
     ] = await Promise.all([
-      // 1. Profil utilisateur
+      // 1. Profil utilisateur (avec préférences de notifications)
       adminClient
         .from('profiles')
-        .select('id, username, avatar, created_at, role')
+        .select('id, username, avatar, created_at, role, notification_preferences')
         .eq('id', userId)
         .single(),
 
@@ -160,6 +160,23 @@ export async function GET(
     // Email (depuis auth)
     const email = authUserResult.data?.user?.email || null
 
+    // Préférences de notifications (avec valeurs par défaut si non définies)
+    const defaultNotificationPrefs = {
+      email_reminder: true,
+      email_tournament_started: true,
+      email_day_recap: true,
+      email_tournament_end: true,
+      email_invite: true,
+      email_player_joined: true,
+      email_mention: true,
+      email_badge_unlocked: true,
+      email_new_matches: true
+    }
+    const notificationPreferences = {
+      ...defaultNotificationPrefs,
+      ...(userProfile.notification_preferences || {})
+    }
+
     return NextResponse.json({
       success: true,
       user: {
@@ -176,7 +193,8 @@ export async function GET(
           totalSpent,
           details: purchaseDetails.slice(0, 20) // Limiter à 20 derniers
         },
-        trophies
+        trophies,
+        notificationPreferences
       }
     })
 
