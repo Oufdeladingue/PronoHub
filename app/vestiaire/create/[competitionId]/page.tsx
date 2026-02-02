@@ -778,7 +778,7 @@ export default function TableauNoirPage() {
                 Prime d'avant-match
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center flex-1">
-                1 point supplémentaire si tous les pronos sont renseignés avant le début de la journée de compétition<br />(aide à lutter contre les forfaits)
+                Un point bonus par journée si toutes les rencontres sont pronostiquées avant l'horaire limite (30 minutes du coup d'envoi). Un seul oubli entraîne la perte de ce point : aide à lutter contre les forfaits.
               </p>
               <div className="flex justify-center">
                 <button

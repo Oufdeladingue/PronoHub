@@ -3077,9 +3077,7 @@ export default function OppositionClient({
                       <div>
                         <h3 className="font-semibold theme-text mb-2">Prime d'avant-match activée</h3>
                         <p className="text-sm">
-                          Si tous vos pronostics sont renseignés <span className="font-semibold theme-text">avant le début du premier match</span> de la journée,
-                          vous gagnez <span className="font-semibold theme-text">1 point supplémentaire</span>.
-                          Cette règle aide à lutter contre les forfaits et les oublis.
+                          Un point bonus par journée si toutes les rencontres sont pronostiquées avant l'horaire limite (30 minutes du coup d'envoi). Un seul oubli entraîne la perte de ce point : aide à lutter contre les forfaits.
                         </p>
                       </div>
                     </div>
