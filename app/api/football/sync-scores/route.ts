@@ -6,7 +6,9 @@ const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
 /**
  * Vérifie si les tournois actifs sont terminés et les passe en statut "completed"
- * Un tournoi est terminé quand sa date de fin (ending_date) est passée
+ * Un tournoi est terminé quand:
+ * - Sa date de fin (ending_date) est passée
+ * - ET la saison de la compétition est terminée (pour éviter les faux positifs sur les compétitions avec knockout)
  * Cette approche gère tous les cas: tournois standard, custom, knockout, et extensions
  */
 async function checkAndFinishTournaments(
@@ -17,33 +19,62 @@ async function checkAndFinishTournaments(
 
   try {
     const now = new Date().toISOString()
+    const today = new Date().toISOString().split('T')[0] // Format YYYY-MM-DD pour comparaison de dates
 
     // Récupérer tous les tournois actifs dont la date de fin est passée
-    const { data: tournamentsToFinish, error: tournamentsError } = await supabase
+    // avec les infos de la compétition pour vérifier la fin de saison
+    const { data: tournamentsToCheck, error: tournamentsError } = await supabase
       .from('tournaments')
-      .select('id, name, ending_date')
+      .select(`
+        id, name, ending_date, competition_id, custom_competition_id,
+        competitions(current_season_end_date)
+      `)
       .eq('status', 'active')
       .not('ending_date', 'is', null)
       .lt('ending_date', now)
 
-    if (tournamentsError || !tournamentsToFinish || tournamentsToFinish.length === 0) {
+    if (tournamentsError || !tournamentsToCheck || tournamentsToCheck.length === 0) {
       return finishedTournaments
     }
 
-    console.log(`[SYNC] Found ${tournamentsToFinish.length} tournament(s) to finish based on ending_date`)
+    console.log(`[SYNC] Found ${tournamentsToCheck.length} tournament(s) to check for completion`)
 
-    // Passer chaque tournoi en statut "completed"
-    for (const tournament of tournamentsToFinish) {
+    // Filtrer et passer en completed uniquement les tournois dont la saison est VRAIMENT terminée
+    for (const tournament of tournamentsToCheck) {
+      // Pour les tournois custom, on fait confiance à ending_date
+      if (tournament.custom_competition_id) {
+        // Tournoi custom - terminer si ending_date est passé
+        const { error: updateError } = await supabase
+          .from('tournaments')
+          .update({ status: 'completed', updated_at: new Date().toISOString() })
+          .eq('id', tournament.id)
+
+        if (!updateError) {
+          console.log(`[SYNC] Custom tournament "${tournament.name}" marked as completed`)
+          finishedTournaments.push({ id: tournament.id, name: tournament.name })
+        }
+        continue
+      }
+
+      // Pour les tournois standard, vérifier aussi que la saison est terminée
+      const competition = tournament.competitions as { current_season_end_date: string | null } | null
+      const seasonEndDate = competition?.current_season_end_date
+
+      // Si la saison n'est pas encore terminée, ne pas marquer comme completed
+      // (protège contre les compétitions avec phase de poules + knockout où les matchs finaux ne sont pas encore importés)
+      if (seasonEndDate && seasonEndDate > today) {
+        console.log(`[SYNC] Tournament "${tournament.name}" has ending_date passed but season ends ${seasonEndDate} - skipping`)
+        continue
+      }
+
+      // La saison est terminée (ou pas de date de fin de saison connue), on peut terminer le tournoi
       const { error: updateError } = await supabase
         .from('tournaments')
-        .update({
-          status: 'completed',
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('id', tournament.id)
 
       if (!updateError) {
-        console.log(`[SYNC] Tournament "${tournament.name}" (${tournament.id}) marked as completed - ending_date: ${tournament.ending_date}`)
+        console.log(`[SYNC] Tournament "${tournament.name}" marked as completed - ending_date: ${tournament.ending_date}, season_end: ${seasonEndDate || 'unknown'}`)
         finishedTournaments.push({ id: tournament.id, name: tournament.name })
       } else {
         console.error(`[SYNC] Failed to finish tournament ${tournament.id}:`, updateError)
