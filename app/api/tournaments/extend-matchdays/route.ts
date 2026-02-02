@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 /**
  * API pour étendre le nombre de journées d'un tournoi custom (non free-kick)
@@ -120,40 +121,11 @@ export async function POST(request: NextRequest) {
     // Calculer le nouveau nombre total de journées
     const newNumMatchdays = (tournament.num_matchdays || 0) + additionalMatchdays
 
-    // Calculer la nouvelle date de fin (dernier match de la nouvelle dernière journée)
-    let newEndingDate: string | null = null
-    const { data: newLastMatchday } = await supabase
-      .from('custom_competition_matchdays')
-      .select('id')
-      .eq('custom_competition_id', tournament.custom_competition_id)
-      .eq('matchday_number', newEndMatchday)
-      .single()
-
-    if (newLastMatchday) {
-      const { data: lastMatch } = await supabase
-        .from('custom_competition_matches')
-        .select('cached_utc_date')
-        .eq('custom_matchday_id', newLastMatchday.id)
-        .not('cached_utc_date', 'is', null)
-        .order('cached_utc_date', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (lastMatch?.cached_utc_date) {
-        newEndingDate = lastMatch.cached_utc_date
-      }
-    }
-
-    // Préparer les données de mise à jour
+    // Préparer les données de mise à jour (sans ending_date, sera calculé après)
     const updateData: Record<string, any> = {
       ending_matchday: newEndMatchday,
       num_matchdays: newNumMatchdays,
       matchdays_count: newNumMatchdays
-    }
-
-    // Ajouter la nouvelle date de fin si calculée
-    if (newEndingDate) {
-      updateData.ending_date = newEndingDate
     }
 
     // Appliquer l'extension
@@ -168,6 +140,18 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Erreur lors de l\'extension du tournoi' },
         { status: 500 }
       )
+    }
+
+    // Recalculer la ending_date avec la fonction centralisée
+    try {
+      await recalculateTournamentEndingDate(tournamentId, {
+        reason: `Extension de ${additionalMatchdays} journée(s) par l'utilisateur`,
+        previous_ending_matchday: currentEndMatchday,
+        previous_ending_date: tournament.ending_date
+      })
+    } catch (error) {
+      console.error('Error recalculating ending_date after extension:', error)
+      // Ne pas bloquer l'extension si le calcul échoue
     }
 
     // Créer les nouvelles journées du tournoi

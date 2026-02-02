@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { PRICES } from '@/types/monetization'
+import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 /**
  * API pour étendre la durée d'un tournoi Free-Kick
@@ -147,33 +148,13 @@ export async function POST(request: NextRequest) {
     const newEndMatchday = currentEndMatchday + additionalMatchdays
     const newNumMatchdays = (tournament.num_matchdays || tournament.matchdays_count) + additionalMatchdays
 
-    // Calculer la nouvelle date de fin (dernier match de la nouvelle dernière journée)
-    let newEndingDate: string | null = null
-    const { data: lastMatch } = await supabase
-      .from('imported_matches')
-      .select('utc_date')
-      .eq('competition_id', tournament.competition_id)
-      .eq('matchday', newEndMatchday)
-      .order('utc_date', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (lastMatch?.utc_date) {
-      newEndingDate = lastMatch.utc_date
-    }
-
-    // Préparer les données de mise à jour
+    // Préparer les données de mise à jour (sans ending_date, sera calculé après)
     const updateData: Record<string, any> = {
       ending_matchday: newEndMatchday,
       num_matchdays: newNumMatchdays,
       matchdays_count: newNumMatchdays,
       max_matchdays: null, // Retirer la limite de journées
       duration_extended: true
-    }
-
-    // Ajouter la nouvelle date de fin si calculée
-    if (newEndingDate) {
-      updateData.ending_date = newEndingDate
     }
 
     // Appliquer l'extension
@@ -188,6 +169,18 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Erreur lors de l\'extension du tournoi' },
         { status: 500 }
       )
+    }
+
+    // Recalculer la ending_date avec la fonction centralisée
+    try {
+      await recalculateTournamentEndingDate(tournamentId, {
+        reason: `Extension de durée de ${additionalMatchdays} journée(s) par achat utilisateur`,
+        previous_ending_matchday: currentEndMatchday,
+        previous_ending_date: tournament.ending_date
+      })
+    } catch (error) {
+      console.error('Error recalculating ending_date after duration extension:', error)
+      // Ne pas bloquer l'extension si le calcul échoue
     }
 
     // Créer les nouvelles journées du tournoi

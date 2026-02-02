@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendTournamentStartedEmail, sendTournamentStartedAdminAlert } from '@/lib/email'
 import { sendTournamentStarted } from '@/lib/notifications'
+import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 interface StartTournamentRequest {
   tournamentId: string
@@ -272,50 +273,6 @@ export async function POST(request: NextRequest) {
     const startingMatchday = (competition.current_matchday || 0) + 1
     const endingMatchday = startingMatchday + actualMatchdays - 1
 
-    // Calculer la date de fin du tournoi (dernier match de la dernière journée)
-    let endingDate: string | null = null
-
-    if (isCustomCompetition && tournament.custom_competition_id) {
-      // Pour les compétitions custom, récupérer la date du dernier match de la dernière journée
-      const { data: lastMatchday } = await supabase
-        .from('custom_competition_matchdays')
-        .select('id')
-        .eq('custom_competition_id', tournament.custom_competition_id)
-        .eq('matchday_number', endingMatchday)
-        .single()
-
-      if (lastMatchday) {
-        const { data: lastMatch } = await supabase
-          .from('custom_competition_matches')
-          .select('cached_utc_date')
-          .eq('custom_matchday_id', lastMatchday.id)
-          .not('cached_utc_date', 'is', null)
-          .order('cached_utc_date', { ascending: false })
-          .limit(1)
-          .single()
-
-        if (lastMatch?.cached_utc_date) {
-          endingDate = lastMatch.cached_utc_date
-        }
-      }
-    } else if (tournament.competition_id) {
-      // Pour les compétitions importées, récupérer la date du dernier match de la dernière journée
-      const { data: lastMatch } = await supabase
-        .from('imported_matches')
-        .select('utc_date')
-        .eq('competition_id', tournament.competition_id)
-        .eq('matchday', endingMatchday)
-        .order('utc_date', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (lastMatch?.utc_date) {
-        endingDate = lastMatch.utc_date
-      }
-    }
-
-    console.log('[START] Calculated ending_date:', endingDate, 'for endingMatchday:', endingMatchday)
-
     // Générer le snapshot des journées
     const matchdaySnapshot = Array.from(
       { length: actualMatchdays },
@@ -345,7 +302,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Démarrer le tournoi avec les données de tracking
+    // 7. Mettre à jour le tournoi avec les valeurs de base (sans ending_date)
     const updateData: Record<string, any> = {
       status: 'active',
       start_date: new Date().toISOString(),
@@ -354,11 +311,6 @@ export async function POST(request: NextRequest) {
       ending_matchday: endingMatchday,
       matchday_snapshot: matchdaySnapshot,
       updated_at: new Date().toISOString()
-    }
-
-    // Ajouter ending_date si calculé (pour la finalisation automatique du tournoi)
-    if (endingDate) {
-      updateData.ending_date = endingDate
     }
 
     const { error: updateError } = await supabase
@@ -374,14 +326,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 8. Récupérer le tournoi mis à jour
+    // 8. Calculer et enregistrer la ending_date avec la fonction centralisée
+    try {
+      const durationResult = await recalculateTournamentEndingDate(tournamentId, {
+        reason: 'Démarrage du tournoi',
+        previous_ending_matchday: tournament.ending_matchday,
+        previous_ending_date: tournament.ending_date
+      })
+
+      console.log('[START] Ending date calculated:', durationResult.ending_date,
+        'for endingMatchday:', endingMatchday,
+        'estimation used:', durationResult.estimation_used)
+
+      if (durationResult.estimation_used && durationResult.estimation_details) {
+        console.log('[START] Estimation details:', durationResult.estimation_details)
+      }
+    } catch (error) {
+      console.error('[START] Error calculating ending_date:', error)
+      // Ne pas bloquer le démarrage du tournoi si le calcul échoue
+    }
+
+    // 9. Récupérer le tournoi mis à jour (avec ending_date)
     const { data: updatedTournament } = await supabase
       .from('tournaments')
       .select('*')
       .eq('id', tournamentId)
       .single()
 
-    // 9. Envoyer les emails et notifications aux participants (async, sans bloquer la réponse)
+    // 10. Envoyer les emails et notifications aux participants (async, sans bloquer la réponse)
     sendTournamentLaunchNotifications(
       supabase,
       tournamentId,

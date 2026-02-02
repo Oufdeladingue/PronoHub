@@ -74,7 +74,7 @@ export default function StandingsModal({
   const logoDark = competitionCustomEmblemWhite || competitionEmblem
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10000] p-4" onClick={onClose}>
       <div
         className="theme-card max-w-lg w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
