@@ -331,8 +331,8 @@ async function checkAndFinishTournaments(
 
       // Pour les tournois "toutes les journées" (all_matchdays = true),
       // vérifier aussi que la saison est terminée (protège contre les compétitions avec knockout)
-      const competition = tournament.competitions as { current_season_end_date: string | null } | null
-      const seasonEndDate = competition?.current_season_end_date
+      const competitionData = tournament.competitions as unknown as { current_season_end_date: string | null } | null
+      const seasonEndDate = competitionData?.current_season_end_date
 
       if (seasonEndDate && seasonEndDate > today) {
         console.log(`[AUTO-UPDATE] Full-season tournament "${tournament.name}" has ending_date passed but season ends ${seasonEndDate} - skipping`)
