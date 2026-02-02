@@ -295,10 +295,13 @@ export async function GET(request: NextRequest) {
         ? (customCompNames.get(tournament.custom_competition_id) || tournament.competition_name || 'Compétition')
         : (tournament.competition_name || 'Compétition')
 
-      // Filtrer les utilisateurs qui ont activé les rappels
+      // Filtrer les utilisateurs qui ont activé les rappels (défaut: true si non configuré)
       const eligibleUsers = participants.filter(p => {
         const profile = p.profiles as any
-        return profile && profile.notification_preferences?.email_reminder === true && profile.email
+        if (!profile || !profile.email) return false
+        const prefs = profile.notification_preferences || {}
+        // Par défaut, email_reminder est activé sauf si explicitement désactivé
+        return prefs.email_reminder !== false
       })
 
       // Pour chaque utilisateur éligible, vérifier ses matchs manquants
