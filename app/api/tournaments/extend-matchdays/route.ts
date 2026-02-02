@@ -120,14 +120,46 @@ export async function POST(request: NextRequest) {
     // Calculer le nouveau nombre total de journées
     const newNumMatchdays = (tournament.num_matchdays || 0) + additionalMatchdays
 
+    // Calculer la nouvelle date de fin (dernier match de la nouvelle dernière journée)
+    let newEndingDate: string | null = null
+    const { data: newLastMatchday } = await supabase
+      .from('custom_competition_matchdays')
+      .select('id')
+      .eq('custom_competition_id', tournament.custom_competition_id)
+      .eq('matchday_number', newEndMatchday)
+      .single()
+
+    if (newLastMatchday) {
+      const { data: lastMatch } = await supabase
+        .from('custom_competition_matches')
+        .select('cached_utc_date')
+        .eq('custom_matchday_id', newLastMatchday.id)
+        .not('cached_utc_date', 'is', null)
+        .order('cached_utc_date', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (lastMatch?.cached_utc_date) {
+        newEndingDate = lastMatch.cached_utc_date
+      }
+    }
+
+    // Préparer les données de mise à jour
+    const updateData: Record<string, any> = {
+      ending_matchday: newEndMatchday,
+      num_matchdays: newNumMatchdays,
+      matchdays_count: newNumMatchdays
+    }
+
+    // Ajouter la nouvelle date de fin si calculée
+    if (newEndingDate) {
+      updateData.ending_date = newEndingDate
+    }
+
     // Appliquer l'extension
     const { error: updateError } = await supabase
       .from('tournaments')
-      .update({
-        ending_matchday: newEndMatchday,
-        num_matchdays: newNumMatchdays,
-        matchdays_count: newNumMatchdays
-      })
+      .update(updateData)
       .eq('id', tournamentId)
 
     if (updateError) {

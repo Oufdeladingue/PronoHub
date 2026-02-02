@@ -272,6 +272,50 @@ export async function POST(request: NextRequest) {
     const startingMatchday = (competition.current_matchday || 0) + 1
     const endingMatchday = startingMatchday + actualMatchdays - 1
 
+    // Calculer la date de fin du tournoi (dernier match de la dernière journée)
+    let endingDate: string | null = null
+
+    if (isCustomCompetition && tournament.custom_competition_id) {
+      // Pour les compétitions custom, récupérer la date du dernier match de la dernière journée
+      const { data: lastMatchday } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .eq('matchday_number', endingMatchday)
+        .single()
+
+      if (lastMatchday) {
+        const { data: lastMatch } = await supabase
+          .from('custom_competition_matches')
+          .select('cached_utc_date')
+          .eq('custom_matchday_id', lastMatchday.id)
+          .not('cached_utc_date', 'is', null)
+          .order('cached_utc_date', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (lastMatch?.cached_utc_date) {
+          endingDate = lastMatch.cached_utc_date
+        }
+      }
+    } else if (tournament.competition_id) {
+      // Pour les compétitions importées, récupérer la date du dernier match de la dernière journée
+      const { data: lastMatch } = await supabase
+        .from('imported_matches')
+        .select('utc_date')
+        .eq('competition_id', tournament.competition_id)
+        .eq('matchday', endingMatchday)
+        .order('utc_date', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (lastMatch?.utc_date) {
+        endingDate = lastMatch.utc_date
+      }
+    }
+
+    console.log('[START] Calculated ending_date:', endingDate, 'for endingMatchday:', endingMatchday)
+
     // Générer le snapshot des journées
     const matchdaySnapshot = Array.from(
       { length: actualMatchdays },
@@ -302,17 +346,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Démarrer le tournoi avec les données de tracking
+    const updateData: Record<string, any> = {
+      status: 'active',
+      start_date: new Date().toISOString(),
+      actual_matchdays: actualMatchdays,
+      starting_matchday: startingMatchday,
+      ending_matchday: endingMatchday,
+      matchday_snapshot: matchdaySnapshot,
+      updated_at: new Date().toISOString()
+    }
+
+    // Ajouter ending_date si calculé (pour la finalisation automatique du tournoi)
+    if (endingDate) {
+      updateData.ending_date = endingDate
+    }
+
     const { error: updateError } = await supabase
       .from('tournaments')
-      .update({
-        status: 'active',
-        start_date: new Date().toISOString(),
-        actual_matchdays: actualMatchdays,
-        starting_matchday: startingMatchday,
-        ending_matchday: endingMatchday,
-        matchday_snapshot: matchdaySnapshot,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', tournamentId)
 
     if (updateError) {

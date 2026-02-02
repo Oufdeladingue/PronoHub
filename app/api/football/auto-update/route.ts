@@ -265,66 +265,47 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
 
 /**
  * Vérifie si les tournois actifs sont terminés et les passe en statut "completed"
- * Un tournoi est terminé quand TOUS les matchs de TOUTES ses journées sont FINISHED
- * (gère le cas des matchs décalés sur des journées antérieures)
+ * Un tournoi est terminé quand sa date de fin (ending_date) est passée
+ * Cette approche gère tous les cas: tournois standard, custom, knockout, et extensions
  */
 async function checkAndFinishTournaments(
   supabase: SupabaseClient,
-  competitionIds: number[]
+  _competitionIds: number[] // Gardé pour compatibilité mais plus utilisé
 ): Promise<{ id: string; name: string }[]> {
   const finishedTournaments: { id: string; name: string }[] = []
 
   try {
-    // Récupérer les tournois actifs pour ces compétitions
-    // IMPORTANT: Exclure les tournois custom (custom_competition_id != null) car ils n'ont pas de matchs dans imported_matches
-    const { data: activeTournaments, error: tournamentsError } = await supabase
-      .from('tournaments')
-      .select('id, name, competition_id, starting_matchday, ending_matchday')
-      .eq('status', 'active')
-      .is('custom_competition_id', null)
-      .in('competition_id', competitionIds)
+    const now = new Date().toISOString()
 
-    if (tournamentsError || !activeTournaments || activeTournaments.length === 0) {
+    // Récupérer tous les tournois actifs dont la date de fin est passée
+    const { data: tournamentsToFinish, error: tournamentsError } = await supabase
+      .from('tournaments')
+      .select('id, name, ending_date')
+      .eq('status', 'active')
+      .not('ending_date', 'is', null)
+      .lt('ending_date', now)
+
+    if (tournamentsError || !tournamentsToFinish || tournamentsToFinish.length === 0) {
       return finishedTournaments
     }
 
-    // Pour chaque tournoi actif, vérifier si TOUTES les journées sont terminées
-    for (const tournament of activeTournaments) {
-      if (!tournament.starting_matchday || !tournament.ending_matchday) continue
+    console.log(`[AUTO-UPDATE] Found ${tournamentsToFinish.length} tournament(s) to finish based on ending_date`)
 
-      // Récupérer TOUS les matchs du tournoi (de starting_matchday à ending_matchday)
-      const { data: allTournamentMatches, error: matchesError } = await supabase
-        .from('imported_matches')
-        .select('id, matchday, status, finished')
-        .eq('competition_id', tournament.competition_id)
-        .gte('matchday', tournament.starting_matchday)
-        .lte('matchday', tournament.ending_matchday)
+    // Passer chaque tournoi en statut "completed"
+    for (const tournament of tournamentsToFinish) {
+      const { error: updateError } = await supabase
+        .from('tournaments')
+        .update({
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournament.id)
 
-      if (matchesError || !allTournamentMatches || allTournamentMatches.length === 0) {
-        continue
-      }
-
-      // Vérifier si TOUS les matchs de TOUTES les journées sont terminés
-      const allMatchesFinished = allTournamentMatches.every(
-        match => match.status === 'FINISHED' || match.finished === true
-      )
-
-      if (allMatchesFinished) {
-        // Passer le tournoi en statut "completed"
-        const { error: updateError } = await supabase
-          .from('tournaments')
-          .update({
-            status: 'completed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', tournament.id)
-
-        if (!updateError) {
-          console.log(`[AUTO-UPDATE] Tournament "${tournament.name}" (${tournament.id}) marked as completed - all ${allTournamentMatches.length} matches finished`)
-          finishedTournaments.push({ id: tournament.id, name: tournament.name })
-        } else {
-          console.error(`[AUTO-UPDATE] Failed to finish tournament ${tournament.id}:`, updateError)
-        }
+      if (!updateError) {
+        console.log(`[AUTO-UPDATE] Tournament "${tournament.name}" (${tournament.id}) marked as completed - ending_date: ${tournament.ending_date}`)
+        finishedTournaments.push({ id: tournament.id, name: tournament.name })
+      } else {
+        console.error(`[AUTO-UPDATE] Failed to finish tournament ${tournament.id}:`, updateError)
       }
     }
   } catch (error) {
