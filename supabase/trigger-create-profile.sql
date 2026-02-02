@@ -5,11 +5,12 @@
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, email)
+  INSERT INTO public.profiles (id, username, email, notification_preferences)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
-    NEW.email
+    NEW.email,
+    '{"email_reminder": true, "email_tournament_started": true, "email_day_recap": true, "email_tournament_end": true, "email_invite": true, "email_player_joined": true, "email_mention": true, "email_badge_unlocked": true, "email_new_matches": true}'::jsonb
   );
   RETURN NEW;
 END;
