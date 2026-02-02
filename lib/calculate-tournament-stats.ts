@@ -262,6 +262,59 @@ export async function calculateTournamentStats(
     const allUserPredictions = allPredictionsByUser.get(userId) || []
     const predictionsCount = allUserPredictions.filter(p => !p.is_default_prediction).length
 
+    // Calculer le bonus early prediction par journée si activé
+    if (tournament.early_prediction_bonus) {
+      // Récupérer toutes les prédictions de l'utilisateur avec created_at
+      const { data: userPredictionsWithTime } = await supabase
+        .from('predictions')
+        .select('match_id, created_at, is_default_prediction')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', userId)
+
+      const predictionsTimeMap = new Map(
+        (userPredictionsWithTime || []).map(p => [p.match_id, { created_at: p.created_at, is_default: p.is_default_prediction }])
+      )
+
+      // Grouper les matchs terminés par journée
+      const matchesByMatchday = new Map<number, any[]>()
+      for (const match of finishedMatches) {
+        if (!matchesByMatchday.has(match.matchday)) {
+          matchesByMatchday.set(match.matchday, [])
+        }
+        matchesByMatchday.get(match.matchday)!.push(match)
+      }
+
+      // Pour chaque journée, vérifier si tous les pronos ont été faits avant chaque match respectif
+      for (const [matchday, matchdayMatches] of matchesByMatchday.entries()) {
+        let allPredictionsOnTime = true
+
+        for (const match of matchdayMatches) {
+          const predInfo = predictionsTimeMap.get(match.id)
+
+          // Si pas de prono ou prono par défaut, pas de bonus pour cette journée
+          if (!predInfo || predInfo.is_default) {
+            allPredictionsOnTime = false
+            break
+          }
+
+          // Si le prono a été fait après le début du match, pas de bonus
+          if (predInfo.created_at) {
+            const predCreatedAt = new Date(predInfo.created_at)
+            const matchStartTime = new Date(match.utc_date)
+            if (predCreatedAt >= matchStartTime) {
+              allPredictionsOnTime = false
+              break
+            }
+          }
+        }
+
+        // Ajouter +1 point si tous les pronos de la journée ont été faits à temps
+        if (allPredictionsOnTime && matchdayMatches.length > 0) {
+          totalPoints += 1
+        }
+      }
+    }
+
     // Calculer les points (uniquement pour les matchs terminés)
     for (const prediction of allPredictions) {
       const match = finishedMatchesMap.get(prediction.match_id)

@@ -917,44 +917,37 @@ export default function OppositionClient({
       let totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
 
       // Calculer le bonus "Prime d'avant-match" si activé
-      // +1 point si TOUS les pronostics ont été faits avant le premier match de la journée
+      // +1 point si TOUS les pronostics ont été faits AVANT CHACUN des matchs respectifs
       if (tournament.early_prediction_bonus && matchesData.length > 0 && predictionsData) {
-        // Trouver l'heure du premier match
-        const firstMatchTime = matchesData.reduce((earliest, match) => {
-          const matchDate = new Date(match.utc_date)
-          return !earliest || matchDate < earliest ? matchDate : earliest
-        }, null as Date | null)
+        let allPredictionsOnTime = true
 
-        if (firstMatchTime) {
-          // Vérifier si tous les pronostics ont été faits avant le premier match
-          let allPredictionsOnTime = true
+        for (const matchId of matchIds) {
+          const match = matchesData.find((m: any) => m.id === matchId)
+          const prediction = predictionsData.find((p: any) => p.match_id === matchId)
 
-          for (const matchId of matchIds) {
-            const prediction = predictionsData.find((p: any) => p.match_id === matchId)
+          // Si pas de pronostic du tout, ou si c'est un pronostic par défaut, pas de bonus
+          if (!prediction || prediction.is_default_prediction) {
+            allPredictionsOnTime = false
+            break
+          }
 
-            // Si pas de pronostic du tout, ou si c'est un pronostic par défaut, pas de bonus
-            if (!prediction || prediction.is_default_prediction) {
+          // Si le pronostic a été fait après le début de SON match, pas de bonus
+          if (prediction.created_at && match?.utc_date) {
+            const predCreatedAt = new Date(prediction.created_at)
+            const matchStartTime = new Date(match.utc_date)
+            if (predCreatedAt >= matchStartTime) {
               allPredictionsOnTime = false
               break
             }
-
-            // Si le pronostic a été fait après le premier match, pas de bonus
-            if (prediction.created_at) {
-              const predCreatedAt = new Date(prediction.created_at)
-              if (predCreatedAt >= firstMatchTime) {
-                allPredictionsOnTime = false
-                break
-              }
-            }
           }
+        }
 
-          // Ajouter +1 point si tous les pronostics ont été faits à temps
-          if (allPredictionsOnTime) {
-            totalPoints += 1
-            setHasEarlyBonus(true)
-          } else {
-            setHasEarlyBonus(false)
-          }
+        // Ajouter +1 point si tous les pronostics ont été faits à temps
+        if (allPredictionsOnTime) {
+          totalPoints += 1
+          setHasEarlyBonus(true)
+        } else {
+          setHasEarlyBonus(false)
         }
       } else {
         setHasEarlyBonus(false)
