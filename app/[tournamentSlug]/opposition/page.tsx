@@ -173,13 +173,17 @@ export default async function OppositionPage({ params }: PageProps) {
   }
 
   // Calculer les stages par matchday (utilise virtual_matchday si présent pour les compétitions knockout)
+  // Pour les compétitions custom, on ne récupère PAS le stage des matchs
+  // afin de garder le nommage simple (J1, J2, J3...) au lieu de "Barrage A", "8ème R", etc.
   const matchdayStages: Record<number, string | null> = {}
-  matchesResult.forEach((match: any) => {
-    const md = match.virtual_matchday || match.matchday
-    if (md && !matchdayStages[md]) {
-      matchdayStages[md] = match.stage || null
-    }
-  })
+  if (!tournament.custom_competition_id) {
+    matchesResult.forEach((match: any) => {
+      const md = match.virtual_matchday || match.matchday
+      if (md && !matchdayStages[md]) {
+        matchdayStages[md] = match.stage || null
+      }
+    })
+  }
 
   return (
     <Suspense fallback={<div className="fixed inset-0 bg-black flex items-center justify-center">
