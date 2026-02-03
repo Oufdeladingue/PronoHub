@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   // Si on veut vérifier la BDD
   if (checkDb) {
     const supabase = createAdminClient()
+    const tournamentSlug = searchParams.get('tournament')
 
     // Infos sur la compétition CL
     const { data: competition } = await supabase
@@ -18,16 +19,22 @@ export async function GET(request: Request) {
       .eq('id', 2001)
       .single()
 
-    // Nombre de matchs par stage
+    // Nombre de matchs par stage avec leurs matchdays
     const { data: matchesByStage } = await supabase
       .from('imported_matches')
-      .select('stage')
+      .select('stage, matchday')
       .eq('competition_id', 2001)
 
-    const stageCount: Record<string, number> = {}
+    const stageCount: Record<string, { count: number; matchdays: number[] }> = {}
     matchesByStage?.forEach((m: any) => {
       const stage = m.stage || 'NULL'
-      stageCount[stage] = (stageCount[stage] || 0) + 1
+      if (!stageCount[stage]) {
+        stageCount[stage] = { count: 0, matchdays: [] }
+      }
+      stageCount[stage].count++
+      if (m.matchday && !stageCount[stage].matchdays.includes(m.matchday)) {
+        stageCount[stage].matchdays.push(m.matchday)
+      }
     })
 
     // Total matchs
@@ -36,12 +43,48 @@ export async function GET(request: Request) {
       .select('*', { count: 'exact', head: true })
       .eq('competition_id', 2001)
 
+    // Si un tournoi spécifique est demandé, vérifier sa config
+    let tournamentInfo = null
+    if (tournamentSlug) {
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('id, name, slug, status, starting_matchday, ending_matchday, all_matchdays, competition_id')
+        .eq('slug', tournamentSlug)
+        .single()
+
+      if (tournament) {
+        // Simuler la même requête que la page opposition
+        const { data: matchesForTournament, count: matchCount } = await supabase
+          .from('imported_matches')
+          .select('id, matchday, stage, utc_date, home_team_name, away_team_name', { count: 'exact' })
+          .eq('competition_id', tournament.competition_id)
+          .gte('matchday', tournament.starting_matchday)
+          .lte('matchday', tournament.ending_matchday)
+          .order('utc_date', { ascending: true })
+
+        // Grouper par stage
+        const matchesByStageForTournament: Record<string, number> = {}
+        matchesForTournament?.forEach((m: any) => {
+          const stage = m.stage || 'NULL'
+          matchesByStageForTournament[stage] = (matchesByStageForTournament[stage] || 0) + 1
+        })
+
+        tournamentInfo = {
+          tournament,
+          matchesReturned: matchCount,
+          matchesByStage: matchesByStageForTournament,
+          sampleMatches: matchesForTournament?.slice(0, 5)
+        }
+      }
+    }
+
     return NextResponse.json({
       database: {
         competition,
         totalMatchesInDb: totalMatches,
         matchesByStage: stageCount
-      }
+      },
+      tournamentInfo
     })
   }
 
