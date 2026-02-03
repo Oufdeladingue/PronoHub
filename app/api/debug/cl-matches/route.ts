@@ -53,27 +53,85 @@ export async function GET(request: Request) {
         .single()
 
       if (tournament) {
-        // Simuler la même requête que la page opposition
-        const { data: matchesForTournament, count: matchCount } = await supabase
+        // Simuler la nouvelle logique de la page opposition (avec support knockout)
+        // 1. Vérifier si la compétition a des phases knockout
+        const { data: knockoutCheck } = await supabase
           .from('imported_matches')
-          .select('id, matchday, stage, utc_date, home_team_name, away_team_name', { count: 'exact' })
+          .select('id')
           .eq('competition_id', tournament.competition_id)
-          .gte('matchday', tournament.starting_matchday)
-          .lte('matchday', tournament.ending_matchday)
-          .order('utc_date', { ascending: true })
+          .neq('stage', 'LEAGUE_STAGE')
+          .not('stage', 'is', null)
+          .limit(1)
+
+        const hasKnockoutStages = knockoutCheck && knockoutCheck.length > 0
+
+        let matchesForTournament: any[] = []
+
+        if (hasKnockoutStages) {
+          // Compétition knockout: 2 requêtes parallèles
+          const [leagueResult, knockoutResult] = await Promise.all([
+            supabase
+              .from('imported_matches')
+              .select('id, matchday, stage, utc_date, home_team_name, away_team_name')
+              .eq('competition_id', tournament.competition_id)
+              .eq('stage', 'LEAGUE_STAGE')
+              .gte('matchday', tournament.starting_matchday)
+              .lte('matchday', tournament.ending_matchday),
+            supabase
+              .from('imported_matches')
+              .select('id, matchday, stage, utc_date, home_team_name, away_team_name')
+              .eq('competition_id', tournament.competition_id)
+              .neq('stage', 'LEAGUE_STAGE')
+              .not('stage', 'is', null)
+          ])
+
+          const STAGE_ORDER: Record<string, number> = {
+            'LEAGUE_STAGE': 0,
+            'PLAYOFFS': 8,
+            'LAST_16': 10,
+            'QUARTER_FINALS': 12,
+            'SEMI_FINALS': 14,
+            'FINAL': 16
+          }
+
+          const leagueWithVirtual = (leagueResult.data || []).map((m: any) => ({
+            ...m,
+            virtual_matchday: m.matchday
+          }))
+
+          const knockoutWithVirtual = (knockoutResult.data || []).map((m: any) => ({
+            ...m,
+            virtual_matchday: (STAGE_ORDER[m.stage] || 8) + (m.matchday || 1)
+          }))
+
+          matchesForTournament = [...leagueWithVirtual, ...knockoutWithVirtual]
+            .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+        } else {
+          // Compétition classique
+          const { data } = await supabase
+            .from('imported_matches')
+            .select('id, matchday, stage, utc_date, home_team_name, away_team_name')
+            .eq('competition_id', tournament.competition_id)
+            .gte('matchday', tournament.starting_matchday)
+            .lte('matchday', tournament.ending_matchday)
+            .order('utc_date', { ascending: true })
+
+          matchesForTournament = data || []
+        }
 
         // Grouper par stage
         const matchesByStageForTournament: Record<string, number> = {}
-        matchesForTournament?.forEach((m: any) => {
+        matchesForTournament.forEach((m: any) => {
           const stage = m.stage || 'NULL'
           matchesByStageForTournament[stage] = (matchesByStageForTournament[stage] || 0) + 1
         })
 
         tournamentInfo = {
           tournament,
-          matchesReturned: matchCount,
+          hasKnockoutStages,
+          matchesReturned: matchesForTournament.length,
           matchesByStage: matchesByStageForTournament,
-          sampleMatches: matchesForTournament?.slice(0, 5)
+          sampleMatches: matchesForTournament.slice(0, 10)
         }
       }
     }
