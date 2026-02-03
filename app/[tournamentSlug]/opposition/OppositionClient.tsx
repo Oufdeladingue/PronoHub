@@ -433,7 +433,8 @@ export default function OppositionClient({
     // Pour chaque journée, vérifier si elle a des matchs encore éditables
     for (const matchday of matchdays) {
       // Récupérer tous les matchs de cette journée depuis allMatches (déjà chargé)
-      const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
+      // Utiliser virtual_matchday pour les compétitions knockout (CL, coupes)
+      const matchdayMatches = allMatches.filter((m: any) => (m.virtual_matchday || m.matchday) === matchday)
 
       if (matchdayMatches.length === 0) {
         // Journée future sans matchs encore chargés, la sélectionner
@@ -597,16 +598,29 @@ export default function OppositionClient({
           }).sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
         }
       } else if (tournament.competition_id) {
-        // Compétition importée classique
-        const { data, error } = await supabase
-          .from('imported_matches')
-          .select('*')
-          .eq('competition_id', tournament.competition_id)
-          .eq('matchday', selectedMatchday)
-          .order('utc_date', { ascending: true })
+        // Compétition importée
+        // Pour les compétitions avec phases knockout, utiliser les matchs préchargés
+        // car ils ont une journée virtuelle (virtual_matchday) calculée côté serveur
+        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
 
-        if (error) throw error
-        matchesData = data || []
+        if (hasKnockoutMatches) {
+          // Filtrer depuis les matchs préchargés par virtual_matchday
+          matchesData = allMatches.filter((m: any) => {
+            const md = m.virtual_matchday || m.matchday
+            return md === selectedMatchday
+          })
+        } else {
+          // Compétition classique (ligue): requête directe par matchday
+          const { data, error } = await supabase
+            .from('imported_matches')
+            .select('*')
+            .eq('competition_id', tournament.competition_id)
+            .eq('matchday', selectedMatchday)
+            .order('utc_date', { ascending: true })
+
+          if (error) throw error
+          matchesData = data || []
+        }
       }
 
       setMatches(matchesData)
@@ -675,14 +689,26 @@ export default function OppositionClient({
           }
         }
       } else if (tournament.competition_id) {
-        // Compétition importée classique
-        const { data: matchesData } = await supabase
-          .from('imported_matches')
-          .select('id')
-          .eq('competition_id', tournament.competition_id)
-          .eq('matchday', selectedMatchday)
+        // Compétition importée
+        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
 
-        matchIds = matchesData?.map(m => m.id) || []
+        if (hasKnockoutMatches) {
+          // Filtrer depuis les matchs préchargés par virtual_matchday
+          const filteredMatches = allMatches.filter((m: any) => {
+            const md = m.virtual_matchday || m.matchday
+            return md === selectedMatchday
+          })
+          matchIds = filteredMatches.map((m: any) => m.id)
+        } else {
+          // Compétition classique
+          const { data: matchesData } = await supabase
+            .from('imported_matches')
+            .select('id')
+            .eq('competition_id', tournament.competition_id)
+            .eq('matchday', selectedMatchday)
+
+          matchIds = matchesData?.map(m => m.id) || []
+        }
       }
 
       if (matchIds.length === 0) return
@@ -805,14 +831,32 @@ export default function OppositionClient({
         }
       } else {
         // Compétition standard
-        const { data } = await supabase
-          .from('imported_matches')
-          .select('id, home_score, away_score, finished, status, utc_date')
-          .eq('competition_id', tournament.competition_id)
-          .eq('matchday', selectedMatchday)
-          .not('home_score', 'is', null)
+        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
 
-        matchesData = data || []
+        if (hasKnockoutMatches) {
+          // Filtrer depuis les matchs préchargés par virtual_matchday
+          const filteredMatches = allMatches.filter((m: any) => {
+            const md = m.virtual_matchday || m.matchday
+            return md === selectedMatchday && m.home_score !== null
+          })
+          matchesData = filteredMatches.map((m: any) => ({
+            id: m.id,
+            home_score: m.home_score,
+            away_score: m.away_score,
+            finished: m.finished,
+            status: m.status,
+            utc_date: m.utc_date
+          }))
+        } else {
+          const { data } = await supabase
+            .from('imported_matches')
+            .select('id, home_score, away_score, finished, status, utc_date')
+            .eq('competition_id', tournament.competition_id)
+            .eq('matchday', selectedMatchday)
+            .not('home_score', 'is', null)
+
+          matchesData = data || []
+        }
       }
 
       if (!matchesData || matchesData.length === 0) return
@@ -1325,7 +1369,8 @@ export default function OppositionClient({
     if (!allMatches.length) return 'À venir'
 
     // Récupérer les matchs de cette journée depuis allMatches
-    const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
+    // Utiliser virtual_matchday pour les compétitions knockout
+    const matchdayMatches = allMatches.filter((m: any) => (m.virtual_matchday || m.matchday) === matchday)
     if (matchdayMatches.length === 0) return 'À venir'
 
     const now = new Date()
@@ -1354,7 +1399,8 @@ export default function OppositionClient({
     if (!allMatches.length || !userId) return false
 
     // Récupérer les matchs de cette journée
-    const matchdayMatches = allMatches.filter(m => m.matchday === matchday)
+    // Utiliser virtual_matchday pour les compétitions knockout
+    const matchdayMatches = allMatches.filter((m: any) => (m.virtual_matchday || m.matchday) === matchday)
     if (matchdayMatches.length === 0) return false
 
     const now = new Date()
@@ -1788,7 +1834,8 @@ export default function OppositionClient({
                         const isActive = selectedMatchday === matchday
                         const stage = matchdayStages[matchday]
                         // Vérifier si des matchs existent pour cette journée
-                        const hasMatchesForMatchday = allMatches.some((m: any) => m.matchday === matchday)
+                        // Utiliser virtual_matchday pour les compétitions knockout
+                        const hasMatchesForMatchday = allMatches.some((m: any) => (m.virtual_matchday || m.matchday) === matchday)
                         // Calculer le leg (Aller/Retour) pour les phases knockout
                         const leg = getLegNumber(matchday, matchdayStages)
                         const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday, leg)
