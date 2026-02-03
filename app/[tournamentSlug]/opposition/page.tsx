@@ -331,13 +331,15 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
     // 1. Les matchs LEAGUE_STAGE dans la plage de matchdays
     // 2. TOUS les matchs des phases knockout (car leurs matchdays sont 1-2 peu importe la phase)
 
+    // Liste des phases knockout reconnues
+    const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
+
     // D'abord vérifier si la compétition a des phases knockout
     const { data: knockoutCheck } = await supabase
       .from('imported_matches')
       .select('id')
       .eq('competition_id', tournament.competition_id)
-      .neq('stage', 'LEAGUE_STAGE')
-      .not('stage', 'is', null)
+      .in('stage', KNOCKOUT_STAGES)
       .limit(1)
 
     const hasKnockoutStages = knockoutCheck && knockoutCheck.length > 0
@@ -345,12 +347,12 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
     if (hasKnockoutStages) {
       // Compétition avec knockout: deux requêtes parallèles
       const [leagueStageResult, knockoutResult] = await Promise.all([
-        // 1. Matchs LEAGUE_STAGE dans la plage de matchdays
+        // 1. Matchs de phase de ligue (LEAGUE_STAGE ou REGULAR_SEASON) dans la plage de matchdays
         supabase
           .from('imported_matches')
           .select('*')
           .eq('competition_id', tournament.competition_id)
-          .eq('stage', 'LEAGUE_STAGE')
+          .not('stage', 'in', `(${KNOCKOUT_STAGES.map(s => `"${s}"`).join(',')})`)
           .gte('matchday', startMatchday)
           .lte('matchday', endMatchday),
         // 2. Tous les matchs knockout (ils ont matchday 1-2 par phase)
@@ -358,8 +360,7 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
           .from('imported_matches')
           .select('*')
           .eq('competition_id', tournament.competition_id)
-          .neq('stage', 'LEAGUE_STAGE')
-          .not('stage', 'is', null)
+          .in('stage', KNOCKOUT_STAGES)
       ])
 
       const leagueMatches = leagueStageResult.data || []
