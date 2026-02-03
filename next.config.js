@@ -3,6 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
   async headers() {
+    // Skip security headers in development/test mode (no HTTPS)
+    const isProduction = process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://pronohub')
+
+    if (!isProduction) {
+      return []
+    }
+
     return [
       {
         source: '/(.*)',
