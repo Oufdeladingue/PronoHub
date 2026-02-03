@@ -72,6 +72,23 @@ export async function GET() {
     // Trier les matchs à venir par date
     upcomingMatches.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
+    // Détail des matchs de playoffs/knockout
+    const playoffMatches = (data.matches || [])
+      .filter((m: any) => m.stage !== 'LEAGUE_STAGE')
+      .map((m: any) => ({
+        id: m.id,
+        date: m.utcDate,
+        stage: m.stage,
+        matchday: m.matchday,
+        status: m.status,
+        homeTeam: m.homeTeam?.name || m.homeTeam?.shortName || 'TBD',
+        homeTeamId: m.homeTeam?.id,
+        awayTeam: m.awayTeam?.name || m.awayTeam?.shortName || 'TBD',
+        awayTeamId: m.awayTeam?.id,
+        score: m.score?.fullTime
+      }))
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
     return NextResponse.json({
       totalMatches: data.matches?.length || 0,
       summary: Object.values(summary).sort((a: any, b: any) => {
@@ -79,6 +96,7 @@ export async function GET() {
         return a.matchday - b.matchday
       }),
       upcomingMatches: upcomingMatches.slice(0, 20),
+      playoffMatches,
       hasKnockoutMatches: upcomingMatches.some(m =>
         m.stage?.includes('KNOCKOUT') ||
         m.stage?.includes('ROUND_OF') ||
