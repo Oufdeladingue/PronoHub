@@ -169,12 +169,11 @@ export default function TableauNoirPage() {
           }
         }
 
-        // Initialiser le nombre de journées
+        // Initialiser le nombre de journées (limité par la formule Free-Kick ou par la compétition)
         const freeMaxMatchdays = pricingData?.prices?.freeMaxMatchdays || 10
-        const maxForFreeKick = selectedTournamentType === 'free' && freeMaxMatchdays
-          ? Math.min(freeMaxMatchdays, comp.remaining_matchdays || 1)
-          : comp.remaining_matchdays || 1
-        setNumMatchdays(maxForFreeKick)
+        const formulaLimit = selectedTournamentType === 'free' ? freeMaxMatchdays : Infinity
+        const maxMatchdays = Math.min(formulaLimit, comp.remaining_matchdays || 1)
+        setNumMatchdays(maxMatchdays)
 
       } catch (err: any) {
         setError(err.message)
@@ -227,17 +226,17 @@ export default function TableauNoirPage() {
   useEffect(() => {
     if (!competition) return
 
-    // Calculer la limite de journées selon le type
-    const maxMatchdaysForType = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
-      ? Math.min(pricingLimits.freeMaxMatchdays, competition.remaining_matchdays)
-      : competition.remaining_matchdays
+    // Limite de la formule (Free-Kick = 10, autres = illimité)
+    const formulaLimit = selectedTournamentType === 'free' ? (pricingLimits.freeMaxMatchdays || 10) : Infinity
+    // Max effectif = min entre la limite de formule et les journées restantes
+    const maxMatchdaysForType = Math.min(formulaLimit, competition.remaining_matchdays)
 
     // Ajuster numMatchdays si hors limites
     if (numMatchdays > maxMatchdaysForType) {
       setNumMatchdays(maxMatchdaysForType)
     }
-    // Désactiver "tous restants" si on passe à free et que la limite est dépassée
-    if (allMatchdays && selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays && competition.remaining_matchdays > pricingLimits.freeMaxMatchdays) {
+    // Ajuster allMatchdays si on passe à free et que la limite de formule s'applique
+    if (allMatchdays && formulaLimit < competition.remaining_matchdays) {
       setNumMatchdays(maxMatchdaysForType)
     }
   }, [selectedTournamentType, pricingLimits, competition])
@@ -421,7 +420,7 @@ export default function TableauNoirPage() {
               <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center justify-center gap-2">
                 <Check className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-green-400">
-                  Type de tournoi pre-selectionne suite a votre achat
+                  Type de tournoi pré-sélectionné suite à votre achat
                 </span>
               </div>
             )}
@@ -489,10 +488,10 @@ export default function TableauNoirPage() {
                   <span className="text-xs text-gray-500">Max {pricingLimits.oneshotMaxPlayers} joueurs</span>
                   {credits.oneshot_credits > 0 || forcedType === 'oneshot' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'oneshot' ? '1' : credits.oneshot_credits} credit(s)
+                      <Check className="w-3 h-3" /> {forcedType === 'oneshot' ? '1' : credits.oneshot_credits} crédit(s)
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun credit</span>
+                    <span className="text-xs text-gray-500">Aucun crédit</span>
                   )}
                 </div>
               </button>
@@ -529,10 +528,10 @@ export default function TableauNoirPage() {
                   <span className="text-xs text-gray-500">Max {pricingLimits.eliteMaxPlayers} joueurs</span>
                   {credits.elite_credits > 0 || forcedType === 'elite' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'elite' ? '1' : credits.elite_credits} credit(s)
+                      <Check className="w-3 h-3" /> {forcedType === 'elite' ? '1' : credits.elite_credits} crédit(s)
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun credit</span>
+                    <span className="text-xs text-gray-500">Aucun crédit</span>
                   )}
                 </div>
               </button>
@@ -572,7 +571,7 @@ export default function TableauNoirPage() {
                       <Check className="w-3 h-3" /> {forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)} place{(forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)) > 1 ? 's' : ''}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun credit</span>
+                    <span className="text-xs text-gray-500">Aucun crédit</span>
                   )}
                 </div>
               </button>
@@ -582,7 +581,7 @@ export default function TableauNoirPage() {
             {!forcedType && (credits.oneshot_credits === 0 && credits.elite_credits === 0 && credits.platinium_solo_credits === 0 && credits.platinium_group_slots === 0) && (
               <div className="mt-4 text-center">
                 <Link href="/pricing" className="text-sm text-orange-400 hover:text-orange-300 underline">
-                  Acheter des credits pour debloquer plus d'options
+                  Acheter des crédits pour débloquer plus d'options
                 </Link>
               </div>
             )}
@@ -663,12 +662,25 @@ export default function TableauNoirPage() {
             {/* Nombre de journées */}
             <div>
               {(() => {
-                // Calcul de la limite max de journées selon le type de tournoi
-                const maxMatchdaysForType = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays
-                  ? Math.min(pricingLimits.freeMaxMatchdays, competition.remaining_matchdays)
-                  : competition.remaining_matchdays
-                const isFreeKickLimited = selectedTournamentType === 'free' && pricingLimits.freeMaxMatchdays && pricingLimits.freeMaxMatchdays < competition.remaining_matchdays
+                // Limite de la formule (Free-Kick = 10, autres = illimité)
+                const formulaLimit = selectedTournamentType === 'free' ? (pricingLimits.freeMaxMatchdays || 10) : Infinity
+                // Max effectif = min entre la limite de formule et les journées restantes de la compétition
+                const maxMatchdaysForType = Math.min(formulaLimit, competition.remaining_matchdays)
+                // La formule limite-t-elle ? (Free-Kick avec plus de journées restantes que la limite)
+                const isFormulaLimited = selectedTournamentType === 'free' && formulaLimit < competition.remaining_matchdays
+                // La compétition limite-t-elle ? (moins de journées restantes que la limite de formule)
+                const isCompetitionLimited = competition.remaining_matchdays <= formulaLimit
                 const effectiveNumMatchdays = allMatchdays ? maxMatchdaysForType : Math.min(numMatchdays, maxMatchdaysForType)
+
+                // Message à afficher
+                let matchdayMessage: string
+                if (isFormulaLimited) {
+                  matchdayMessage = `Limité à ${formulaLimit} journées en Free-Kick`
+                } else if (isCompetitionLimited) {
+                  matchdayMessage = `Il ne reste que ${competition.remaining_matchdays} journée${competition.remaining_matchdays > 1 ? 's' : ''} dans la compétition`
+                } else {
+                  matchdayMessage = 'Le tournoi se déroulera sur :'
+                }
 
                 return (
                   <>
@@ -676,10 +688,7 @@ export default function TableauNoirPage() {
                       Nombre de journées
                     </label>
                     <p className="text-sm theme-text-secondary mb-4 text-center">
-                      {isFreeKickLimited
-                        ? `Limité à ${pricingLimits.freeMaxMatchdays} journées en Free-Kick`
-                        : 'Le tournoi se déroulera sur :'
-                      }
+                      {matchdayMessage}
                     </p>
                     <div className="flex items-start justify-center gap-3 mb-3">
                       <button
@@ -720,16 +729,16 @@ export default function TableauNoirPage() {
                     </div>
                     <div className="flex items-center justify-center gap-2">
                       <label htmlFor="toggle-all-matchdays" className="text-sm theme-text">
-                        {isFreeKickLimited
+                        {isFormulaLimited
                           ? `Maximum (${maxMatchdaysForType})`
-                          : `Tous restants (${maxMatchdaysForType})`
+                          : `Toutes (${maxMatchdaysForType})`
                         }
                       </label>
                       <button
                         type="button"
                         id="toggle-all-matchdays"
                         aria-pressed={allMatchdays}
-                        aria-label={isFreeKickLimited ? `Activer maximum ${maxMatchdaysForType} journées` : `Activer tous les ${maxMatchdaysForType} matchs restants`}
+                        aria-label={isFormulaLimited ? `Activer maximum ${maxMatchdaysForType} journées` : `Activer toutes les ${maxMatchdaysForType} journées restantes`}
                         onClick={() => {
                           setAllMatchdays(!allMatchdays)
                           if (!allMatchdays) {
