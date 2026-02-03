@@ -106,13 +106,18 @@ export async function GET(
     const allMatches = matchesResult.data || []
     const now = new Date()
 
+    // Buffer de 30 minutes pour la clôture des pronostics (comme dans l'API start)
+    const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
+    const closingTime = new Date(now.getTime() + closingBuffer)
+
     // Calculer les stats de matchdays par paire (stage, matchday)
     // Pour gérer les knockouts où le matchday redémarre à 1 par stage
     const matchdayStats: Record<string, {
       total: number,
       finished: number,
       firstMatchDate: Date | null,
-      allFinished: boolean
+      allFinished: boolean,
+      isPlayable: boolean // Basé sur la date du premier match, pas seulement le statut
     }> = {}
 
     allMatches.forEach((match: any) => {
@@ -122,7 +127,8 @@ export async function GET(
           total: 0,
           finished: 0,
           firstMatchDate: null,
-          allFinished: true
+          allFinished: true,
+          isPlayable: true
         }
       }
       matchdayStats[key].total++
@@ -138,38 +144,37 @@ export async function GET(
       }
     })
 
-    const finishedMatchdaysCount = Object.values(matchdayStats)
-      .filter(stats => stats.allFinished).length
+    // Déterminer si chaque journée est jouable basé sur la DATE du premier match
+    // Une journée n'est PAS jouable si son premier match est déjà clôturé (< 30 min avant le coup d'envoi)
+    // Cela évite les bugs quand les matchs ne sont pas marqués FINISHED dans la BDD
+    Object.values(matchdayStats).forEach(stats => {
+      if (stats.firstMatchDate) {
+        // La journée est jouable seulement si le premier match n'est pas encore clôturé
+        stats.isPlayable = stats.firstMatchDate > closingTime
+      } else {
+        // Pas de date de match = considérer comme jouable si pas encore terminé
+        stats.isPlayable = !stats.allFinished
+      }
+    })
 
-    const startingMatchdaysCount = Object.values(matchdayStats)
-      .filter(stats => {
-        if (stats.allFinished) return false
-        if (stats.firstMatchDate) {
-          const hoursUntilMatch = (stats.firstMatchDate.getTime() - now.getTime()) / (1000 * 60 * 60)
-          return hoursUntilMatch < 2
-        }
-        return false
-      }).length
+    // Compter les journées jouables (basé sur les dates, plus fiable que le statut)
+    const playableMatchdaysCount = Object.values(matchdayStats)
+      .filter(stats => stats.isPlayable).length
 
     const importedMatchdaysCount = Object.keys(matchdayStats).length
     const totalMatchdays = comp.total_matchdays || importedMatchdaysCount
-    const remainingMatchdays = Math.max(0, totalMatchdays - finishedMatchdaysCount - startingMatchdaysCount)
+
+    // remaining_matchdays = nombre de journées encore jouables
+    const remainingMatchdays = playableMatchdaysCount
 
     const remainingMatchdayKeys = Object.entries(matchdayStats)
-      .filter(([_, stats]) => {
-        if (stats.allFinished) return false
-        if (stats.firstMatchDate) {
-          const hoursUntilMatch = (stats.firstMatchDate.getTime() - now.getTime()) / (1000 * 60 * 60)
-          if (hoursUntilMatch < 2) return false
-        }
-        return true
-      })
+      .filter(([_, stats]) => stats.isPlayable)
       .map(([key]) => key)
 
     const remainingMatches = allMatches.filter(
       (m: any) => {
         const key = `${m.stage || 'REGULAR_SEASON'}_${m.matchday}`
-        return m.status !== 'FINISHED' && remainingMatchdayKeys.includes(key)
+        return remainingMatchdayKeys.includes(key) && m.status !== 'FINISHED'
       }
     ).length
 
