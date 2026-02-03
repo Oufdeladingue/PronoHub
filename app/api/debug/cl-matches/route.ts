@@ -1,8 +1,50 @@
 import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const checkDb = searchParams.get('db') === 'true'
+
+  // Si on veut vérifier la BDD
+  if (checkDb) {
+    const supabase = createAdminClient()
+
+    // Infos sur la compétition CL
+    const { data: competition } = await supabase
+      .from('competitions')
+      .select('id, name, is_active, current_matchday, total_matchdays, current_season_end_date, last_updated_at')
+      .eq('id', 2001)
+      .single()
+
+    // Nombre de matchs par stage
+    const { data: matchesByStage } = await supabase
+      .from('imported_matches')
+      .select('stage')
+      .eq('competition_id', 2001)
+
+    const stageCount: Record<string, number> = {}
+    matchesByStage?.forEach((m: any) => {
+      const stage = m.stage || 'NULL'
+      stageCount[stage] = (stageCount[stage] || 0) + 1
+    })
+
+    // Total matchs
+    const { count: totalMatches } = await supabase
+      .from('imported_matches')
+      .select('*', { count: 'exact', head: true })
+      .eq('competition_id', 2001)
+
+    return NextResponse.json({
+      database: {
+        competition,
+        totalMatchesInDb: totalMatches,
+        matchesByStage: stageCount
+      }
+    })
+  }
+
   const apiKey = process.env.FOOTBALL_DATA_API_KEY
 
   if (!apiKey) {
