@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 /**
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const now = new Date().toISOString()
 
     console.log('[FINALIZE-TOURNAMENTS] Starting finalization check at:', now)
