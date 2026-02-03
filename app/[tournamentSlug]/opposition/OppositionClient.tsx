@@ -1845,7 +1845,7 @@ export default function OppositionClient({
                             key={matchday}
                             ref={(el) => { matchdayButtonRefs.current[matchday] = el }}
                             onClick={() => setSelectedMatchday(matchday)}
-                            className={`relative px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] flex-shrink-0 ${
+                            className={`relative px-2 py-3 md:px-3 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center justify-center w-[70px] md:w-[85px] flex-shrink-0 ${
                               isActive
                                 ? 'bg-[#ff9900] text-[#0f172a]'
                                 : isFinished
@@ -1862,7 +1862,7 @@ export default function OppositionClient({
                                 title="Vous avez des pronostics manquants pour cette journée"
                               />
                             )}
-                            <span className={isKnockoutStage(stage) ? "text-sm md:text-base" : "text-lg md:text-xl"}>{matchdayLabel}</span>
+                            <span className={isKnockoutStage(stage) ? "text-[11px] md:text-xs leading-tight" : "text-lg md:text-xl"}>{matchdayLabel}</span>
                             <span className={`text-[10px] md:text-xs mt-1 font-medium ${
                               isActive
                                 ? 'text-[#0f172a]'
