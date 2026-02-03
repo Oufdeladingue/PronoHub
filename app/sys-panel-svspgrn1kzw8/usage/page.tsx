@@ -1407,8 +1407,12 @@ export default function AdminUsagePage() {
                                   {detailModal.detail.participants.map((p) => (
                                     <div
                                       key={p.user_id}
-                                      className="p-3 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                                      className="p-3 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors active:bg-purple-100"
                                       onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                      onTouchEnd={(e) => {
+                                        e.preventDefault()
+                                        openUserDetailModal(p.user_id, p.username)
+                                      }}
                                     >
                                       <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">

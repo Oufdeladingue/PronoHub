@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sendNotificationToUser } from '@/lib/notifications'
 
 // GET - Récupérer les messages du tournoi
 export async function GET(
@@ -139,6 +140,62 @@ export async function POST(
       user_id: newMessage.user_id,
       username: (newMessage.profiles as any)?.username || 'Inconnu',
       avatar: (newMessage.profiles as any)?.avatar || 'avatar1'
+    }
+
+    // Détecter les mentions (@username) et envoyer des notifications
+    const mentionRegex = /@(\w+)/g
+    const mentions = [...message.matchAll(mentionRegex)].map(match => match[1])
+
+    if (mentions.length > 0) {
+      // Récupérer le nom du tournoi et l'auteur du message
+      const { data: tournament } = await supabase
+        .from('tournaments')
+        .select('name, slug')
+        .eq('id', tournamentId)
+        .single()
+
+      const senderUsername = (newMessage.profiles as any)?.username || 'Un joueur'
+
+      // Récupérer les participants du tournoi avec leurs usernames
+      const { data: participants } = await supabase
+        .from('tournament_participants')
+        .select(`
+          user_id,
+          profiles:user_id (
+            username
+          )
+        `)
+        .eq('tournament_id', tournamentId)
+
+      // Pour chaque mention, envoyer une notification
+      for (const mentionedUsername of mentions) {
+        // Trouver l'utilisateur mentionné parmi les participants
+        const mentionedUser = participants?.find(
+          p => (p.profiles as any)?.username?.toLowerCase() === mentionedUsername.toLowerCase()
+        )
+
+        if (mentionedUser && mentionedUser.user_id !== user.id) {
+          // Ne pas notifier l'auteur du message
+          try {
+            await sendNotificationToUser(
+              mentionedUser.user_id,
+              'mention',
+              {
+                body: `${senderUsername} t'a mentionné dans ${tournament?.name || 'le tournoi'}`,
+                tournamentSlug: tournament?.slug || '',
+                data: {
+                  username: senderUsername,
+                  tournamentName: tournament?.name || 'le tournoi',
+                  message: message.substring(0, 100) // Limiter la longueur
+                }
+              }
+            )
+          } catch (notifError) {
+            console.error(`Erreur envoi notification mention pour ${mentionedUsername}:`, notifError)
+            // Ne pas bloquer l'envoi du message si la notification échoue
+          }
+        }
+      }
     }
 
     return NextResponse.json({ message: formattedMessage }, { status: 201 })
