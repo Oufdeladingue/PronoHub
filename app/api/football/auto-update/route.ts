@@ -199,6 +199,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
           stage: match.stage || null,
           utc_date: match.utcDate,
           status: match.status,
+          finished: match.status === 'FINISHED', // Flag booléen pour marquer les matchs terminés
           home_team_id: match.homeTeam?.id || 0,
           home_team_name: match.homeTeam?.name || 'À déterminer',
           home_team_crest: match.homeTeam?.crest || null,
