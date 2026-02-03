@@ -1832,12 +1832,14 @@ export default function OppositionClient({
                         const isFinished = matchdayStatus === 'Terminée'
                         const isInProgress = matchdayStatus === 'En cours'
                         const isActive = selectedMatchday === matchday
-                        const stage = matchdayStages[matchday]
+                        // Pour les tournois custom, toujours afficher J{matchday} (pas de stages)
+                        // Protection contre le cache WebView qui pourrait avoir d'anciennes données
+                        const stage = tournament.custom_competition_id ? null : matchdayStages[matchday]
                         // Vérifier si des matchs existent pour cette journée
                         // Utiliser virtual_matchday pour les compétitions knockout
                         const hasMatchesForMatchday = allMatches.some((m: any) => (m.virtual_matchday || m.matchday) === matchday)
                         // Calculer le leg (Aller/Retour) pour les phases knockout
-                        const leg = getLegNumber(matchday, matchdayStages)
+                        const leg = tournament.custom_competition_id ? undefined : getLegNumber(matchday, matchdayStages)
                         const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday, leg)
                         const showWarning = shouldShowMatchdayWarning(matchday)
                         return (
