@@ -167,6 +167,16 @@ export interface CaptainTransferEmailProps {
   tournamentStatus: string // 'pending' | 'warmup' | 'active'
 }
 
+// Interface pour mention dans le chat
+export interface MentionEmailProps {
+  username: string // Username de la personne mentionnée
+  senderUsername: string // Username de celui qui mentionne
+  tournamentName: string
+  tournamentSlug: string
+  competitionName?: string
+  message: string // Le message complet (tronqué à 200 chars)
+}
+
 // Interface pour rappel multi-tournois (plusieurs tournois dans un seul email)
 export interface MultiTournamentReminderEmailProps {
   username: string
@@ -2014,6 +2024,136 @@ Bonne chance capitaine ! ⚽
     html,
     text,
     subject: `👑 Tu es le nouveau capitaine de ${tournamentName}`
+  }
+}
+
+// Template: Mention dans le chat
+export function getMentionTemplate(props: MentionEmailProps) {
+  const {
+    username,
+    senderUsername,
+    tournamentName,
+    tournamentSlug,
+    competitionName,
+    message
+  } = props
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+  const chatUrl = `${baseUrl}/${tournamentSlug}/opposition?tab=tchat`
+
+  // Tronquer le message si trop long (afficher 200 premiers caractères)
+  const displayMessage = message.length > 200 ? message.substring(0, 200) + '...' : message
+
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>On parle de toi dans le vestiaire !</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <span style="font-size: 48px;">💬</span>
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 28px; font-weight: 700;">On parle de toi !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                <strong style="color: #94a3b8;">${senderUsername}</strong> t'a mentionné dans le tchat du tournoi <strong style="color: #ff9900;">${tournamentName}</strong>.
+              </p>
+
+              <!-- Tournament Info -->
+              ${competitionName ? `
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0; color: #94a3b8; font-size: 14px;">
+                  ⚽ <strong>${competitionName}</strong>
+                </p>
+              </div>
+              ` : ''}
+
+              <!-- Message Preview -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin: 24px 0; border-left: 4px solid #ff9900;">
+                <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 16px;">Message :</h3>
+                <p style="margin: 0; color: #e0e0e0; font-size: 15px; line-height: 1.6; font-style: italic;">
+                  "${displayMessage}"
+                </p>
+              </div>
+
+              <!-- CTA Button -->
+              <table role="presentation" style="width: 100%; margin: 32px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${chatUrl}" style="display: inline-block; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                      Voir le message
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0; color: #64748b; font-size: 14px; text-align: center;">
+                Va voir ce qu'il se dit dans le vestiaire ! 💬
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; text-align: center;">
+              <p style="margin: 0 0 8px; color: #64748b; font-size: 12px;">
+                © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+              </p>
+              <p style="margin: 0; color: #475569; font-size: 11px;">
+                <a href="${baseUrl}/settings/notifications" style="color: #475569; text-decoration: underline;">Gérer mes notifications</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const text = `
+💬 ON PARLE DE TOI DANS LE VESTIAIRE !
+
+Salut ${username} !
+
+${senderUsername} t'a mentionné dans le tchat du tournoi "${tournamentName}".
+
+${competitionName ? `⚽ ${competitionName}\n` : ''}
+📝 MESSAGE
+---
+"${displayMessage}"
+
+👉 Voir le message : ${chatUrl}
+
+Va voir ce qu'il se dit dans le vestiaire ! 💬
+
+---
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return {
+    html,
+    text,
+    subject: `💬 ${senderUsername} t'a mentionné dans ${tournamentName}`
   }
 }
 

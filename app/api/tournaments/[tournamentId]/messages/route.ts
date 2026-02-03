@@ -146,15 +146,32 @@ export async function POST(
     const mentionRegex = /@(\w+)/g
     const mentions = [...message.matchAll(mentionRegex)].map(match => match[1])
 
+    console.log('[MENTION DEBUG] Message content:', message)
+    console.log('[MENTION DEBUG] Mentions detected:', mentions)
+
     if (mentions.length > 0) {
-      // Récupérer le nom du tournoi et l'auteur du message
+      // Récupérer le nom du tournoi, compétition et l'auteur du message
       const { data: tournament } = await supabase
         .from('tournaments')
-        .select('name, slug')
+        .select(`
+          name,
+          slug,
+          competition_id,
+          custom_competition_id,
+          competitions:competition_id (name),
+          custom_competitions:custom_competition_id (name)
+        `)
         .eq('id', tournamentId)
         .single()
 
       const senderUsername = (newMessage.profiles as any)?.username || 'Un joueur'
+      const competitionName = (tournament?.competitions as any)?.name
+        || (tournament?.custom_competitions as any)?.name
+        || undefined
+
+      console.log('[MENTION DEBUG] Tournament:', tournament)
+      console.log('[MENTION DEBUG] Sender username:', senderUsername)
+      console.log('[MENTION DEBUG] Competition name:', competitionName)
 
       // Récupérer les participants du tournoi avec leurs usernames
       const { data: participants } = await supabase
@@ -167,17 +184,26 @@ export async function POST(
         `)
         .eq('tournament_id', tournamentId)
 
+      console.log('[MENTION DEBUG] Participants fetched:', participants?.length || 0)
+      console.log('[MENTION DEBUG] Participants usernames:', participants?.map(p => (p.profiles as any)?.username))
+
       // Pour chaque mention, envoyer une notification
       for (const mentionedUsername of mentions) {
+        console.log('[MENTION DEBUG] Processing mention for:', mentionedUsername)
+
         // Trouver l'utilisateur mentionné parmi les participants
         const mentionedUser = participants?.find(
           p => (p.profiles as any)?.username?.toLowerCase() === mentionedUsername.toLowerCase()
         )
 
+        console.log('[MENTION DEBUG] Mentioned user found:', mentionedUser)
+        console.log('[MENTION DEBUG] Is self-mention?', mentionedUser?.user_id === user.id)
+
         if (mentionedUser && mentionedUser.user_id !== user.id) {
           // Ne pas notifier l'auteur du message
+          console.log('[MENTION DEBUG] Sending notification to user_id:', mentionedUser.user_id)
           try {
-            await sendNotificationToUser(
+            const result = await sendNotificationToUser(
               mentionedUser.user_id,
               'mention',
               {
@@ -186,14 +212,18 @@ export async function POST(
                 data: {
                   username: senderUsername,
                   tournamentName: tournament?.name || 'le tournoi',
-                  message: message.substring(0, 100) // Limiter la longueur
+                  competitionName: competitionName,
+                  message: message.substring(0, 200) // Limiter la longueur (200 chars pour l'email)
                 }
               }
             )
+            console.log('[MENTION DEBUG] Notification sent successfully:', result)
           } catch (notifError) {
-            console.error(`Erreur envoi notification mention pour ${mentionedUsername}:`, notifError)
+            console.error(`[MENTION DEBUG] Erreur envoi notification mention pour ${mentionedUsername}:`, notifError)
             // Ne pas bloquer l'envoi du message si la notification échoue
           }
+        } else {
+          console.log('[MENTION DEBUG] Skipped notification for:', mentionedUsername, '(user not found or self-mention)')
         }
       }
     }

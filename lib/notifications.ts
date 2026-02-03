@@ -1,10 +1,11 @@
 /**
- * Service de notifications push
+ * Service de notifications push et email
  * Gère l'envoi de notifications en fonction des préférences utilisateur
  */
 
 import { createClient } from '@/lib/supabase/server'
 import { sendPushNotification, sendPushNotificationToMany, NotificationType } from '@/lib/firebase-admin'
+import { sendMentionEmail } from '@/lib/email/send'
 
 // Types de notifications avec leurs configurations
 // Utilise les mêmes préférences que les emails pour être synchronisé
@@ -85,23 +86,35 @@ export async function sendNotificationToUser(
     tournamentSlug?: string
   }
 ): Promise<boolean> {
+  console.log('[NOTIFICATION DEBUG] sendNotificationToUser called:', { userId, type, options })
+
   const supabase = await createClient()
 
-  // Récupérer le profil avec token et préférences
+  // Récupérer le profil avec token, préférences ET email
   const { data: profile } = await supabase
     .from('profiles')
-    .select('fcm_token, notification_preferences, username')
+    .select('fcm_token, notification_preferences, username, email')
     .eq('id', userId)
     .single()
 
-  if (!profile?.fcm_token) {
-    console.log(`[Notifications] Pas de token FCM pour user ${userId}`)
-    return false
-  }
+  console.log('[NOTIFICATION DEBUG] Profile fetched:', {
+    userId,
+    hasFcmToken: !!profile?.fcm_token,
+    hasEmail: !!profile?.email,
+    username: profile?.username,
+    notificationPreferences: profile?.notification_preferences
+  })
 
   // Vérifier les préférences
   const config = NOTIFICATION_CONFIG[type]
-  const prefs = profile.notification_preferences || {}
+  const prefs = profile?.notification_preferences || {}
+
+  console.log('[NOTIFICATION DEBUG] Checking preference:', {
+    type,
+    prefKey: config.prefKey,
+    prefValue: prefs[config.prefKey],
+    isDisabled: prefs[config.prefKey] === false
+  })
 
   // Si la préférence est explicitement désactivée, ne pas envoyer
   if (prefs[config.prefKey] === false) {
@@ -114,7 +127,7 @@ export async function sendNotificationToUser(
   let body = options?.body || config.defaultBody
 
   // Personnaliser avec le username si disponible
-  body = body.replace('{username}', profile.username || 'champion')
+  body = body.replace('{username}', profile?.username || 'champion')
 
   // Données pour le clic
   const data: Record<string, string> = {
@@ -125,7 +138,52 @@ export async function sendNotificationToUser(
     ...(options?.data || {}),
   }
 
-  return sendPushNotification(profile.fcm_token, title, body, data)
+  let pushResult = false
+  let emailResult = false
+
+  // 1. Envoyer la notification push si token FCM disponible
+  if (profile?.fcm_token) {
+    console.log('[NOTIFICATION DEBUG] Calling sendPushNotification:', {
+      fcmToken: profile.fcm_token.substring(0, 20) + '...',
+      title,
+      body,
+      data
+    })
+
+    try {
+      pushResult = await sendPushNotification(profile.fcm_token, title, body, data)
+      console.log('[NOTIFICATION DEBUG] sendPushNotification result:', pushResult)
+    } catch (error) {
+      console.error('[NOTIFICATION DEBUG] Push notification failed:', error)
+    }
+  } else {
+    console.log('[Notifications] Pas de token FCM pour user ${userId}, pas de push envoyé')
+  }
+
+  // 2. Envoyer un email si c'est une mention et que l'email est disponible
+  if (type === 'mention' && profile?.email) {
+    console.log('[NOTIFICATION DEBUG] Sending mention email to:', profile.email)
+
+    try {
+      const emailProps = {
+        username: profile.username || 'champion',
+        senderUsername: options?.data?.username || 'Un joueur',
+        tournamentName: options?.data?.tournamentName || 'le tournoi',
+        tournamentSlug: options?.tournamentSlug || '',
+        competitionName: options?.data?.competitionName,
+        message: options?.data?.message || ''
+      }
+
+      const emailSendResult = await sendMentionEmail(profile.email, emailProps)
+      emailResult = emailSendResult.success
+      console.log('[NOTIFICATION DEBUG] Email send result:', emailSendResult)
+    } catch (error) {
+      console.error('[NOTIFICATION DEBUG] Email send failed:', error)
+    }
+  }
+
+  // Retourner true si au moins une notification a été envoyée avec succès
+  return pushResult || emailResult
 }
 
 /**

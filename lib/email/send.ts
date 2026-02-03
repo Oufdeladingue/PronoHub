@@ -15,6 +15,7 @@ import {
   getTournamentEndTemplate,
   getTournamentInviteDetailedTemplate,
   getNewPlayerJoinedTemplate,
+  getMentionTemplate,
   getMultiTournamentReminderTemplate,
   getInactiveUserReminderTemplate,
   getMatchdayChangesTemplate,
@@ -25,6 +26,7 @@ import {
   TournamentEndEmailProps,
   TournamentInviteDetailedEmailProps,
   NewPlayerJoinedEmailProps,
+  MentionEmailProps,
   MultiTournamentReminderEmailProps,
   InactiveUserReminderEmailProps,
   MatchdayChangesEmailProps
@@ -152,6 +154,15 @@ export async function sendNewPlayerJoinedEmail(
   props: NewPlayerJoinedEmailProps
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getNewPlayerJoinedTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email mention dans le tchat
+export async function sendMentionEmail(
+  to: string,
+  props: MentionEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getMentionTemplate(props)
   return sendEmail(to, subject, html, text)
 }
 
