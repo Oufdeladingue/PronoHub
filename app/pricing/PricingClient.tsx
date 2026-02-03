@@ -144,7 +144,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
   const handleCheckout = async (planType: string) => {
     if (!isLoggedIn) {
-      router.push('/auth?redirect=/pricing')
+      router.push('/auth/login?redirect=/pricing')
       return
     }
 
@@ -273,7 +273,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               {/* Bouton conditionnel selon les quotas */}
               {!isLoggedIn ? (
                 <button
-                  onClick={() => router.push('/auth')}
+                  onClick={() => router.push('/auth/signup')}
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
                 >
                   Commencer gratuitement
@@ -462,7 +462,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               <button
                 onClick={() => {
                   if (!isLoggedIn) {
-                    router.push('/auth?redirect=/pricing')
+                    router.push('/auth/login?redirect=/pricing')
                     return
                   }
                   setShowPlatiniumModal(true)

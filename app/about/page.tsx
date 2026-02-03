@@ -110,7 +110,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/auth"
+              href="/auth/signup"
               className="px-8 py-4 bg-[#ff9900] hover:bg-[#e68a00] text-black font-bold rounded-lg transition-all transform hover:scale-105"
             >
               Créer un compte
