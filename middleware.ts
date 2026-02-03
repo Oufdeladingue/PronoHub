@@ -5,11 +5,14 @@ export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') || ''
 
   // Rediriger pronohub.club vers www.pronohub.club pour cohérence des cookies
-  if (host === 'pronohub.club' || host.startsWith('pronohub.club:')) {
-    const redirectUrl = new URL(request.url)
-    redirectUrl.host = 'www.pronohub.club'
-    redirectUrl.port = '' // Supprimer le port interne
-    return NextResponse.redirect(redirectUrl.toString(), 301)
+  // Aussi gérer le cas où le port interne (3000) est exposé
+  if (host === 'pronohub.club' || host.startsWith('pronohub.club:') ||
+      host === 'www.pronohub.club:3000' || host.startsWith('www.pronohub.club:')) {
+    // Construire l'URL de redirection proprement sans utiliser request.url
+    const pathname = request.nextUrl.pathname
+    const search = request.nextUrl.search
+    const redirectUrl = `https://www.pronohub.club${pathname}${search}`
+    return NextResponse.redirect(redirectUrl, 301)
   }
 
   return await updateSession(request)
