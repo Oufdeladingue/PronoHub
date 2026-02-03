@@ -10,7 +10,7 @@ import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
-import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
+import { getStageShortLabel, getLegNumber, isKnockoutStage, type StageType } from '@/lib/stage-formatter'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
@@ -1862,7 +1862,7 @@ export default function OppositionClient({
                                 title="Vous avez des pronostics manquants pour cette journée"
                               />
                             )}
-                            <span className="text-lg md:text-xl">{matchdayLabel}</span>
+                            <span className={isKnockoutStage(stage) ? "text-sm md:text-base" : "text-lg md:text-xl"}>{matchdayLabel}</span>
                             <span className={`text-[10px] md:text-xs mt-1 font-medium ${
                               isActive
                                 ? 'text-[#0f172a]'
