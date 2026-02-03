@@ -125,11 +125,12 @@ export async function GET(request: NextRequest) {
   // Récupérer tous les matchs
   const allMatches = await fetchAllMatches(supabase, tournamentData)
 
-  // Calculer les stages par matchday
+  // Calculer les stages par matchday (utilise virtual_matchday si présent pour les compétitions knockout)
   const matchdayStages: Record<number, string | null> = {}
   allMatches.forEach((match: any) => {
-    if (match.matchday && !matchdayStages[match.matchday]) {
-      matchdayStages[match.matchday] = match.stage || null
+    const md = match.virtual_matchday || match.matchday
+    if (md && !matchdayStages[md]) {
+      matchdayStages[md] = match.stage || null
     }
   })
 
@@ -276,15 +277,80 @@ async function fetchAllMatches(supabase: any, tournament: any) {
       }).sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
     }
   } else if (tournament.competition_id) {
-    const { data: allMatchesData } = await supabase
-      .from('imported_matches')
-      .select('*')
-      .eq('competition_id', tournament.competition_id)
-      .gte('matchday', startMatchday)
-      .lte('matchday', endMatchday)
-      .order('utc_date', { ascending: true })
+    // Liste des phases knockout reconnues
+    const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
 
-    matchesData = allMatchesData || []
+    // Vérifier si la compétition a des phases knockout
+    const { data: knockoutCheck } = await supabase
+      .from('imported_matches')
+      .select('id')
+      .eq('competition_id', tournament.competition_id)
+      .in('stage', KNOCKOUT_STAGES)
+      .limit(1)
+
+    const hasKnockoutStages = knockoutCheck && knockoutCheck.length > 0
+
+    if (hasKnockoutStages) {
+      // Compétition avec knockout: deux requêtes parallèles
+      const [leagueStageResult, knockoutResult] = await Promise.all([
+        // 1. Matchs de phase de ligue dans la plage de matchdays
+        supabase
+          .from('imported_matches')
+          .select('*')
+          .eq('competition_id', tournament.competition_id)
+          .not('stage', 'in', `(${KNOCKOUT_STAGES.map(s => `"${s}"`).join(',')})`)
+          .gte('matchday', startMatchday)
+          .lte('matchday', endMatchday),
+        // 2. Tous les matchs knockout
+        supabase
+          .from('imported_matches')
+          .select('*')
+          .eq('competition_id', tournament.competition_id)
+          .in('stage', KNOCKOUT_STAGES)
+      ])
+
+      const leagueMatches = leagueStageResult.data || []
+      const knockoutMatches = knockoutResult.data || []
+
+      // Ordre des phases knockout avec leur base de journée virtuelle
+      const STAGE_ORDER: Record<string, number> = {
+        'LEAGUE_STAGE': 0,
+        'PLAYOFFS': 8,
+        'LAST_16': 10,
+        'QUARTER_FINALS': 12,
+        'SEMI_FINALS': 14,
+        'FINAL': 16
+      }
+
+      // Ajouter la journée virtuelle aux matchs
+      const leagueWithVirtual = leagueMatches.map((m: any) => ({
+        ...m,
+        virtual_matchday: m.matchday
+      }))
+
+      const knockoutWithVirtual = knockoutMatches.map((m: any) => {
+        const baseMatchday = STAGE_ORDER[m.stage] || 8
+        return {
+          ...m,
+          virtual_matchday: baseMatchday + (m.matchday || 1)
+        }
+      })
+
+      // Fusionner et trier par date
+      matchesData = [...leagueWithVirtual, ...knockoutWithVirtual]
+        .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+    } else {
+      // Compétition classique (ligue): filtre par matchday uniquement
+      const { data: allMatchesData } = await supabase
+        .from('imported_matches')
+        .select('*')
+        .eq('competition_id', tournament.competition_id)
+        .gte('matchday', startMatchday)
+        .lte('matchday', endMatchday)
+        .order('utc_date', { ascending: true })
+
+      matchesData = allMatchesData || []
+    }
   }
 
   return matchesData
