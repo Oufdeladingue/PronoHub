@@ -143,7 +143,8 @@ export async function POST(
     }
 
     // Détecter les mentions (@username) et envoyer des notifications
-    const mentionRegex = /@(\w+)/g
+    // Regex qui capture les lettres, chiffres, underscore ET apostrophes
+    const mentionRegex = /@([\w']+)/g
     const mentions = [...message.matchAll(mentionRegex)].map(match => match[1])
 
     console.log('[MENTION DEBUG] Message content:', message)
