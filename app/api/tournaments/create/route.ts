@@ -29,7 +29,8 @@ async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
   canCreate: boolean;
   currentCount: number;
 }> {
-  // Compter les tournois FREE actifs (non legacy, non événement) où l'utilisateur participe avec slot gratuit
+  // Compter TOUS les tournois FREE actifs (non legacy, non événement) - gratuits ET payants
+  // Car un slot acheté peut servir à créer OU rejoindre un Free-Kick
   const { data: participations } = await supabase
     .from('tournament_participants')
     .select(`
@@ -54,7 +55,6 @@ async function canCreateFreeTournament(supabase: any, userId: string): Promise<{
     (p.tournaments.tournament_type === 'free' || !p.tournaments.tournament_type) &&
     ['warmup', 'active', 'pending'].includes(p.tournaments.status) &&
     !p.tournaments.is_legacy &&
-    (p.invite_type === 'free' || !p.invite_type) &&
     // Exclure les tournois événement du comptage free-kick
     p.tournaments.competitions?.is_event !== true
   ).length
@@ -208,8 +208,9 @@ export async function POST(request: Request) {
     const tournamentType: TournamentType = requestedType || 'free'
     const rules = TOURNAMENT_RULES[tournamentType]
 
-    // Variables pour les slots événement
+    // Variables pour les slots événement et Free-Kick
     let usedEventSlotId: string | null = null
+    let usedFreeKickSlotId: string | null = null
 
     // Vérification des quotas pour les tournois événement
     if (isEventCompetition && tournamentType === 'free') {
@@ -241,14 +242,50 @@ export async function POST(request: Request) {
     else if (tournamentType === 'free') {
       const { canCreate, currentCount } = await canCreateFreeTournament(supabase, user.id)
       if (!canCreate) {
-        return NextResponse.json({
-          success: false,
-          error: `Vous avez atteint votre quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits actifs (${currentCount}/${PRICES.FREE_MAX_TOURNAMENTS}). Passez à One-Shot ou Elite Team pour créer plus de tournois.`,
-          needsUpgrade: true,
-          quotaExceeded: true,
-          currentCount,
-          maxCount: PRICES.FREE_MAX_TOURNAMENTS
-        }, { status: 403 })
+        // Quota atteint - vérifier si l'utilisateur a des slots achetés disponibles
+        const { data: availableSlots, count: slotsCount } = await supabase
+          .from('tournament_purchases')
+          .select('id', { count: 'exact' })
+          .eq('user_id', user.id)
+          .eq('purchase_type', 'slot_invite')
+          .eq('used', false)
+          .eq('status', 'completed')
+          .order('created_at', { ascending: true })
+
+        const { use_slot } = body
+
+        // Si des slots sont disponibles
+        if (availableSlots && availableSlots.length > 0) {
+          // Si l'utilisateur n'a pas confirmé l'utilisation du slot
+          if (!use_slot) {
+            return NextResponse.json({
+              success: false,
+              requiresSlot: true,
+              quotaExceeded: true,
+              currentCount,
+              maxCount: PRICES.FREE_MAX_TOURNAMENTS,
+              hasAvailableSlot: true,
+              availableSlotId: availableSlots[0].id,
+              availableSlotsCount: slotsCount || availableSlots.length,
+              message: `Quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits atteint. Utilisez un slot acheté (${slotsCount} disponible${slotsCount && slotsCount > 1 ? 's' : ''}) ou passez à One-Shot/Elite.`
+            }, { status: 402 })
+          }
+          // L'utilisateur a confirmé, on va utiliser le slot
+          usedFreeKickSlotId = availableSlots[0].id
+        } else {
+          // Pas de slots disponibles
+          return NextResponse.json({
+            success: false,
+            error: `Vous avez atteint votre quota de ${PRICES.FREE_MAX_TOURNAMENTS} tournois gratuits actifs (${currentCount}/${PRICES.FREE_MAX_TOURNAMENTS}). Achetez un slot à ${PRICES.SLOT_INVITE}€ ou passez à One-Shot/Elite Team.`,
+            needsUpgrade: true,
+            quotaExceeded: true,
+            currentCount,
+            maxCount: PRICES.FREE_MAX_TOURNAMENTS,
+            requiresPayment: true,
+            paymentAmount: PRICES.SLOT_INVITE,
+            paymentType: 'slot_invite'
+          }, { status: 403 })
+        }
       }
     }
 
@@ -462,6 +499,17 @@ export async function POST(request: Request) {
       participantData.amount_paid = PRICES.PLATINIUM_PARTICIPATION // 6.99€
       participantData.invite_type = 'paid_slot'
     }
+    // Si le créateur a utilisé un slot acheté pour créer un Free-Kick (quota atteint)
+    else if (tournamentType === 'free' && usedFreeKickSlotId) {
+      participantData.has_paid = true
+      participantData.paid_by_creator = false
+      participantData.amount_paid = PRICES.SLOT_INVITE // 0.99€
+      participantData.invite_type = 'paid_slot'
+    }
+    // Sinon, participation gratuite (slot gratuit ou événement gratuit)
+    else {
+      participantData.invite_type = 'free'
+    }
 
     const { error: playerError } = await supabase
       .from('tournament_participants')
@@ -504,6 +552,23 @@ export async function POST(request: Request) {
 
       if (updateError) {
         console.error('Error marking credits as used:', updateError)
+      }
+    }
+
+    // Marquer le slot Free-Kick comme utilisé si applicable
+    if (usedFreeKickSlotId) {
+      const { error: slotError } = await supabase
+        .from('tournament_purchases')
+        .update({
+          used: true,
+          used_at: new Date().toISOString(),
+          used_for_tournament_id: tournament.id,
+          tournament_id: tournament.id
+        })
+        .eq('id', usedFreeKickSlotId)
+
+      if (slotError) {
+        console.error('Error marking Free-Kick slot as used:', slotError)
       }
     }
 

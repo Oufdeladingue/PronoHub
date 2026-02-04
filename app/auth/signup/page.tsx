@@ -14,6 +14,7 @@ function SignUpForm() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [titleFontSize, setTitleFontSize] = useState(16)
@@ -97,6 +98,7 @@ function SignUpForm() {
   // Gestion de l'authentification OAuth
   const handleOAuthSignIn = async (provider: 'google') => {
     setError(null)
+    setGoogleLoading(true)
 
     try {
       // CAS 1: Google Sign-In natif Android (popup native)
@@ -124,6 +126,7 @@ function SignUpForm() {
           const errorMessage = nativeError instanceof Error ? nativeError.message : String(nativeError)
 
           if (errorMessage.includes('annulée') || errorMessage.includes('canceled')) {
+            setGoogleLoading(false)
             return
           }
 
@@ -146,6 +149,8 @@ function SignUpForm() {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
       setError(errorMessage)
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -200,6 +205,36 @@ function SignUpForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Afficher un loader plein écran pendant Google Sign-In
+  if (googleLoading) {
+    return (
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black z-50">
+        <div className="flex flex-col items-center gap-8">
+          {/* Logo PronoHub */}
+          <div className="relative">
+            <Image
+              src="/images/logo.svg"
+              alt="PronoHub"
+              width={120}
+              height={120}
+              className="w-24 h-24 md:w-32 md:h-32"
+            />
+            {/* Cercle de chargement tournant */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-28 h-28 md:w-36 md:h-36 border-4 border-[#ff9900]/20 border-t-[#ff9900] rounded-full animate-spin"></div>
+            </div>
+          </div>
+
+          {/* Message de connexion Google */}
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[#ff9900] text-xl font-semibold">Connexion avec Google</span>
+            <span className="text-gray-400 text-sm text-center px-4">Authentification en cours...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
