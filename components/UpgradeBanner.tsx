@@ -367,15 +367,23 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
 
     // Utilisateur gratuit - upsell
     if (currentType === 'free') {
+      // Afficher max 2/2 (ne jamais afficher plus que la limite)
+      const displayedActive = Math.min(quotas.free_tournaments_active, quotas.free_tournaments_max)
+      const isOverQuota = quotas.free_tournaments_active > quotas.free_tournaments_max
+
       return {
         icon: '/images/icons/futebol.svg',
         iconFilter: 'icon-filter-premium',
         bgColor: 'bg-[#ff9900]',
         btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
         btnText: 'text-orange-400',
-        title: `Tournois gratuits: ${quotas.free_tournaments_active}/${quotas.free_tournaments_max}`,
-        subtitleMobile: `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
-        subtitleDesktop: `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
+        title: `Tournois gratuits: ${displayedActive}/${quotas.free_tournaments_max}`,
+        subtitleMobile: isOverQuota
+          ? 'Achetez un slot pour participer à un autre tournoi'
+          : `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
+        subtitleDesktop: isOverQuota
+          ? 'Vous avez atteint la limite gratuite. Achetez un slot pour participer à un autre tournoi Free-Kick.'
+          : `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
         buttonText: 'Passer Pro',
         buttonIcon: '/images/icons/premium.svg',
         redirectTo: '/pricing'

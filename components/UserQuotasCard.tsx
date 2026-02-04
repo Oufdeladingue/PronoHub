@@ -89,8 +89,8 @@ export default function UserQuotasCard() {
     )
   }
 
-  // Calculer les crédits de création disponibles
-  const freeCreationSlots = data.free_tournaments_max - data.free_tournaments_active
+  // Calculer les crédits de création disponibles (ne jamais afficher de négatif)
+  const freeCreationSlots = Math.max(0, data.free_tournaments_max - data.free_tournaments_active)
   const totalCreationCredits =
     freeCreationSlots +
     (data.credits?.oneshot || 0) +

@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
     { data: userTournaments },
     { data: leftTournaments }
   ] = await Promise.all([
-    supabase.from('tournaments').select('id, tournament_type, competition_id').in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000']).neq('status', 'completed'),
+    // Compter uniquement draft et active pour les quotas Free-Kick
+    supabase.from('tournaments').select('id, tournament_type, competition_id, status').in('id', tournamentIds.length > 0 ? tournamentIds : ['00000000-0000-0000-0000-000000000000']).in('status', ['draft', 'active']),
     supabase.from('tournaments').select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays').in('id', tournamentIds),
     supabase.from('tournaments').select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type').eq('original_creator_id', userId).neq('status', 'completed').not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
   ])
