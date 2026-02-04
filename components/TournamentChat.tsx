@@ -264,7 +264,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   }
 
   return (
-    <div className="theme-card flex flex-col h-[calc(100vh-12rem)] md:h-[600px]">
+    <div className="theme-card flex flex-col max-h-[60vh] md:h-[600px]">
       {/* Zone des messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
