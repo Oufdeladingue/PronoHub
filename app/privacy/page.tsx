@@ -20,7 +20,7 @@ export default function PrivacyPage() {
             Politique de Confidentialité et Cookies
           </h1>
           <p className="text-gray-400">
-            Dernière mise à jour : 24 novembre 2025
+            Dernière mise à jour : 4 février 2026
           </p>
         </div>
 
@@ -148,7 +148,8 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-gray-300 mt-2 space-y-1">
               <li><strong className="text-white">Supabase :</strong> Hébergement de la base de données (serveurs UE)</li>
               <li><strong className="text-white">Stripe :</strong> Traitement des paiements</li>
-              <li><strong className="text-white">Vercel :</strong> Hébergement du site web</li>
+              <li><strong className="text-white">Hetzner :</strong> Hébergement du site web (serveurs UE)</li>
+              <li><strong className="text-white">Google :</strong> Authentification via Google Sign-In</li>
             </ul>
             <p className="text-gray-300 leading-relaxed mt-4">
               Ces prestataires sont conformes au RGPD et traitent vos données uniquement selon nos instructions.
