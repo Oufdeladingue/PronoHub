@@ -55,12 +55,9 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
 
   // Scroll vers le bas
   const scrollToBottom = (force: boolean = false) => {
-    // Sur mobile, ne pas scroller automatiquement au premier chargement
-    if (isFirstLoadRef.current && !force && window.innerWidth < 768) {
-      isFirstLoadRef.current = false
-      return
-    }
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Toujours scroller vers le bas, même au premier chargement
+    messagesEndRef.current?.scrollIntoView({ behavior: force ? 'auto' : 'smooth' })
+    isFirstLoadRef.current = false
   }
 
   // Charger les participants du tournoi
@@ -93,8 +90,8 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
       setMessages(data.messages || [])
       setLoading(false)
 
-      // Scroll vers le bas après chargement
-      setTimeout(scrollToBottom, 100)
+      // Scroll vers le bas après chargement (force au premier chargement)
+      setTimeout(() => scrollToBottom(true), 100)
     } catch (error) {
       console.error('Error fetching messages:', error)
       setLoading(false)
@@ -267,7 +264,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   }
 
   return (
-    <div className="theme-card flex flex-col h-[400px] md:h-[600px]">
+    <div className="theme-card flex flex-col h-[calc(100vh-12rem)] md:h-[600px]">
       {/* Zone des messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
