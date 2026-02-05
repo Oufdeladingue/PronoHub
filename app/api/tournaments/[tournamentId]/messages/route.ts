@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendNotificationToUser } from '@/lib/notifications'
+import { checkMessage } from '@/lib/profanity-filter'
 
 // GET - Récupérer les messages du tournoi
 export async function GET(
@@ -131,6 +132,15 @@ export async function POST(
 
     if (message.length > 500) {
       return NextResponse.json({ error: 'Le message est trop long (max 500 caractères)' }, { status: 400 })
+    }
+
+    // Vérifier le contenu du message (filtre anti-insultes)
+    const profanityCheck = checkMessage(message)
+    if (!profanityCheck.isClean) {
+      console.log(`[PROFANITY BLOCKED] User ${user.id} tried to send: "${message.substring(0, 100)}..." - Detected: ${profanityCheck.detectedWords.join(', ')}`)
+      return NextResponse.json({
+        error: 'Votre message contient des termes inappropriés. Merci de reformuler.'
+      }, { status: 400 })
     }
 
     // Insérer le message
