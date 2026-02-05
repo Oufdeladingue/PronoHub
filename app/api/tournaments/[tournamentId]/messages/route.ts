@@ -69,8 +69,10 @@ export async function GET(
     // Formater les messages avec les lecteurs
     const formattedMessages = messages?.map(msg => {
       // Trouver qui a lu ce message (ceux dont last_read_at >= created_at du message)
+      // Exclure aussi l'auteur du message (pas de sens de montrer "X a lu le message de X")
       const readers = readStatuses?.filter(status =>
-        new Date(status.last_read_at) >= new Date(msg.created_at)
+        new Date(status.last_read_at) >= new Date(msg.created_at) &&
+        status.user_id !== msg.user_id
       ).map(status => ({
         user_id: status.user_id,
         username: (status.profiles as any)?.username || 'Inconnu',
