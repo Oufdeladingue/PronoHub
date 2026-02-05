@@ -12,6 +12,8 @@ interface TeamFormMatch {
   goalsFor: number
   goalsAgainst: number
   result: 'W' | 'D' | 'L'
+  competitionEmblemColor: string | null   // Logo coloré pour thème clair
+  competitionEmblemWhite: string | null   // Logo blanc pour thème sombre
 }
 
 interface PredictionTrends {
@@ -79,21 +81,19 @@ export async function GET(
 
     // Exécuter les 6 queries en parallèle (sans les tendances pour l'instant)
     const [homeFormResult, awayFormResult, currentMatchResult, competitionResult, homeStandingResult, awayStandingResult] = await Promise.all([
-      // Forme équipe domicile (5 derniers matchs terminés dans la compétition)
+      // Forme équipe domicile (5 derniers matchs terminés TOUTES compétitions confondues)
       supabase
         .from('imported_matches')
-        .select('id, utc_date, home_team_id, home_team_name, home_team_crest, away_team_id, away_team_name, away_team_crest, home_score, away_score')
-        .eq('competition_id', parseInt(competitionId))
+        .select('id, utc_date, home_team_id, home_team_name, home_team_crest, away_team_id, away_team_name, away_team_crest, home_score, away_score, competitions:competition_id(custom_emblem_color, custom_emblem_white)')
         .eq('status', 'FINISHED')
         .or(`home_team_id.eq.${homeTeamId},away_team_id.eq.${homeTeamId}`)
         .order('utc_date', { ascending: false })
         .limit(5),
 
-      // Forme équipe extérieur (5 derniers matchs terminés dans la compétition)
+      // Forme équipe extérieur (5 derniers matchs terminés TOUTES compétitions confondues)
       supabase
         .from('imported_matches')
-        .select('id, utc_date, home_team_id, home_team_name, home_team_crest, away_team_id, away_team_name, away_team_crest, home_score, away_score')
-        .eq('competition_id', parseInt(competitionId))
+        .select('id, utc_date, home_team_id, home_team_name, home_team_crest, away_team_id, away_team_name, away_team_crest, home_score, away_score, competitions:competition_id(custom_emblem_color, custom_emblem_white)')
         .eq('status', 'FINISHED')
         .or(`home_team_id.eq.${awayTeamId},away_team_id.eq.${awayTeamId}`)
         .order('utc_date', { ascending: false })
@@ -147,6 +147,8 @@ export async function GET(
         const goalsAgainst = isHome ? match.away_score : match.home_score
         const opponentName = isHome ? match.away_team_name : match.home_team_name
         const opponentCrest = isHome ? match.away_team_crest : match.home_team_crest
+        const competitionEmblemColor = (match.competitions as any)?.custom_emblem_color || null
+        const competitionEmblemWhite = (match.competitions as any)?.custom_emblem_white || null
 
         let result: 'W' | 'D' | 'L'
         if (goalsFor > goalsAgainst) result = 'W'
@@ -161,7 +163,9 @@ export async function GET(
           isHome,
           goalsFor,
           goalsAgainst,
-          result
+          result,
+          competitionEmblemColor,
+          competitionEmblemWhite
         }
       })
     }

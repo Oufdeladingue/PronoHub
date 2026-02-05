@@ -13,6 +13,8 @@ interface TeamFormMatch {
   goalsFor: number
   goalsAgainst: number
   result: 'W' | 'D' | 'L'
+  competitionEmblemColor: string | null   // Logo coloré pour thème clair
+  competitionEmblemWhite: string | null   // Logo blanc pour thème sombre
 }
 
 interface PredictionTrends {
@@ -90,15 +92,9 @@ function ResultCircle({
 
 // Composant pour afficher le detail d'un match avec logo adapté au thème
 function MatchDetailCard({
-  match,
-  competitionEmblem,
-  competitionCustomEmblemColor,
-  competitionCustomEmblemWhite
+  match
 }: {
   match: TeamFormMatch | null
-  competitionEmblem: string | null
-  competitionCustomEmblemColor: string | null
-  competitionCustomEmblemWhite: string | null
 }) {
   if (!match) {
     return (
@@ -113,10 +109,10 @@ function MatchDetailCard({
                    'bg-red-500/10 border-red-500/30'
   const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
 
-  // Logo pour thème clair: custom coloré ou emblème par défaut
-  // Logo pour thème sombre: custom blanc ou emblème par défaut
-  const logoLight = competitionCustomEmblemColor || competitionEmblem
-  const logoDark = competitionCustomEmblemWhite || competitionEmblem
+  // Logo pour thème clair: custom coloré
+  // Logo pour thème sombre: custom blanc
+  const logoLight = match.competitionEmblemColor
+  const logoDark = match.competitionEmblemWhite
 
   return (
     <div className={`p-3 rounded-lg border ${resultBg} flex gap-3`}>
@@ -186,9 +182,6 @@ function TeamFormSection({
   selectedIndex,
   onSelectIndex,
   dotColor,
-  competitionEmblem,
-  competitionCustomEmblemColor,
-  competitionCustomEmblemWhite,
   position
 }: {
   teamName: string
@@ -197,9 +190,6 @@ function TeamFormSection({
   selectedIndex: number
   onSelectIndex: (index: number) => void
   dotColor: string
-  competitionEmblem: string | null
-  competitionCustomEmblemColor: string | null
-  competitionCustomEmblemWhite: string | null
   position: number | null
 }) {
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
@@ -258,9 +248,6 @@ function TeamFormSection({
           {/* Carte detail du match selectionne */}
           <MatchDetailCard
             match={selectedIndex >= 0 && selectedIndex < matches.length ? matches[selectedIndex] : null}
-            competitionEmblem={competitionEmblem}
-            competitionCustomEmblemColor={competitionCustomEmblemColor}
-            competitionCustomEmblemWhite={competitionCustomEmblemWhite}
           />
         </>
       )}
@@ -564,9 +551,6 @@ export default function StatsModal({
                         selectedIndex={homeSelectedIndex}
                         onSelectIndex={setHomeSelectedIndex}
                         dotColor="bg-blue-500"
-                        competitionEmblem={data.competitionEmblem}
-                        competitionCustomEmblemColor={data.competitionCustomEmblemColor}
-                        competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
                         position={data.homeTeamPosition}
                       />
                       <TeamFormSection
@@ -576,9 +560,6 @@ export default function StatsModal({
                         selectedIndex={awaySelectedIndex}
                         onSelectIndex={setAwaySelectedIndex}
                         dotColor="bg-[#ff9900]"
-                        competitionEmblem={data.competitionEmblem}
-                        competitionCustomEmblemColor={data.competitionCustomEmblemColor}
-                        competitionCustomEmblemWhite={data.competitionCustomEmblemWhite}
                         position={data.awayTeamPosition}
                       />
                     </div>
