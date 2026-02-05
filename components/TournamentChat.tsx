@@ -5,6 +5,12 @@ import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 
+interface Reader {
+  user_id: string
+  username: string
+  avatar: string
+}
+
 interface Message {
   id: string
   message: string
@@ -12,6 +18,7 @@ interface Message {
   user_id: string
   username: string
   avatar: string
+  readers?: Reader[]
 }
 
 interface TournamentChatProps {
@@ -34,10 +41,18 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false)
   const [mentionSearch, setMentionSearch] = useState('')
   const [cursorPosition, setCursorPosition] = useState(0)
+  const [showReadersModal, setShowReadersModal] = useState(false)
+  const [selectedReaders, setSelectedReaders] = useState<Reader[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const supabase = createClient()
   const isFirstLoadRef = useRef(true)
+
+  // Ouvrir la modale des lecteurs (mobile)
+  const openReadersModal = (readers: Reader[]) => {
+    setSelectedReaders(readers)
+    setShowReadersModal(true)
+  }
 
   // Fonction pour formater la date
   const formatDate = (dateString: string) => {
@@ -304,6 +319,43 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                   <div className="theme-text text-sm whitespace-pre-wrap break-words">
                     {formatMessageWithMentions(msg.message)}
                   </div>
+
+                  {/* Lecteurs du message */}
+                  {msg.readers && msg.readers.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 mr-0.5">Lu par</span>
+                      <div className="flex -space-x-1.5">
+                        {msg.readers.slice(0, 5).map((reader) => (
+                          <div
+                            key={reader.user_id}
+                            className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 opacity-60 cursor-pointer hover:opacity-100 transition-opacity group"
+                            onClick={() => openReadersModal(msg.readers || [])}
+                            title={reader.username}
+                          >
+                            <Image
+                              src={getAvatarUrl(reader.avatar)}
+                              alt={reader.username}
+                              fill
+                              className="object-cover"
+                              sizes="20px"
+                            />
+                            {/* Tooltip desktop */}
+                            <div className="hidden md:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-gray-800 dark:bg-gray-700 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                              {reader.username}
+                            </div>
+                          </div>
+                        ))}
+                        {msg.readers.length > 5 && (
+                          <div
+                            className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-[9px] text-gray-500 dark:text-gray-300 border border-gray-300 dark:border-gray-600 cursor-pointer"
+                            onClick={() => openReadersModal(msg.readers || [])}
+                          >
+                            +{msg.readers.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -407,6 +459,48 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
           </div>
         </form>
       </div>
+
+      {/* Modale lecteurs (mobile) */}
+      {showReadersModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowReadersModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-xs w-full max-h-[60vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold theme-text">Lu par</h3>
+              <button
+                onClick={() => setShowReadersModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2">
+              {selectedReaders.map((reader) => (
+                <div key={reader.user_id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-300 dark:border-gray-600">
+                    <Image
+                      src={getAvatarUrl(reader.avatar)}
+                      alt={reader.username}
+                      fill
+                      className="object-cover"
+                      sizes="32px"
+                    />
+                  </div>
+                  <span className="theme-text text-sm font-medium">{reader.username}</span>
+                </div>
+              ))}
+              {selectedReaders.length === 0 && (
+                <p className="text-sm theme-text-secondary text-center py-2">Aucun lecteur</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

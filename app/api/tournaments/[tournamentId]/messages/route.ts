@@ -51,15 +51,41 @@ export async function GET(
       return NextResponse.json({ error: 'Erreur lors de la récupération des messages' }, { status: 500 })
     }
 
-    // Formater les messages
-    const formattedMessages = messages?.map(msg => ({
-      id: msg.id,
-      message: msg.message,
-      created_at: msg.created_at,
-      user_id: msg.user_id,
-      username: (msg.profiles as any)?.username || 'Inconnu',
-      avatar: (msg.profiles as any)?.avatar || 'avatar1'
-    })) || []
+    // Récupérer les statuts de lecture de tous les participants (sauf l'utilisateur courant)
+    const { data: readStatuses } = await supabase
+      .from('message_read_status')
+      .select(`
+        user_id,
+        last_read_at,
+        profiles:user_id (
+          username,
+          avatar
+        )
+      `)
+      .eq('tournament_id', tournamentId)
+      .neq('user_id', user.id) // Exclure l'utilisateur courant
+
+    // Formater les messages avec les lecteurs
+    const formattedMessages = messages?.map(msg => {
+      // Trouver qui a lu ce message (ceux dont last_read_at >= created_at du message)
+      const readers = readStatuses?.filter(status =>
+        new Date(status.last_read_at) >= new Date(msg.created_at)
+      ).map(status => ({
+        user_id: status.user_id,
+        username: (status.profiles as any)?.username || 'Inconnu',
+        avatar: (status.profiles as any)?.avatar || 'avatar1'
+      })) || []
+
+      return {
+        id: msg.id,
+        message: msg.message,
+        created_at: msg.created_at,
+        user_id: msg.user_id,
+        username: (msg.profiles as any)?.username || 'Inconnu',
+        avatar: (msg.profiles as any)?.avatar || 'avatar1',
+        readers // Liste des lecteurs pour ce message
+      }
+    }) || []
 
     return NextResponse.json({ messages: formattedMessages })
   } catch (error) {
