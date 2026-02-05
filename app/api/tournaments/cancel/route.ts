@@ -54,20 +54,48 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Restaurer le crédit si le tournoi est annulé AVANT d'avoir commencé (status = pending ou warmup)
-    // et qu'il s'agit d'un tournoi payant
-    let creditRestored = false
-    if (['pending', 'warmup'].includes(tournament.status) && ['oneshot', 'elite', 'platinium'].includes(tournament.tournament_type)) {
-      // Trouver l'achat lié à ce tournoi
-      const { data: purchase, error: purchaseError } = await supabase
+    // Restaurer les crédits si le tournoi est annulé AVANT d'avoir commencé (status = pending ou warmup)
+    let creditsRestored = 0
+
+    if (['pending', 'warmup'].includes(tournament.status)) {
+      // 1. Restaurer le crédit de CRÉATION du tournoi (oneshot, elite, platinium)
+      if (['oneshot', 'elite', 'platinium'].includes(tournament.tournament_type)) {
+        const { data: creationPurchase } = await supabase
+          .from('tournament_purchases')
+          .select('id, purchase_type, tournament_subtype')
+          .eq('used_for_tournament_id', tournamentId)
+          .eq('used', true)
+          .in('purchase_type', ['tournament_creation', 'platinium_group'])
+          .single()
+
+        if (creationPurchase) {
+          const { error: restoreError } = await supabase
+            .from('tournament_purchases')
+            .update({
+              used: false,
+              used_at: null,
+              used_for_tournament_id: null,
+              tournament_id: null
+            })
+            .eq('id', creationPurchase.id)
+
+          if (!restoreError) {
+            creditsRestored++
+            console.log(`[CREDIT RESTORED] Creation credit ${creationPurchase.id} (${creationPurchase.purchase_type}) restored`)
+          }
+        }
+      }
+
+      // 2. Restaurer les crédits slot_invite de TOUS les participants
+      const { data: slotInvitePurchases } = await supabase
         .from('tournament_purchases')
-        .select('id, purchase_type, tournament_subtype')
+        .select('id, user_id, purchase_type')
         .eq('used_for_tournament_id', tournamentId)
         .eq('used', true)
-        .single()
+        .eq('purchase_type', 'slot_invite')
 
-      if (!purchaseError && purchase) {
-        // Restaurer le crédit (marquer comme non utilisé)
+      if (slotInvitePurchases && slotInvitePurchases.length > 0) {
+        const purchaseIds = slotInvitePurchases.map(p => p.id)
         const { error: restoreError } = await supabase
           .from('tournament_purchases')
           .update({
@@ -76,13 +104,37 @@ export async function POST(request: NextRequest) {
             used_for_tournament_id: null,
             tournament_id: null
           })
-          .eq('id', purchase.id)
+          .in('id', purchaseIds)
 
-        if (restoreError) {
-          console.error('Error restoring credit:', restoreError)
-        } else {
-          creditRestored = true
-          console.log(`[CREDIT RESTORED] Purchase ${purchase.id} (${purchase.purchase_type}/${purchase.tournament_subtype}) restored for user ${user.id}`)
+        if (!restoreError) {
+          creditsRestored += slotInvitePurchases.length
+          console.log(`[CREDITS RESTORED] ${slotInvitePurchases.length} slot_invite credits restored for tournament ${tournamentId}`)
+        }
+      }
+
+      // 3. Restaurer les crédits d'extension (durée, joueurs) si utilisés
+      const { data: extensionPurchases } = await supabase
+        .from('tournament_purchases')
+        .select('id, purchase_type')
+        .eq('used_for_tournament_id', tournamentId)
+        .eq('used', true)
+        .in('purchase_type', ['duration_extension', 'player_extension'])
+
+      if (extensionPurchases && extensionPurchases.length > 0) {
+        const purchaseIds = extensionPurchases.map(p => p.id)
+        const { error: restoreError } = await supabase
+          .from('tournament_purchases')
+          .update({
+            used: false,
+            used_at: null,
+            used_for_tournament_id: null,
+            tournament_id: null
+          })
+          .in('id', purchaseIds)
+
+        if (!restoreError) {
+          creditsRestored += extensionPurchases.length
+          console.log(`[CREDITS RESTORED] ${extensionPurchases.length} extension credits restored for tournament ${tournamentId}`)
         }
       }
     }
@@ -124,15 +176,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Log pour le suivi
-    console.log(`[TOURNAMENT CANCELLED] Tournament "${tournament.name}" (${tournamentId}) cancelled by user ${user.id}. Type: ${tournament.tournament_type}. Credit restored: ${creditRestored}`)
+    console.log(`[TOURNAMENT CANCELLED] Tournament "${tournament.name}" (${tournamentId}) cancelled by user ${user.id}. Type: ${tournament.tournament_type}. Credits restored: ${creditsRestored}`)
 
     return NextResponse.json({
       success: true,
-      message: creditRestored
-        ? 'Tournoi annulé avec succès. Votre crédit a été restauré.'
+      message: creditsRestored > 0
+        ? `Tournoi annulé avec succès. ${creditsRestored} crédit${creditsRestored > 1 ? 's' : ''} restauré${creditsRestored > 1 ? 's' : ''}.`
         : 'Tournoi annulé avec succès',
       tournamentType: tournament.tournament_type,
-      creditRestored
+      creditsRestored
     })
 
   } catch (error: any) {

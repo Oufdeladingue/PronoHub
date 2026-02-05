@@ -25,6 +25,8 @@ interface Credits {
   platinium_solo: number
   platinium_group: number
   slot_invite: number
+  duration_extension: number
+  player_extension: number
 }
 
 interface ZoneVIPData {
@@ -99,9 +101,13 @@ export default function UserQuotasCard() {
     (data.credits?.platinium_group || 0)
 
   // Calculer les crédits pour rejoindre
-  const freeJoinSlots = data.can_join_premium_free ? 1 : 0
-  const paidJoinSlots = (data.credits?.slot_invite || 0) + (data.paid_slots_total - data.paid_slots_used)
-  const totalJoinCredits = freeJoinSlots + paidJoinSlots
+  // 1. Slots Free-Kick gratuits restants (2 max - participations actives)
+  const freeKickJoinSlots = Math.max(0, data.free_tournaments_max - data.free_tournaments_active)
+  // 2. Invitation gratuite premium (1 par tournoi One-Shot/Elite)
+  const premiumFreeInvite = data.can_join_premium_free ? 1 : 0
+  // 3. Slots payants (slot_invite achetés)
+  const paidJoinSlots = data.credits?.slot_invite || 0
+  const totalJoinCredits = freeKickJoinSlots + premiumFreeInvite + paidJoinSlots
 
   // Construire le résumé pour "Créer"
   const getCreateSummary = () => {
@@ -118,11 +124,25 @@ export default function UserQuotasCard() {
 
   // Construire le résumé pour "Rejoindre"
   const getJoinSummary = () => {
-    if (freeJoinSlots > 0) {
-      return '1 invitation gratuite disponible'
+    const parts: string[] = []
+
+    // Slots Free-Kick gratuits
+    if (freeKickJoinSlots > 0) {
+      parts.push(`${freeKickJoinSlots} Free-Kick gratuit${freeKickJoinSlots > 1 ? 's' : ''}`)
     }
+
+    // Invitation premium gratuite
+    if (premiumFreeInvite > 0) {
+      parts.push('1 invitation premium')
+    }
+
+    // Slots payants
     if (paidJoinSlots > 0) {
-      return `${paidJoinSlots} slot${paidJoinSlots > 1 ? 's' : ''} disponible${paidJoinSlots > 1 ? 's' : ''}`
+      parts.push(`${paidJoinSlots} slot${paidJoinSlots > 1 ? 's' : ''} acheté${paidJoinSlots > 1 ? 's' : ''}`)
+    }
+
+    if (parts.length > 0) {
+      return parts.join(' · ')
     }
     return 'Quota atteint'
   }
@@ -135,8 +155,10 @@ export default function UserQuotasCard() {
       (data.credits?.elite || 0) +
       (data.credits?.platinium_solo || 0) +
       (data.credits?.platinium_group || 0) +
-      (data.credits?.slot_invite || 0) +
-      (data.can_join_premium_free ? 1 : 0)
+      paidJoinSlots +
+      premiumFreeInvite +
+      (data.credits?.duration_extension || 0) +
+      (data.credits?.player_extension || 0)
     )
   }
 
@@ -638,6 +660,45 @@ export default function UserQuotasCard() {
                 <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">Pour rejoindre des tournois payants</p>
               </div>
             </div>
+
+            {/* Crédits d'extension */}
+            {((data.credits?.duration_extension || 0) > 0 || (data.credits?.player_extension || 0) > 0) && (
+              <div className="space-y-2 pt-2 border-t theme-border">
+                <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Extensions de tournoi</p>
+
+                {/* Extension de durée */}
+                {(data.credits?.duration_extension || 0) > 0 && (
+                  <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                    <div className="flex items-center gap-2">
+                      <img src="/images/icons/calendar.svg" alt="" className="w-4 h-4 icon-filter-blue" />
+                      <div>
+                        <span className="text-sm theme-text">Extension durée</span>
+                        <p className="text-xs theme-text-secondary">Jusqu'à +10 journées</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
+                      {data.credits?.duration_extension} crédit{(data.credits?.duration_extension || 0) > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+
+                {/* Extension de joueurs */}
+                {(data.credits?.player_extension || 0) > 0 && (
+                  <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-green-500" />
+                      <div>
+                        <span className="text-sm theme-text">Extension joueurs</span>
+                        <p className="text-xs theme-text-secondary">+5 places par extension</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
+                      {data.credits?.player_extension} crédit{(data.credits?.player_extension || 0) > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
