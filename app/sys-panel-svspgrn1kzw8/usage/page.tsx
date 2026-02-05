@@ -1407,12 +1407,7 @@ export default function AdminUsagePage() {
                                   {detailModal.detail.participants.map((p) => (
                                     <div
                                       key={p.user_id}
-                                      className="p-3 border border-gray-200 rounded-lg bg-white cursor-pointer hover:border-purple-300 hover:bg-purple-50 transition-colors active:bg-purple-100"
-                                      onClick={() => openUserDetailModal(p.user_id, p.username)}
-                                      onTouchEnd={(e) => {
-                                        e.preventDefault()
-                                        openUserDetailModal(p.user_id, p.username)
-                                      }}
+                                      className="p-3 border border-gray-200 rounded-lg bg-white"
                                     >
                                       <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
@@ -1423,7 +1418,12 @@ export default function AdminUsagePage() {
                                             className="w-6 h-6 rounded-full"
                                             onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
                                           />
-                                          <span className="font-medium text-gray-900 text-sm">{p.username}</span>
+                                          <button
+                                            onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                            className="font-medium text-purple-700 text-sm underline underline-offset-2 hover:text-purple-900 active:text-purple-900"
+                                          >
+                                            {p.username}
+                                          </button>
                                           {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
                                             <>
                                               {p.has_stats_access ? (
