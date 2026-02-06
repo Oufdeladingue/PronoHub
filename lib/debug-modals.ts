@@ -39,7 +39,9 @@ const listeners: Set<(state: DebugModalState) => void> = new Set()
 
 export function subscribeToDebugModals(callback: (state: DebugModalState) => void) {
   listeners.add(callback)
-  return () => listeners.delete(callback)
+  return () => {
+    listeners.delete(callback)
+  }
 }
 
 export function showDebugModal(type: DebugModalType, tournamentId?: string) {
