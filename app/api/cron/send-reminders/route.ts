@@ -389,15 +389,19 @@ export async function GET(request: NextRequest) {
     const usersToProcess = Array.from(userMissingMap.values()).slice(0, BATCH_SIZE)
 
     for (const userData of usersToProcess) {
-      // Vérifier si on a déjà envoyé un rappel aujourd'hui pour cet utilisateur
       const todayStart = new Date(now)
       todayStart.setHours(0, 0, 0, 0)
 
+      // Déterminer le canal à utiliser : push prioritaire si fcm_token, sinon email
+      const channel: 'push' | 'email' = userData.fcm_token ? 'push' : 'email'
+
+      // Vérifier si on a déjà envoyé un rappel aujourd'hui pour cet utilisateur sur CE canal
       const { data: existingLog } = await supabase
         .from('notification_logs')
         .select('id')
         .eq('user_id', userData.user_id)
         .eq('notification_type', 'reminder')
+        .eq('channel', channel)
         .gte('scheduled_at', todayStart.toISOString())
         .single()
 
@@ -424,7 +428,7 @@ export async function GET(request: NextRequest) {
       }
       const deadlineStr = earliestDeadline.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
 
-      // Créer le log de notification
+      // Créer le log de notification avec le canal
       const { error: logError } = await supabase
         .from('notification_logs')
         .insert({
@@ -432,6 +436,7 @@ export async function GET(request: NextRequest) {
           notification_type: 'reminder',
           tournament_id: userData.tournaments[0].id,
           matchday: userData.tournaments[0].matches[0]?.matchday,
+          channel, // Nouveau champ
           status: 'pending',
           scheduled_at: now.toISOString()
         })
@@ -441,73 +446,30 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      let emailSent = false
-      let pushSent = false
+      let notificationSent = false
 
-      // 1. Envoi email (avec TOUS les tournois et matchs)
-      // Délai pour respecter le rate limit Resend (2 req/sec max)
-      await new Promise(resolve => setTimeout(resolve, 600))
-
-      try {
-        const result = await sendMultiTournamentReminderEmail(userData.email, {
-          username: userData.username,
-          tournaments: userData.tournaments.map(t => ({
-            name: t.name,
-            slug: t.slug,
-            competitionName: t.competition_name,
-            matches: t.matches.map(m => {
-              const matchDate = new Date(m.utc_date)
-              return {
-                homeTeam: m.home_team,
-                awayTeam: m.away_team,
-                matchDate: matchDate.toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'Europe/Paris'
-                }),
-                deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
-              }
-            })
-          })),
-          defaultPredictionMaxPoints: 1,
-          earliestDeadline: deadlineStr
-        })
-        emailSent = result.success
-        if (!result.success) {
-          errors.push(`Email error for ${userData.user_id}: ${result.error}`)
-        }
-      } catch (emailError: any) {
-        errors.push(`Email error for ${userData.user_id}: ${emailError.message}`)
-      }
-
-      // 2. Envoi push notification GLOBALE (résumé de tous les tournois)
-      if (userData.fcm_token) {
+      // Envoyer selon le canal déterminé
+      if (channel === 'push') {
+        // PUSH NOTIFICATION (prioritaire si l'user a l'app)
         try {
           // Construire le message selon le nombre de tournois
           let title: string
           let body: string
 
           if (userData.tournaments.length === 1) {
-            // Un seul tournoi
             const t = userData.tournaments[0]
             title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
             body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
           } else {
-            // Plusieurs tournois
             title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
             const tournamentNames = userData.tournaments.map(t => t.name).join(', ')
             body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
           }
 
-          // Construire l'URL de l'image dynamique avec les matchs
-          // On aplatit les matchs avec l'info du tournoi pour pouvoir récupérer le logo compétition
+          // Construire l'URL de l'image dynamique
           const allMatchesWithTournament = userData.tournaments.flatMap(t =>
             t.matches.map(m => ({ ...m, competition_emblem: t.competition_emblem }))
           )
-          // Trier par date pour avoir le premier match chronologiquement
           allMatchesWithTournament.sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
 
           const firstMatch = allMatchesWithTournament[0]
@@ -528,8 +490,8 @@ export async function GET(request: NextRequest) {
           })
           const imageUrl = `${baseUrl}/api/og/reminder?${imageParams.toString()}`
 
-          pushSent = await sendPushNotification(
-            userData.fcm_token,
+          notificationSent = await sendPushNotification(
+            userData.fcm_token!,
             title,
             body,
             {
@@ -538,27 +500,69 @@ export async function GET(request: NextRequest) {
               tournamentsCount: String(userData.tournaments.length),
               clickAction: '/dashboard'
             },
-            imageUrl // Image dynamique avec les matchs du jour
+            imageUrl
           )
         } catch (pushError: any) {
           errors.push(`Push error for ${userData.user_id}: ${pushError.message}`)
         }
+      } else {
+        // EMAIL (fallback si pas d'app)
+        // Délai pour respecter le rate limit Resend (2 req/sec max)
+        await new Promise(resolve => setTimeout(resolve, 600))
+
+        try {
+          const result = await sendMultiTournamentReminderEmail(userData.email, {
+            username: userData.username,
+            tournaments: userData.tournaments.map(t => ({
+              name: t.name,
+              slug: t.slug,
+              competitionName: t.competition_name,
+              competitionEmblem: t.competition_emblem,
+              matches: t.matches.map(m => {
+                const matchDate = new Date(m.utc_date)
+                return {
+                  homeTeam: m.home_team,
+                  awayTeam: m.away_team,
+                  homeTeamCrest: m.home_team_crest,
+                  awayTeamCrest: m.away_team_crest,
+                  matchDate: matchDate.toLocaleDateString('fr-FR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'Europe/Paris'
+                  }),
+                  deadlineTime: new Date(matchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+                }
+              })
+            })),
+            defaultPredictionMaxPoints: 1,
+            earliestDeadline: deadlineStr
+          })
+          notificationSent = result.success
+          if (!result.success) {
+            errors.push(`Email error for ${userData.user_id}: ${result.error}`)
+          }
+        } catch (emailError: any) {
+          errors.push(`Email error for ${userData.user_id}: ${emailError.message}`)
+        }
       }
 
       // Mettre à jour le log
-      const status = (emailSent || pushSent) ? 'sent' : 'failed'
       await supabase
         .from('notification_logs')
         .update({
-          status,
-          sent_at: (emailSent || pushSent) ? new Date().toISOString() : null,
-          error_message: (!emailSent && !pushSent) ? 'Email et push échoués' : null
+          status: notificationSent ? 'sent' : 'failed',
+          sent_at: notificationSent ? new Date().toISOString() : null,
+          error_message: !notificationSent ? `${channel} échoué` : null
         })
         .eq('user_id', userData.user_id)
         .eq('notification_type', 'reminder')
+        .eq('channel', channel)
         .gte('scheduled_at', todayStart.toISOString())
 
-      if (emailSent || pushSent) {
+      if (notificationSent) {
         processed++
       }
     }

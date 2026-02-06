@@ -184,9 +184,12 @@ export interface MultiTournamentReminderEmailProps {
     name: string
     slug: string
     competitionName: string
+    competitionEmblem?: string | null
     matches: Array<{
       homeTeam: string
       awayTeam: string
+      homeTeamCrest?: string | null
+      awayTeamCrest?: string | null
       matchDate: string
       deadlineTime: string
     }>
@@ -2171,24 +2174,52 @@ export function getMultiTournamentReminderTemplate(props: MultiTournamentReminde
 
   // Générer le HTML pour chaque tournoi
   const tournamentsHtml = tournaments.map(tournament => {
-    const matchesHtml = tournament.matches.map(match => `
+    const matchesHtml = tournament.matches.map(match => {
+      // Logos des équipes (24x24px)
+      const homeCrest = match.homeTeamCrest
+        ? `<img src="${match.homeTeamCrest}" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 6px; border-radius: 4px;">`
+        : ''
+      const awayCrest = match.awayTeamCrest
+        ? `<img src="${match.awayTeamCrest}" alt="" style="width: 24px; height: 24px; vertical-align: middle; margin-left: 6px; border-radius: 4px;">`
+        : ''
+
+      return `
       <tr>
-        <td style="padding: 10px 16px; border-bottom: 1px solid #1e293b;">
-          <div>
-            <span style="color: #fff; font-size: 14px; font-weight: 500;">${match.homeTeam} - ${match.awayTeam}</span>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b;">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <table role="presentation" style="border-collapse: collapse;">
+              <tr>
+                <td style="text-align: right; padding-right: 8px;">
+                  ${homeCrest}
+                  <span style="color: #fff; font-size: 14px; font-weight: 500;">${match.homeTeam}</span>
+                </td>
+                <td style="padding: 0 8px;">
+                  <span style="color: #94a3b8; font-size: 14px;">-</span>
+                </td>
+                <td style="text-align: left; padding-left: 8px;">
+                  <span style="color: #fff; font-size: 14px; font-weight: 500;">${match.awayTeam}</span>
+                  ${awayCrest}
+                </td>
+              </tr>
+            </table>
           </div>
-          <div style="margin-top: 4px;">
+          <div style="margin-top: 6px; text-align: center;">
             <span style="color: #94a3b8; font-size: 12px;">📅 ${match.matchDate}</span>
             <span style="color: #ef4444; font-size: 12px; margin-left: 10px;">⏰ ${match.deadlineTime}</span>
           </div>
         </td>
       </tr>
-    `).join('')
+    `}).join('')
+
+    // Logo de la compétition (20x20px)
+    const competitionLogo = tournament.competitionEmblem
+      ? `<img src="${tournament.competitionEmblem}" alt="" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; border-radius: 4px;">`
+      : '🏆 '
 
     return `
       <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
         <div style="padding: 14px 16px; border-bottom: 1px solid #1e293b; background-color: #1e293b;">
-          <h3 style="margin: 0; color: #ff9900; font-size: 15px;">🏆 ${tournament.name}</h3>
+          <h3 style="margin: 0; color: #ff9900; font-size: 15px;">${competitionLogo}${tournament.name}</h3>
           <p style="margin: 4px 0 0; color: #94a3b8; font-size: 12px;">${tournament.competitionName} • ${tournament.matches.length} match${tournament.matches.length > 1 ? 's' : ''}</p>
         </div>
         <table role="presentation" style="width: 100%; border-collapse: collapse;">
