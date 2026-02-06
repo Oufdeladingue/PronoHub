@@ -64,12 +64,18 @@ export type NotificationType =
 
 /**
  * Envoyer une notification push à un utilisateur
+ * @param fcmToken - Token FCM de l'appareil
+ * @param title - Titre de la notification (supporte les emojis)
+ * @param body - Corps de la notification (supporte les emojis)
+ * @param data - Données supplémentaires (optionnel)
+ * @param imageUrl - URL d'une image à afficher (optionnel, doit être publique)
  */
 export async function sendPushNotification(
   fcmToken: string,
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
+  imageUrl?: string
 ): Promise<boolean> {
   if (!admin.apps.length) {
     console.warn('[Push] Firebase Admin non initialisé')
@@ -82,6 +88,7 @@ export async function sendPushNotification(
       notification: {
         title,
         body,
+        ...(imageUrl && { imageUrl }),
       },
       data: data || {},
       android: {
@@ -91,6 +98,7 @@ export async function sendPushNotification(
           color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
+          ...(imageUrl && { imageUrl }), // Image "Big Picture" sur Android
         },
       },
     }
@@ -114,12 +122,18 @@ export async function sendPushNotification(
 
 /**
  * Envoyer une notification à plusieurs utilisateurs
+ * @param fcmTokens - Liste des tokens FCM
+ * @param title - Titre de la notification (supporte les emojis)
+ * @param body - Corps de la notification (supporte les emojis)
+ * @param data - Données supplémentaires (optionnel)
+ * @param imageUrl - URL d'une image à afficher (optionnel, doit être publique)
  */
 export async function sendPushNotificationToMany(
   fcmTokens: string[],
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
+  imageUrl?: string
 ): Promise<{ success: number; failure: number }> {
   if (!admin.apps.length || fcmTokens.length === 0) {
     return { success: 0, failure: fcmTokens.length }
@@ -131,6 +145,7 @@ export async function sendPushNotificationToMany(
       notification: {
         title,
         body,
+        ...(imageUrl && { imageUrl }),
       },
       data: data || {},
       android: {
@@ -140,6 +155,7 @@ export async function sendPushNotificationToMany(
           color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
+          ...(imageUrl && { imageUrl }), // Image "Big Picture" sur Android
         },
       },
     }

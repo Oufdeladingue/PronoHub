@@ -15,6 +15,8 @@ interface NormalizedMatch {
   matchday: number
   home_team: string
   away_team: string
+  home_team_crest: string | null
+  away_team_crest: string | null
   utc_date: string
   competition_id: number | null
   custom_competition_id: string | null
@@ -31,11 +33,14 @@ interface UserMissingMatches {
     name: string
     slug: string
     competition_name: string
+    competition_emblem: string | null
     matches: {
       id: string
       matchday: number
       home_team: string
       away_team: string
+      home_team_crest: string | null
+      away_team_crest: string | null
       utc_date: string
     }[]
   }[]
@@ -76,7 +81,7 @@ export async function GET(request: NextRequest) {
     // 1a. Récupérer les matchs IMPORTÉS du jour qui n'ont pas encore commencé
     const { data: importedMatches, error: importedMatchesError } = await supabase
       .from('imported_matches')
-      .select('id, competition_id, matchday, home_team_name, away_team_name, utc_date')
+      .select('id, competition_id, matchday, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date')
       .gte('utc_date', now.toISOString())
       .lte('utc_date', endOfDay.toISOString())
       .in('status', ['SCHEDULED', 'TIMED'])
@@ -123,6 +128,8 @@ export async function GET(request: NextRequest) {
       matchday: m.matchday,
       home_team: m.home_team_name,
       away_team: m.away_team_name,
+      home_team_crest: m.home_team_crest || null,
+      away_team_crest: m.away_team_crest || null,
       utc_date: m.utc_date,
       competition_id: m.competition_id,
       custom_competition_id: null
@@ -138,6 +145,8 @@ export async function GET(request: NextRequest) {
           matchday: mdInfo.matchday_number,
           home_team: m.cached_home_team || 'Équipe A',
           away_team: m.cached_away_team || 'Équipe B',
+          home_team_crest: null, // Custom matches n'ont pas de logos
+          away_team_crest: null,
           utc_date: m.cached_utc_date,
           competition_id: null,
           custom_competition_id: mdInfo.custom_competition_id
@@ -205,6 +214,20 @@ export async function GET(request: NextRequest) {
         .in('id', customCompetitionIds)
       for (const cc of customComps || []) {
         customCompNames.set(cc.id, cc.name)
+      }
+    }
+
+    // Récupérer les emblèmes des compétitions standard
+    const competitionEmblems = new Map<number, string>()
+    if (competitionIds.length > 0) {
+      const { data: competitions } = await supabase
+        .from('competitions')
+        .select('id, emblem')
+        .in('id', competitionIds)
+      for (const comp of competitions || []) {
+        if (comp.emblem) {
+          competitionEmblems.set(comp.id, comp.emblem)
+        }
       }
     }
 
@@ -334,16 +357,24 @@ export async function GET(request: NextRequest) {
         }
 
         const userData = userMissingMap.get(profile.id)!
+        // Récupérer l'emblème de la compétition
+        const competitionEmblem = tournament.competition_id
+          ? competitionEmblems.get(tournament.competition_id) || null
+          : null
+
         userData.tournaments.push({
           id: tournament.id,
           name: tournament.name,
           slug: tournament.slug,
           competition_name: competitionName,
+          competition_emblem: competitionEmblem,
           matches: missingMatches.map(m => ({
             id: m.id,
             matchday: m.matchday,
             home_team: m.home_team,
             away_team: m.away_team,
+            home_team_crest: m.home_team_crest,
+            away_team_crest: m.away_team_crest,
             utc_date: m.utc_date
           }))
         })
@@ -462,14 +493,40 @@ export async function GET(request: NextRequest) {
           if (userData.tournaments.length === 1) {
             // Un seul tournoi
             const t = userData.tournaments[0]
-            title = `${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
+            title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
             body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
           } else {
             // Plusieurs tournois
-            title = `${totalMissingMatches} matchs à pronostiquer`
+            title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
             const tournamentNames = userData.tournaments.map(t => t.name).join(', ')
             body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
           }
+
+          // Construire l'URL de l'image dynamique avec les matchs
+          // On aplatit les matchs avec l'info du tournoi pour pouvoir récupérer le logo compétition
+          const allMatchesWithTournament = userData.tournaments.flatMap(t =>
+            t.matches.map(m => ({ ...m, competition_emblem: t.competition_emblem }))
+          )
+          // Trier par date pour avoir le premier match chronologiquement
+          allMatchesWithTournament.sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+
+          const firstMatch = allMatchesWithTournament[0]
+          const firstMatchDate = new Date(firstMatch.utc_date)
+          const matchTime = firstMatchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+          const deadlineTime = new Date(firstMatchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pronohub.app'
+          const imageParams = new URLSearchParams({
+            home: firstMatch.home_team,
+            away: firstMatch.away_team,
+            homeLogo: firstMatch.home_team_crest || '',
+            awayLogo: firstMatch.away_team_crest || '',
+            competitionLogo: firstMatch.competition_emblem || '',
+            time: matchTime,
+            deadline: deadlineTime,
+            otherCount: String(allMatchesWithTournament.length - 1)
+          })
+          const imageUrl = `${baseUrl}/api/og/reminder?${imageParams.toString()}`
 
           pushSent = await sendPushNotification(
             userData.fcm_token,
@@ -480,7 +537,8 @@ export async function GET(request: NextRequest) {
               totalMatches: String(totalMissingMatches),
               tournamentsCount: String(userData.tournaments.length),
               clickAction: '/dashboard'
-            }
+            },
+            imageUrl // Image dynamique avec les matchs du jour
           )
         } catch (pushError: any) {
           errors.push(`Push error for ${userData.user_id}: ${pushError.message}`)
