@@ -13,6 +13,9 @@ import MatchdayWarningModal from '@/components/MatchdayWarningModal'
 import TeamsManager from '@/components/TeamsManager'
 import { getAvatarUrl } from '@/lib/avatars'
 import { TOURNAMENT_RULES, PRICES, TournamentType } from '@/types/monetization'
+import { useIncentiveModals } from '@/lib/hooks/use-incentive-modals'
+import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
+import { useSearchParams } from 'next/navigation'
 
 interface Tournament {
   id: string
@@ -56,6 +59,7 @@ function EchauffementPageContent() {
   const params = useParams()
   const tournamentSlug = params.tournamentSlug as string
   const { theme } = useTheme()
+  const searchParams = useSearchParams()
 
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [players, setPlayers] = useState<Player[]>([])
@@ -102,6 +106,53 @@ function EchauffementPageContent() {
   } | null>(null)
   const [extensionLoading, setExtensionLoading] = useState(false)
   const [showExtensionModal, setShowExtensionModal] = useState(false)
+
+  // Hook pour détecter la modale d'extension de capacité
+  const { shouldShowModal, markModalAsViewed } = useIncentiveModals({
+    tournament: tournament ? {
+      id: tournament.id,
+      matchdays_count: 0,
+      max_matchdays: 0,
+      max_players: tournament.max_players,
+      current_participants: players.length,
+      duration_extended: false,
+      competition_id: tournament.competition_id || 0
+    } : {
+      id: '',
+      matchdays_count: 0,
+      max_matchdays: 0,
+      max_players: 0,
+      current_participants: 0,
+      duration_extended: false,
+      competition_id: 0
+    }
+  })
+
+  const [showIncentiveModal, setShowIncentiveModal] = useState<boolean>(false)
+
+  // Afficher la modale si conditions remplies
+  useEffect(() => {
+    if (shouldShowModal && (shouldShowModal === 'player_extension_2_1' || shouldShowModal === 'player_extension_0')) {
+      setShowIncentiveModal(true)
+    }
+  }, [shouldShowModal])
+
+  // Détecter le retour après paiement et recharger pour voir les places ajoutées
+  useEffect(() => {
+    const paymentSuccess = searchParams.get('payment')
+    const paymentType = searchParams.get('type')
+
+    if (paymentSuccess === 'success' && paymentType === 'player_extension') {
+      window.location.reload()
+    }
+  }, [searchParams])
+
+  const handleCloseIncentiveModal = () => {
+    setShowIncentiveModal(false)
+    if (shouldShowModal) {
+      markModalAsViewed(shouldShowModal)
+    }
+  }
 
   // Extraire le code du slug (format: nomtournoi_ABCDEFGH)
   const tournamentCode = tournamentSlug.split('_').pop()?.toUpperCase() || ''
@@ -1975,6 +2026,15 @@ function EchauffementPageContent() {
           totalMatchdays={matchdayWarning.totalMatchdays}
           onStartWithAdjustment={handleStartWithAdjustment}
           onCancel={handleCancelMatchdayWarning}
+        />
+      )}
+
+      {/* Modale incitative extension de capacité */}
+      {tournament && (
+        <IncentiveModalContainer
+          modalType={showIncentiveModal ? shouldShowModal : null}
+          tournamentId={tournament.id}
+          onClose={handleCloseIncentiveModal}
         />
       )}
     </div>

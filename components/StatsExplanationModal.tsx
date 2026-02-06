@@ -119,7 +119,7 @@ export default function StatsExplanationModal({
                 {loading === 'tournament' ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#ff9900]"></div>
                 ) : (
-                  <span className="text-lg font-bold text-[#ff9900]">1,99 €</span>
+                  <span className="text-lg font-bold text-[#ff9900]">2,99 €</span>
                 )}
               </div>
             </button>

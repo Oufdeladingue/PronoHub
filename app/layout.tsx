@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import NavigationLoader from "@/components/NavigationLoader";
 import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
 import PushNotificationsProvider from "@/components/PushNotificationsProvider";
+import DebugModalContainer from "@/components/modals/DebugModalContainer";
 // Importer le logger dès le début pour capturer tous les logs
 import "@/lib/logger";
 
@@ -116,6 +117,7 @@ export default function RootLayout({
                 </Suspense>
                 <AgeGate />
                 {children}
+                <DebugModalContainer />
               </PushNotificationsProvider>
             </UserProvider>
           </ThemeProvider>

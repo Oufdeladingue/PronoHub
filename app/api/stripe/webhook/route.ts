@@ -193,19 +193,18 @@ async function handleCheckoutCompleted(session: any) {
   } else if (purchaseType === 'platinium_participation') {
     await handlePlatiniumParticipation(session)
   } else if (purchaseType === 'duration_extension') {
-    // Ne plus auto-appliquer : le crédit reste used=false
-    // L'utilisateur choisira le nb de journées via la modale
+    // Le crédit reste used=false jusqu'à utilisation via la modale
+    // L'utilisateur choisira le nombre de journées à ajouter depuis la page opposition
     console.log('[Stripe] Duration extension credit created (pending user choice)')
   } else if (purchaseType === 'player_extension') {
+    // Appliquer immédiatement l'extension de capacité (+5 joueurs)
     await handlePlayerExtension(session)
   } else if (purchaseType === 'stats_access_tournament') {
     // L'accès aux stats pour ce tournoi est maintenant actif
-    // Le purchase record est déjà marqué completed, rien à faire de plus
     const tournamentId = session.metadata?.tournament_id
     console.log(`[Stripe] Stats access purchased for tournament: ${tournamentId || 'N/A'}`)
   } else if (purchaseType === 'stats_access_lifetime') {
-    // L'accès aux stats à vie est maintenant actif
-    // Le purchase record est déjà marqué completed, rien à faire de plus
+    // L'accès aux stats à vie est maintenant actif (crédit utilisable partout)
     console.log('[Stripe] Lifetime stats access purchased')
   }
 }
@@ -366,32 +365,12 @@ async function handlePlatiniumParticipation(session: any) {
   console.log('[Stripe] User joined Platinium tournament')
 }
 
-// Extension de durée
-async function handleDurationExtension(session: any) {
-  const tournamentId = session.metadata?.tournament_id
-
-  if (!tournamentId) {
-    console.error('[Stripe] No tournament_id in metadata')
-    return
-  }
-
-  await supabaseAdmin
-    .from('tournaments')
-    .update({
-      duration_extended: true,
-      max_matchdays: null, // Illimité
-    })
-    .eq('id', tournamentId)
-
-  console.log('[Stripe] Duration extended')
-}
-
-// Extension de joueurs (+5)
+// Extension de joueurs (+5) - S'applique immédiatement après paiement
 async function handlePlayerExtension(session: any) {
   const tournamentId = session.metadata?.tournament_id
 
   if (!tournamentId) {
-    console.error('[Stripe] No tournament_id in metadata')
+    console.error('[Stripe] No tournament_id in metadata for player_extension')
     return
   }
 
@@ -403,11 +382,12 @@ async function handlePlayerExtension(session: any) {
     .single()
 
   if (!tournament) {
-    console.error('[Stripe] Tournament not found for extension')
+    console.error('[Stripe] Tournament not found for player extension')
     return
   }
 
-  await supabaseAdmin
+  // Ajouter +5 places
+  const { error: updateError } = await supabaseAdmin
     .from('tournaments')
     .update({
       max_players: tournament.max_players + 5,
@@ -416,5 +396,20 @@ async function handlePlayerExtension(session: any) {
     })
     .eq('id', tournamentId)
 
-  console.log('[Stripe] Players extended')
+  if (updateError) {
+    console.error('[Stripe] Error extending players:', updateError)
+    return
+  }
+
+  // Marquer le crédit comme utilisé
+  await supabaseAdmin
+    .from('tournament_purchases')
+    .update({
+      used: true,
+      used_at: new Date().toISOString(),
+      used_for_tournament_id: tournamentId
+    })
+    .eq('stripe_checkout_session_id', session.id)
+
+  console.log('[Stripe] Player extension applied: +5 places')
 }

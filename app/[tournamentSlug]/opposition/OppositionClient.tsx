@@ -17,6 +17,11 @@ import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
 import MaxScoreModal from '@/components/MaxScoreModal'
 import StatsButton from '@/components/StatsButton'
 import { useStatsAccess } from '@/hooks/useStatsAccess'
+import { useIncentiveModals } from '@/lib/hooks/use-incentive-modals'
+import { useDurationExtension } from '@/lib/hooks/use-duration-extension'
+import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
+import DurationExtensionModal from '@/components/modals/DurationExtensionModal'
+import StatsExplanationModal from '@/components/StatsExplanationModal'
 
 interface Tournament {
   id: string
@@ -215,6 +220,64 @@ export default function OppositionClient({
 
   // État pour la modale de score maximum
   const [showMaxScoreModal, setShowMaxScoreModal] = useState(false)
+
+  // Hook pour détecter les modales à afficher
+  const { shouldShowModal, markModalAsViewed } = useIncentiveModals({
+    tournament: {
+      id: tournament.id,
+      matchdays_count: tournament.num_matchdays || 0,
+      max_matchdays: tournament.ending_matchday || 0,
+      max_players: tournament.max_players,
+      current_participants: 0, // Sera récupéré si nécessaire
+      duration_extended: false,
+      competition_id: tournament.competition_id || 0
+    },
+    currentJourneyNumber: selectedMatchday || undefined
+  })
+
+  // Hook pour gérer le crédit d'extension de durée
+  const { hasCredit, applyExtension } = useDurationExtension(tournament.id)
+
+  // États pour les modales incitatives
+  const [showIncentiveModal, setShowIncentiveModal] = useState<boolean>(false)
+  const [showDurationChoiceModal, setShowDurationChoiceModal] = useState<boolean>(false)
+  const [showStatsExplanation, setShowStatsExplanation] = useState<boolean>(false)
+
+  // Détecter le retour après paiement extension de durée
+  useEffect(() => {
+    const paymentSuccess = searchParams.get('payment')
+    const paymentType = searchParams.get('type')
+
+    if (paymentSuccess === 'success' && paymentType === 'duration_extension' && hasCredit) {
+      setShowDurationChoiceModal(true)
+    }
+  }, [searchParams, hasCredit])
+
+  // Afficher la modale incitative si conditions remplies
+  useEffect(() => {
+    if (shouldShowModal) {
+      // Pour la modale stats, ouvrir directement StatsExplanationModal
+      if (shouldShowModal === 'stats_option') {
+        setShowStatsExplanation(true)
+      } else {
+        setShowIncentiveModal(true)
+      }
+    }
+  }, [shouldShowModal])
+
+  const handleCloseIncentiveModal = () => {
+    setShowIncentiveModal(false)
+    if (shouldShowModal && shouldShowModal !== 'stats_option') {
+      markModalAsViewed(shouldShowModal)
+    }
+  }
+
+  const handleCloseStatsExplanation = () => {
+    setShowStatsExplanation(false)
+    if (shouldShowModal === 'stats_option') {
+      markModalAsViewed(shouldShowModal)
+    }
+  }
 
   // Hook pour vérifier l'accès aux stats
   const statsAccess = useStatsAccess(serverTournament.id)
@@ -3284,6 +3347,33 @@ export default function OppositionClient({
           isOpen={showMaxScoreModal}
           onClose={() => setShowMaxScoreModal(false)}
         />
+
+        {/* Modales incitatives */}
+        <IncentiveModalContainer
+          modalType={showIncentiveModal ? shouldShowModal : null}
+          tournamentId={tournament.id}
+          onClose={handleCloseIncentiveModal}
+        />
+
+        {/* Modale choix nombre de journées (après paiement extension durée) */}
+        <DurationExtensionModal
+          isOpen={showDurationChoiceModal}
+          onClose={() => setShowDurationChoiceModal(false)}
+          tournamentId={tournament.id}
+          onApply={async (journeysToAdd) => {
+            await applyExtension(journeysToAdd)
+            window.location.reload()
+          }}
+        />
+
+        {/* Modale explication stats (modale incitative stats) */}
+        {showStatsExplanation && (
+          <StatsExplanationModal
+            tournamentId={tournament.id}
+            returnUrl={window.location.pathname}
+            onClose={handleCloseStatsExplanation}
+          />
+        )}
       </div>
     </>
   )

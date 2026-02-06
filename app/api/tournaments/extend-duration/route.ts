@@ -103,14 +103,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérifier si l'utilisateur a un crédit duration_extension disponible
+    // Vérifier si l'utilisateur a un crédit duration_extension disponible POUR CE TOURNOI
     const { data: credit, error: creditError } = await supabase
       .from('tournament_purchases')
-      .select('id')
+      .select('id, tournament_id')
       .eq('user_id', user.id)
       .eq('purchase_type', 'duration_extension')
       .eq('status', 'completed')
       .eq('used', false)
+      .eq('tournament_id', tournamentId) // IMPORTANT: Crédit lié au tournoi spécifique
       .order('created_at', { ascending: true })
       .limit(1)
       .single()
@@ -293,7 +294,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[EXTEND-DURATION] canExtend:', canExtend)
 
-    // Verifier si l'utilisateur a un credit disponible
+    // Verifier si l'utilisateur a un credit disponible POUR CE TOURNOI
     const { count: creditsCount } = await supabase
       .from('tournament_purchases')
       .select('id', { count: 'exact', head: true })
@@ -301,6 +302,7 @@ export async function GET(request: NextRequest) {
       .eq('purchase_type', 'duration_extension')
       .eq('status', 'completed')
       .eq('used', false)
+      .eq('tournament_id', tournamentId) // IMPORTANT: Crédit lié au tournoi spécifique
 
     const totalRemaining = maxCompetitionMatchday - currentEndMatchday
     const maxAdditional = Math.min(10, totalRemaining)
