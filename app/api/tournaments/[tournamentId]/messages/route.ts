@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: 'Vous devez être participant du tournoi' }, { status: 403 })
     }
 
-    // Récupérer les messages avec les informations des utilisateurs
+    // Récupérer les messages avec les informations des utilisateurs, réponses et réactions
     const { data: messages, error: messagesError } = await supabase
       .from('tournament_messages')
       .select(`
@@ -38,9 +38,25 @@ export async function GET(
         message,
         created_at,
         user_id,
+        reply_to_id,
         profiles:user_id (
           username,
           avatar
+        ),
+        reply_to:reply_to_id (
+          id,
+          message,
+          user_id,
+          profiles:user_id (
+            username
+          )
+        ),
+        reactions:message_reactions (
+          emoji,
+          user_id,
+          profiles:user_id (
+            username
+          )
         )
       `)
       .eq('tournament_id', tournamentId)
@@ -66,7 +82,7 @@ export async function GET(
       .eq('tournament_id', tournamentId)
       .neq('user_id', user.id) // Exclure l'utilisateur courant
 
-    // Formater les messages avec les lecteurs
+    // Formater les messages avec les lecteurs, réponses et réactions
     const formattedMessages = messages?.map(msg => {
       // Trouver qui a lu ce message (ceux dont last_read_at >= created_at du message)
       // Exclure aussi l'auteur du message (pas de sens de montrer "X a lu le message de X")
@@ -79,6 +95,33 @@ export async function GET(
         avatar: (status.profiles as any)?.avatar || 'avatar1'
       })) || []
 
+      // Agréger les réactions par emoji
+      const reactionsRaw = (msg as any).reactions || []
+      const reactionsByEmoji = reactionsRaw.reduce((acc: any, reaction: any) => {
+        const emoji = reaction.emoji
+        if (!acc[emoji]) {
+          acc[emoji] = { emoji, count: 0, users: [], userIds: [] }
+        }
+        acc[emoji].count++
+        acc[emoji].users.push((reaction.profiles as any)?.username || 'Inconnu')
+        acc[emoji].userIds.push(reaction.user_id)
+        return acc
+      }, {} as Record<string, { emoji: string; count: number; users: string[]; userIds: string[] }>)
+
+      const reactions = Object.values(reactionsByEmoji).map((r: any) => ({
+        emoji: r.emoji,
+        count: r.count,
+        users: r.users,
+        hasReacted: r.userIds.includes(user.id)
+      }))
+
+      // Formater la réponse (reply_to)
+      const replyTo = (msg as any).reply_to ? {
+        id: (msg as any).reply_to.id,
+        message: (msg as any).reply_to.message,
+        username: (msg as any).reply_to.profiles?.username || 'Inconnu'
+      } : null
+
       return {
         id: msg.id,
         message: msg.message,
@@ -86,7 +129,10 @@ export async function GET(
         user_id: msg.user_id,
         username: (msg.profiles as any)?.username || 'Inconnu',
         avatar: (msg.profiles as any)?.avatar || 'avatar1',
-        readers // Liste des lecteurs pour ce message
+        readers, // Liste des lecteurs pour ce message
+        reply_to_id: (msg as any).reply_to_id || null,
+        reply_to: replyTo,
+        reactions
       }
     }) || []
 
@@ -126,7 +172,7 @@ export async function POST(
 
     // Récupérer le message depuis le body
     const body = await request.json()
-    const { message } = body
+    const { message, reply_to_id } = body
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return NextResponse.json({ error: 'Le message ne peut pas être vide' }, { status: 400 })
@@ -146,21 +192,35 @@ export async function POST(
     }
 
     // Insérer le message
+    const insertData: any = {
+      tournament_id: tournamentId,
+      user_id: user.id,
+      message: message.trim()
+    }
+    if (reply_to_id) {
+      insertData.reply_to_id = reply_to_id
+    }
+
     const { data: newMessage, error: insertError } = await supabase
       .from('tournament_messages')
-      .insert({
-        tournament_id: tournamentId,
-        user_id: user.id,
-        message: message.trim()
-      })
+      .insert(insertData)
       .select(`
         id,
         message,
         created_at,
         user_id,
+        reply_to_id,
         profiles:user_id (
           username,
           avatar
+        ),
+        reply_to:reply_to_id (
+          id,
+          message,
+          user_id,
+          profiles:user_id (
+            username
+          )
         )
       `)
       .single()
@@ -171,13 +231,23 @@ export async function POST(
     }
 
     // Formater le message
+    const replyTo = (newMessage as any).reply_to ? {
+      id: (newMessage as any).reply_to.id,
+      message: (newMessage as any).reply_to.message,
+      username: (newMessage as any).reply_to.profiles?.username || 'Inconnu'
+    } : null
+
     const formattedMessage = {
       id: newMessage.id,
       message: newMessage.message,
       created_at: newMessage.created_at,
       user_id: newMessage.user_id,
       username: (newMessage.profiles as any)?.username || 'Inconnu',
-      avatar: (newMessage.profiles as any)?.avatar || 'avatar1'
+      avatar: (newMessage.profiles as any)?.avatar || 'avatar1',
+      reply_to_id: (newMessage as any).reply_to_id || null,
+      reply_to: replyTo,
+      reactions: [], // Nouveau message = pas encore de réactions
+      readers: [] // Nouveau message = pas encore de lecteurs
     }
 
     // Détecter les mentions (@username) et envoyer des notifications
