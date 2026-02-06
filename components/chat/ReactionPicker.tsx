@@ -1,6 +1,6 @@
 'use client'
 
-const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉']
+const REACTION_EMOJIS = ['🔥', '🏆', '😂', '👏', '🎯', '😢', '😡']
 
 interface ReactionPickerProps {
   onSelect: (emoji: string) => void

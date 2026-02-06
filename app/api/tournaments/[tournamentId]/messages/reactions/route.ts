@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const VALID_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉']
+const VALID_EMOJIS = ['🔥', '🏆', '😂', '👏', '🎯', '😢', '😡']
 
 // POST - Toggle une réaction sur un message (ajoute si absente, supprime si présente)
 export async function POST(
