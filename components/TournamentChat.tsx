@@ -449,7 +449,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
               <div
                 key={msg.id}
                 id={`msg-${msg.id}`}
-                className="flex gap-3 transition-colors duration-500 rounded-lg relative group"
+                className="flex gap-3 transition-colors duration-500 rounded-lg group"
                 onMouseEnter={() => setHoveredMessageId(msg.id)}
                 onMouseLeave={() => setHoveredMessageId(null)}
                 onTouchStart={() => handleTouchStart(msg.id)}
@@ -512,6 +512,48 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                         </div>
                       </div>
                     )}
+
+                    {/* Boutons d'action (inline, visibles au hover) */}
+                    <div
+                      className={`
+                        flex items-center gap-1 ml-2
+                        transition-opacity duration-200
+                        ${hoveredMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                      `}
+                    >
+                      {/* Bouton répondre */}
+                      <button
+                        onClick={() => handleReply(msg)}
+                        className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        title="Répondre"
+                      >
+                        <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                      </button>
+
+                      {/* Bouton réaction */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setReactionPickerMessageId(reactionPickerMessageId === msg.id ? null : msg.id)}
+                          className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          title="Réagir"
+                        >
+                          <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+
+                        {/* Reaction Picker */}
+                        {reactionPickerMessageId === msg.id && (
+                          <ReactionPicker
+                            onSelect={(emoji) => toggleReaction(msg.id, emoji)}
+                            onClose={() => setReactionPickerMessageId(null)}
+                            position="top"
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Message cité (réponse) */}
@@ -532,48 +574,6 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                     reactions={msg.reactions || []}
                     onToggleReaction={(emoji) => toggleReaction(msg.id, emoji)}
                   />
-                </div>
-
-                {/* Boutons d'action (desktop: hover, mobile: long press pour reactions) */}
-                <div
-                  className={`
-                    absolute right-0 top-0 flex items-center gap-1
-                    transition-opacity duration-200
-                    ${hoveredMessageId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover:opacity-100'}
-                  `}
-                >
-                  {/* Bouton répondre */}
-                  <button
-                    onClick={() => handleReply(msg)}
-                    className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    title="Répondre"
-                  >
-                    <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                    </svg>
-                  </button>
-
-                  {/* Bouton réaction */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setReactionPickerMessageId(reactionPickerMessageId === msg.id ? null : msg.id)}
-                      className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      title="Réagir"
-                    >
-                      <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-
-                    {/* Reaction Picker */}
-                    {reactionPickerMessageId === msg.id && (
-                      <ReactionPicker
-                        onSelect={(emoji) => toggleReaction(msg.id, emoji)}
-                        onClose={() => setReactionPickerMessageId(null)}
-                        position="top"
-                      />
-                    )}
-                  </div>
                 </div>
               </div>
             )
