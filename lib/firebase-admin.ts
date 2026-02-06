@@ -88,7 +88,7 @@ export async function sendPushNotification(
       notification: {
         title,
         body,
-        ...(imageUrl && { imageUrl }),
+        ...(imageUrl && { imageUrl: imageUrl }),
       },
       data: data || {},
       android: {
@@ -98,7 +98,7 @@ export async function sendPushNotification(
           color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
-          ...(imageUrl && { imageUrl }), // Image "Big Picture" sur Android
+          ...(imageUrl && { imageUrl: imageUrl }), // Image "Big Picture" sur Android
         },
       },
     }

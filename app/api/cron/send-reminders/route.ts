@@ -515,7 +515,7 @@ export async function GET(request: NextRequest) {
           const matchTime = firstMatchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
           const deadlineTime = new Date(firstMatchDate.getTime() - 30 * 60 * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
 
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://pronohub.app'
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pronohub.club'
           const imageParams = new URLSearchParams({
             home: firstMatch.home_team,
             away: firstMatch.away_team,
