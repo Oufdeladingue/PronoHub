@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
       })
       .single()
 
-    if (creditError || !creditResult || !creditResult.success) {
+    if (creditError || !creditResult) {
       return NextResponse.json(
-        { error: creditResult?.message || 'Aucun crédit disponible' },
+        { error: 'Aucun crédit disponible' },
         { status: 400 }
       )
     }
