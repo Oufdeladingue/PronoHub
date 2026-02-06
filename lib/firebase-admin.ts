@@ -83,14 +83,22 @@ export async function sendPushNotification(
   }
 
   try {
+    // Log l'URL de l'image pour debug
+    if (imageUrl) {
+      console.log('[Push] Image URL:', imageUrl)
+    }
+
     const message: admin.messaging.Message = {
       token: fcmToken,
       notification: {
         title,
         body,
-        ...(imageUrl && { imageUrl: imageUrl }),
+        ...(imageUrl && { imageUrl }),
       },
-      data: data || {},
+      data: {
+        ...data,
+        ...(imageUrl && { imageUrl }), // Aussi dans data pour debug
+      },
       android: {
         priority: 'high',
         notification: {
@@ -98,7 +106,7 @@ export async function sendPushNotification(
           color: '#FFCC00', // Jaune PronoHub
           channelId: 'pronohub_notifications',
           sound: 'notification_sound', // Son personnalisé (sans extension)
-          ...(imageUrl && { imageUrl: imageUrl }), // Image "Big Picture" sur Android
+          ...(imageUrl && { imageUrl }), // Image "Big Picture" sur Android
         },
       },
     }
