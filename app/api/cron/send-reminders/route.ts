@@ -414,6 +414,9 @@ export async function GET(request: NextRequest) {
       let pushSent = false
 
       // 1. Envoi email (avec TOUS les tournois et matchs)
+      // Délai pour respecter le rate limit Resend (2 req/sec max)
+      await new Promise(resolve => setTimeout(resolve, 600))
+
       try {
         const result = await sendMultiTournamentReminderEmail(userData.email, {
           username: userData.username,
