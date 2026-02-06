@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import React from 'react'
 import satori from 'satori'
 import sharp from 'sharp'
 import path from 'path'
@@ -477,7 +478,7 @@ export async function GET(request: NextRequest) {
           },
           children: children,
         },
-      },
+      } as React.ReactElement,
       {
         width: 1024,
         height: 512,
