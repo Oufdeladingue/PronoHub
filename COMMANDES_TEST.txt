@@ -1,0 +1,110 @@
+═══════════════════════════════════════════════════════════════
+🧪 COMMANDES DE TEST - MODALES INCITATIVES
+═══════════════════════════════════════════════════════════════
+
+📍 SERVEUR : http://localhost:3000 (déjà lancé)
+
+⚠️ Ouvre la console (F12) puis copie-colle les commandes ci-dessous
+
+───────────────────────────────────────────────────────────────
+
+🔥 TEST 1 : EXTENSION DE DURÉE
+
+window.debugShowModal('duration_extension')
+
+Vérifie :
+✅ Titre : "La saison est trop courte ? Prolonge-la."
+✅ Image : Calendrier avec trophée
+✅ Bouton : "🔥 Prolonger le plaisir"
+✅ Sous-texte : "Plus de journée, plus de points, plus de suspense"
+
+───────────────────────────────────────────────────────────────
+
+👥 TEST 2 : EXTENSION CAPACITÉ (2-1 places)
+
+window.debugShowModal('player_extension_2_1')
+
+Vérifie :
+✅ Titre : "Ton tournoi va se jouer à guichets fermés"
+✅ Image : Groupe de joueurs avec trophée
+✅ Bouton : "👥 Ajouter des places"
+✅ Sous-texte : "Plus de joueurs = plus de fun"
+
+───────────────────────────────────────────────────────────────
+
+👥 TEST 3 : EXTENSION CAPACITÉ (0 places)
+
+window.debugShowModal('player_extension_0')
+
+Vérifie :
+✅ Même visuel que TEST 2
+
+───────────────────────────────────────────────────────────────
+
+📊 TEST 4 : OPTION STATS
+
+window.debugShowModal('stats_option')
+
+Vérifie :
+✅ Titre : "Les rois jouent… les stratèges gagnent."
+✅ Image : Personnage avec tableau tactique
+✅ Bouton : "📊 Débloquer les stats"
+✅ Sous-texte : "Une option oubliée par Raymond Domenech..."
+
+───────────────────────────────────────────────────────────────
+
+❌ FERMER LA MODALE
+
+window.debugHideModal()
+
+OU clique sur le X en haut à droite
+OU clique sur le fond noir
+
+───────────────────────────────────────────────────────────────
+
+🔄 TESTER TOUTES LES MODALES EN SÉQUENCE
+
+// Copie-colle tout ce bloc d'un coup :
+
+console.log('🔥 Test Extension Durée...');
+window.debugShowModal('duration_extension');
+setTimeout(() => {
+  window.debugHideModal();
+  console.log('👥 Test Extension Capacité (2-1)...');
+  window.debugShowModal('player_extension_2_1');
+  setTimeout(() => {
+    window.debugHideModal();
+    console.log('👥 Test Extension Capacité (0)...');
+    window.debugShowModal('player_extension_0');
+    setTimeout(() => {
+      window.debugHideModal();
+      console.log('📊 Test Stats...');
+      window.debugShowModal('stats_option');
+      setTimeout(() => {
+        window.debugHideModal();
+        console.log('✅ Tests terminés !');
+      }, 3000);
+    }, 3000);
+  }, 3000);
+}, 3000);
+
+───────────────────────────────────────────────────────────────
+
+📱 TEST MOBILE
+
+1. F12 → Icône téléphone (mode responsive)
+2. Sélectionne "iPhone 12 Pro"
+3. Lance les tests ci-dessus
+4. Vérifie que tout reste centré et lisible
+
+───────────────────────────────────────────────────────────────
+
+💡 AIDE-MÉMOIRE
+
+Liste des types de modales disponibles :
+- 'duration_extension'     → Extension de durée
+- 'player_extension_2_1'   → Extension capacité (2-1 places)
+- 'player_extension_0'     → Extension capacité (0 places)
+- 'stats_option'           → Option stats
+
+═══════════════════════════════════════════════════════════════

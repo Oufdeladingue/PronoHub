@@ -47,17 +47,10 @@ export function usePurchaseModal() {
       }
 
       // Rediriger vers Stripe Checkout
-      const stripe = await stripePromise
-      if (!stripe) {
-        throw new Error('Stripe non initialisé')
-      }
-
-      const { error: stripeError } = await stripe.redirectToCheckout({
-        sessionId: data.sessionId,
-      })
-
-      if (stripeError) {
-        throw new Error(stripeError.message)
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('URL de checkout non reçue')
       }
     } catch (err: any) {
       console.error('Erreur achat:', err)

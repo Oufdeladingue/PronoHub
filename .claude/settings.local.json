@@ -90,7 +90,9 @@
       "mcp__adb__adb_shell",
       "mcp__adb__dump_image",
       "mcp__adb__adb_pull",
-      "mcp__adb__inspect_ui"
+      "mcp__adb__inspect_ui",
+      "Bash(JAVA_HOME=\"/c/Program Files/Android/Android Studio/jbr\" cmd //c \".\\\\gradlew.bat bundleRelease\")",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
