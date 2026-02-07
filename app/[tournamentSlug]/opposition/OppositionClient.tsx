@@ -292,9 +292,14 @@ export default function OppositionClient({
   // Charger le compteur de messages non lus au chargement
   useEffect(() => {
     fetchUnreadMessagesCount()
-    // Charger les bonus matches (pas critique pour le LCP)
-    fetchBonusMatches()
   }, [])
+
+  // Charger les bonus matches une fois que le tournoi est chargé
+  useEffect(() => {
+    if (tournament?.id) {
+      fetchBonusMatches()
+    }
+  }, [tournament?.id])
 
   // Charger les équipes si le mode équipe est activé et le tournoi est lancé
   useEffect(() => {
