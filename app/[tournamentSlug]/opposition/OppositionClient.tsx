@@ -1024,36 +1024,49 @@ export default function OppositionClient({
       let totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
 
       // Calculer le bonus "Prime d'avant-match" si activé
-      // +1 point si TOUS les pronostics ont été faits AVANT CHACUN des matchs respectifs
+      // +1 point si TOUS les pronostics ont été faits AVANT le premier match de la journée
+      // ET si tous les matchs de la journée sont terminés
+      // ET si aucun pronostic par défaut n'a été utilisé
       if (tournament.early_prediction_bonus && matchesData.length > 0 && predictionsData) {
-        let allPredictionsOnTime = true
+        // Vérifier d'abord si tous les matchs de la journée sont terminés (status FINISHED)
+        const allMatchesFinished = matchesData.every((m: any) => m.status === 'FINISHED')
 
-        for (const matchId of matchIds) {
-          const match = matchesData.find((m: any) => m.id === matchId)
-          const prediction = predictionsData.find((p: any) => p.match_id === matchId)
+        if (allMatchesFinished) {
+          // Trouver le premier match de la journée (date la plus tôt)
+          const firstMatchTime = new Date(Math.min(...matchesData.map((m: any) => new Date(m.utc_date).getTime())))
 
-          // Si pas de pronostic du tout, ou si c'est un pronostic par défaut, pas de bonus
-          if (!prediction || prediction.is_default_prediction) {
-            allPredictionsOnTime = false
-            break
-          }
+          let canGetBonus = true
+          let hasAnyDefaultPrediction = false
 
-          // Si le pronostic a été fait après le début de SON match, pas de bonus
-          if (prediction.created_at && match?.utc_date) {
-            const predCreatedAt = new Date(prediction.created_at)
-            const matchStartTime = new Date(match.utc_date)
-            if (predCreatedAt >= matchStartTime) {
-              allPredictionsOnTime = false
+          for (const matchId of matchIds) {
+            const prediction = predictionsData.find((p: any) => p.match_id === matchId)
+
+            // Si pas de pronostic du tout, ou si c'est un pronostic par défaut, pas de bonus
+            if (!prediction || prediction.is_default_prediction) {
+              canGetBonus = false
+              hasAnyDefaultPrediction = true
               break
             }
-          }
-        }
 
-        // Ajouter +1 point si tous les pronostics ont été faits à temps
-        if (allPredictionsOnTime) {
-          totalPoints += 1
-          setHasEarlyBonus(true)
+            // Vérifier si le pronostic a été fait avant le premier match de la journée
+            if (prediction.created_at) {
+              const predCreatedAt = new Date(prediction.created_at)
+              if (predCreatedAt >= firstMatchTime) {
+                canGetBonus = false
+                break
+              }
+            }
+          }
+
+          // Attribuer le bonus uniquement si toutes les conditions sont remplies
+          if (canGetBonus && !hasAnyDefaultPrediction) {
+            totalPoints += 1
+            setHasEarlyBonus(true)
+          } else {
+            setHasEarlyBonus(false)
+          }
         } else {
+          // Si tous les matchs ne sont pas terminés, ne pas encore attribuer le bonus
           setHasEarlyBonus(false)
         }
       } else {
@@ -2006,30 +2019,32 @@ export default function OppositionClient({
                                   /* Journée terminée */
                                   <>
                                     <span className="hidden md:inline">
-                                      Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
+                                      Journée de compétition terminée : vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
                                       {hasEarlyBonus && (
                                         <>
-                                          {' '}dont{' '}
+                                          {' '}(dont{' '}
                                           <button
                                             onClick={() => setActiveTab('regles')}
                                             className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
                                           >
                                             1 de bonus★
                                           </button>
+                                          )
                                         </>
                                       )}
                                     </span>
                                     <span className="md:hidden">
-                                      Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
+                                      Journée de compétition terminée :<br />vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
                                       {hasEarlyBonus && (
                                         <>
-                                          {' '}dont{' '}
+                                          {' '}(dont{' '}
                                           <button
                                             onClick={() => setActiveTab('regles')}
                                             className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
                                           >
                                             1 de bonus★
                                           </button>
+                                          )
                                         </>
                                       )}
                                     </span>
