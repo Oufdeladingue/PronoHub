@@ -132,6 +132,7 @@ function DashboardContent({
     inviteCode?: string
   } | null>(null)
   const [isUsingSlot, setIsUsingSlot] = useState(false)
+  const [tournamentsWithLiveMatches, setTournamentsWithLiveMatches] = useState<Set<string>>(new Set())
 
   // Hook pour détecter les nouveaux trophées
   const { currentTrophy, hasNewTrophies, closeCurrentTrophy } = useTrophyNotifications()
@@ -146,6 +147,44 @@ function DashboardContent({
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  // Vérifier périodiquement si des tournois ont des matchs LIVE
+  useEffect(() => {
+    const checkLiveMatches = async () => {
+      const activeTournaments = tournaments.filter(t => t.status === 'active')
+      if (activeTournaments.length === 0) return
+
+      try {
+        const liveSet = new Set<string>()
+
+        // Vérifier chaque tournoi actif
+        await Promise.all(activeTournaments.map(async (tournament) => {
+          try {
+            const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/live-status`)
+            const data = await response.json()
+
+            if (data.hasLiveMatch) {
+              liveSet.add(tournament.id)
+            }
+          } catch (err) {
+            console.error(`Erreur vérification LIVE pour ${tournament.id}:`, err)
+          }
+        }))
+
+        setTournamentsWithLiveMatches(liveSet)
+      } catch (err) {
+        console.error('Erreur vérification matchs LIVE:', err)
+      }
+    }
+
+    // Vérifier immédiatement au chargement
+    checkLiveMatches()
+
+    // Puis vérifier toutes les 2 minutes
+    const interval = setInterval(checkLiveMatches, 2 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [tournaments])
 
   // Ouvrir le champ de jointure si ?action=join dans l'URL
   useEffect(() => {
@@ -497,6 +536,16 @@ function DashboardContent({
                           </div>
                         </div>
 
+                        {/* Badge LIVE - affiché quand un match est en cours */}
+                        {tournamentsWithLiveMatches.has(tournament.id) && (
+                          <span className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-red-600 flex items-center gap-1 bg-red-600 text-white animate-pulse">
+                            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                              <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            LIVE
+                          </span>
+                        )}
+
                         {/* Badge statut à droite */}
                         <span className={`status-badge px-2 py-1 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap flex-shrink-0 border-2 border-[#ff9900] flex items-center gap-1 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
                           {tournament.status === 'pending' && (
@@ -584,7 +633,17 @@ function DashboardContent({
                       </div>
 
                       {/* Statut et informations */}
-                      <div className="text-right">
+                      <div className="text-right flex flex-col gap-2 items-end">
+                        {/* Badge LIVE - affiché quand un match est en cours */}
+                        {tournamentsWithLiveMatches.has(tournament.id) && (
+                          <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-red-600 inline-flex items-center gap-1.5 bg-red-600 text-white animate-pulse">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                              <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            LIVE
+                          </span>
+                        )}
+
                         <span className={`status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
