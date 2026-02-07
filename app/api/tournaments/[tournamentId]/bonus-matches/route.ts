@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generateBonusMatch } from '@/lib/scoring'
 
@@ -83,6 +83,7 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient() // Client admin pour bypass RLS
     const { searchParams } = new URL(request.url)
     const matchday = searchParams.get('matchday')
 
@@ -104,8 +105,8 @@ export async function GET(
       return NextResponse.json({ bonusMatches: [] })
     }
 
-    // Récupérer les bonus matches existants
-    const { data: existingBonusMatches, error: bonusError } = await supabase
+    // Récupérer les bonus matches existants (avec client admin pour bypass RLS)
+    const { data: existingBonusMatches, error: bonusError } = await supabaseAdmin
       .from('tournament_bonus_matches')
       .select('*')
       .eq('tournament_id', tournamentId)
@@ -140,11 +141,11 @@ export async function GET(
       )
     }
 
-    // Créer les bonus matches manquants
+    // Créer les bonus matches manquants (avec client admin pour bypass RLS)
     const newBonusMatches: any[] = []
     for (const md of matchdaysToCheck) {
       if (!existingMatchdays.has(md)) {
-        const matchId = await createBonusMatchForMatchday(supabase, tournament, md)
+        const matchId = await createBonusMatchForMatchday(supabaseAdmin, tournament, md)
         if (matchId) {
           newBonusMatches.push({ tournament_id: tournamentId, matchday: md, match_id: matchId })
         }
@@ -180,6 +181,7 @@ export async function POST(
 ) {
   try {
     const supabase = await createClient()
+    const supabaseAdmin = createAdminClient() // Client admin pour bypass RLS
     const { tournamentId } = await params
     const { matchday } = await request.json()
 
@@ -203,8 +205,8 @@ export async function POST(
       return NextResponse.json({ error: 'Les matchs bonus ne sont pas activés pour ce tournoi' }, { status: 400 })
     }
 
-    // Vérifier si un match bonus existe déjà pour cette journée
-    const { data: existingBonus } = await supabase
+    // Vérifier si un match bonus existe déjà pour cette journée (avec client admin)
+    const { data: existingBonus } = await supabaseAdmin
       .from('tournament_bonus_matches')
       .select('*')
       .eq('tournament_id', tournamentId)
@@ -280,8 +282,8 @@ export async function POST(
     // Générer un match bonus aléatoire (mais reproductible)
     const selectedMatchId = generateBonusMatch(tournamentId, matchday, matchIds)
 
-    // Insérer le match bonus
-    const { data: bonusMatch, error: insertError } = await supabase
+    // Insérer le match bonus (avec client admin pour bypass RLS)
+    const { data: bonusMatch, error: insertError } = await supabaseAdmin
       .from('tournament_bonus_matches')
       .insert({
         tournament_id: tournamentId,
