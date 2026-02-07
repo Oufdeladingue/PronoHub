@@ -1040,19 +1040,14 @@ export default function OppositionClient({
       let totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
 
       // Calculer le bonus "Prime d'avant-match" si activé
-      // +1 point si TOUS les pronostics ont été faits AVANT le premier match de la journée
-      // ET si tous les matchs de la journée sont terminés
+      // +1 point si tous les matchs de la journée sont terminés
       // ET si aucun pronostic par défaut n'a été utilisé
       if (tournament.early_prediction_bonus && matchesData.length > 0 && predictionsData) {
         // Vérifier d'abord si tous les matchs de la journée sont terminés (status FINISHED)
         const allMatchesFinished = matchesData.every((m: any) => m.status === 'FINISHED')
 
         if (allMatchesFinished) {
-          // Trouver le premier match de la journée (date la plus tôt)
-          const firstMatchTime = new Date(Math.min(...matchesData.map((m: any) => new Date(m.utc_date).getTime())))
-
           let canGetBonus = true
-          let hasAnyDefaultPrediction = false
 
           for (const matchId of matchIds) {
             const prediction = predictionsData.find((p: any) => p.match_id === matchId)
@@ -1060,22 +1055,12 @@ export default function OppositionClient({
             // Si pas de pronostic du tout, ou si c'est un pronostic par défaut, pas de bonus
             if (!prediction || prediction.is_default_prediction) {
               canGetBonus = false
-              hasAnyDefaultPrediction = true
               break
-            }
-
-            // Vérifier si le pronostic a été fait avant le premier match de la journée
-            if (prediction.created_at) {
-              const predCreatedAt = new Date(prediction.created_at)
-              if (predCreatedAt >= firstMatchTime) {
-                canGetBonus = false
-                break
-              }
             }
           }
 
-          // Attribuer le bonus uniquement si toutes les conditions sont remplies
-          if (canGetBonus && !hasAnyDefaultPrediction) {
+          // Attribuer le bonus uniquement si aucun pronostic par défaut
+          if (canGetBonus) {
             totalPoints += 1
             setHasEarlyBonus(true)
           } else {
