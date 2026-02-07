@@ -562,16 +562,27 @@ export default function OppositionClient({
     try {
       if (!tournament) return
 
+      console.log('[BONUS] Chargement des matchs bonus pour le tournoi:', tournament.id)
       const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/bonus-matches`)
-      if (!response.ok) return
+
+      if (!response.ok) {
+        console.warn('[BONUS] Réponse non-OK:', response.status)
+        return
+      }
 
       const data = await response.json()
+      console.log('[BONUS] Données reçues:', data)
+
       if (data.bonusMatches) {
         const bonusIds = new Set<string>(data.bonusMatches.map((bm: any) => bm.match_id))
+        console.log('[BONUS] Matchs bonus chargés:', bonusIds.size, 'matchs')
+        console.log('[BONUS] IDs:', Array.from(bonusIds))
         setBonusMatchIds(bonusIds)
+      } else {
+        console.warn('[BONUS] Aucun bonusMatches dans la réponse')
       }
     } catch (err) {
-      console.error('Erreur lors du chargement des matchs bonus:', err)
+      console.error('[BONUS] Erreur lors du chargement des matchs bonus:', err)
     }
   }
 
