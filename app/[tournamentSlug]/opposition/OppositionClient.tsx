@@ -565,7 +565,11 @@ export default function OppositionClient({
 
   const fetchBonusMatches = async () => {
     try {
-      if (!tournament) return
+      console.log('[BONUS] fetchBonusMatches called, tournament:', tournament?.id || 'undefined')
+      if (!tournament) {
+        console.warn('[BONUS] Tournament not loaded yet, skipping')
+        return
+      }
 
       console.log('[BONUS] Chargement des matchs bonus pour le tournoi:', tournament.id)
       const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/bonus-matches`)
