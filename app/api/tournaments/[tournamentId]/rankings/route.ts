@@ -378,44 +378,32 @@ export async function GET(
       }
 
       // Calculer le bonus "Prime d'avant-match" si activé
-      // Le joueur gagne +1 point par journée s'il a fait TOUS ses pronostics avant le premier match
+      // Le joueur gagne +1 point par journée si TOUS les matchs sont terminés ET aucun pronostic par défaut
       let earlyPredictionBonusPoints = 0
       if (tournament.early_prediction_bonus && predictions.length > 0) {
-        // Créer une map des pronostics par match_id avec leur created_at
-        const predictionsByMatch: Record<string, Date | null> = {}
-        for (const pred of predictions) {
-          if (!pred.is_default_prediction && pred.created_at) {
-            predictionsByMatch[pred.match_id] = new Date(pred.created_at)
-          }
-        }
-
-        // Pour chaque journée avec des matchs terminés, vérifier si tous les pronos ont été faits à temps
+        // Pour chaque journée, vérifier si tous les matchs sont terminés et aucun pronostic par défaut
         for (const md of matchdaysToCalculate) {
           const matchIdsForDay = matchIdsByMatchday[md] || []
-          const firstMatchTime = firstMatchByMatchday[md]
 
-          if (!firstMatchTime || matchIdsForDay.length === 0) continue
+          if (matchIdsForDay.length === 0) continue
 
-          // Filtrer les matchs terminés de cette journée
-          // OPTIMISATION: Utiliser Map.has() O(1) au lieu de some() O(n)
-          const finishedMatchIdsForDay = matchIdsForDay.filter(mId =>
-            finishedMatchesMap.has(mId)
-          )
+          // Vérifier si TOUS les matchs de la journée sont terminés
+          const allMatchesFinished = matchIdsForDay.every(mId => finishedMatchesMap.has(mId))
 
-          if (finishedMatchIdsForDay.length === 0) continue
+          if (!allMatchesFinished) continue
 
-          // Vérifier si TOUS les pronostics de cette journée ont été faits avant le premier match
-          let allPredictionsOnTime = true
-          for (const matchId of finishedMatchIdsForDay) {
-            const predCreatedAt = predictionsByMatch[matchId]
-            // Si pas de pronostic (sera default) ou pronostic fait après le premier match
-            if (!predCreatedAt || predCreatedAt >= firstMatchTime) {
-              allPredictionsOnTime = false
+          // Vérifier si l'utilisateur a des pronostics par défaut pour cette journée
+          let hasDefaultPrediction = false
+          for (const matchId of matchIdsForDay) {
+            const pred = predictions.find(p => p.match_id === matchId)
+            if (!pred || pred.is_default_prediction) {
+              hasDefaultPrediction = true
               break
             }
           }
 
-          if (allPredictionsOnTime) {
+          // Attribuer le bonus uniquement si aucun pronostic par défaut
+          if (!hasDefaultPrediction) {
             earlyPredictionBonusPoints += 1
           }
         }
