@@ -319,6 +319,41 @@ export default function OppositionClient({
     }
   }, [tournament?.custom_competition_id, tournament?.status])
 
+  // Planifier les rafraîchissements automatiques à -30min des coups d'envoi
+  useEffect(() => {
+    if (!allMatches || allMatches.length === 0) return
+
+    const timeouts: NodeJS.Timeout[] = []
+    const now = new Date()
+    const THIRTY_MINUTES_MS = 30 * 60 * 1000
+
+    allMatches.forEach((match: any) => {
+      const matchDate = new Date(match.utc_date)
+      const lockTime = new Date(matchDate.getTime() - THIRTY_MINUTES_MS)
+      const timeUntilLock = lockTime.getTime() - now.getTime()
+
+      // Si le verrouillage est dans le futur (entre maintenant et 24h)
+      // On ne programme que pour les prochaines 24h pour éviter trop de timeouts
+      if (timeUntilLock > 0 && timeUntilLock < 24 * 60 * 60 * 1000) {
+        console.log(`[AUTO-REFRESH] Match ${match.home_team_name} vs ${match.away_team_name} se verrouille dans ${Math.round(timeUntilLock / 1000 / 60)} minutes`)
+
+        const timeout = setTimeout(() => {
+          console.log(`[AUTO-REFRESH] Rafraîchissement automatique - Match verrouillé`)
+          window.location.reload()
+        }, timeUntilLock)
+
+        timeouts.push(timeout)
+      }
+    })
+
+    console.log(`[AUTO-REFRESH] ${timeouts.length} rafraîchissement(s) programmé(s) pour les prochaines 24h`)
+
+    // Cleanup: annuler tous les timeouts quand le composant se démonte
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout))
+    }
+  }, [tournament?.custom_competition_id, tournament?.status])
+
   // Recalculer les journées disponibles et charger les prédictions (allMatches déjà chargé depuis le server)
   useEffect(() => {
     if (allMatches.length > 0) {
