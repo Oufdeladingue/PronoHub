@@ -2840,8 +2840,8 @@ export default function OppositionClient({
 
                                     {/* COLONNE DROITE 15% - Points et badge défaut (alignés à droite) */}
                                     <div className="flex flex-col items-end gap-1 w-[15%] flex-shrink-0 overflow-hidden">
-                                      {/* Badge défaut - affiché au-dessus des points */}
-                                      {(prediction.is_default_prediction || defaultPredictions[match.id]) && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
+                                      {/* Badge défaut - masqué en mode guess */}
+                                      {!isGuessMode && (prediction.is_default_prediction || defaultPredictions[match.id]) && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && (
                                         <div className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px]">
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -2850,8 +2850,8 @@ export default function OppositionClient({
                                         </div>
                                       )}
 
-                                      {/* Points gagnés */}
-                                      {isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
+                                      {/* Points gagnés - masqués en mode guess */}
+                                      {!isGuessMode && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
                                         <div
                                           className="px-2 py-1 rounded-lg font-bold text-xs"
                                           style={getPointsColorStyle(matchPoints[match.id])}
