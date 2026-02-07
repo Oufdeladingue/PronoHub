@@ -186,6 +186,10 @@ export default function OppositionClient({
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
 
+  // Détecter si on est en mode guess (admin visitant un tournoi sans y participer)
+  // En mode guess, l'URL est juste le code (ZEQXTLPS) sans le nom complet (pak-pak-prime_ZEQXTLPS)
+  const isGuessMode = !tournamentSlug.includes('_')
+
   // États pour les équipes
   interface TeamMember {
     id: string
@@ -2023,46 +2027,58 @@ export default function OppositionClient({
                                 {hasLastMatchEnded() ? (
                                   /* Journée terminée */
                                   <>
-                                    <span className="hidden md:inline">
-                                      Journée de compétition terminée : vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
-                                      {hasEarlyBonus && (
-                                        <>
-                                          {' '}(dont{' '}
-                                          <button
-                                            onClick={() => setActiveTab('regles')}
-                                            className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                                          >
-                                            1 de bonus★
-                                          </button>
-                                          )
-                                        </>
-                                      )}
-                                    </span>
-                                    <span className="md:hidden">
-                                      Journée de compétition terminée :<br />vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
-                                      {hasEarlyBonus && (
-                                        <>
-                                          {' '}(dont{' '}
-                                          <button
-                                            onClick={() => setActiveTab('regles')}
-                                            className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                                          >
-                                            1 de bonus★
-                                          </button>
-                                          )
-                                        </>
-                                      )}
-                                    </span>
+                                    {!isGuessMode ? (
+                                      <>
+                                        <span className="hidden md:inline">
+                                          Journée de compétition terminée : vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
+                                          {hasEarlyBonus && (
+                                            <>
+                                              {' '}(dont{' '}
+                                              <button
+                                                onClick={() => setActiveTab('regles')}
+                                                className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                                              >
+                                                1 de bonus★
+                                              </button>
+                                              )
+                                            </>
+                                          )}
+                                        </span>
+                                        <span className="md:hidden">
+                                          Journée de compétition terminée :<br />vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
+                                          {hasEarlyBonus && (
+                                            <>
+                                              {' '}(dont{' '}
+                                              <button
+                                                onClick={() => setActiveTab('regles')}
+                                                className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                                              >
+                                                1 de bonus★
+                                              </button>
+                                              )
+                                            </>
+                                          )}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span>Journée de compétition terminée</span>
+                                    )}
                                   </>
                                 ) : hasFirstMatchStarted() ? (
                                   /* Matchs en cours */
                                   <>
-                                    <span className="hidden md:inline">
-                                      Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
-                                    </span>
-                                    <span className="md:hidden">
-                                      Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
-                                    </span>
+                                    {!isGuessMode ? (
+                                      <>
+                                        <span className="hidden md:inline">
+                                          Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
+                                        </span>
+                                        <span className="md:hidden">
+                                          Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span>Certains matchs sont en cours ou terminés</span>
+                                    )}
                                   </>
                                 ) : (
                                   /* Pronostics clôturés mais aucun match commencé (30min avant) */
@@ -2365,7 +2381,7 @@ export default function OppositionClient({
                                       )}
 
                                       {/* Points gagnés */}
-                                      {hasFirstMatchStarted() && matchPoints[match.id] !== undefined ? (
+                                      {!isGuessMode && hasFirstMatchStarted() && matchPoints[match.id] !== undefined ? (
                                         <div
                                           className="px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap"
                                           style={getPointsColorStyle(matchPoints[match.id])}
@@ -2381,7 +2397,7 @@ export default function OppositionClient({
                                     <div className="flex flex-col items-center gap-1">
                                       {/* Badge prono par défaut en haut si applicable - aligné à droite */}
                                       <div className="w-full flex justify-end mb-1">
-                                        {prediction.is_default_prediction ? (
+                                        {!isGuessMode && prediction.is_default_prediction ? (
                                           <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-[9px] opacity-70">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
