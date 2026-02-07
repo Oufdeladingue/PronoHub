@@ -1051,8 +1051,16 @@ export default function OppositionClient({
       // +1 point si tous les matchs de la journée sont terminés
       // ET si aucun pronostic par défaut n'a été utilisé
       if (tournament.early_prediction_bonus && matchesData.length > 0 && predictionsData) {
-        // Vérifier d'abord si tous les matchs de la journée sont terminés (status FINISHED)
-        const allMatchesFinished = matchesData.every((m: any) => m.status === 'FINISHED')
+        // IMPORTANT : récupérer TOUS les matchs de la journée (pas seulement ceux avec score)
+        // pour vérifier si la journée est vraiment terminée
+        const allMatchesOfDay = allMatches.filter((m: any) => {
+          const md = m.virtual_matchday || m.matchday
+          return md === selectedMatchday
+        })
+
+        // Vérifier si TOUS les matchs de la journée sont terminés (status FINISHED)
+        const allMatchesFinished = allMatchesOfDay.length > 0 &&
+                                   allMatchesOfDay.every((m: any) => m.status === 'FINISHED')
 
         if (allMatchesFinished) {
           let canGetBonus = true
