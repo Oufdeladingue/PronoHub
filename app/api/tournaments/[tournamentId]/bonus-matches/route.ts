@@ -105,11 +105,15 @@ export async function GET(
     }
 
     // Récupérer les bonus matches existants
-    const { data: existingBonusMatches } = await supabase
+    const { data: existingBonusMatches, error: bonusError } = await supabase
       .from('tournament_bonus_matches')
       .select('*')
       .eq('tournament_id', tournamentId)
       .order('matchday', { ascending: true })
+
+    console.log('[BONUS API] Tournament ID:', tournamentId)
+    console.log('[BONUS API] Existing bonus matches:', existingBonusMatches?.length || 0)
+    if (bonusError) console.error('[BONUS API] Error fetching bonus matches:', bonusError)
 
     const existingMatchdays = new Set(existingBonusMatches?.map((bm: any) => bm.matchday) || [])
 
@@ -150,6 +154,8 @@ export async function GET(
     // Combiner existants et nouveaux
     const allBonusMatches = [...(existingBonusMatches || []), ...newBonusMatches]
       .sort((a, b) => a.matchday - b.matchday)
+
+    console.log('[BONUS API] Total bonus matches to return:', allBonusMatches.length)
 
     // Si une journée spécifique est demandée
     if (matchday) {
