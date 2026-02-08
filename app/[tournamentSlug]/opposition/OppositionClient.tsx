@@ -361,7 +361,14 @@ export default function OppositionClient({
 
   // Pull-to-refresh sur mobile (Capacitor uniquement)
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return
+    const isNative = Capacitor.isNativePlatform()
+    console.log('[PULL-TO-REFRESH] Setup - isNativePlatform:', isNative)
+    console.log('[PULL-TO-REFRESH] Capacitor.getPlatform():', Capacitor.getPlatform())
+
+    if (!isNative) {
+      console.log('[PULL-TO-REFRESH] Not native platform, skipping setup')
+      return
+    }
 
     let startY = 0
     let currentY = 0
@@ -377,6 +384,8 @@ export default function OppositionClient({
       // Vérifier si on est en haut de la page
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       isAtTop = scrollTop === 0
+
+      console.log('[PULL-TO-REFRESH] TouchStart - scrollTop:', scrollTop, 'isAtTop:', isAtTop)
 
       if (isAtTop) {
         startY = e.touches[0].clientY
@@ -395,6 +404,7 @@ export default function OppositionClient({
 
       // Démarrer le pull seulement si on dépasse la distance minimale
       if (distance > MIN_PULL_DISTANCE) {
+        console.log('[PULL-TO-REFRESH] TouchMove - distance:', distance, 'isPulling:', isPulling)
         isPulling = true
         setIsPullingDown(true)
         // Appliquer une résistance progressive (effet élastique)
@@ -407,6 +417,9 @@ export default function OppositionClient({
     }
 
     const handleTouchEnd = () => {
+      const distance = currentY - startY
+      console.log('[PULL-TO-REFRESH] TouchEnd - isAtTop:', isAtTop, 'isPulling:', isPulling, 'distance:', distance)
+
       if (!isAtTop || !isPulling) {
         isPulling = false
         setIsPullingDown(false)
@@ -414,7 +427,6 @@ export default function OppositionClient({
         return
       }
 
-      const distance = currentY - startY
       const now = Date.now()
 
       // Déclencher le refresh seulement si :
@@ -422,10 +434,11 @@ export default function OppositionClient({
       // 2. On a relâché le doigt
       // 3. Le cooldown est passé
       if (distance >= READY_THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
-        console.log('[PULL-TO-REFRESH] Rafraîchissement déclenché')
+        console.log('[PULL-TO-REFRESH] ✅ Rafraîchissement déclenché - distance:', distance)
         lastRefreshTime = now
         window.location.reload()
       } else {
+        console.log('[PULL-TO-REFRESH] ❌ Pas de refresh - distance:', distance, 'threshold:', READY_THRESHOLD)
         // Réinitialiser l'indicateur avec animation
         setIsPullingDown(false)
         setPullDistance(0)
