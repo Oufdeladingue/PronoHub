@@ -98,6 +98,10 @@ export default function AdminDataPage() {
   const [cronStatus, setCronStatus] = useState<any>(null)
   const [lastUpdateResults, setLastUpdateResults] = useState<any[] | null>(null)
 
+  // État pour les stats API
+  const [apiStats, setApiStats] = useState<any>(null)
+  const [loadingApiStats, setLoadingApiStats] = useState(false)
+
   // Charger uniquement les compétitions déjà importées (depuis la base locale)
   const fetchImportedCompetitions = async () => {
     setLoading(true)
@@ -272,6 +276,22 @@ export default function AdminDataPage() {
     }
   }
 
+  // Charger les stats API
+  const fetchApiStats = async () => {
+    setLoadingApiStats(true)
+    try {
+      const response = await fetch('/api/admin/api-stats')
+      if (response.ok) {
+        const data = await response.json()
+        setApiStats(data.stats)
+      }
+    } catch (err: any) {
+      console.error('Error fetching API stats:', err)
+    } finally {
+      setLoadingApiStats(false)
+    }
+  }
+
   // Générer les fenêtres de matchs
   const generateMatchWindows = async () => {
     setGeneratingWindows(true)
@@ -297,13 +317,13 @@ export default function AdminDataPage() {
   }
 
   // Exécuter une MAJ manuelle
-  const runManualUpdate = async () => {
+  const runManualUpdate = async (type: 'realtime' | 'full' = 'realtime') => {
     setTestingCron(true)
     setError(null)
     setSuccess(null)
     setLastUpdateResults(null)
     try {
-      const response = await fetch('/api/admin/smart-cron', {
+      const response = await fetch(`/api/admin/smart-cron?type=${type}`, {
         method: 'DELETE',
       })
 
@@ -318,15 +338,23 @@ export default function AdminDataPage() {
         setLastUpdateResults(result.results)
       }
 
+      const totalUpdated = result.successCount || result.totalMatches || 0
       const failedCount = result.failureCount || 0
+      const updateType = type === 'realtime' ? 'Temps réel' : 'Complète'
+
       if (failedCount > 0) {
-        setSuccess(`Mise à jour terminée : ${result.successCount || 0} OK, ${failedCount} erreurs (voir détails ci-dessous)`)
+        setSuccess(`${updateType} : ${totalUpdated} OK, ${failedCount} erreurs (voir détails ci-dessous)`)
+      } else if (totalUpdated === 0) {
+        setSuccess(`${updateType} : Aucune mise à jour nécessaire`)
       } else {
-        setSuccess(`Mise à jour terminée : ${result.successCount || 0} compétitions mises à jour`)
+        setSuccess(`${updateType} : ${totalUpdated} ${type === 'realtime' ? 'matchs' : 'compétitions'} mis à jour`)
       }
       await fetchSmartSettings()
+      await fetchApiStats() // Rafraîchir les stats API
       // Rafraîchir la liste des compétitions pour mettre à jour les dates
-      await fetchImportedCompetitions()
+      if (type === 'full') {
+        await fetchImportedCompetitions()
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -338,10 +366,14 @@ export default function AdminDataPage() {
     fetchImportedCompetitions()
   }, [])
 
-  // Charger les paramètres de MAJ quand on passe à l'onglet
+  // Charger les paramètres de MAJ et stats API quand on passe à l'onglet
   useEffect(() => {
     if (activeTab === 'update-settings') {
       fetchSmartSettings()
+      fetchApiStats()
+      // Rafraîchir les stats toutes les 30 secondes
+      const interval = setInterval(fetchApiStats, 30000)
+      return () => clearInterval(interval)
     }
   }, [activeTab])
 
@@ -902,8 +934,114 @@ export default function AdminDataPage() {
                     </div>
                   </div>
 
+                  {/* === MONITORING API === */}
+                  {apiStats && (
+                    <div className="bg-white p-6 rounded-lg shadow">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-md font-semibold text-gray-900">Consommation API (aujourd'hui)</h3>
+                        <button
+                          onClick={fetchApiStats}
+                          disabled={loadingApiStats}
+                          className="text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                        >
+                          {loadingApiStats ? 'Actualisation...' : '🔄 Actualiser'}
+                        </button>
+                      </div>
+
+                      {/* Quota Progress Bar */}
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Quota journalier</span>
+                          <span className="text-sm text-gray-600">
+                            {apiStats.totalCalls} / {apiStats.quota.daily} appels ({apiStats.quota.usagePercent}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full transition-all ${
+                              apiStats.quota.usagePercent > 90
+                                ? 'bg-red-500'
+                                : apiStats.quota.usagePercent > 70
+                                ? 'bg-orange-500'
+                                : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(apiStats.quota.usagePercent, 100)}%` }}
+                          />
+                        </div>
+
+                        {/* Estimation fin de journée */}
+                        {apiStats.quota.estimatedTotal > apiStats.totalCalls && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-blue-800">
+                                Estimation fin de journée : <strong>{apiStats.quota.estimatedTotal} appels</strong>
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                apiStats.quota.status === 'critical'
+                                  ? 'bg-red-100 text-red-700'
+                                  : apiStats.quota.status === 'warning'
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}>
+                                {apiStats.quota.estimatedQuotaPercent}%
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="p-4 bg-green-50 rounded-lg">
+                          <div className="text-2xl font-bold text-green-700">{apiStats.successCount}</div>
+                          <div className="text-xs text-green-600 mt-1">Succès</div>
+                        </div>
+                        <div className="p-4 bg-red-50 rounded-lg">
+                          <div className="text-2xl font-bold text-red-700">{apiStats.failureCount}</div>
+                          <div className="text-xs text-red-600 mt-1">Échecs</div>
+                        </div>
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <div className="text-2xl font-bold text-blue-700">{apiStats.successRate}%</div>
+                          <div className="text-xs text-blue-600 mt-1">Taux succès</div>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <div className="text-2xl font-bold text-gray-700">{apiStats.quota.remaining}</div>
+                          <div className="text-xs text-gray-600 mt-1">Restant</div>
+                        </div>
+                      </div>
+
+                      {/* Répartition par type */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">Répartition par type</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                              <span className="text-sm text-gray-700">Quotidien</span>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">{apiStats.byType.quotidien} appels</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-green-500 rounded"></div>
+                              <span className="text-sm text-gray-700">Temps réel</span>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">{apiStats.byType.realtime} appels</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                              <span className="text-sm text-gray-700">Manuel</span>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">{apiStats.byType.manual} appels</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* === BOUTONS D'ACTION === */}
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-4">
                     <button
                       onClick={saveSmartSettings}
                       disabled={savingSettings}
@@ -912,11 +1050,20 @@ export default function AdminDataPage() {
                       {savingSettings ? 'Enregistrement...' : 'Enregistrer les paramètres'}
                     </button>
                     <button
-                      onClick={runManualUpdate}
+                      onClick={() => runManualUpdate('realtime')}
+                      disabled={testingCron}
+                      className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      title="Mise à jour ciblée des matchs en cours uniquement (optimisée)"
+                    >
+                      {testingCron ? 'Exécution...' : '⚡ MAJ Temps réel'}
+                    </button>
+                    <button
+                      onClick={() => runManualUpdate('full')}
                       disabled={testingCron}
                       className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      title="Mise à jour complète de toutes les compétitions actives"
                     >
-                      {testingCron ? 'Exécution...' : 'Exécuter maintenant'}
+                      {testingCron ? 'Exécution...' : '🔄 MAJ Complète'}
                     </button>
                   </div>
 

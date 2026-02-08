@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { executeAutoUpdate } from '@/app/api/football/auto-update/route'
+import { executeRealtimeUpdate } from '@/app/api/football/realtime-update/route'
 
 // Interface pour les paramètres du système intelligent
 interface SmartCronSettings {
@@ -315,7 +316,8 @@ export async function PUT() {
 }
 
 // DELETE - Exécuter une MAJ manuelle
-export async function DELETE() {
+// Query param: ?type=realtime (mise à jour ciblée) ou ?type=full (mise à jour complète)
+export async function DELETE(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -344,13 +346,19 @@ export async function DELETE() {
       }, { status: 500 })
     }
 
-    // Appeler directement la fonction de mise à jour (pas de fetch HTTP)
-    const result = await executeAutoUpdate()
+    // Déterminer le type de mise à jour (par défaut: realtime)
+    const url = new URL(request.url)
+    const updateType = url.searchParams.get('type') || 'realtime'
+
+    // Appeler la fonction appropriée
+    const result = updateType === 'full'
+      ? await executeAutoUpdate()
+      : await executeRealtimeUpdate()
 
     // Logger dans cron_logs
     try {
       await supabase.from('cron_logs').insert({
-        job_name: 'manual-update',
+        job_name: updateType === 'full' ? 'manual-update' : 'manual-realtime',
         status: result.success ? 'success' : 'error',
         message: result.message || result.error || 'Manual execution',
         competitions_updated: result.successCount || 0
