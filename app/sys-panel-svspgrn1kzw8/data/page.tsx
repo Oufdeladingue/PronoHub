@@ -1114,6 +1114,12 @@ export default function AdminDataPage() {
                   {matchWindows.length > 0 && (
                     <div className="bg-white p-6 rounded-lg shadow">
                       <h3 className="text-md font-semibold text-gray-900 mb-4">Prochaines fenêtres de matchs</h3>
+                      <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-900">
+                          <strong>Note :</strong> Le nombre de matchs indiqué correspond au total de matchs dans la journée.
+                          Les mises à jour temps réel ne ciblent que les matchs effectivement en cours pendant la fenêtre horaire.
+                        </p>
+                      </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
@@ -1141,7 +1147,10 @@ export default function AdminDataPage() {
                                   <td className="py-2 px-3 text-gray-800">
                                     {end.toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                   </td>
-                                  <td className="py-2 px-3 font-medium text-gray-900">{window.matches_count}</td>
+                                  <td className="py-2 px-3 text-gray-800">
+                                    <span className="font-medium text-gray-900">{window.matches_count}</span>
+                                    <span className="ml-1 text-xs text-gray-500">(sur {window.match_date})</span>
+                                  </td>
                                   <td className="py-2 px-3">
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                       isActive ? 'bg-green-100 text-green-700' : isPast ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'
