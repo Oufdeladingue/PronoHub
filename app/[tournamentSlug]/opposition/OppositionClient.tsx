@@ -361,31 +361,22 @@ export default function OppositionClient({
 
   // Pull-to-refresh sur mobile (Capacitor uniquement)
   useEffect(() => {
-    const isNative = Capacitor.isNativePlatform()
-    console.log('[PULL-TO-REFRESH] Setup - isNativePlatform:', isNative)
-    console.log('[PULL-TO-REFRESH] Capacitor.getPlatform():', Capacitor.getPlatform())
-
-    if (!isNative) {
-      console.log('[PULL-TO-REFRESH] Not native platform, skipping setup')
-      return
-    }
+    if (!Capacitor.isNativePlatform()) return
 
     let startY = 0
     let currentY = 0
     let isAtTop = false
     let isPulling = false
     let lastRefreshTime = 0
-    const HINT_THRESHOLD = 70 // Seuil pour afficher "Tire encore..."
-    const READY_THRESHOLD = 140 // Seuil pour afficher "Relâche..." et armer le refresh
-    const MIN_PULL_DISTANCE = 20 // Distance minimale avant de commencer à considérer le geste
-    const COOLDOWN_MS = 1000 // Cooldown de 1s entre les refresh
+    const HINT_THRESHOLD = 100 // Seuil pour afficher "Tire encore..."
+    const READY_THRESHOLD = 180 // Seuil pour afficher "Relâche..." et armer le refresh
+    const MIN_PULL_DISTANCE = 40 // Distance minimale avant de commencer à considérer le geste
+    const COOLDOWN_MS = 2000 // Cooldown de 2s entre les refresh
 
     const handleTouchStart = (e: TouchEvent) => {
       // Vérifier si on est en haut de la page
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       isAtTop = scrollTop === 0
-
-      console.log('[PULL-TO-REFRESH] TouchStart - scrollTop:', scrollTop, 'isAtTop:', isAtTop)
 
       if (isAtTop) {
         startY = e.touches[0].clientY
@@ -397,6 +388,18 @@ export default function OppositionClient({
     }
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Re-vérifier qu'on est toujours en haut de page
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      if (scrollTop !== 0) {
+        // Si on a scrollé, annuler le pull
+        if (isPulling) {
+          isPulling = false
+          setIsPullingDown(false)
+          setPullDistance(0)
+        }
+        return
+      }
+
       if (!isAtTop) return
 
       currentY = e.touches[0].clientY
@@ -404,7 +407,6 @@ export default function OppositionClient({
 
       // Démarrer le pull seulement si on dépasse la distance minimale
       if (distance > MIN_PULL_DISTANCE) {
-        console.log('[PULL-TO-REFRESH] TouchMove - distance:', distance, 'isPulling:', isPulling)
         isPulling = true
         setIsPullingDown(true)
         // Appliquer une résistance progressive (effet élastique)
@@ -417,10 +419,13 @@ export default function OppositionClient({
     }
 
     const handleTouchEnd = () => {
-      const distance = currentY - startY
-      console.log('[PULL-TO-REFRESH] TouchEnd - isAtTop:', isAtTop, 'isPulling:', isPulling, 'distance:', distance)
+      // Re-vérifier qu'on est toujours en haut de page
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const isStillAtTop = scrollTop === 0
 
-      if (!isAtTop || !isPulling) {
+      const distance = currentY - startY
+
+      if (!isStillAtTop || !isAtTop || !isPulling) {
         isPulling = false
         setIsPullingDown(false)
         setPullDistance(0)
@@ -430,15 +435,14 @@ export default function OppositionClient({
       const now = Date.now()
 
       // Déclencher le refresh seulement si :
-      // 1. On a dépassé le seuil READY
-      // 2. On a relâché le doigt
-      // 3. Le cooldown est passé
+      // 1. On est toujours au scroll 0
+      // 2. On a dépassé le seuil READY
+      // 3. On a relâché le doigt
+      // 4. Le cooldown est passé
       if (distance >= READY_THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
-        console.log('[PULL-TO-REFRESH] ✅ Rafraîchissement déclenché - distance:', distance)
         lastRefreshTime = now
         window.location.reload()
       } else {
-        console.log('[PULL-TO-REFRESH] ❌ Pas de refresh - distance:', distance, 'threshold:', READY_THRESHOLD)
         // Réinitialiser l'indicateur avec animation
         setIsPullingDown(false)
         setPullDistance(0)
@@ -1890,17 +1894,31 @@ export default function OppositionClient({
     <>
       {/* flex flex-col pour pousser le footer en bas et éviter le CLS */}
       <div className="min-h-screen theme-bg flex flex-col">
-        {/* Indicateur Pull-to-Refresh (uniquement sur mobile natif) */}
+        {/* Header */}
+        <Navigation
+          username={username}
+          userAvatar={userAvatar}
+          context="tournament"
+          tournamentContext={{
+            tournamentName: tournament.name,
+            competitionName: tournament.competition_name,
+            competitionLogo: competitionLogo,
+            competitionLogoWhite: competitionLogoWhite,
+            status: "active"
+          }}
+        />
+
+        {/* Indicateur Pull-to-Refresh (sous le header, uniquement sur mobile natif) */}
         {Capacitor.isNativePlatform() && isPullingDown && (
           <div
-            className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center bg-gradient-to-b from-black/20 to-transparent pointer-events-none transition-all duration-200"
+            className="w-full flex items-center justify-center bg-gradient-to-b from-black/20 to-transparent pointer-events-none transition-all duration-200"
             style={{
-              height: `${Math.min(pullDistance, 100)}px`,
-              opacity: Math.min(pullDistance / 70, 1)
+              height: `${Math.min(pullDistance, 120)}px`,
+              opacity: Math.min(pullDistance / 100, 1)
             }}
           >
             <div className="flex flex-col items-center gap-2 text-white">
-              {pullDistance < 70 ? (
+              {pullDistance < HINT_THRESHOLD ? (
                 <>
                   {/* Phase 1: Hint - Tire encore */}
                   <svg
@@ -1911,7 +1929,7 @@ export default function OppositionClient({
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                   </svg>
-                  <span className="text-sm font-medium">Tire encore...</span>
+                  <span className="text-sm font-medium">Tire encore vers le bas pour actualiser</span>
                 </>
               ) : (
                 <>
@@ -1930,20 +1948,6 @@ export default function OppositionClient({
             </div>
           </div>
         )}
-
-        {/* Header */}
-        <Navigation
-          username={username}
-          userAvatar={userAvatar}
-          context="tournament"
-          tournamentContext={{
-            tournamentName: tournament.name,
-            competitionName: tournament.competition_name,
-            competitionLogo: competitionLogo,
-            competitionLogoWhite: competitionLogoWhite,
-            status: "active"
-          }}
-        />
 
         {/* Banner d'extension de durée pour les tournois Free-Kick actifs */}
         {tournament.tournament_type === 'free' && tournament.status === 'active' && (
