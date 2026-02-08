@@ -279,7 +279,7 @@ async function updateMatchesIndividually(
     .select('football_data_match_id, status, last_updated_at')
     .in('football_data_match_id', matchIds)
 
-  const matchInfoMap = new Map(matchesInfo?.map((m: any) => [m.football_data_match_id, m]) || [])
+  const matchInfoMap = new Map<number, any>(matchesInfo?.map((m: any) => [m.football_data_match_id, m]) || [])
 
   // Filtrer les matchs à vraiment mettre à jour (cache)
   const matchIdsToUpdate = matchIds.filter(matchId => {
