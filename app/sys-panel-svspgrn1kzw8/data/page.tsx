@@ -1116,8 +1116,7 @@ export default function AdminDataPage() {
                       <h3 className="text-md font-semibold text-gray-900 mb-4">Prochaines fenêtres de matchs</h3>
                       <div className="mb-3 p-3 bg-blue-50 rounded-lg">
                         <p className="text-xs text-blue-900">
-                          <strong>Note :</strong> Le nombre de matchs indiqué correspond au total de matchs dans la journée.
-                          Les mises à jour temps réel ne ciblent que les matchs effectivement en cours pendant la fenêtre horaire.
+                          <strong>Info :</strong> Le nombre affiché représente les matchs réellement présents dans cette plage horaire (±10 min avant, +3h après le coup d'envoi).
                         </p>
                       </div>
                       <div className="overflow-x-auto">
@@ -1148,8 +1147,14 @@ export default function AdminDataPage() {
                                     {end.toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                   </td>
                                   <td className="py-2 px-3 text-gray-800">
-                                    <span className="font-medium text-gray-900">{window.matches_count}</span>
-                                    <span className="ml-1 text-xs text-gray-500">(sur {window.match_date})</span>
+                                    <span className="font-medium text-gray-900">
+                                      {window.real_matches_count !== undefined ? window.real_matches_count : window.matches_count}
+                                    </span>
+                                    {window.real_matches_count !== undefined && window.real_matches_count !== window.matches_count && (
+                                      <span className="ml-1 text-xs text-gray-500">
+                                        (/{window.matches_count} dans la journée)
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="py-2 px-3">
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${

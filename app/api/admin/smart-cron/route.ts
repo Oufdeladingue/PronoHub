@@ -130,7 +130,7 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(15)
 
-    // Récupérer les fenêtres de matchs actives
+    // Récupérer les fenêtres de matchs actives avec compte précis
     let matchWindows: any[] = []
     try {
       const { data: windows } = await supabase
@@ -139,7 +139,40 @@ export async function GET() {
         .gte('window_end', new Date().toISOString())
         .order('window_start', { ascending: true })
         .limit(10)
-      matchWindows = windows || []
+
+      if (windows && windows.length > 0) {
+        // Pour chaque fenêtre, calculer le nombre réel de matchs dans la plage horaire
+        const windowsWithRealCount = await Promise.all(windows.map(async (window) => {
+          const windowStart = new Date(window.window_start)
+          const windowEnd = new Date(window.window_end)
+
+          // Récupérer les matchs de cette compétition dans la fenêtre horaire
+          const { data: matches } = await supabase
+            .from('imported_matches')
+            .select('football_data_match_id, utc_date, status')
+            .eq('competition_id', window.competition_id)
+            .gte('utc_date', window.match_date)
+            .lt('utc_date', new Date(new Date(window.match_date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+            .in('status', ['TIMED', 'IN_PLAY', 'PAUSED'])
+
+          // Filtrer les matchs selon la fenêtre horaire
+          const realCount = (matches || []).filter(match => {
+            const matchTime = new Date(match.utc_date)
+            // Marge: 10 min avant kickoff, 3h après
+            const marginBefore = 10 * 60 * 1000
+            const marginAfter = 3 * 60 * 60 * 1000
+            return matchTime.getTime() >= windowStart.getTime() - marginBefore &&
+                   matchTime.getTime() <= windowEnd.getTime() + marginAfter
+          }).length
+
+          return {
+            ...window,
+            real_matches_count: realCount
+          }
+        }))
+
+        matchWindows = windowsWithRealCount
+      }
     } catch {
       // Table peut ne pas exister
     }
