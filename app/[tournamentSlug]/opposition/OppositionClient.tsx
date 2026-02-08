@@ -362,13 +362,16 @@ export default function OppositionClient({
     let startY = 0
     let currentY = 0
     let isDragging = false
-    const PULL_THRESHOLD = 80 // Distance minimale pour déclencher le refresh
+    let hasMovedEnough = false
+    const PULL_THRESHOLD = 150 // Distance minimale pour déclencher le refresh (augmenté de 80 à 150px)
+    const MIN_PULL_DISTANCE = 30 // Distance minimale avant de considérer que c'est un pull
 
     const handleTouchStart = (e: TouchEvent) => {
       // Seulement si on est en haut de page
       if (window.scrollY === 0) {
         startY = e.touches[0].clientY
         isDragging = true
+        hasMovedEnough = false
       }
     }
 
@@ -378,9 +381,14 @@ export default function OppositionClient({
       currentY = e.touches[0].clientY
       const pullDistance = currentY - startY
 
+      // Vérifier qu'on tire bien vers le bas (pas horizontal ou vers le haut)
+      if (pullDistance > MIN_PULL_DISTANCE) {
+        hasMovedEnough = true
+      }
+
       // Si on tire vers le bas et qu'on est en haut de page
-      if (pullDistance > 0 && window.scrollY === 0) {
-        // Empêcher le scroll par défaut
+      if (pullDistance > MIN_PULL_DISTANCE && window.scrollY === 0) {
+        // Empêcher le scroll par défaut seulement après MIN_PULL_DISTANCE
         e.preventDefault()
       }
     }
@@ -390,13 +398,14 @@ export default function OppositionClient({
 
       const pullDistance = currentY - startY
 
-      // Si on a dépassé le seuil, déclencher le refresh
-      if (pullDistance > PULL_THRESHOLD && window.scrollY === 0) {
+      // Si on a dépassé le seuil ET qu'on a fait un mouvement suffisant
+      if (hasMovedEnough && pullDistance > PULL_THRESHOLD && window.scrollY === 0) {
         console.log('[PULL-TO-REFRESH] Rafraîchissement manuel déclenché')
         window.location.reload()
       }
 
       isDragging = false
+      hasMovedEnough = false
       startY = 0
       currentY = 0
     }
