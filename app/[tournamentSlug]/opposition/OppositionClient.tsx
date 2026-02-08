@@ -679,7 +679,7 @@ export default function OppositionClient({
       // Vérifier si au moins un match de cette journée est en cours ou pas encore terminé
       const hasActiveOrPendingMatches = matchdayMatches.some(match => {
         const status = match.status
-        return ['IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED'].includes(status)
+        return status && ['IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED'].includes(status)
       })
 
       // Si cette journée a au moins un match éditable OU des matchs en cours/à venir, la sélectionner
