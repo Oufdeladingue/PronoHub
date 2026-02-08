@@ -429,10 +429,129 @@ export async function GET(
 
     // Si on demande le classement général, calculer aussi le classement de la journée précédente
     let previousRankings: PlayerStats[] | undefined
-    if (!matchday && startMatchday < endMatchday) {
-      // Récupérer le classement à la journée précédente (dernière journée terminée)
-      // Pour simplifier, on suppose que c'est la journée endMatchday - 1
-      // Dans une vraie implémentation, il faudrait vérifier quelle est la dernière journée terminée
+    if (!matchday) {
+      // Trouver la dernière journée terminée (tous les matchs terminés)
+      const journeysFinished: number[] = []
+      for (const md of matchdaysToCalculate) {
+        const matchesForDay = (allMatches || []).filter(m => m.matchday === md)
+        const allFinished = matchesForDay.length > 0 && matchesForDay.every(m =>
+          finishedMatchesMap.has(m.id)
+        )
+        if (allFinished) {
+          journeysFinished.push(md)
+        }
+      }
+
+      // S'il y a au moins 2 journées terminées, calculer le classement de l'avant-dernière
+      if (journeysFinished.length >= 2) {
+        const previousMatchday = journeysFinished[journeysFinished.length - 2]
+
+        // Récupérer les matchs terminés jusqu'à la journée précédente (incluse)
+        const previousFinishedMatches = (finishedMatches || []).filter(m =>
+          m.matchday <= previousMatchday
+        )
+
+        // Créer une map pour un accès rapide
+        const prevFinishedMatchesMap = new Map(previousFinishedMatches.map(m => [m.id, m]))
+
+        // Recalculer les stats pour chaque joueur jusqu'à la journée précédente
+        const previousPlayerStats = new Map<string, Omit<PlayerStats, 'rank' | 'rankChange'>>()
+
+        for (const participant of participants) {
+          const userId = participant.user_id
+          const username = (participant.profiles as any)?.username || 'Inconnu'
+          const avatar = (participant.profiles as any)?.avatar || 'avatar1'
+
+          const predictions = predictionsByUser.get(userId) || []
+          const predictionsMap = new Map(predictions.map(p => [p.match_id, p]))
+
+          const allPrevPredictions = previousFinishedMatches.map(match => {
+            const existingPred = predictionsMap.get(match.id)
+            if (existingPred) return existingPred
+            return {
+              match_id: match.id,
+              predicted_home_score: 0,
+              predicted_away_score: 0,
+              is_default_prediction: true,
+              user_id: userId,
+              tournament_id: tournamentId
+            }
+          })
+
+          let totalPoints = 0
+          let exactScores = 0
+          let correctResults = 0
+          let matchesPlayed = 0
+
+          for (const prediction of allPrevPredictions) {
+            const match = prevFinishedMatchesMap.get(prediction.match_id)
+            if (!match || match.home_score === null || match.away_score === null) continue
+
+            const isValidPrediction = prediction.predicted_home_score !== null &&
+                                     prediction.predicted_away_score !== null
+            if (!isValidPrediction) continue
+
+            const isBonusMatch = bonusMatchIds.has(match.id)
+            const isDefaultPrediction = prediction.is_default_prediction || false
+
+            const result = calculatePoints(
+              { predictedHomeScore: prediction.predicted_home_score, predictedAwayScore: prediction.predicted_away_score },
+              { homeScore: match.home_score, awayScore: match.away_score },
+              pointsSettings,
+              isBonusMatch,
+              isDefaultPrediction
+            )
+
+            totalPoints += result.points
+            if (result.isExactScore) exactScores++
+            if (result.isCorrectResult) correctResults++
+            matchesPlayed++
+          }
+
+          // Calculer le bonus "Prime d'avant-match" si activé pour la journée précédente
+          let earlyPredictionBonusPoints = 0
+          if (tournament.early_prediction_bonus && predictions.length > 0) {
+            for (const md of matchdaysToCalculate) {
+              if (md > previousMatchday) break // Seulement jusqu'à la journée précédente
+
+              const matchIdsForDay = matchIdsByMatchday[md] || []
+              if (matchIdsForDay.length === 0) continue
+
+              const allMatchesFinished = matchIdsForDay.every(mId => prevFinishedMatchesMap.has(mId))
+              if (!allMatchesFinished) continue
+
+              let hasDefaultPrediction = false
+              for (const matchId of matchIdsForDay) {
+                const pred = predictions.find(p => p.match_id === matchId)
+                if (!pred || pred.is_default_prediction) {
+                  hasDefaultPrediction = true
+                  break
+                }
+              }
+
+              if (!hasDefaultPrediction) {
+                earlyPredictionBonusPoints += 1
+              }
+            }
+            totalPoints += earlyPredictionBonusPoints
+          }
+
+          previousPlayerStats.set(userId, {
+            playerId: userId,
+            playerName: username,
+            avatar,
+            totalPoints,
+            exactScores,
+            correctResults,
+            matchesPlayed,
+            matchesAvailable: previousFinishedMatches.length,
+            earlyPredictionBonus: earlyPredictionBonusPoints
+          } as any)
+        }
+
+        const prevPlayersArray = Array.from(previousPlayerStats.values())
+        previousRankings = calculateRankings(prevPlayersArray)
+      }
     }
 
     const rankings = calculateRankings(playersArray, previousRankings)

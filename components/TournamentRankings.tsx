@@ -250,24 +250,27 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     if (!rankChange) return null
 
     if (rankChange === 'up') {
+      // Triangle vert pointant vers le haut
       return (
-        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L2 22h20L12 2z" className="text-green-500" />
         </svg>
       )
     }
 
     if (rankChange === 'down') {
+      // Triangle rouge pointant vers le bas
       return (
-        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 22L2 2h20L12 22z" className="text-red-500" />
         </svg>
       )
     }
 
+    // Signe égal orange
     return (
-      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+      <svg className="w-3 h-3 md:w-4 md:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <path d="M5 9h14M5 15h14" className="text-orange-500" />
       </svg>
     )
   }
@@ -569,7 +572,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 <tr className="border-b-2 theme-border">
                   <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">#</th>
                   {selectedView === 'general' && (
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold w-8 md:w-12 hidden md:table-cell"></th>
+                    <th className="text-center py-2 md:py-3 px-0.5 md:px-1 theme-text font-semibold w-6 md:w-8"></th>
                   )}
                   <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Joueur</th>
                   <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Points">
@@ -606,10 +609,8 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
                     {/* Indicateur de progression (uniquement pour le classement général) */}
                     {selectedView === 'general' && (
-                      <td className="py-2 md:py-4 px-1 md:px-2 text-center hidden md:table-cell">
-                        <div className="scale-75 md:scale-100">
-                          {getRankChangeIcon(player.rankChange)}
-                        </div>
+                      <td className="py-2 md:py-4 px-0.5 md:px-1 text-center">
+                        {getRankChangeIcon(player.rankChange)}
                       </td>
                     )}
 
