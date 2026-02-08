@@ -188,6 +188,12 @@ export default function OppositionClient({
   const [isPullingDown, setIsPullingDown] = useState<boolean>(false)
   const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<string, any[]>>({})
 
+  // Constantes pour le pull-to-refresh
+  const HINT_THRESHOLD = 100 // Seuil pour afficher "Tire encore..."
+  const READY_THRESHOLD = 180 // Seuil pour afficher "Relâche..." et armer le refresh
+  const MIN_PULL_DISTANCE = 40 // Distance minimale avant de commencer à considérer le geste
+  const COOLDOWN_MS = 2000 // Cooldown de 2s entre les refresh
+
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
 
@@ -368,10 +374,6 @@ export default function OppositionClient({
     let isAtTop = false
     let isPulling = false
     let lastRefreshTime = 0
-    const HINT_THRESHOLD = 100 // Seuil pour afficher "Tire encore..."
-    const READY_THRESHOLD = 180 // Seuil pour afficher "Relâche..." et armer le refresh
-    const MIN_PULL_DISTANCE = 40 // Distance minimale avant de commencer à considérer le geste
-    const COOLDOWN_MS = 2000 // Cooldown de 2s entre les refresh
 
     const handleTouchStart = (e: TouchEvent) => {
       // Vérifier si on est en haut de la page
