@@ -53,7 +53,7 @@ export async function GET(
             .in('status', ['IN_PLAY', 'PAUSED'])
             .limit(1)
 
-          hasLiveMatch = (liveMatches && liveMatches.length > 0)
+          hasLiveMatch = !!(liveMatches && liveMatches.length > 0)
         }
       }
     }
@@ -69,7 +69,7 @@ export async function GET(
         .in('status', ['IN_PLAY', 'PAUSED'])
         .limit(1)
 
-      hasLiveMatch = (liveMatches && liveMatches.length > 0)
+      hasLiveMatch = !!(liveMatches && liveMatches.length > 0)
     }
 
     return NextResponse.json({ hasLiveMatch })
