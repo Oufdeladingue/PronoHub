@@ -355,50 +355,79 @@ export default function OppositionClient({
     }
   }, [tournament?.custom_competition_id, tournament?.status])
 
-  // Pull-to-refresh natif sur mobile (Capacitor uniquement)
+  // Pull-to-refresh sur mobile (Capacitor uniquement)
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
 
-    let SwipeGestures: any
+    let startY = 0
+    let currentY = 0
+    let isAtTop = false
+    let isPulling = false
     let lastRefreshTime = 0
-    const COOLDOWN_MS = 500 // Cooldown de 500ms entre les refresh
+    const THRESHOLD = 120 // Seuil en pixels pour déclencher le refresh
+    const MIN_PULL_DISTANCE = 30 // Distance minimale avant de commencer à considérer le geste
+    const COOLDOWN_MS = 1000 // Cooldown de 1s entre les refresh
 
-    const setupPullToRefresh = async () => {
-      try {
-        const module = await import('capacitor-swipe-gestures-plugin')
-        SwipeGestures = module.SwipeGestures
+    const handleTouchStart = (e: TouchEvent) => {
+      // Vérifier si on est en haut de la page
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      isAtTop = scrollTop === 0
 
-        // Activer le pull-to-refresh natif
-        await SwipeGestures.enablePullToRefresh()
-
-        // Écouter l'événement de refresh
-        await SwipeGestures.addListener('onRefresh', () => {
-          const now = Date.now()
-
-          // Vérifier le cooldown pour éviter les doubles déclenchements
-          if (now - lastRefreshTime > COOLDOWN_MS) {
-            console.log('[PULL-TO-REFRESH] Rafraîchissement natif déclenché')
-            lastRefreshTime = now
-            window.location.reload()
-          } else {
-            console.log('[PULL-TO-REFRESH] Cooldown actif, refresh ignoré')
-          }
-        })
-
-        console.log('[PULL-TO-REFRESH] Pull-to-refresh natif activé')
-      } catch (err) {
-        console.error('[PULL-TO-REFRESH] Erreur configuration:', err)
+      if (isAtTop) {
+        startY = e.touches[0].clientY
+        currentY = startY
+        isPulling = false
       }
     }
 
-    setupPullToRefresh()
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isAtTop) return
+
+      currentY = e.touches[0].clientY
+      const pullDistance = currentY - startY
+
+      // Démarrer le pull seulement si on dépasse la distance minimale
+      if (pullDistance > MIN_PULL_DISTANCE) {
+        isPulling = true
+        // Empêcher le scroll par défaut uniquement quand on pull
+        e.preventDefault()
+      }
+    }
+
+    const handleTouchEnd = () => {
+      if (!isAtTop || !isPulling) {
+        isPulling = false
+        return
+      }
+
+      const pullDistance = currentY - startY
+      const now = Date.now()
+
+      // Déclencher le refresh seulement si :
+      // 1. On a dépassé le seuil
+      // 2. On a relâché le doigt
+      // 3. Le cooldown est passé
+      if (pullDistance >= THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
+        console.log('[PULL-TO-REFRESH] Rafraîchissement déclenché')
+        lastRefreshTime = now
+        window.location.reload()
+      }
+
+      isPulling = false
+    }
+
+    // Ajouter les écouteurs d'événements avec passive: false pour pouvoir preventDefault
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    console.log('[PULL-TO-REFRESH] Pull-to-refresh JavaScript activé (seuil: ' + THRESHOLD + 'px)')
 
     // Cleanup
     return () => {
-      if (SwipeGestures) {
-        SwipeGestures.removeAllListeners()
-        SwipeGestures.disablePullToRefresh().catch(console.error)
-      }
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
     }
   }, [])
 
