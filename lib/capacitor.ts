@@ -169,6 +169,21 @@ export function isAndroid(): boolean {
 }
 
 /**
+ * Détecte si on est sur un appareil mobile (web ou natif)
+ * Utile pour activer le pull-to-refresh sur mobile web aussi
+ */
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false
+
+  // Si on est dans Capacitor, c'est forcément mobile
+  if (isCapacitor()) return true
+
+  // Détection via User-Agent pour le web mobile
+  const userAgent = navigator.userAgent || ''
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+}
+
+/**
  * Vérifie si Google Sign-In natif est disponible (Android avec bridge Capacitor)
  */
 export function isNativeGoogleAuthAvailable(): boolean {

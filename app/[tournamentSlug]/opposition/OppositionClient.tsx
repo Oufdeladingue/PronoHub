@@ -194,6 +194,12 @@ export default function OppositionClient({
   const MIN_PULL_DISTANCE = 40 // Distance minimale avant de commencer à considérer le geste
   const COOLDOWN_MS = 2000 // Cooldown de 2s entre les refresh
 
+  // Détecter si on est sur mobile (natif ou web)
+  const isMobileDevice = typeof window !== 'undefined' && (
+    Capacitor.isNativePlatform() ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  )
+
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
 
@@ -365,9 +371,9 @@ export default function OppositionClient({
     }
   }, [tournament?.custom_competition_id, tournament?.status])
 
-  // Pull-to-refresh sur mobile (Capacitor uniquement)
+  // Pull-to-refresh sur mobile (natif et web)
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return
+    if (!isMobileDevice) return
 
     let startY = 0
     let currentY = 0
@@ -1916,8 +1922,8 @@ export default function OppositionClient({
           }}
         />
 
-        {/* Indicateur Pull-to-Refresh (sous le header, uniquement sur mobile natif) */}
-        {Capacitor.isNativePlatform() && isPullingDown && (
+        {/* Indicateur Pull-to-Refresh (sous le header, mobile natif et web) */}
+        {isMobileDevice && isPullingDown && (
           <div
             className="w-full flex items-center justify-center bg-gradient-to-b from-black/20 to-transparent pointer-events-none transition-all duration-200"
             style={{
