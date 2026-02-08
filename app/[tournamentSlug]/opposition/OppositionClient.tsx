@@ -22,6 +22,8 @@ import { useDurationExtension } from '@/lib/hooks/use-duration-extension'
 import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
 import DurationExtensionModal from '@/components/modals/DurationExtensionModal'
 import StatsExplanationModal from '@/components/StatsExplanationModal'
+import { Capacitor } from '@capacitor/core'
+
 interface Tournament {
   id: string
   name: string
@@ -352,6 +354,67 @@ export default function OppositionClient({
       timeouts.forEach(timeout => clearTimeout(timeout))
     }
   }, [tournament?.custom_competition_id, tournament?.status])
+
+  // Pull-to-refresh custom sur mobile (Capacitor uniquement)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    let startY = 0
+    let currentY = 0
+    let isDragging = false
+    const PULL_THRESHOLD = 80 // Distance minimale pour déclencher le refresh
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Seulement si on est en haut de page
+      if (window.scrollY === 0) {
+        startY = e.touches[0].clientY
+        isDragging = true
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging) return
+
+      currentY = e.touches[0].clientY
+      const pullDistance = currentY - startY
+
+      // Si on tire vers le bas et qu'on est en haut de page
+      if (pullDistance > 0 && window.scrollY === 0) {
+        // Empêcher le scroll par défaut
+        e.preventDefault()
+      }
+    }
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return
+
+      const pullDistance = currentY - startY
+
+      // Si on a dépassé le seuil, déclencher le refresh
+      if (pullDistance > PULL_THRESHOLD && window.scrollY === 0) {
+        console.log('[PULL-TO-REFRESH] Rafraîchissement manuel déclenché')
+        window.location.reload()
+      }
+
+      isDragging = false
+      startY = 0
+      currentY = 0
+    }
+
+    // Ajouter les event listeners
+    document.addEventListener('touchstart', handleTouchStart, { passive: false })
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd)
+
+    console.log('[PULL-TO-REFRESH] Activé sur cette page (custom)')
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [])
 
   // Recalculer les journées disponibles et charger les prédictions (allMatches déjà chargé depuis le server)
   useEffect(() => {
