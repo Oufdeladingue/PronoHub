@@ -22,8 +22,6 @@ import { useDurationExtension } from '@/lib/hooks/use-duration-extension'
 import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
 import DurationExtensionModal from '@/components/modals/DurationExtensionModal'
 import StatsExplanationModal from '@/components/StatsExplanationModal'
-import { Capacitor } from '@capacitor/core'
-
 interface Tournament {
   id: string
   name: string
@@ -354,42 +352,6 @@ export default function OppositionClient({
       timeouts.forEach(timeout => clearTimeout(timeout))
     }
   }, [tournament?.custom_competition_id, tournament?.status])
-
-  // Pull-to-refresh sur mobile (Capacitor uniquement)
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return
-
-    let PullToRefresh: any
-
-    // Import dynamique pour éviter les erreurs côté web
-    const setupPullToRefresh = async () => {
-      try {
-        const module = await import('@capawesome/capacitor-pull-to-refresh')
-        PullToRefresh = module.PullToRefresh
-
-        // Activer le pull-to-refresh
-        await PullToRefresh.addListener('refresh', async () => {
-          console.log('[PULL-TO-REFRESH] Rafraîchissement manuel déclenché')
-
-          // Recharger la page
-          window.location.reload()
-        })
-
-        console.log('[PULL-TO-REFRESH] Activé sur cette page')
-      } catch (err) {
-        console.error('[PULL-TO-REFRESH] Erreur configuration:', err)
-      }
-    }
-
-    setupPullToRefresh()
-
-    // Cleanup
-    return () => {
-      if (PullToRefresh) {
-        PullToRefresh.removeAllListeners()
-      }
-    }
-  }, [])
 
   // Recalculer les journées disponibles et charger les prédictions (allMatches déjà chargé depuis le server)
   useEffect(() => {
