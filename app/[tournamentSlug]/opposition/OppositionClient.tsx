@@ -365,7 +365,7 @@ export default function OppositionClient({
 
     const setupPullToRefresh = async () => {
       try {
-        const module = await import('capacitor-plugin-swipe-gestures')
+        const module = await import('capacitor-swipe-gestures-plugin')
         SwipeGestures = module.SwipeGestures
 
         // Activer le pull-to-refresh natif
