@@ -182,6 +182,10 @@ export default function OppositionClient({
 
   // États pour les accordéons de pronostics des autres
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
+
+  // États pour le pull-to-refresh
+  const [pullDistance, setPullDistance] = useState<number>(0)
+  const [isPullingDown, setIsPullingDown] = useState<boolean>(false)
   const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<string, any[]>>({})
 
   // État pour le compteur de messages non lus
@@ -364,8 +368,9 @@ export default function OppositionClient({
     let isAtTop = false
     let isPulling = false
     let lastRefreshTime = 0
-    const THRESHOLD = 120 // Seuil en pixels pour déclencher le refresh
-    const MIN_PULL_DISTANCE = 30 // Distance minimale avant de commencer à considérer le geste
+    const HINT_THRESHOLD = 70 // Seuil pour afficher "Tire encore..."
+    const READY_THRESHOLD = 140 // Seuil pour afficher "Relâche..." et armer le refresh
+    const MIN_PULL_DISTANCE = 20 // Distance minimale avant de commencer à considérer le geste
     const COOLDOWN_MS = 1000 // Cooldown de 1s entre les refresh
 
     const handleTouchStart = (e: TouchEvent) => {
@@ -377,6 +382,8 @@ export default function OppositionClient({
         startY = e.touches[0].clientY
         currentY = startY
         isPulling = false
+        setPullDistance(0)
+        setIsPullingDown(false)
       }
     }
 
@@ -384,11 +391,16 @@ export default function OppositionClient({
       if (!isAtTop) return
 
       currentY = e.touches[0].clientY
-      const pullDistance = currentY - startY
+      const distance = Math.max(0, currentY - startY)
 
       // Démarrer le pull seulement si on dépasse la distance minimale
-      if (pullDistance > MIN_PULL_DISTANCE) {
+      if (distance > MIN_PULL_DISTANCE) {
         isPulling = true
+        setIsPullingDown(true)
+        // Appliquer une résistance progressive (effet élastique)
+        const resistanceFactor = distance > READY_THRESHOLD ? 0.5 : 0.7
+        const adjustedDistance = distance * resistanceFactor
+        setPullDistance(adjustedDistance)
         // Empêcher le scroll par défaut uniquement quand on pull
         e.preventDefault()
       }
@@ -397,20 +409,26 @@ export default function OppositionClient({
     const handleTouchEnd = () => {
       if (!isAtTop || !isPulling) {
         isPulling = false
+        setIsPullingDown(false)
+        setPullDistance(0)
         return
       }
 
-      const pullDistance = currentY - startY
+      const distance = currentY - startY
       const now = Date.now()
 
       // Déclencher le refresh seulement si :
-      // 1. On a dépassé le seuil
+      // 1. On a dépassé le seuil READY
       // 2. On a relâché le doigt
       // 3. Le cooldown est passé
-      if (pullDistance >= THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
+      if (distance >= READY_THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
         console.log('[PULL-TO-REFRESH] Rafraîchissement déclenché')
         lastRefreshTime = now
         window.location.reload()
+      } else {
+        // Réinitialiser l'indicateur avec animation
+        setIsPullingDown(false)
+        setPullDistance(0)
       }
 
       isPulling = false
@@ -421,7 +439,7 @@ export default function OppositionClient({
     document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd, { passive: true })
 
-    console.log('[PULL-TO-REFRESH] Pull-to-refresh JavaScript activé (seuil: ' + THRESHOLD + 'px)')
+    console.log('[PULL-TO-REFRESH] Pull-to-refresh activé (hint: ' + HINT_THRESHOLD + 'px, ready: ' + READY_THRESHOLD + 'px)')
 
     // Cleanup
     return () => {
@@ -1859,6 +1877,47 @@ export default function OppositionClient({
     <>
       {/* flex flex-col pour pousser le footer en bas et éviter le CLS */}
       <div className="min-h-screen theme-bg flex flex-col">
+        {/* Indicateur Pull-to-Refresh (uniquement sur mobile natif) */}
+        {Capacitor.isNativePlatform() && isPullingDown && (
+          <div
+            className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center bg-gradient-to-b from-black/20 to-transparent pointer-events-none transition-all duration-200"
+            style={{
+              height: `${Math.min(pullDistance, 100)}px`,
+              opacity: Math.min(pullDistance / 70, 1)
+            }}
+          >
+            <div className="flex flex-col items-center gap-2 text-white">
+              {pullDistance < 70 ? (
+                <>
+                  {/* Phase 1: Hint - Tire encore */}
+                  <svg
+                    className="w-6 h-6 animate-bounce"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                  <span className="text-sm font-medium">Tire encore...</span>
+                </>
+              ) : (
+                <>
+                  {/* Phase 2: Ready - Relâche pour actualiser */}
+                  <svg
+                    className="w-8 h-8 animate-spin"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-sm font-medium">Relâche pour actualiser</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <Navigation
           username={username}
