@@ -634,17 +634,20 @@ function DashboardContent({
 
                       {/* Statut et informations */}
                       <div className="text-right flex flex-col gap-2 items-end">
-                        {/* Badge LIVE - affiché quand un match est en cours */}
-                        {tournamentsWithLiveMatches.has(tournament.id) && (
-                          <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-red-600 inline-flex items-center gap-1.5 bg-red-600 text-white animate-pulse">
-                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                              <circle cx="12" cy="12" r="10"/>
-                            </svg>
-                            LIVE
-                          </span>
-                        )}
+                        {/* Badges LIVE + Statut sur la même ligne */}
+                        <div className="flex items-center gap-2">
+                          {/* Badge LIVE - affiché quand un match est en cours */}
+                          {tournamentsWithLiveMatches.has(tournament.id) && (
+                            <span className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-red-600 inline-flex items-center gap-1.5 bg-red-600 text-white animate-pulse">
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                              </svg>
+                              LIVE
+                            </span>
+                          )}
 
-                        <span className={`status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
+                          {/* Badge Statut */}
+                          <span className={`status-badge px-3 py-1.5 rounded-lg text-xs font-bold uppercase border-2 border-[#ff9900] inline-flex items-center gap-1.5 bg-slate-900 text-[#ff9900] ${tournament.status === 'pending' ? 'status-badge-pending' : ''}`}>
                           {tournament.status === 'pending' && (
                             <span className="badge-pending-animated">
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" strokeWidth="3">
@@ -663,7 +666,9 @@ function DashboardContent({
                             </>
                           )}
                           {(tournament.status === 'finished' || tournament.status === 'completed') && 'Terminé'}
-                        </span>
+                          </span>
+                        </div>
+
                         <p className="text-xs theme-text-secondary mt-1">
                           {tournament.status === 'pending' || tournament.status === 'warmup'
                             ? `${tournament.current_participants}/${tournament.max_players} joueurs`
