@@ -651,7 +651,7 @@ export default function OppositionClient({
 
     const now = new Date()
 
-    // Pour chaque journée, vérifier si elle a des matchs encore éditables
+    // Pour chaque journée, vérifier son état
     for (const matchday of matchdays) {
       // Récupérer tous les matchs de cette journée depuis allMatches (déjà chargé)
       // Utiliser virtual_matchday pour les compétitions knockout (CL, coupes)
@@ -670,14 +670,20 @@ export default function OppositionClient({
         return now < lockTime // Match encore éditable
       })
 
-      // Si cette journée a au moins un match éditable, la sélectionner
-      if (hasEditableMatches) {
+      // Vérifier si au moins un match de cette journée est en cours ou pas encore terminé
+      const hasActiveOrPendingMatches = matchdayMatches.some(match => {
+        const status = match.status
+        return ['IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED'].includes(status)
+      })
+
+      // Si cette journée a au moins un match éditable OU des matchs en cours/à venir, la sélectionner
+      if (hasEditableMatches || hasActiveOrPendingMatches) {
         setSelectedMatchday(matchday)
         return
       }
     }
 
-    // Si aucune journée n'a de matchs éditables, sélectionner la dernière
+    // Si aucune journée n'a de matchs éditables ou actifs, sélectionner la dernière
     setSelectedMatchday(matchdays[matchdays.length - 1])
   }
 
