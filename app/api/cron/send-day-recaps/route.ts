@@ -6,6 +6,13 @@ import { calculatePoints, type PointsSettings } from '@/lib/scoring'
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
+// Adresses email de test à ne pas inclure (économie quota Resend)
+const EMAIL_BLACKLIST = new Set([
+  'admin@test.fr',
+  'joueur1@test.fr',
+  'joueur2@test.fr',
+])
+
 export async function GET(request: NextRequest) {
   // Vérifier le secret CRON pour sécuriser l'endpoint
   const cronSecret = process.env.CRON_SECRET
@@ -158,7 +165,7 @@ export async function GET(request: NextRequest) {
             const email = profile?.email
             const username = profile?.username || 'Joueur'
 
-            if (!email) {
+            if (!email || EMAIL_BLACKLIST.has(email.toLowerCase())) {
               totalSkipped++
               continue
             }
@@ -325,24 +332,46 @@ async function getFinishedMatchdays(
     if (!matchdaysData) return []
 
     for (const md of matchdaysData) {
-      const { data: matches } = await supabase
+      const { data: customMatches } = await supabase
         .from('custom_competition_matches')
-        .select('id, cached_utc_date, imported_match_id, imported_matches(status)')
+        .select('id, cached_utc_date, football_data_match_id')
         .eq('custom_matchday_id', md.id)
 
-      if (!matches || matches.length === 0) continue
+      if (!customMatches || customMatches.length === 0) continue
 
-      // Filtrer par date de démarrage du tournoi
+      // Récupérer le statut depuis imported_matches
+      const fdIds = customMatches.map((m: any) => m.football_data_match_id).filter(Boolean)
+      let importedStatusMap: Record<number, string> = {}
+
+      if (fdIds.length > 0) {
+        const { data: importedMatches } = await supabase
+          .from('imported_matches')
+          .select('football_data_match_id, status, utc_date')
+          .in('football_data_match_id', fdIds)
+
+        if (importedMatches) {
+          importedMatches.forEach((im: any) => {
+            importedStatusMap[im.football_data_match_id] = im.status
+          })
+        }
+      }
+
+      // Enrichir avec le statut réel et filtrer par date
+      const enrichedMatches = customMatches.map((cm: any) => ({
+        ...cm,
+        status: importedStatusMap[cm.football_data_match_id] || 'SCHEDULED',
+        utc_date: cm.cached_utc_date
+      }))
+
       const relevantMatches = tournamentStartDate
-        ? matches.filter((m: any) => new Date(m.cached_utc_date) >= tournamentStartDate)
-        : matches
+        ? enrichedMatches.filter((m: any) => new Date(m.utc_date) >= tournamentStartDate)
+        : enrichedMatches
 
       if (relevantMatches.length === 0) continue
 
-      const allFinished = relevantMatches.every((m: any) => {
-        const status = (m.imported_matches as any)?.status
-        return status === 'FINISHED' || status === 'AWARDED'
-      })
+      const allFinished = relevantMatches.every((m: any) =>
+        m.status === 'FINISHED' || m.status === 'AWARDED'
+      )
 
       if (allFinished) {
         finishedMatchdays.push(md.matchday_number)
