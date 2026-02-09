@@ -2240,7 +2240,7 @@ export default function OppositionClient({
                                     {!isGuessMode ? (
                                       <>
                                         <span className="hidden md:inline">
-                                          Journée de compétition terminée : vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
+                                          Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
                                           {hasEarlyBonus && (
                                             <>
                                               {' '}(dont{' '}
@@ -2255,7 +2255,7 @@ export default function OppositionClient({
                                           )}
                                         </span>
                                         <span className="md:hidden">
-                                          Journée de compétition terminée :<br />vous avez marqué {hasEarlyBonus ? matchdayTotalPoints - 1 : matchdayTotalPoints} pts
+                                          Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
                                           {hasEarlyBonus && (
                                             <>
                                               {' '}(dont{' '}
