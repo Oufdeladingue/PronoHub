@@ -135,24 +135,8 @@ export async function GET(request: NextRequest) {
 
         if (!participants || participants.length === 0) continue
 
-        // 6. Pour chaque journée terminée, vérifier si le recap a déjà été envoyé
+        // 6. Pour chaque journée terminée, envoyer les récaps
         for (const matchday of finishedMatchdays) {
-          // Vérifier si au moins un recap a déjà été envoyé pour cette journée/tournoi
-          const { data: existingLogs } = await supabase
-            .from('notification_logs')
-            .select('user_id')
-            .eq('notification_type', 'matchday_recap')
-            .eq('tournament_id', tournament.id)
-            .eq('matchday', matchday)
-            .eq('channel', 'email')
-            .eq('status', 'sent')
-            .limit(1)
-
-          if (existingLogs && existingLogs.length > 0) {
-            console.log(`[DAY-RECAP] Tournament "${tournament.name}" J${matchday}: already sent, skipping`)
-            continue
-          }
-
           console.log(`[DAY-RECAP] Processing tournament "${tournament.name}" J${matchday}`)
 
           // 7. Calculer les classements pour cette journée
@@ -192,8 +176,8 @@ export async function GET(request: NextRequest) {
               continue
             }
 
-            // Vérifier si déjà envoyé à cet utilisateur spécifique
-            const { data: userLog } = await supabase
+            // Vérifier si déjà envoyé avec succès à cet utilisateur spécifique
+            const { data: userSentLog } = await supabase
               .from('notification_logs')
               .select('id')
               .eq('user_id', userId)
@@ -201,12 +185,24 @@ export async function GET(request: NextRequest) {
               .eq('tournament_id', tournament.id)
               .eq('matchday', matchday)
               .eq('channel', 'email')
-              .single()
+              .eq('status', 'sent')
+              .limit(1)
 
-            if (userLog) {
+            if (userSentLog && userSentLog.length > 0) {
               totalSkipped++
               continue
             }
+
+            // Supprimer les anciens logs 'failed' pour cet utilisateur (retry propre)
+            await supabase
+              .from('notification_logs')
+              .delete()
+              .eq('user_id', userId)
+              .eq('notification_type', 'matchday_recap')
+              .eq('tournament_id', tournament.id)
+              .eq('matchday', matchday)
+              .eq('channel', 'email')
+              .eq('status', 'failed')
 
             // Préparer les données pour l'email
             const userMatchdayStats = matchdayRankingData.find(r => r.userId === userId)
