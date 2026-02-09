@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'club.pronohub.app',
-  appName: 'PronoHub',
+  appName: 'PronoHub Football',
   webDir: 'out',
   server: {
     // Charger depuis Vercel pour éviter de rebuild l'APK à chaque changement

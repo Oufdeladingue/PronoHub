@@ -22,7 +22,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PronoHub - Tournois de Pronostics Football",
+  title: "PronoHub Football - Tournois de Pronostics entre Amis",
   description: "Créez et participez à des tournois de pronostics sportifs avec vos amis. Défiez vos amis sur la Ligue 1, Premier League, Champions League et plus encore !",
   icons: {
     icon: '/favicon.svg',
@@ -30,10 +30,10 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://www.pronohub.club'),
   openGraph: {
-    title: 'PronoHub - Tournois de Pronostics Football',
+    title: 'PronoHub Football - Tournois de Pronostics entre Amis',
     description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis',
     url: 'https://www.pronohub.club',
-    siteName: 'PronoHub',
+    siteName: 'PronoHub Football',
     locale: 'fr_FR',
     type: 'website',
     images: [
@@ -41,13 +41,13 @@ export const metadata: Metadata = {
         url: '/images/logo.svg',
         width: 200,
         height: 200,
-        alt: 'PronoHub - Tournois de pronostics entre amis',
+        alt: 'PronoHub Football - Tournois de pronostics entre amis',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PronoHub - Tournois de Pronostics Football',
+    title: 'PronoHub Football - Tournois de Pronostics entre Amis',
     description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis',
     images: ['/images/logo.svg'],
   },

@@ -1,4 +1,4 @@
-PronoHub - L'app de pronostics foot entre amis
+PronoHub Football - L'app de pronostics foot entre amis
 
 Tu penses tout savoir sur le foot ? Prouve-le ! Crée ton tournoi de pronostics, invite tes amis et découvre qui est le vrai expert du ballon rond.
 
@@ -39,13 +39,13 @@ Tu penses tout savoir sur le foot ? Prouve-le ! Crée ton tournoi de pronostics,
 • Coupe du Monde
 • Et bien d'autres...
 
-PronoHub, c'est l'app parfaite pour :
+PronoHub Football, c'est l'app parfaite pour :
 ✓ Les soirées matchs entre potes
 ✓ Les collègues du bureau
 ✓ La famille (pour régler les vieux débats)
 ✓ Les groupes WhatsApp qui parlent foot H24
 
-Gratuit et sans pub intrusive. Télécharge PronoHub et montre que tu n'es pas juste fort en débats WhatsApp !
+Gratuit et sans pub intrusive. Télécharge PronoHub Football et montre que tu n'es pas juste fort en débats WhatsApp !
 
 ---
 Contact : contact@pronohub.club

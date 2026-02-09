@@ -22,7 +22,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[SW] Message reçu en arrière-plan:', payload);
 
-  const notificationTitle = payload.notification?.title || 'PronoHub';
+  const notificationTitle = payload.notification?.title || 'PronoHub Football';
   const notificationOptions = {
     body: payload.notification?.body || '',
     icon: '/images/logo.svg',

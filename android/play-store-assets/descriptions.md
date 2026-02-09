@@ -1,8 +1,8 @@
-# Descriptions Play Store - PronoHub
+# Descriptions Play Store - PronoHub Football
 
 ## Titre de l'application (max 50 caractères)
-**PronoHub - Pronostics Football**
-_(40 caractères)_
+**PronoHub Football - Pronostics entre amis**
+_(44 caractères)_
 
 ---
 
@@ -14,11 +14,11 @@ _(78 caractères)_
 
 ## Description complète (max 4000 caractères)
 
-🏆 **PronoHub - L'app de pronostics football entre amis**
+🏆 **PronoHub Football - L'app de pronostics football entre amis**
 
-Crée ton propre tournoi de pronostics, invite tes potes et découvre qui connaît le mieux le foot ! Que ce soit pour la Ligue 1, la Premier League, la Champions League ou même tes compétitions perso, PronoHub rend les matchs encore plus fun.
+Crée ton propre tournoi de pronostics, invite tes potes et découvre qui connaît le mieux le foot ! Que ce soit pour la Ligue 1, la Premier League, la Champions League ou même tes compétitions perso, PronoHub Football rend les matchs encore plus fun.
 
-**🎯 Pourquoi PronoHub ?**
+**🎯 Pourquoi PronoHub Football ?**
 
 ✓ **Gratuit et sans pub** - 2 tournois Free-Kick gratuits simultanés
 ✓ **Setup ultra-rapide** - Crée ton tournoi en 30 secondes
@@ -82,9 +82,9 @@ Débloque des badges exclusifs selon tes performances :
 - One-Shot : 0,99€ par match
 - Élite : 2,99€ par semaine
 
-**📱 Rejoins la communauté PronoHub**
+**📱 Rejoins la communauté PronoHub Football**
 
-Que tu sois un expert en foot ou juste là pour le fun, PronoHub est l'app parfaite pour pimenter tes soirées matchs. Pas de pari d'argent, juste de la gloire et du banter entre potes !
+Que tu sois un expert en foot ou juste là pour le fun, PronoHub Football est l'app parfaite pour pimenter tes soirées matchs. Pas de pari d'argent, juste de la gloire et du banter entre potes !
 
 **Télécharge maintenant et montre à tes amis qui est le vrai king du prono ! ⚽👑**
 

@@ -6,9 +6,12 @@ import android.app.NotificationManager;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
+import android.graphics.Color;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.graphics.Color;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
@@ -43,16 +46,13 @@ public class MainActivity extends BridgeActivity {
         }
 
         // Forcer la status bar et navigation bar en noir (cohérent avec toute l'app)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(Color.parseColor("#000000"));
-
-            // Navigation bar (boutons virtuels) aussi en noir
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                window.setNavigationBarColor(Color.parseColor("#000000"));
-            }
-        }
+        Window window = getWindow();
+        WindowCompat.setDecorFitsSystemWindows(window, true);
+        WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(window, window.getDecorView());
+        // Icônes claires sur fond sombre
+        insetsController.setAppearanceLightStatusBars(false);
+        insetsController.setAppearanceLightNavigationBars(false);
+        window.getDecorView().setBackgroundColor(Color.parseColor("#000000"));
 
         // Créer le canal de notification pour Android 8.0+
         createNotificationChannel();
@@ -66,8 +66,8 @@ public class MainActivity extends BridgeActivity {
                 notificationManager.deleteNotificationChannel("pronohub_default");
             }
 
-            CharSequence name = "PronoHub";
-            String description = "Notifications de PronoHub";
+            CharSequence name = "PronoHub Football";
+            String description = "Notifications de PronoHub Football";
             int importance = NotificationManager.IMPORTANCE_HIGH;
 
             NotificationChannel channel = new NotificationChannel(
