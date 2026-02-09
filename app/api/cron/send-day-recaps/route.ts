@@ -44,8 +44,7 @@ export async function GET(request: NextRequest) {
         start_date,
         scoring_draw_with_default_prediction,
         early_prediction_bonus,
-        competitions(name),
-        custom_competitions(name)
+        competitions(name)
       `)
       .eq('status', 'active')
 
@@ -79,9 +78,15 @@ export async function GET(request: NextRequest) {
     // 3. Traiter chaque tournoi
     for (const tournament of tournaments) {
       try {
-        const competitionName = tournament.custom_competition_id
-          ? (tournament.custom_competitions as any)?.name || 'Compétition custom'
-          : (tournament.competitions as any)?.name || 'Compétition'
+        let competitionName = (tournament.competitions as any)?.name || 'Compétition'
+        if (tournament.custom_competition_id) {
+          const { data: customComp } = await supabase
+            .from('custom_competitions')
+            .select('name')
+            .eq('id', tournament.custom_competition_id)
+            .single()
+          competitionName = customComp?.name || 'Compétition custom'
+        }
 
         const isCustom = !!tournament.custom_competition_id
 
