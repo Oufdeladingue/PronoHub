@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import Image from 'next/image'
 import OppositionClient from '@/app/[tournamentSlug]/opposition/OppositionClient'
+import ScrollToTopButton from '@/components/ScrollToTopButton'
 
 interface TournamentData {
   tournament: any
@@ -146,7 +147,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto">
+    <div id="capacitor-scroll-container" className="fixed inset-0 overflow-y-auto">
       <OppositionClient
         serverTournament={data.tournament}
         serverUser={data.user}
@@ -157,6 +158,12 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
         serverAllMatches={data.allMatches}
         serverMatchdayStages={data.matchdayStages}
         tournamentSlug={tournamentSlug}
+      />
+      {/* Bouton Scroll to Top pour Capacitor - écoute le scroll du conteneur */}
+      <ScrollToTopButton
+        threshold={800}
+        position="bottom-right"
+        scrollContainerSelector="#capacitor-scroll-container"
       />
     </div>
   )

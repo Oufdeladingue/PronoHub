@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '@/contexts/ThemeContext'
 
 interface ScrollToTopButtonProps {
@@ -19,23 +19,47 @@ interface ScrollToTopButtonProps {
    * @default { bottom: 24, horizontal: 24 }
    */
   margin?: { bottom: number; horizontal: number }
+  /**
+   * Sélecteur CSS du conteneur qui scroll (pour Capacitor)
+   * Si non fourni, écoute window.scrollY
+   * @default null
+   */
+  scrollContainerSelector?: string | null
 }
 
 export default function ScrollToTopButton({
   threshold = 800,
   position = 'bottom-right',
-  margin = { bottom: 24, horizontal: 24 }
+  margin = { bottom: 24, horizontal: 24 },
+  scrollContainerSelector = null
 }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
   const { theme } = useTheme()
+  const scrollContainerRef = useRef<HTMLElement | Window | null>(null)
 
   // Détecte le mouvement de scroll pour afficher/masquer le bouton
   useEffect(() => {
     let scrollTimeout: NodeJS.Timeout
 
+    // Trouver le conteneur qui scroll
+    const getScrollContainer = (): HTMLElement | Window => {
+      if (scrollContainerSelector) {
+        const container = document.querySelector(scrollContainerSelector)
+        return container as HTMLElement || window
+      }
+      return window
+    }
+
     const handleScroll = () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop
+      const container = scrollContainerRef.current
+      let scrollTop = 0
+
+      if (container instanceof Window) {
+        scrollTop = window.scrollY || document.documentElement.scrollTop
+      } else if (container instanceof HTMLElement) {
+        scrollTop = container.scrollTop
+      }
 
       // Afficher le bouton si on a scrollé au-delà du seuil
       setIsVisible(scrollTop > threshold)
@@ -48,28 +72,42 @@ export default function ScrollToTopButton({
       }, 150)
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    // Initialiser le conteneur
+    scrollContainerRef.current = getScrollContainer()
+    const container = scrollContainerRef.current
 
-    // Vérifier la position initiale
-    handleScroll()
+    if (container) {
+      container.addEventListener('scroll', handleScroll as any, { passive: true })
+      // Vérifier la position initiale
+      handleScroll()
+    }
 
     return () => {
-      window.removeEventListener('scroll', handleScroll)
+      if (container) {
+        container.removeEventListener('scroll', handleScroll as any)
+      }
       clearTimeout(scrollTimeout)
     }
-  }, [threshold])
+  }, [threshold, scrollContainerSelector])
 
   // Gère le clic : scroll vers le haut avec animation
   const scrollToTop = () => {
     // Vérifier si l'utilisateur préfère réduire les animations
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const container = scrollContainerRef.current
 
-    if (prefersReducedMotion) {
-      // Scroll instantané si prefers-reduced-motion
-      window.scrollTo({ top: 0, behavior: 'auto' })
-    } else {
-      // Scroll animé smooth
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (container instanceof Window) {
+      if (prefersReducedMotion) {
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    } else if (container instanceof HTMLElement) {
+      if (prefersReducedMotion) {
+        container.scrollTop = 0
+      } else {
+        container.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
 
     // Remettre le focus sur le body après remontée (accessibilité)
