@@ -6,7 +6,13 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Configuration Firebase (doit correspondre à celle de l'app)
+/**
+ * SÉCURITÉ: Cette clé API Firebase est intentionnellement publique car nécessaire côté client.
+ * Elle est SÉCURISÉE dans Google Cloud Console avec :
+ * - Restrictions HTTP : pronohub.club uniquement
+ * - Restrictions API : Firebase Cloud Messaging uniquement
+ * Voir: https://console.cloud.google.com/apis/credentials?project=pronohub-f8fb3
+ */
 firebase.initializeApp({
   apiKey: "AIzaSyDMJwcHTonQpA8xRbsuOCcKEi3mdYOaYh8",
   authDomain: "pronohub-f8fb3.firebaseapp.com",
