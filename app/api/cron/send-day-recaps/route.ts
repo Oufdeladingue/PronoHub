@@ -37,15 +37,7 @@ export async function GET(request: NextRequest) {
     // 1. Récupérer tous les tournois actifs
     const { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
-      .select(`
-        id, name, slug, status,
-        competition_id, custom_competition_id,
-        starting_matchday, ending_matchday,
-        start_date,
-        scoring_draw_with_default_prediction,
-        early_prediction_bonus,
-        competitions(name)
-      `)
+      .select('id, name, slug, status, competition_id, custom_competition_id, starting_matchday, ending_matchday, start_date, scoring_draw_with_default_prediction, early_prediction_bonus')
       .eq('status', 'active')
 
     if (tournamentsError) {
@@ -78,7 +70,7 @@ export async function GET(request: NextRequest) {
     // 3. Traiter chaque tournoi
     for (const tournament of tournaments) {
       try {
-        let competitionName = (tournament.competitions as any)?.name || 'Compétition'
+        let competitionName = 'Compétition'
         if (tournament.custom_competition_id) {
           const { data: customComp } = await supabase
             .from('custom_competitions')
@@ -86,6 +78,13 @@ export async function GET(request: NextRequest) {
             .eq('id', tournament.custom_competition_id)
             .single()
           competitionName = customComp?.name || 'Compétition custom'
+        } else if (tournament.competition_id) {
+          const { data: comp } = await supabase
+            .from('competitions')
+            .select('name')
+            .eq('id', tournament.competition_id)
+            .single()
+          competitionName = comp?.name || 'Compétition'
         }
 
         const isCustom = !!tournament.custom_competition_id
