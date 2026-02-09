@@ -35,4 +35,6 @@
 | invite | ⬜ | ⬜ |
 | player_joined | ⬜ | ⬜ |
 | mention | ⬜ | ⬜ |
-| day_recap | ⬜ | ⬜ |
+| day_recap | ⬜ | ✅ |
+
+**Note:** `day_recap` n'envoie que des emails (pas de notifications push pour ce type)
