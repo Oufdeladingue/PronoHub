@@ -163,6 +163,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
       <ScrollToTopButton
         threshold={800}
         position="bottom-right"
+        margin={{ bottom: 80, horizontal: 24 }}
         scrollContainerSelector="#capacitor-scroll-container"
       />
     </div>

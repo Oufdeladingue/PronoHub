@@ -3623,7 +3623,11 @@ export default function OppositionClient({
         )}
 
         {/* Bouton Scroll to Top */}
-        <ScrollToTopButton threshold={800} position="bottom-right" />
+        <ScrollToTopButton
+          threshold={800}
+          position="bottom-right"
+          margin={{ bottom: 32, horizontal: 24 }}
+        />
       </div>
     </>
   )
