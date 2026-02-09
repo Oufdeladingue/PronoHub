@@ -22,6 +22,7 @@ import { useDurationExtension } from '@/lib/hooks/use-duration-extension'
 import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
 import DurationExtensionModal from '@/components/modals/DurationExtensionModal'
 import StatsExplanationModal from '@/components/StatsExplanationModal'
+import ScrollToTopButton from '@/components/ScrollToTopButton'
 import { Capacitor } from '@capacitor/core'
 
 interface Tournament {
@@ -3620,6 +3621,9 @@ export default function OppositionClient({
             onClose={handleCloseStatsExplanation}
           />
         )}
+
+        {/* Bouton Scroll to Top */}
+        <ScrollToTopButton threshold={800} position="bottom-right" />
       </div>
     </>
   )
