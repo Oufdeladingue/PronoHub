@@ -78,23 +78,13 @@ export default function ScrollToTopButton({
     }, 300)
   }
 
-  // Ne pas afficher le bouton si pas visible ou en scroll actif
+  // Ne pas afficher le bouton si pas visible
   if (!isVisible) {
     return null
   }
 
-  // Classes de positionnement
-  const positionClasses = position === 'bottom-right'
-    ? `right-[${margin.horizontal}px]`
-    : `left-[${margin.horizontal}px]`
-
   // Couleurs adaptées au thème
   const isDark = theme === 'dark'
-  const bgColor = isDark ? 'bg-gray-800' : 'bg-white'
-  const textColor = isDark ? 'text-orange-400' : 'text-orange-600'
-  const hoverBgColor = isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
-  const borderColor = isDark ? 'border-gray-700' : 'border-gray-200'
-  const shadowColor = isDark ? 'shadow-gray-900/50' : 'shadow-gray-900/10'
 
   return (
     <button
@@ -108,11 +98,10 @@ export default function ScrollToTopButton({
         fixed z-50
         w-12 h-12
         rounded-full
-        ${bgColor}
-        ${textColor}
-        ${hoverBgColor}
-        border-2 ${borderColor}
-        shadow-lg ${shadowColor}
+        ${isDark ? 'bg-gray-800 text-orange-400 hover:bg-gray-700 border-gray-700' : 'bg-white text-orange-600 hover:bg-gray-50 border-gray-200'}
+        border-2
+        ${isDark ? 'shadow-gray-900/50' : 'shadow-gray-900/10'}
+        shadow-lg
         transition-all duration-300
         ${isScrolling ? 'opacity-50 scale-90' : 'opacity-100 scale-100'}
         hover:scale-110
