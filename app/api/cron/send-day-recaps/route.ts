@@ -231,6 +231,9 @@ export async function GET(request: NextRequest) {
               }))
 
             try {
+              // Respecter le rate limit Resend (2 req/s max)
+              await new Promise(resolve => setTimeout(resolve, 600))
+
               const result = await sendMatchdayRecapEmail(email, {
                 username,
                 tournamentName: tournament.name,
