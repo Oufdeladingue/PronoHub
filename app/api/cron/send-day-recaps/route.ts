@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // 1. Récupérer tous les tournois actifs
     const { data: tournaments, error: tournamentsError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, status, competition_id, custom_competition_id, starting_matchday, ending_matchday, start_date, scoring_draw_with_default_prediction, early_prediction_bonus')
+      .select('*')
       .eq('status', 'active')
 
     if (tournamentsError) {
