@@ -18,14 +18,25 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient()
 
   // Récupérer le FCM token de l'utilisateur
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, username, fcm_token')
+    .select('id, username, email, fcm_token')
     .eq('email', email)
     .single()
 
-  if (!profile?.fcm_token) {
-    return NextResponse.json({ error: 'Utilisateur non trouvé ou pas de FCM token' }, { status: 404 })
+  if (profileError || !profile) {
+    return NextResponse.json({
+      error: `Profil non trouvé pour l'email "${email}"`,
+      hint: 'Vérifie que l\'email correspond exactement à celui de ton compte PronoHub',
+      dbError: profileError?.message
+    }, { status: 404 })
+  }
+
+  if (!profile.fcm_token) {
+    return NextResponse.json({
+      error: `Profil trouvé (${profile.username}) mais pas de FCM token`,
+      hint: 'Ouvre l\'app PronoHub sur ton Android et accepte les notifications push, puis réessaie'
+    }, { status: 404 })
   }
 
   const trophyInfo = getTrophyInfo(trophyType)
