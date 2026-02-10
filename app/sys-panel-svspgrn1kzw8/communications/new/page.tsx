@@ -8,6 +8,7 @@ import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
 import { EMAIL_TEMPLATES, TARGETING_PRESETS, type TargetingFilters } from '@/lib/admin/email-templates'
+import ImageUploader from '@/components/admin/ImageUploader'
 
 interface FormData {
   title: string
@@ -39,6 +40,40 @@ export default function NewCommunicationPage() {
   })
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [selectedTargeting, setSelectedTargeting] = useState('all')
+  const [recipientCount, setRecipientCount] = useState<{
+    total: number
+    emailRecipients: number
+    pushRecipients: number
+  } | null>(null)
+  const [loadingCount, setLoadingCount] = useState(false)
+
+  // Charger le nombre de destinataires quand les filtres changent
+  useEffect(() => {
+    const fetchRecipientCount = async () => {
+      setLoadingCount(true)
+      try {
+        const response = await fetch('/api/admin/communications/count-recipients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targeting_filters: formData.targeting_filters })
+        })
+        const data = await response.json()
+        if (data.success) {
+          setRecipientCount({
+            total: data.total,
+            emailRecipients: data.emailRecipients,
+            pushRecipients: data.pushRecipients
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching recipient count:', error)
+      } finally {
+        setLoadingCount(false)
+      }
+    }
+
+    fetchRecipientCount()
+  }, [formData.targeting_filters])
 
   useEffect(() => {
     async function loadData() {
@@ -92,6 +127,13 @@ export default function NewCommunicationPage() {
         targeting_filters: preset.filters
       }))
     }
+  }
+
+  // Remplacer les variables pour la preview
+  const previewText = (text: string) => {
+    return text
+      .replace(/\[username\]/gi, profile?.username || 'JohnDoe')
+      .replace(/\[email\]/gi, profile?.email || 'john@example.com')
   }
 
   const handleSaveDraft = async () => {
@@ -259,6 +301,32 @@ export default function NewCommunicationPage() {
                   </p>
                 </div>
 
+                {/* Compteur de destinataires */}
+                {loadingCount ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                      Calcul du nombre de destinataires...
+                    </div>
+                  </div>
+                ) : recipientCount && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-green-900 mb-2">
+                      📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-green-700">
+                      <div className="flex items-center gap-2">
+                        <span>📧 Email:</span>
+                        <span className="font-semibold">{recipientCount.emailRecipients}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>📱 Push:</span>
+                        <span className="font-semibold">{recipientCount.pushRecipients}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Aperçu des filtres appliqués */}
                 {Object.keys(formData.targeting_filters).length > 0 && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -383,18 +451,26 @@ export default function NewCommunicationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL de l'image (optionnelle)
+                    Image de notification (optionnelle)
                   </label>
-                  <input
-                    type="text"
-                    value={formData.notification_image_url}
-                    onChange={(e) => handleChange('notification_image_url', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="https://..."
+
+                  <ImageUploader
+                    onImageUploaded={(url) => handleChange('notification_image_url', url)}
+                    currentImageUrl={formData.notification_image_url}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Image "Big Picture" Android (recommandé: 1024x512px, ratio 2:1)
-                  </p>
+
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Ou entrez une URL
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.notification_image_url}
+                      onChange={(e) => handleChange('notification_image_url', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -427,12 +503,12 @@ export default function NewCommunicationPage() {
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{formData.email_subject}</p>
+                      <p className="font-semibold text-gray-900">{previewText(formData.email_subject)}</p>
                     </div>
                     {formData.email_preview_text && (
                       <div>
                         <p className="text-xs text-gray-500">Prévisualisation:</p>
-                        <p className="text-sm text-gray-600">{formData.email_preview_text}</p>
+                        <p className="text-sm text-gray-600">{previewText(formData.email_preview_text)}</p>
                       </div>
                     )}
                     {formData.email_body_html && (
@@ -440,10 +516,13 @@ export default function NewCommunicationPage() {
                         <p className="text-xs text-gray-500 mb-2">Corps:</p>
                         <div
                           className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: formData.email_body_html }}
+                          dangerouslySetInnerHTML={{ __html: previewText(formData.email_body_html) }}
                         />
                       </div>
                     )}
+                    <p className="text-xs text-gray-400 italic mt-2">
+                      💡 Variables remplacées par des exemples
+                    </p>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-8">
@@ -467,11 +546,11 @@ export default function NewCommunicationPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-500 mb-1">PronoHub</p>
                         <p className="text-sm font-semibold text-gray-900 mb-1">
-                          {formData.notification_title}
+                          {previewText(formData.notification_title)}
                         </p>
                         {formData.notification_body && (
                           <p className="text-sm text-gray-600">
-                            {formData.notification_body}
+                            {previewText(formData.notification_body)}
                           </p>
                         )}
                         {formData.notification_image_url && (
