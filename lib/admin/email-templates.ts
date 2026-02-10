@@ -66,8 +66,8 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
 
               <!-- CTA Button -->
               <div style="text-align: center; margin: 32px 0;">
-                <a href="https://www.pronohub.club/dashboard" style="display: inline-block; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);">
-                  Découvrir
+                <a href="[CTA_URL]" style="display: inline-block; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);">
+                  [CTA_TEXT]
                 </a>
               </div>
 

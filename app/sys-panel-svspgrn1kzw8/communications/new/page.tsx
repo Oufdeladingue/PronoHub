@@ -141,6 +141,8 @@ export default function NewCommunicationPage() {
     return text
       .replace(/\[username\]/gi, profile?.username || 'JohnDoe')
       .replace(/\[email\]/gi, profile?.email || 'john@example.com')
+      .replace(/\[CTA_TEXT\]/gi, formData.email_cta_text || 'Découvrir')
+      .replace(/\[CTA_URL\]/gi, formData.email_cta_url || 'https://www.pronohub.club/dashboard')
   }
 
   const handleSaveDraft = async () => {
@@ -450,16 +452,6 @@ export default function NewCommunicationPage() {
                           className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: previewText(formData.email_body_html) }}
                         />
-                      </div>
-                    )}
-                    {formData.email_cta_text && formData.email_cta_url && (
-                      <div className="mt-3 text-center">
-                        <a
-                          href={formData.email_cta_url}
-                          className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg shadow-md"
-                        >
-                          {formData.email_cta_text}
-                        </a>
                       </div>
                     )}
                     <p className="text-xs text-gray-400 italic mt-2">

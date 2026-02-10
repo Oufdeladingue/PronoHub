@@ -7,6 +7,8 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
+import TargetingSelector from '@/components/admin/TargetingSelector'
+import type { TargetingFilters } from '@/lib/admin/email-templates'
 
 interface Communication {
   id: string
@@ -19,6 +21,7 @@ interface Communication {
   notification_body: string | null
   notification_image_url: string | null
   notification_click_url: string | null
+  targeting_filters: TargetingFilters | null
   created_at: string
   updated_at: string
   scheduled_at: string | null
@@ -35,6 +38,39 @@ export default function EditCommunicationPage() {
   const [sending, setSending] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [communication, setCommunication] = useState<Communication | null>(null)
+  const [recipientCount, setRecipientCount] = useState({ total: 0, email: 0, push: 0 })
+  const [countingRecipients, setCountingRecipients] = useState(false)
+
+  // Compter les destinataires quand les filtres changent
+  useEffect(() => {
+    if (!communication?.targeting_filters) return
+
+    async function fetchRecipientCount() {
+      setCountingRecipients(true)
+      try {
+        const response = await fetch('/api/admin/communications/count-recipients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targeting_filters: communication.targeting_filters })
+        })
+
+        const data = await response.json()
+        if (data.success) {
+          setRecipientCount({
+            total: data.total,
+            email: data.emailRecipients,
+            push: data.pushRecipients
+          })
+        }
+      } catch (error) {
+        console.error('Error counting recipients:', error)
+      } finally {
+        setCountingRecipients(false)
+      }
+    }
+
+    fetchRecipientCount()
+  }, [communication?.targeting_filters])
 
   useEffect(() => {
     async function loadData() {
@@ -84,6 +120,11 @@ export default function EditCommunicationPage() {
     setCommunication(prev => prev ? { ...prev, [field]: value } : null)
   }
 
+  const handleTargetingChange = (filters: TargetingFilters) => {
+    if (!communication) return
+    setCommunication(prev => prev ? { ...prev, targeting_filters: filters } : null)
+  }
+
   const handleSave = async () => {
     if (!communication || !communication.title.trim()) {
       alert('Le titre est obligatoire')
@@ -103,7 +144,8 @@ export default function EditCommunicationPage() {
         notification_title: communication.notification_title || null,
         notification_body: communication.notification_body || null,
         notification_image_url: communication.notification_image_url || null,
-        notification_click_url: communication.notification_click_url || '/dashboard'
+        notification_click_url: communication.notification_click_url || '/dashboard',
+        targeting_filters: communication.targeting_filters || null
       })
       .eq('id', communicationId)
 
@@ -257,6 +299,42 @@ export default function EditCommunicationPage() {
                 </div>
               </div>
             </div>
+
+            {/* Ciblage des destinataires */}
+            {canEdit && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+
+                <TargetingSelector
+                  value={communication.targeting_filters || {}}
+                  onChange={handleTargetingChange}
+                />
+
+                <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {countingRecipients ? (
+                          <>
+                            <span className="inline-block animate-spin mr-2">⏳</span>
+                            Calcul en cours...
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-purple-700 font-bold text-lg">{recipientCount.total}</span> destinataires ciblés
+                          </>
+                        )}
+                      </p>
+                      {!countingRecipients && recipientCount.total > 0 && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          📧 {recipientCount.email} emails · 📱 {recipientCount.push} notifications push
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Contenu Email */}
             <div className="bg-white rounded-lg shadow-sm p-6">
