@@ -2798,3 +2798,117 @@ Gérer mes notifications : ${baseUrl}/profile
     subject
   }
 }
+
+// Interface pour badge débloqué
+export interface BadgeUnlockedEmailProps {
+  username: string
+  trophyName: string
+  trophyDescription: string
+  trophyImageUrl: string // URL complète : https://www.pronohub.club/trophy/xxx.png
+}
+
+export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
+  const { username, trophyName, trophyDescription, trophyImageUrl } = props
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+  const trophiesUrl = `${baseUrl}/profile?tab=trophees`
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 40px 20px;">
+            <table role="presentation" style="max-width: 600px; margin: 0 auto; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+
+              <!-- Header -->
+              <tr>
+                <td style="padding: 32px 40px; background: linear-gradient(135deg, #f5b800 0%, #ff9900 100%); text-align: center;">
+                  <p style="margin: 0; font-size: 40px; line-height: 1;">🏅</p>
+                  <h1 style="margin: 12px 0 0; font-size: 24px; font-weight: 700; color: #000;">
+                    Trophée débloqué !
+                  </h1>
+                </td>
+              </tr>
+
+              <!-- Content -->
+              <tr>
+                <td style="padding: 40px;">
+                  <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                    Salut <strong style="color: #ffffff;">${username}</strong> !
+                  </p>
+                  <p style="margin: 0 0 32px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                    GG ! Tu viens de décrocher un nouveau trophée. Continue sur ta lancée !
+                  </p>
+
+                  <!-- Trophy Card -->
+                  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0f172a; border-radius: 12px; overflow: hidden;">
+                    <tr>
+                      <td style="padding: 32px; text-align: center;">
+                        <img src="${trophyImageUrl}" alt="${trophyName}" width="120" height="120" style="display: block; margin: 0 auto 16px; width: 120px; height: 120px; object-fit: contain;" />
+                        <p style="margin: 0 0 8px; color: #f5b800; font-size: 20px; font-weight: 700;">
+                          ${trophyName}
+                        </p>
+                        <p style="margin: 0; color: #94a3b8; font-size: 14px;">
+                          ${trophyDescription}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- CTA Button -->
+                  <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 32px;">
+                    <tr>
+                      <td style="text-align: center;">
+                        <a href="${trophiesUrl}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #f5b800 0%, #ff9900 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                          Voir mes trophées →
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b; text-align: center;">
+                  <p style="margin: 0 0 8px; color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </p>
+                  <p style="margin: 0; color: #475569; font-size: 11px;">
+                    <a href="${baseUrl}/profile" style="color: #475569; text-decoration: underline;">
+                      Gérer mes notifications
+                    </a>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  const text = `Trophée débloqué ! 🏅
+
+Salut ${username} !
+
+GG ! Tu viens de décrocher le trophée "${trophyName}" : ${trophyDescription}
+
+Voir mes trophées : ${trophiesUrl}
+
+---
+© ${new Date().getFullYear()} PronoHub`
+
+  return {
+    html,
+    text,
+    subject: `🏅 Trophée débloqué : ${trophyName} !`
+  }
+}

@@ -19,6 +19,7 @@ import {
   getMultiTournamentReminderTemplate,
   getInactiveUserReminderTemplate,
   getMatchdayChangesTemplate,
+  getBadgeUnlockedTemplate,
   EmailTemplateProps,
   ReminderEmailProps,
   TournamentStartedEmailProps,
@@ -29,7 +30,8 @@ import {
   MentionEmailProps,
   MultiTournamentReminderEmailProps,
   InactiveUserReminderEmailProps,
-  MatchdayChangesEmailProps
+  MatchdayChangesEmailProps,
+  BadgeUnlockedEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -220,6 +222,15 @@ export async function sendTournamentStartedAdminAlert(
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getTournamentStartedAlertTemplate(props)
   return sendEmail(ADMIN_EMAIL, subject, html, text)
+}
+
+// Email badge/trophée débloqué
+export async function sendBadgeUnlockedEmail(
+  to: string,
+  props: BadgeUnlockedEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getBadgeUnlockedTemplate(props)
+  return sendEmail(to, subject, html, text)
 }
 
 // Email notification de modifications de journée (compétitions custom)

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { getTrophyInfo } from '@/lib/trophy-info'
 
 interface Trophy {
   id: number
@@ -280,94 +281,4 @@ export function useTrophyNotifications() {
   }
 }
 
-// Fonction helper pour obtenir les infos d'un trophée (copiée depuis profile/page.tsx)
-function getTrophyInfo(trophyType: string): { name: string; description: string; imagePath: string } {
-  const trophyMap: Record<string, { name: string; description: string; imagePath: string }> = {
-    correct_result: {
-      name: 'Le Veinard',
-      description: 'Pronostiquer au moins 1 bon résultat',
-      imagePath: '/trophy/bon-resultat.png'
-    },
-    exact_score: {
-      name: 'L\'Analyste',
-      description: 'Pronostiquer au moins 1 score exact',
-      imagePath: '/trophy/score-exact.png'
-    },
-    king_of_day: {
-      name: 'The King of Day',
-      description: 'Être premier au classement d\'une journée (sans égalité)',
-      imagePath: '/trophy/king-of-day.png'
-    },
-    double_king: {
-      name: 'Le Roi du Doublé',
-      description: 'Être premier à deux journées consécutives',
-      imagePath: '/trophy/double.png'
-    },
-    opportunist: {
-      name: 'L\'Opportuniste',
-      description: '2 bons résultats sur la même journée',
-      imagePath: '/trophy/opportuniste.png'
-    },
-    nostradamus: {
-      name: 'Le Nostradamus',
-      description: '2 scores exacts sur la même journée',
-      imagePath: '/trophy/nostra.png'
-    },
-    lantern: {
-      name: 'La Lanterne-rouge',
-      description: 'Être dernier au classement d\'une journée (sans égalité)',
-      imagePath: '/trophy/lanterne.png'
-    },
-    downward_spiral: {
-      name: 'La Spirale infernale',
-      description: 'Être dernier deux journées de suite',
-      imagePath: '/trophy/spirale.png'
-    },
-    bonus_profiteer: {
-      name: 'Le Profiteur',
-      description: '1 bon résultat sur un match Bonus',
-      imagePath: '/trophy/profiteur.png'
-    },
-    bonus_optimizer: {
-      name: 'L\'Optimisateur',
-      description: '1 score exact sur un match Bonus',
-      imagePath: '/trophy/optimisateur.png'
-    },
-    ultra_dominator: {
-      name: 'L\'Ultra-dominateur',
-      description: 'Être premier à CHAQUE journée du tournoi',
-      imagePath: '/trophy/dominateur.png'
-    },
-    poulidor: {
-      name: 'Le Poulidor',
-      description: 'Aucune première place sur toutes les journées d\'un tournoi terminé',
-      imagePath: '/trophy/poulidor.png'
-    },
-    cursed: {
-      name: 'Le Maudit',
-      description: 'Aucun bon résultat sur une journée de tournoi',
-      imagePath: '/trophy/maudit.png'
-    },
-    tournament_winner: {
-      name: 'Le Ballon d\'or',
-      description: '1er au classement final d\'un tournoi (sans égalité)',
-      imagePath: '/trophy/tournoi.png'
-    },
-    legend: {
-      name: 'La Légende',
-      description: 'Vainqueur d\'un tournoi avec plus de 10 participants',
-      imagePath: '/trophy/LEGENDE.png'
-    },
-    abyssal: {
-      name: 'L\'Abyssal',
-      description: 'Dernier au classement final d\'un tournoi (sans égalité)',
-      imagePath: '/trophy/abyssal.png'
-    }
-  }
-
-  return trophyMap[trophyType] || {
-    name: 'Trophée Inconnu',
-    description: 'Description non disponible',
-    imagePath: '/trophy/default.png'
-  }
-}
+// getTrophyInfo importé depuis @/lib/trophy-info
