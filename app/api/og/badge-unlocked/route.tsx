@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px 40px',
+          padding: '20px 40px',
           fontFamily: 'Inter',
           position: 'relative',
         },
@@ -150,8 +150,8 @@ export async function GET(request: NextRequest) {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '6px',
-                marginBottom: hasMatchInfo ? '16px' : '0',
+                gap: '8px',
+                marginBottom: hasMatchInfo ? '12px' : '0',
               },
               children: [
                 // Badge icon
@@ -160,20 +160,20 @@ export async function GET(request: NextRequest) {
                       type: 'img',
                       props: {
                         src: badgeImageBase64,
-                        width: hasMatchInfo ? 110 : 150,
-                        height: hasMatchInfo ? 110 : 150,
+                        width: hasMatchInfo ? 160 : 220,
+                        height: hasMatchInfo ? 160 : 220,
                       },
                     }
                   : {
                       type: 'div',
                       props: {
                         style: {
-                          width: '110px',
-                          height: '110px',
+                          width: '160px',
+                          height: '160px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '70px',
+                          fontSize: '90px',
                         },
                         children: '🏅',
                       },
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
                   type: 'span',
                   props: {
                     style: {
-                      fontSize: '36px',
+                      fontSize: '48px',
                       fontWeight: 900,
                       color: '#f5b800',
                       textShadow: '0px 0px 20px rgba(245,184,0,0.5), 2px 2px 6px rgba(0,0,0,0.9)',
@@ -198,12 +198,12 @@ export async function GET(request: NextRequest) {
                       type: 'span',
                       props: {
                         style: {
-                          fontSize: '18px',
+                          fontSize: '26px',
                           fontWeight: 400,
                           color: '#e0e0e0',
                           textShadow: '1px 1px 4px rgba(0,0,0,0.8)',
                           textAlign: 'center',
-                          maxWidth: '500px',
+                          maxWidth: '700px',
                         },
                         children: badgeDescription,
                       },
@@ -222,10 +222,10 @@ export async function GET(request: NextRequest) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '20px',
+                      gap: '28px',
                       background: 'rgba(0,0,0,0.6)',
                       borderRadius: '16px',
-                      padding: '14px 28px',
+                      padding: '18px 36px',
                     },
                     children: [
                       // Équipe domicile
@@ -242,12 +242,12 @@ export async function GET(request: NextRequest) {
                             homeLogoBase64
                               ? {
                                   type: 'img',
-                                  props: { src: homeLogoBase64, width: 48, height: 48 },
+                                  props: { src: homeLogoBase64, width: 64, height: 64 },
                                 }
                               : {
                                   type: 'div',
                                   props: {
-                                    style: { width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' },
+                                    style: { width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px' },
                                     children: '⚽',
                                   },
                                 },
@@ -255,10 +255,10 @@ export async function GET(request: NextRequest) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '14px',
+                                  fontSize: '20px',
                                   fontWeight: 700,
                                   color: '#ffffff',
-                                  maxWidth: '120px',
+                                  maxWidth: '160px',
                                   textAlign: 'center',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -286,7 +286,7 @@ export async function GET(request: NextRequest) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '32px',
+                                  fontSize: '44px',
                                   fontWeight: 900,
                                   color: '#ffffff',
                                   textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
                                     type: 'span',
                                     props: {
                                       style: {
-                                        fontSize: '13px',
+                                        fontSize: '18px',
                                         fontWeight: 400,
                                         color: '#94a3b8',
                                       },
@@ -319,7 +319,7 @@ export async function GET(request: NextRequest) {
                                     type: 'span',
                                     props: {
                                       style: {
-                                        fontSize: '18px',
+                                        fontSize: '26px',
                                         fontWeight: 700,
                                         color: '#f5b800',
                                       },
@@ -335,7 +335,7 @@ export async function GET(request: NextRequest) {
                                   type: 'span',
                                   props: {
                                     style: {
-                                      fontSize: '12px',
+                                      fontSize: '18px',
                                       fontWeight: 400,
                                       color: '#64748b',
                                     },
@@ -360,12 +360,12 @@ export async function GET(request: NextRequest) {
                             awayLogoBase64
                               ? {
                                   type: 'img',
-                                  props: { src: awayLogoBase64, width: 48, height: 48 },
+                                  props: { src: awayLogoBase64, width: 64, height: 64 },
                                 }
                               : {
                                   type: 'div',
                                   props: {
-                                    style: { width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' },
+                                    style: { width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px' },
                                     children: '⚽',
                                   },
                                 },
@@ -373,10 +373,10 @@ export async function GET(request: NextRequest) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '14px',
+                                  fontSize: '20px',
                                   fontWeight: 700,
                                   color: '#ffffff',
-                                  maxWidth: '120px',
+                                  maxWidth: '160px',
                                   textAlign: 'center',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
