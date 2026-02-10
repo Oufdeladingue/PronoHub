@@ -1293,7 +1293,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                 </tr>
               </table>
 
-              ${trophiesHtml ? `
+              ${trophiesHtml && newTrophies && newTrophies.length > 0 ? `
               <!-- Badges débloqués -->
               <div style="background-color: #422006; border-radius: 12px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #f59e0b;">
                 <table role="presentation" style="width: 100%; border-collapse: collapse;">
