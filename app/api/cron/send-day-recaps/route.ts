@@ -233,6 +233,68 @@ export async function GET(request: NextRequest) {
                 isCurrentUser: r.userId === userId
               }))
 
+            // Calculer le meilleur et le pire match de l'utilisateur
+            const { data: userPredictions } = await supabase
+              .from('predictions')
+              .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
+              .eq('tournament_id', tournament.id)
+              .eq('user_id', userId)
+
+            const matchesForDay = await getFinishedMatchesForMatchdays(
+              supabase, tournament, [matchday], tournamentStartDate, isCustom
+            )
+
+            let bestMatch: any = null
+            let worstMatch: any = null
+            let maxPoints = -1
+            let minPoints = 999
+
+            for (const match of matchesForDay) {
+              const userPred = userPredictions?.find((p: any) => p.match_id === match.id)
+              if (!userPred) continue
+
+              const result = calculatePoints(
+                { predictedHomeScore: userPred.predicted_home_score, predictedAwayScore: userPred.predicted_away_score },
+                { homeScore: match.home_score, awayScore: match.away_score },
+                pointsSettings,
+                false,
+                userPred.is_default_prediction || false
+              )
+
+              // Récupérer les noms des équipes
+              const { data: matchDetails } = isCustom
+                ? await supabase
+                    .from('custom_competition_matches')
+                    .select('home_team, away_team')
+                    .eq('id', match.id)
+                    .single()
+                : await supabase
+                    .from('imported_matches')
+                    .select('home_team, away_team')
+                    .eq('id', match.id)
+                    .single()
+
+              const matchData = {
+                homeTeam: matchDetails?.home_team || 'Équipe 1',
+                awayTeam: matchDetails?.away_team || 'Équipe 2',
+                homeScore: match.home_score,
+                awayScore: match.away_score,
+                userPredictionHome: userPred.predicted_home_score,
+                userPredictionAway: userPred.predicted_away_score,
+                points: result.points
+              }
+
+              if (result.points > maxPoints) {
+                maxPoints = result.points
+                bestMatch = matchData
+              }
+
+              if (result.points < minPoints) {
+                minPoints = result.points
+                worstMatch = matchData
+              }
+            }
+
             try {
               // Respecter le rate limit Resend (2 req/s max)
               await new Promise(resolve => setTimeout(resolve, 600))
@@ -252,7 +314,9 @@ export async function GET(request: NextRequest) {
                   matchdayRank: userMatchdayStats?.rank || 0,
                   generalRank: userGeneralStats?.rank || 0,
                   rankChange: userGeneralStats?.rankChange || 0
-                }
+                },
+                bestMatch: bestMatch || undefined,
+                worstMatch: worstMatch || undefined
               })
 
               // Logger le résultat

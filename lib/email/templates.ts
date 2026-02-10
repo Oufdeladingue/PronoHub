@@ -85,6 +85,24 @@ export interface MatchdayRecapEmailProps {
     name: string
     description: string
   }>
+  bestMatch?: {
+    homeTeam: string
+    awayTeam: string
+    homeScore: number
+    awayScore: number
+    userPredictionHome: number
+    userPredictionAway: number
+    points: number
+  }
+  worstMatch?: {
+    homeTeam: string
+    awayTeam: string
+    homeScore: number
+    awayScore: number
+    userPredictionHome: number
+    userPredictionAway: number
+    points: number
+  }
 }
 
 // Interface pour le récap fin de tournoi
@@ -1140,7 +1158,9 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
     matchdayRanking,
     generalRanking,
     userStats,
-    newTrophies
+    newTrophies,
+    bestMatch,
+    worstMatch
   } = props
 
   const baseUrl = 'https://www.pronohub.club'
@@ -1182,13 +1202,27 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
     </div>
   ` : ''
 
+  // Citation selon le nombre de points
+  let quoteText = ''
+  if (userPointsGained <= 5) {
+    quoteText = 'Non ! Pas ça Zinedine...'
+  } else if (userPointsGained >= 6 && userPointsGained <= 10) {
+    quoteText = 'Tu sais, le football il a changé...'
+  } else if (userPointsGained >= 11 && userPointsGained <= 15) {
+    quoteText = 'Maradona good, Pelé excellent, George best.'
+  } else if (userPointsGained >= 16 && userPointsGained <= 24) {
+    quoteText = 'Il ne faut pas brûler la peau de l\'ours avant de l\'avoir vendue..'
+  } else {
+    quoteText = 'Si je devais me noter sur 10, je me mettrais un 11.'
+  }
+
   const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Journée ${matchdayNumber} terminée - ${tournamentName}</title>
+  <title>Récapitulatif de la journée ${matchdayNumber} dans ton tournoi ${tournamentName}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -1197,11 +1231,12 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
         <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
-              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
-                <img src="https://www.pronohub.club/images/logo.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
-              </td></tr></table>
-              <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 700;">📊 Journée ${matchdayNumber} terminée !</h1>
+            <td style="padding: 40px 40px 24px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <div style="width: 90px; height: 90px; margin: 0 auto 20px; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
+                <img src="https://www.pronohub.club/images/logo.svg" alt="PronoHub" style="width: 70px; height: 70px; display: block; margin: auto;">
+              </div>
+              <h1 style="margin: 0 0 8px; color: #000; font-size: 22px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.2);"><img src="https://img.icons8.com/?size=100&id=qzvnT8sOLSmm&format=png&color=000000" alt="" style="width: 24px; height: 24px; display: inline-block; vertical-align: middle; margin-right: 8px;"> Une journée de plus en moins</h1>
+              <p style="margin: 0; color: #1a1a2e; font-size: 15px; opacity: 0.95;">C'est le moment de voir si tu as brillé</p>
             </td>
           </tr>
 
@@ -1212,63 +1247,179 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                 Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
               </p>
               <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
-                La journée ${matchdayNumber} de <strong>${tournamentName}</strong> est terminée. Voici ton récap !
+                C'est l'heure du bilan après cette ${matchdayNumber}ème journée dans le tournoi <strong>${tournamentName}</strong>
               </p>
 
-              <!-- Points gagnés -->
-              <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
-                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 14px;">Tu as gagné</p>
-                <p style="margin: 0; color: #22c55e; font-size: 48px; font-weight: 700;">+${userPointsGained}</p>
-                <p style="margin: 4px 0 0; color: #94a3b8; font-size: 14px;">points sur cette journée</p>
-              </div>
+              <!-- Points gagnés et Stats côte à côte -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                <tr>
+                  <td style="width: 48%; vertical-align: top;">
+                    <!-- Points gagnés -->
+                    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 12px; padding: 16px; text-align: center;">
+                      <p style="margin: 0 0 8px; color: #94a3b8; font-size: 13px;">Tu as gagné</p>
+                      <p style="margin: 0; color: #22c55e; font-size: 42px; font-weight: 700; line-height: 1;">+${userPointsGained}</p>
+                      <p style="margin: 4px 0 12px; color: #94a3b8; font-size: 12px;">points sur cette journée</p>
+                      <p style="margin: 0; color: #64748b; font-size: 11px; font-style: italic; border-left: 3px solid #475569; padding-left: 8px; text-align: left;">"${quoteText}"</p>
+                    </div>
+                  </td>
+                  <td style="width: 4%;"></td>
+                  <td style="width: 48%; vertical-align: top;">
+                    <!-- Stats de la journée -->
+                    <div style="background-color: #0f172a; border-radius: 12px; padding: 16px;">
+                      <h3 style="margin: 0 0 12px; color: #ff9900; font-size: 14px;"><img src="https://img.icons8.com/?size=100&id=65239&format=png&color=000000" alt="" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 6px; filter: brightness(0) saturate(100%) invert(62%) sepia(77%) saturate(3574%) hue-rotate(359deg) brightness(101%) contrast(104%);">Tes stats</h3>
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Scores exacts</td>
+                          <td style="padding: 4px 0; color: #22c55e; font-size: 12px; text-align: right; font-weight: 600;">${userStats.exactScores}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Bons résultats</td>
+                          <td style="padding: 4px 0; color: #3b82f6; font-size: 12px; text-align: right; font-weight: 600;">${userStats.correctResults}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Classement journée</td>
+                          <td style="padding: 4px 0; color: #fff; font-size: 12px; text-align: right; font-weight: 600;">${userStats.matchdayRank}${userStats.matchdayRank === 1 ? 'er' : 'ème'}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding: 4px 0; color: #94a3b8; font-size: 12px;">Classement général</td>
+                          <td style="padding: 4px 0; color: #fff; font-size: 12px; text-align: right;">
+                            <span style="font-weight: 600;">${userStats.generalRank}${userStats.generalRank === 1 ? 'er' : 'ème'}</span>
+                            <span style="color: ${rankChangeColor}; margin-left: 4px; font-size: 11px;">${rankChangeIcon} ${rankChangeText}</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
-              ${trophiesHtml}
-
-              <!-- Stats de la journée -->
-              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 16px;">📈 Tes stats sur la journée</h3>
+              ${trophiesHtml ? `
+              <!-- Badges débloqués -->
+              <div style="background-color: #422006; border-radius: 12px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #f59e0b;">
                 <table role="presentation" style="width: 100%; border-collapse: collapse;">
                   <tr>
-                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Scores exacts</td>
-                    <td style="padding: 6px 0; color: #22c55e; font-size: 13px; text-align: right; font-weight: 600;">${userStats.exactScores}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Bons résultats</td>
-                    <td style="padding: 6px 0; color: #3b82f6; font-size: 13px; text-align: right; font-weight: 600;">${userStats.correctResults}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Classement journée</td>
-                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right; font-weight: 600;">${userStats.matchdayRank}${userStats.matchdayRank === 1 ? 'er' : 'ème'}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding: 6px 0; color: #94a3b8; font-size: 13px;">Classement général</td>
-                    <td style="padding: 6px 0; color: #fff; font-size: 13px; text-align: right;">
-                      <span style="font-weight: 600;">${userStats.generalRank}${userStats.generalRank === 1 ? 'er' : 'ème'}</span>
-                      <span style="color: ${rankChangeColor}; margin-left: 8px;">${rankChangeIcon} ${rankChangeText}</span>
+                    <td style="width: 32px; vertical-align: middle;">
+                      <span style="font-size: 24px;">🏆</span>
                     </td>
+                    <td style="vertical-align: middle;">
+                      <span style="color: #fbbf24; font-size: 14px; font-weight: 600; display: block;">${newTrophies[0].name}</span>
+                      <span style="color: #fcd34d; font-size: 11px;">${newTrophies[0].description}</span>
+                    </td>
+                    ${newTrophies.length > 1 ? `<td style="text-align: right; vertical-align: middle;">
+                      <span style="color: #94a3b8; font-size: 11px;">+ ${newTrophies.length - 1} autre${newTrophies.length - 1 > 1 ? 's' : ''} badge${newTrophies.length - 1 > 1 ? 's' : ''}</span>
+                    </td>` : ''}
                   </tr>
                 </table>
               </div>
+              ` : ''}
 
-              <!-- Classement de la journée -->
-              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
-                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
-                  <h3 style="margin: 0; color: #3b82f6; font-size: 16px;">🏅 Classement de la journée</h3>
-                </div>
-                <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                  ${matchdayRankingHtml}
-                </table>
-              </div>
+              ${bestMatch || worstMatch ? `
+              <!-- Coup d'éclat et Coup de mou côte à côte -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                <tr>
+                  ${bestMatch && bestMatch.points > 0 ? `
+                  <td style="width: ${worstMatch ? '48%' : '100%'}; vertical-align: top;">
+                    <!-- Coup d'éclat -->
+                    <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; border-left: 3px solid #22c55e;">
+                      <h3 style="margin: 0 0 12px; color: #22c55e; font-size: 13px;">⚡ Coup d'éclat</h3>
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="text-align: center; padding: 8px 0;">
+                            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${bestMatch.homeTeam}</div>
+                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                              <span style="font-size: 16px;">⚽</span>
+                            </div>
+                          </td>
+                          <td style="text-align: center; vertical-align: middle; padding: 8px;">
+                            <div style="font-size: 16px; font-weight: 700; color: #22c55e;">${bestMatch.homeScore} - ${bestMatch.awayScore}</div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Ton prono: ${bestMatch.userPredictionHome}-${bestMatch.userPredictionAway}</div>
+                            <div style="font-size: 11px; color: #22c55e; margin-top: 4px; font-weight: 600;">+${bestMatch.points} pts</div>
+                          </td>
+                          <td style="text-align: center; padding: 8px 0;">
+                            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${bestMatch.awayTeam}</div>
+                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                              <span style="font-size: 16px;">⚽</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                  ` : ''}
+                  ${bestMatch && worstMatch && bestMatch.points > 0 ? '<td style="width: 4%;"></td>' : ''}
+                  ${worstMatch ? `
+                  <td style="width: ${bestMatch && bestMatch.points > 0 ? '48%' : '100%'}; vertical-align: top;">
+                    <!-- Coup de mou -->
+                    <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; border-left: 3px solid #ef4444;">
+                      <h3 style="margin: 0 0 12px; color: #ef4444; font-size: 13px;">😅 Coup de mou</h3>
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="text-align: center; padding: 8px 0;">
+                            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${worstMatch.homeTeam}</div>
+                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                              <span style="font-size: 16px;">⚽</span>
+                            </div>
+                          </td>
+                          <td style="text-align: center; vertical-align: middle; padding: 8px;">
+                            <div style="font-size: 16px; font-weight: 700; color: #ef4444;">${worstMatch.homeScore} - ${worstMatch.awayScore}</div>
+                            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Ton prono: ${worstMatch.userPredictionHome}-${worstMatch.userPredictionAway}</div>
+                            <div style="font-size: 11px; color: #ef4444; margin-top: 4px; font-weight: 600;">${worstMatch.points} pts</div>
+                          </td>
+                          <td style="text-align: center; padding: 8px 0;">
+                            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${worstMatch.awayTeam}</div>
+                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                              <span style="font-size: 16px;">⚽</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+                  </td>
+                  ` : ''}
+                </tr>
+              </table>
+              ` : ''}
 
-              <!-- Classement général -->
-              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
-                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
-                  <h3 style="margin: 0; color: #ff9900; font-size: 16px;">🏆 Classement général</h3>
-                </div>
-                <table role="presentation" style="width: 100%; border-collapse: collapse;">
-                  ${generalRankingHtml}
-                </table>
-              </div>
+              <!-- Classements côte à côte -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+                <tr>
+                  <td style="width: 48%; vertical-align: top;">
+                    <!-- Classement de la journée -->
+                    <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden;">
+                      <div style="padding: 12px; border-bottom: 1px solid #1e293b;">
+                        <h3 style="margin: 0; color: #3b82f6; font-size: 14px;">🏅 Classement journée</h3>
+                      </div>
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        ${matchdayRanking.slice(0, 5).map(p => `
+                        <tr style="${p.isCurrentUser ? 'background-color: #1e3a5f;' : ''}">
+                          <td style="padding: 6px 10px; color: ${p.rank <= 3 ? '#ff9900' : '#94a3b8'}; font-size: 12px; font-weight: ${p.rank <= 3 ? '600' : '400'};">${p.rank}</td>
+                          <td style="padding: 6px 10px; color: ${p.isCurrentUser ? '#ff9900' : p.rank <= 3 ? '#fff' : '#94a3b8'}; font-size: 12px; font-weight: ${p.isCurrentUser ? '600' : '400'};">${p.username}${p.isCurrentUser ? ' (toi)' : ''}</td>
+                          <td style="padding: 6px 10px; color: #22c55e; font-size: 12px; text-align: right; font-weight: 600;">+${p.points}</td>
+                        </tr>
+                        `).join('')}
+                      </table>
+                    </div>
+                  </td>
+                  <td style="width: 4%;"></td>
+                  <td style="width: 48%; vertical-align: top;">
+                    <!-- Classement général -->
+                    <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden;">
+                      <div style="padding: 12px; border-bottom: 1px solid #1e293b;">
+                        <h3 style="margin: 0; color: #ff9900; font-size: 14px;">🏆 Classement général</h3>
+                      </div>
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        ${generalRanking.slice(0, 5).map(p => `
+                        <tr style="${p.isCurrentUser ? 'background-color: #1e3a5f;' : ''}">
+                          <td style="padding: 6px 10px; color: ${p.rank === 1 ? '#fbbf24' : p.rank <= 3 ? '#ff9900' : '#94a3b8'}; font-size: 12px; font-weight: ${p.rank === 1 ? '700' : p.rank <= 3 ? '600' : '400'};">${p.rank === 1 ? '👑' : p.rank}</td>
+                          <td style="padding: 6px 10px; color: ${p.isCurrentUser ? '#ff9900' : p.rank <= 3 ? '#fff' : '#94a3b8'}; font-size: 12px; font-weight: ${p.isCurrentUser ? '600' : '400'};">${p.username}${p.isCurrentUser ? ' (toi)' : ''}</td>
+                          <td style="padding: 6px 10px; color: #22c55e; font-size: 12px; text-align: right; font-weight: 600;">${p.totalPoints}</td>
+                        </tr>
+                        `).join('')}
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
@@ -1336,7 +1487,7 @@ ${generalRankingText}
   return {
     html,
     text,
-    subject: `📊 J${matchdayNumber} terminée : +${userPointsGained} pts dans ${tournamentName}`
+    subject: `Récapitulatif de la journée ${matchdayNumber} dans ton tournoi "${tournamentName}"`
   }
 }
 
