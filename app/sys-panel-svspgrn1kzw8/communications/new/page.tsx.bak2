@@ -252,102 +252,100 @@ export default function NewCommunicationPage() {
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Informations générales - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Colonne gauche: Formulaire */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Informations générales */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Titre (pour identification interne) *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleChange('title', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
-                  placeholder="Ex: Annonce nouvelle fonctionnalité"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Ciblage - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
-
-            <TargetingSelector
-              value={formData.targeting_filters}
-              onChange={(filters) => handleChange('targeting_filters', filters)}
-            />
-
-            {/* Compteur de destinataires */}
-            <div className="mt-4">
-              {loadingCount ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                    Calcul du nombre de destinataires...
-                  </div>
-                </div>
-              ) : recipientCount && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-green-900 mb-2">
-                    📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 text-xs text-green-700">
-                    <div className="flex items-center gap-2">
-                      <span>📧 Email:</span>
-                      <span className="font-semibold">{recipientCount.emailRecipients}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span>📱 Push:</span>
-                      <span className="font-semibold">{recipientCount.pushRecipients}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Template Email + Contenu Email + Aperçu - Grid 2 colonnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Colonne gauche: Contenu Email */}
-            <div className="space-y-6">
-              {/* Template Email */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Template Email</h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Partir d'un template
-                    </label>
-                    <select
-                      value={selectedTemplate}
-                      onChange={(e) => {
-                        setSelectedTemplate(e.target.value)
-                        applyTemplate(e.target.value)
-                      }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
-                    >
-                      <option value="">-- Choisir un template --</option>
-                      {EMAIL_TEMPLATES.map((template) => (
-                        <option key={template.id} value={template.id}>
-                          {template.name} - {template.description}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Titre (pour identification interne) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleChange('title', e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
+                    placeholder="Ex: Annonce nouvelle fonctionnalité"
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Contenu Email */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+            {/* Template Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Template Email</h2>
 
-                <div className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Partir d'un template
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value)
+                      applyTemplate(e.target.value)
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  >
+                    <option value="">-- Choisir un template --</option>
+                    {EMAIL_TEMPLATES.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} - {template.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Ciblage */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+
+              <TargetingSelector
+                value={formData.targeting_filters}
+                onChange={(filters) => handleChange('targeting_filters', filters)}
+              />
+
+              {/* Compteur de destinataires */}
+              <div className="mt-4">
+                {loadingCount ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                      Calcul du nombre de destinataires...
+                    </div>
+                  </div>
+                ) : recipientCount && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-green-900 mb-2">
+                      📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-green-700">
+                      <div className="flex items-center gap-2">
+                        <span>📧 Email:</span>
+                        <span className="font-semibold">{recipientCount.emailRecipients}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>📱 Push:</span>
+                        <span className="font-semibold">{recipientCount.pushRecipients}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Contenu Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+
+              <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">
@@ -425,58 +423,7 @@ export default function NewCommunicationPage() {
               </div>
             </div>
 
-            {/* Colonne droite: Aperçu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
-
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {formData.email_subject ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{previewText(formData.email_subject)}</p>
-                    </div>
-                    {formData.email_preview_text && (
-                      <div>
-                        <p className="text-xs text-gray-500">Prévisualisation:</p>
-                        <p className="text-sm text-gray-600">{previewText(formData.email_preview_text)}</p>
-                      </div>
-                    )}
-                    {formData.email_body_html && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
-                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
-                        <div
-                          className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: previewText(formData.email_body_html) }}
-                        />
-                      </div>
-                    )}
-                    {formData.email_cta_text && formData.email_cta_url && (
-                      <div className="mt-3 text-center">
-                        <a
-                          href={formData.email_cta_url}
-                          className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg shadow-md"
-                        >
-                          {formData.email_cta_text}
-                        </a>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-400 italic mt-2">
-                      💡 Variables remplacées par des exemples
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">
-                    L'aperçu de l'email s'affichera ici
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Contenu Notification + Aperçu - Grid 2 colonnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Colonne gauche: Contenu Notification Push */}
+            {/* Contenu Notification Push */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
 
@@ -555,9 +502,60 @@ export default function NewCommunicationPage() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Colonne droite: Aperçu Notification */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
+          {/* Colonne droite: Previews */}
+          <div className="space-y-6">
+            {/* Aperçu Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
+
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                {formData.email_subject ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Sujet:</p>
+                      <p className="font-semibold text-gray-900">{previewText(formData.email_subject)}</p>
+                    </div>
+                    {formData.email_preview_text && (
+                      <div>
+                        <p className="text-xs text-gray-500">Prévisualisation:</p>
+                        <p className="text-sm text-gray-600">{previewText(formData.email_preview_text)}</p>
+                      </div>
+                    )}
+                    {formData.email_body_html && (
+                      <div className="mt-4 border-t border-gray-200 pt-4">
+                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
+                        <div
+                          className="prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: previewText(formData.email_body_html) }}
+                        />
+                      </div>
+                    )}
+                    {formData.email_cta_text && formData.email_cta_url && (
+                      <div className="mt-3 text-center">
+                        <a
+                          href={formData.email_cta_url}
+                          className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg shadow-md"
+                        >
+                          {formData.email_cta_text}
+                        </a>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 italic mt-2">
+                      💡 Variables remplacées par des exemples
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    L'aperçu de l'email s'affichera ici
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Aperçu Notification */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -597,6 +595,7 @@ export default function NewCommunicationPage() {
                 )}
               </div>
             </div>
+
           </div>
         </div>
       </main>
