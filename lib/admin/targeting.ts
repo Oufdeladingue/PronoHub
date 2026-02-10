@@ -78,26 +78,43 @@ export async function calculateRecipients(
       !(filters.hasActiveTournament && filters.hasNoActiveTournament)) {
     const userIds = filteredProfiles.map(p => p.id)
 
+    // Récupérer d'abord tous les tournois actifs
+    const { data: activeTournaments } = await supabase
+      .from('tournaments')
+      .select('id')
+      .eq('status', 'active')
+
+    const activeTournamentIds = activeTournaments?.map(t => t.id) || []
+
+    console.log('[Targeting] Active tournaments:', activeTournamentIds.length)
+
+    // Ensuite récupérer les membres de ces tournois
     const { data: memberships } = await supabase
       .from('tournament_members')
-      .select('user_id, tournaments(status)')
+      .select('user_id')
       .in('user_id', userIds)
-      .eq('tournaments.status', 'active')
+      .in('tournament_id', activeTournamentIds)
+
+    console.log('[Targeting] Memberships found:', memberships?.length || 0)
 
     const usersWithActiveTournament = new Set(
       memberships?.map(m => m.user_id) || []
     )
+
+    console.log('[Targeting] Users with active tournament:', usersWithActiveTournament.size)
 
     if (filters.hasActiveTournament && !filters.hasNoActiveTournament) {
       // Seulement ceux avec tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         usersWithActiveTournament.has(p.id)
       )
+      console.log('[Targeting] After hasActiveTournament filter:', filteredProfiles.length)
     } else if (filters.hasNoActiveTournament && !filters.hasActiveTournament) {
       // Seulement ceux sans tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         !usersWithActiveTournament.has(p.id)
       )
+      console.log('[Targeting] After hasNoActiveTournament filter:', filteredProfiles.length)
     }
     // Si les deux sont cochés, on ne filtre pas (tous les users)
   }
