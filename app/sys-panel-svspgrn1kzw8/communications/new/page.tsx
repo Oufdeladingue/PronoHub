@@ -295,9 +295,39 @@ export default function NewCommunicationPage() {
                 </div>
               ) : recipientCount && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-green-900 mb-2">
-                    📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-green-900">
+                      📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
+                    </p>
+                    {recipientCount.total > 0 && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/admin/communications/export-recipients', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ targeting_filters: formData.targeting_filters, format: 'csv' })
+                            })
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `destinataires-${Date.now()}.csv`
+                            document.body.appendChild(a)
+                            a.click()
+                            window.URL.revokeObjectURL(url)
+                            document.body.removeChild(a)
+                          } catch (error) {
+                            console.error('Error exporting:', error)
+                            alert('Erreur lors de l\'export')
+                          }
+                        }}
+                        className="text-xs bg-white hover:bg-gray-50 text-green-700 px-3 py-1 rounded border border-green-300 transition-colors"
+                      >
+                        📥 Export CSV
+                      </button>
+                    )}
+                  </div>
                   <div className="grid grid-cols-2 gap-3 text-xs text-green-700">
                     <div className="flex items-center gap-2">
                       <span>📧 Email:</span>

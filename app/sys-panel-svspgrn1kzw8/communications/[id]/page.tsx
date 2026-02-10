@@ -8,6 +8,7 @@ import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
 import TargetingSelector from '@/components/admin/TargetingSelector'
+import EmojiPicker from '@/components/admin/EmojiPicker'
 import type { TargetingFilters } from '@/lib/admin/email-templates'
 
 interface Communication {
@@ -17,6 +18,8 @@ interface Communication {
   email_subject: string | null
   email_body_html: string | null
   email_preview_text: string | null
+  email_cta_text: string | null
+  email_cta_url: string | null
   notification_title: string | null
   notification_body: string | null
   notification_image_url: string | null
@@ -40,6 +43,7 @@ export default function EditCommunicationPage() {
   const [communication, setCommunication] = useState<Communication | null>(null)
   const [recipientCount, setRecipientCount] = useState({ total: 0, email: 0, push: 0 })
   const [countingRecipients, setCountingRecipients] = useState(false)
+  const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
 
   // Compter les destinataires quand les filtres changent
   useEffect(() => {
@@ -127,6 +131,22 @@ export default function EditCommunicationPage() {
     setCommunication(prev => prev ? { ...prev, targeting_filters: filters } : null)
   }
 
+  const handleEmojiSelect = (emoji: string) => {
+    if (!activeEmojiField || !communication) return
+
+    const currentValue = communication[activeEmojiField as keyof Communication] as string || ''
+    handleChange(activeEmojiField as keyof Communication, currentValue + emoji)
+    setActiveEmojiField(null)
+  }
+
+  const previewText = (text: string) => {
+    return text
+      .replace(/\[username\]/gi, profile?.username || 'JohnDoe')
+      .replace(/\[email\]/gi, profile?.email || 'john@example.com')
+      .replace(/\[CTA_TEXT\]/gi, communication?.email_cta_text || 'Découvrir')
+      .replace(/\[CTA_URL\]/gi, communication?.email_cta_url || 'https://www.pronohub.club/dashboard')
+  }
+
   const handleSave = async () => {
     if (!communication || !communication.title.trim()) {
       alert('Le titre est obligatoire')
@@ -143,6 +163,8 @@ export default function EditCommunicationPage() {
         email_subject: communication.email_subject || null,
         email_body_html: communication.email_body_html || null,
         email_preview_text: communication.email_preview_text || null,
+        email_cta_text: communication.email_cta_text || null,
+        email_cta_url: communication.email_cta_url || null,
         notification_title: communication.notification_title || null,
         notification_body: communication.notification_body || null,
         notification_image_url: communication.notification_image_url || null,
@@ -278,79 +300,115 @@ export default function EditCommunicationPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Colonne gauche: Formulaire */}
-          <div className="space-y-6">
-            {/* Informations générales */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
+        <div className="space-y-6">
+          {/* Informations générales - Pleine largeur */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Titre (pour identification interne) *
-                  </label>
-                  <input
-                    type="text"
-                    value={communication.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
-                    placeholder="Ex: Annonce nouvelle fonctionnalité"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Titre (pour identification interne) *
+                </label>
+                <input
+                  type="text"
+                  value={communication.title}
+                  onChange={(e) => handleChange('title', e.target.value)}
+                  disabled={!canEdit}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
+                  placeholder="Ex: Annonce nouvelle fonctionnalité"
+                />
               </div>
             </div>
+          </div>
 
-            {/* Ciblage des destinataires */}
-            {canEdit && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+          {/* Ciblage - Pleine largeur */}
+          {canEdit && (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
-                <TargetingSelector
-                  value={communication.targeting_filters || {}}
-                  onChange={handleTargetingChange}
-                />
+              <TargetingSelector
+                value={communication.targeting_filters || {}}
+                onChange={handleTargetingChange}
+              />
 
-                <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {countingRecipients ? (
-                          <>
-                            <span className="inline-block animate-spin mr-2">⏳</span>
-                            Calcul en cours...
-                          </>
-                        ) : (
-                          <>
-                            <span className="text-purple-700 font-bold text-lg">{recipientCount.total}</span> destinataires ciblés
-                          </>
-                        )}
-                      </p>
-                      {!countingRecipients && recipientCount.total > 0 && (
-                        <p className="text-xs text-gray-600 mt-1">
-                          📧 {recipientCount.email} emails · 📱 {recipientCount.push} notifications push
-                        </p>
-                      )}
+              {/* Compteur de destinataires */}
+              <div className="mt-4">
+                {countingRecipients ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                      Calcul du nombre de destinataires...
                     </div>
                   </div>
-                </div>
+                ) : recipientCount && recipientCount.total > 0 ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-green-900">
+                        📊 {recipientCount.total} destinataire{recipientCount.total > 1 ? 's' : ''} trouvé{recipientCount.total > 1 ? 's' : ''}
+                      </p>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch('/api/admin/communications/export-recipients', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ targeting_filters: communication.targeting_filters, format: 'csv' })
+                            })
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `destinataires-${Date.now()}.csv`
+                            document.body.appendChild(a)
+                            a.click()
+                            window.URL.revokeObjectURL(url)
+                            document.body.removeChild(a)
+                          } catch (error) {
+                            console.error('Error exporting:', error)
+                            alert('Erreur lors de l\'export')
+                          }
+                        }}
+                        className="text-xs bg-white hover:bg-gray-50 text-green-700 px-3 py-1 rounded border border-green-300 transition-colors"
+                      >
+                        📥 Export CSV
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-green-700">
+                      <div className="flex items-center gap-2">
+                        <span>📧 Email:</span>
+                        <span className="font-semibold">{recipientCount.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>📱 Push:</span>
+                        <span className="font-semibold">{recipientCount.push}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Contenu Email */}
+          {/* Email + Aperçu - Grid 2 colonnes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Colonne gauche: Contenu Email */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sujet de l'email
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Sujet de l'email
+                    </label>
+                    {canEdit && <EmojiPicker onEmojiSelect={handleEmojiSelect} />}
+                  </div>
                   <input
                     type="text"
                     value={communication.email_subject || ''}
                     onChange={(e) => handleChange('email_subject', e.target.value)}
+                    onFocus={() => setActiveEmojiField('email_subject')}
                     disabled={!canEdit}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
@@ -386,22 +444,95 @@ export default function EditCommunicationPage() {
                     placeholder="<html>...</html>"
                   />
                 </div>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Bouton d'action (CTA)</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Texte du bouton</label>
+                      <input
+                        type="text"
+                        value={communication.email_cta_text || ''}
+                        onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                        disabled={!canEdit}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                        placeholder="Ex: Découvrir"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Lien du bouton</label>
+                      <input
+                        type="text"
+                        value={communication.email_cta_url || ''}
+                        onChange={(e) => handleChange('email_cta_url', e.target.value)}
+                        disabled={!canEdit}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Contenu Notification Push */}
+            {/* Colonne droite: Aperçu Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
+
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                {communication.email_subject ? (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500">Sujet:</p>
+                      <p className="font-semibold text-gray-900">{previewText(communication.email_subject)}</p>
+                    </div>
+                    {communication.email_preview_text && (
+                      <div>
+                        <p className="text-xs text-gray-500">Prévisualisation:</p>
+                        <p className="text-sm text-gray-600">{previewText(communication.email_preview_text)}</p>
+                      </div>
+                    )}
+                    {communication.email_body_html && (
+                      <div className="mt-4 border-t border-gray-200 pt-4">
+                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
+                        <div
+                          className="prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: previewText(communication.email_body_html) }}
+                        />
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 italic mt-2">
+                      💡 Variables remplacées par des exemples
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-8">
+                    L'aperçu de l'email s'affichera ici
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Notification + Aperçu - Grid 2 colonnes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Colonne gauche: Contenu Notification Push */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Titre de la notification
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Titre de la notification
+                    </label>
+                    {canEdit && <EmojiPicker onEmojiSelect={handleEmojiSelect} />}
+                  </div>
                   <input
                     type="text"
                     value={communication.notification_title || ''}
                     onChange={(e) => handleChange('notification_title', e.target.value)}
+                    onFocus={() => setActiveEmojiField('notification_title')}
                     disabled={!canEdit}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Nouvelle fonctionnalité disponible"
@@ -416,6 +547,7 @@ export default function EditCommunicationPage() {
                   <textarea
                     value={communication.notification_body || ''}
                     onChange={(e) => handleChange('notification_body', e.target.value)}
+                    onFocus={() => setActiveEmojiField('notification_body')}
                     disabled={!canEdit}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     rows={3}
@@ -453,47 +585,9 @@ export default function EditCommunicationPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Colonne droite: Preview */}
-          <div className="space-y-6">
-            {/* Preview Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
-
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {communication.email_subject ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{communication.email_subject}</p>
-                    </div>
-                    {communication.email_preview_text && (
-                      <div>
-                        <p className="text-xs text-gray-500">Prévisualisation:</p>
-                        <p className="text-sm text-gray-600">{communication.email_preview_text}</p>
-                      </div>
-                    )}
-                    {communication.email_body_html && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
-                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
-                        <div
-                          className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: communication.email_body_html }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">
-                    Aucun contenu email
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Preview Notification */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            {/* Colonne droite: Aperçu Notification */}
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -530,7 +624,7 @@ export default function EditCommunicationPage() {
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400 text-center py-8">
-                    Aucune notification
+                    L'aperçu de la notification s'affichera ici
                   </p>
                 )}
               </div>
