@@ -4,6 +4,16 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { sendEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
+import { calculateRecipients } from '@/lib/admin/targeting'
+
+/**
+ * Remplace les variables utilisateur dans un texte
+ */
+function replaceUserVariables(text: string, user: { username: string; email: string }): string {
+  return text
+    .replace(/\[username\]/gi, user.username || 'Utilisateur')
+    .replace(/\[email\]/gi, user.email || '')
+}
 
 /**
  * API POST /api/admin/communications/send
@@ -61,15 +71,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer' }, { status: 400 })
     }
 
-    // Récupérer les destinataires (Phase 1 MVP: tous les users avec email)
-    // Phase 2 : utiliser calculate_communication_recipients() avec les filtres
-    const { data: recipients, error: recipientsError } = await supabase
-      .from('profiles')
-      .select('id, email, fcm_token, username')
-      .not('email', 'is', null)
+    // Récupérer les destinataires selon les filtres de ciblage
+    const recipients = await calculateRecipients(supabase, communication.targeting_filters || {})
 
-    if (recipientsError || !recipients) {
-      return NextResponse.json({ success: false, error: 'Erreur chargement destinataires' }, { status: 500 })
+    if (!recipients || recipients.length === 0) {
+      return NextResponse.json({ success: false, error: 'Aucun destinataire trouvé avec ces filtres' }, { status: 400 })
     }
 
     // Statistiques d'envoi
@@ -99,11 +105,18 @@ export async function POST(request: NextRequest) {
           // Envoyer l'email si configuré
           if (hasEmail && recipient.email) {
             try {
+              // Remplacer les variables utilisateur
+              const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
+              const personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
+              const personalizedPreview = communication.email_preview_text
+                ? replaceUserVariables(communication.email_preview_text, recipient)
+                : undefined
+
               const result = await sendEmail(
                 recipient.email,
-                communication.email_subject!,
-                communication.email_body_html!,
-                communication.email_preview_text || undefined
+                personalizedSubject,
+                personalizedBody,
+                personalizedPreview
               )
 
               if (result.success) {
@@ -146,10 +159,14 @@ export async function POST(request: NextRequest) {
           // Envoyer la notification push si configurée et si l'utilisateur a un token FCM
           if (hasPush && recipient.fcm_token) {
             try {
+              // Remplacer les variables utilisateur
+              const personalizedTitle = replaceUserVariables(communication.notification_title!, recipient)
+              const personalizedBody = replaceUserVariables(communication.notification_body!, recipient)
+
               await sendPushNotification(
                 recipient.fcm_token,
-                communication.notification_title!,
-                communication.notification_body!,
+                personalizedTitle,
+                personalizedBody,
                 {
                   type: 'admin_communication',
                   communicationId,

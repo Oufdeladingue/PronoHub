@@ -251,7 +251,7 @@ export default function EditCommunicationPage() {
                     value={communication.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Annonce nouvelle fonctionnalité"
                   />
                 </div>
@@ -272,7 +272,7 @@ export default function EditCommunicationPage() {
                     value={communication.email_subject || ''}
                     onChange={(e) => handleChange('email_subject', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
                     maxLength={255}
                   />
@@ -287,7 +287,7 @@ export default function EditCommunicationPage() {
                     value={communication.email_preview_text || ''}
                     onChange={(e) => handleChange('email_preview_text', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
                     maxLength={255}
                   />
@@ -301,7 +301,7 @@ export default function EditCommunicationPage() {
                     value={communication.email_body_html || ''}
                     onChange={(e) => handleChange('email_body_html', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
                     rows={10}
                     placeholder="<html>...</html>"
                   />
@@ -323,7 +323,7 @@ export default function EditCommunicationPage() {
                     value={communication.notification_title || ''}
                     onChange={(e) => handleChange('notification_title', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Nouvelle fonctionnalité disponible"
                     maxLength={100}
                   />
@@ -337,7 +337,7 @@ export default function EditCommunicationPage() {
                     value={communication.notification_body || ''}
                     onChange={(e) => handleChange('notification_body', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     rows={3}
                     placeholder="Ex: Découvrez dès maintenant les nouvelles fonctionnalités de PronoHub !"
                     maxLength={200}
@@ -353,7 +353,7 @@ export default function EditCommunicationPage() {
                     value={communication.notification_image_url || ''}
                     onChange={(e) => handleChange('notification_image_url', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="https://..."
                   />
                 </div>
@@ -367,7 +367,7 @@ export default function EditCommunicationPage() {
                     value={communication.notification_click_url || ''}
                     onChange={(e) => handleChange('notification_click_url', e.target.value)}
                     disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="/dashboard"
                   />
                 </div>

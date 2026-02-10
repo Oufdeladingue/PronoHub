@@ -7,6 +7,7 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
+import { EMAIL_TEMPLATES, TARGETING_PRESETS, type TargetingFilters } from '@/lib/admin/email-templates'
 
 interface FormData {
   title: string
@@ -17,6 +18,7 @@ interface FormData {
   notification_body: string
   notification_image_url: string
   notification_click_url: string
+  targeting_filters: TargetingFilters
 }
 
 export default function NewCommunicationPage() {
@@ -32,8 +34,11 @@ export default function NewCommunicationPage() {
     notification_title: '',
     notification_body: '',
     notification_image_url: '',
-    notification_click_url: '/dashboard'
+    notification_click_url: '/dashboard',
+    targeting_filters: {}
   })
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [selectedTargeting, setSelectedTargeting] = useState('all')
 
   useEffect(() => {
     async function loadData() {
@@ -63,8 +68,30 @@ export default function NewCommunicationPage() {
     loadData()
   }, [router])
 
-  const handleChange = (field: keyof FormData, value: string) => {
+  const handleChange = (field: keyof FormData, value: string | TargetingFilters) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const applyTemplate = (templateId: string) => {
+    const template = EMAIL_TEMPLATES.find(t => t.id === templateId)
+    if (template) {
+      setFormData(prev => ({
+        ...prev,
+        email_subject: template.subject,
+        email_body_html: template.html,
+        email_preview_text: template.previewText
+      }))
+    }
+  }
+
+  const applyTargetingPreset = (presetId: string) => {
+    const preset = TARGETING_PRESETS.find(p => p.id === presetId)
+    if (preset) {
+      setFormData(prev => ({
+        ...prev,
+        targeting_filters: preset.filters
+      }))
+    }
   }
 
   const handleSaveDraft = async () => {
@@ -88,7 +115,7 @@ export default function NewCommunicationPage() {
         notification_body: formData.notification_body || null,
         notification_image_url: formData.notification_image_url || null,
         notification_click_url: formData.notification_click_url || '/dashboard',
-        targeting_filters: {},
+        targeting_filters: formData.targeting_filters,
         created_by: profile.id
       })
       .select()
@@ -176,6 +203,88 @@ export default function NewCommunicationPage() {
               </div>
             </div>
 
+            {/* Template Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Template Email</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Partir d'un template
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value)
+                      applyTemplate(e.target.value)
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  >
+                    <option value="">-- Choisir un template --</option>
+                    {EMAIL_TEMPLATES.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} - {template.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Ciblage */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preset de ciblage
+                  </label>
+                  <select
+                    value={selectedTargeting}
+                    onChange={(e) => {
+                      setSelectedTargeting(e.target.value)
+                      applyTargetingPreset(e.target.value)
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  >
+                    {TARGETING_PRESETS.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.name} - {preset.description}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Les filtres personnalisés avancés seront disponibles dans une prochaine version
+                  </p>
+                </div>
+
+                {/* Aperçu des filtres appliqués */}
+                {Object.keys(formData.targeting_filters).length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm font-medium text-blue-900 mb-2">Filtres actifs:</p>
+                    <div className="space-y-1">
+                      {formData.targeting_filters.hasActiveTournament && (
+                        <p className="text-xs text-blue-700">✓ A un tournoi actif</p>
+                      )}
+                      {formData.targeting_filters.hasNoActiveTournament && (
+                        <p className="text-xs text-blue-700">✓ N'a pas de tournoi actif</p>
+                      )}
+                      {formData.targeting_filters.hasFcmToken && (
+                        <p className="text-xs text-blue-700">✓ A l'app Android (FCM token)</p>
+                      )}
+                      {formData.targeting_filters.inactiveDays && (
+                        <p className="text-xs text-blue-700">✓ Inactif depuis {formData.targeting_filters.inactiveDays} jours</p>
+                      )}
+                      {Object.keys(formData.targeting_filters).length === 0 && (
+                        <p className="text-xs text-blue-700">✓ Tous les utilisateurs</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Contenu Email */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
@@ -190,9 +299,12 @@ export default function NewCommunicationPage() {
                     value={formData.email_subject}
                     onChange={(e) => handleChange('email_subject', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
+                    placeholder="Ex: 🎉 Découvrez notre nouvelle fonctionnalité !"
                     maxLength={255}
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Emojis supportés ✅ | Variables: [username], [email]
+                  </p>
                 </div>
 
                 <div>
@@ -219,12 +331,12 @@ export default function NewCommunicationPage() {
                   <textarea
                     value={formData.email_body_html}
                     onChange={(e) => handleChange('email_body_html', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white"
                     rows={10}
                     placeholder="<html>...</html>"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Code HTML de l'email (Phase 2 : éditeur WYSIWYG)
+                    Variables disponibles: [username], [email]. Emojis supportés ✅
                   </p>
                 </div>
               </div>
@@ -259,13 +371,13 @@ export default function NewCommunicationPage() {
                   <textarea
                     value={formData.notification_body}
                     onChange={(e) => handleChange('notification_body', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     rows={3}
                     placeholder="Ex: Découvrez dès maintenant les nouvelles fonctionnalités de PronoHub !"
                     maxLength={200}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Maximum 200 caractères
+                    Maximum 200 caractères | Variables: [username], [email]
                   </p>
                 </div>
 
@@ -281,7 +393,7 @@ export default function NewCommunicationPage() {
                     placeholder="https://..."
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Image affichée dans la notification (Android)
+                    Image "Big Picture" Android (recommandé: 1024x512px, ratio 2:1)
                   </p>
                 </div>
 
@@ -385,18 +497,6 @@ export default function NewCommunicationPage() {
               </div>
             </div>
 
-            {/* Informations ciblage (Phase 2) */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage</h2>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
-                  <strong>Phase 1 MVP:</strong> Envoi à tous les utilisateurs avec email.
-                </p>
-                <p className="text-xs text-blue-700 mt-2">
-                  Phase 2 : Filtres de ciblage avancés (tournoi actif, inactivité, FCM token, etc.)
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </main>
