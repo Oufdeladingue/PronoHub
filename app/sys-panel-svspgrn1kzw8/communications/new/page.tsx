@@ -424,6 +424,7 @@ export default function NewCommunicationPage() {
                 </div>
               </div>
             </div>
+            </div>
 
             {/* Colonne droite: Aperçu Email */}
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
