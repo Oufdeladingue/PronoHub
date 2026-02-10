@@ -2805,12 +2805,72 @@ export interface BadgeUnlockedEmailProps {
   trophyName: string
   trophyDescription: string
   trophyImageUrl: string // URL complète : https://www.pronohub.club/trophy/xxx.png
+  triggerMatch?: {
+    homeTeamName: string
+    awayTeamName: string
+    homeTeamCrest?: string
+    awayTeamCrest?: string
+    homeScore: number
+    awayScore: number
+    predictedHomeScore: number
+    predictedAwayScore: number
+    matchDate: string
+  }
 }
 
 export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
-  const { username, trophyName, trophyDescription, trophyImageUrl } = props
+  const { username, trophyName, trophyDescription, trophyImageUrl, triggerMatch } = props
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
   const trophiesUrl = `${baseUrl}/profile?tab=trophees`
+
+  // Formater la date du match
+  let formattedMatchDate = ''
+  if (triggerMatch?.matchDate) {
+    try {
+      const d = new Date(triggerMatch.matchDate)
+      formattedMatchDate = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })
+    } catch { formattedMatchDate = '' }
+  }
+
+  // Section match déclencheur HTML
+  const matchSectionHtml = triggerMatch ? `
+                  <!-- Match déclencheur -->
+                  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-top: 16px;">
+                    <tr>
+                      <td style="padding: 8px 24px 4px; text-align: center;">
+                        <p style="margin: 0; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Match déclencheur</p>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 12px 24px 16px; text-align: center;">
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <!-- Équipe domicile -->
+                            <td style="width: 35%; text-align: center; vertical-align: middle;">
+                              ${triggerMatch.homeTeamCrest ? `<img src="${triggerMatch.homeTeamCrest}" alt="" width="40" height="40" style="display: block; margin: 0 auto 6px; width: 40px; height: 40px; object-fit: contain;" />` : ''}
+                              <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600;">${triggerMatch.homeTeamName}</p>
+                            </td>
+                            <!-- Score -->
+                            <td style="width: 30%; text-align: center; vertical-align: middle;">
+                              <p style="margin: 0 0 4px; color: #ffffff; font-size: 28px; font-weight: 900;">${triggerMatch.homeScore} - ${triggerMatch.awayScore}</p>
+                              <p style="margin: 0; color: #94a3b8; font-size: 12px;">Prono : <span style="color: #f5b800; font-weight: 700;">${triggerMatch.predictedHomeScore} - ${triggerMatch.predictedAwayScore}</span></p>
+                              ${formattedMatchDate ? `<p style="margin: 4px 0 0; color: #475569; font-size: 11px;">${formattedMatchDate}</p>` : ''}
+                            </td>
+                            <!-- Équipe extérieur -->
+                            <td style="width: 35%; text-align: center; vertical-align: middle;">
+                              ${triggerMatch.awayTeamCrest ? `<img src="${triggerMatch.awayTeamCrest}" alt="" width="40" height="40" style="display: block; margin: 0 auto 6px; width: 40px; height: 40px; object-fit: contain;" />` : ''}
+                              <p style="margin: 0; color: #ffffff; font-size: 13px; font-weight: 600;">${triggerMatch.awayTeamName}</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>` : ''
+
+  // Section match pour le texte brut
+  const matchSectionText = triggerMatch
+    ? `\nMatch : ${triggerMatch.homeTeamName} ${triggerMatch.homeScore} - ${triggerMatch.awayScore} ${triggerMatch.awayTeamName}\nTon prono : ${triggerMatch.predictedHomeScore} - ${triggerMatch.predictedAwayScore}${formattedMatchDate ? `\nDate : ${formattedMatchDate}` : ''}\n`
+    : ''
 
   const html = `
     <!DOCTYPE html>
@@ -2842,7 +2902,7 @@ export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
                     Salut <strong style="color: #ffffff;">${username}</strong> !
                   </p>
                   <p style="margin: 0 0 32px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
-                    GG ! Tu viens de décrocher un nouveau trophée. Continue sur ta lancée !
+                    Une ligne de plus sur ton palmarès ! Continue sur ta lancée !
                   </p>
 
                   <!-- Trophy Card -->
@@ -2859,6 +2919,7 @@ export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
                       </td>
                     </tr>
                   </table>
+${matchSectionHtml}
 
                   <!-- CTA Button -->
                   <table role="presentation" style="width: 100%; border-collapse: collapse; margin-top: 32px;">
@@ -2899,8 +2960,8 @@ export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
 
 Salut ${username} !
 
-GG ! Tu viens de décrocher le trophée "${trophyName}" : ${trophyDescription}
-
+Une ligne de plus sur ton palmarès ! Badge "${trophyName}" déverrouillé : ${trophyDescription}
+${matchSectionText}
 Voir mes trophées : ${trophiesUrl}
 
 ---

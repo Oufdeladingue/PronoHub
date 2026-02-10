@@ -236,7 +236,18 @@ export async function GET(request: NextRequest) {
                     username: profile?.username || 'champion',
                     trophyName: trophyInfo.name,
                     trophyDescription: trophyInfo.description,
-                    trophyImageUrl: `${BASE_URL}${trophyInfo.imagePath}`
+                    trophyImageUrl: `${BASE_URL}${trophyInfo.imagePath}`,
+                    triggerMatch: triggerMatch ? {
+                      homeTeamName: triggerMatch.homeTeamName,
+                      awayTeamName: triggerMatch.awayTeamName,
+                      homeTeamCrest: triggerMatch.homeTeamCrest || undefined,
+                      awayTeamCrest: triggerMatch.awayTeamCrest || undefined,
+                      homeScore: triggerMatch.homeScore,
+                      awayScore: triggerMatch.awayScore,
+                      predictedHomeScore: triggerMatch.predictedHomeScore,
+                      predictedAwayScore: triggerMatch.predictedAwayScore,
+                      matchDate: triggerMatch.utcDate,
+                    } : undefined,
                   })
 
                   await supabase.from('notification_logs').insert({
