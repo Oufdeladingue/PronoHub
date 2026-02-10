@@ -27,6 +27,7 @@ export default function CommunicationsPage() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<any>(null)
   const [communications, setCommunications] = useState<Communication[]>([])
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadData() {
@@ -70,6 +71,36 @@ export default function CommunicationsPage() {
 
     loadData()
   }, [router])
+
+  const handleDelete = async (commId: string, commTitle: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer la communication "${commTitle}" ?\n\nCette action est irréversible.`)) {
+      return
+    }
+
+    setDeleting(commId)
+    try {
+      const supabase = createClient()
+
+      const { error } = await supabase
+        .from('admin_communications')
+        .delete()
+        .eq('id', commId)
+
+      if (error) {
+        console.error('Error deleting communication:', error)
+        alert(`Erreur lors de la suppression: ${error.message}`)
+        return
+      }
+
+      // Retirer de la liste locale
+      setCommunications(prev => prev.filter(c => c.id !== commId))
+    } catch (err: any) {
+      console.error('Unexpected error:', err)
+      alert(`Erreur inattendue: ${err.message}`)
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   const getStatusBadge = (status: Communication['status']) => {
     const styles = {
@@ -238,6 +269,13 @@ export default function CommunicationsPage() {
                             Statistiques
                           </Link>
                         )}
+                        <button
+                          onClick={() => handleDelete(comm.id, comm.title)}
+                          disabled={deleting === comm.id}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {deleting === comm.id ? 'Suppression...' : 'Supprimer'}
+                        </button>
                       </div>
                     </td>
                   </tr>
