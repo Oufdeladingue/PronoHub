@@ -101,6 +101,38 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
+        {/* JSON-LD Structured Data pour Google */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  name: 'PronoHub',
+                  url: 'https://www.pronohub.club',
+                  logo: 'https://www.pronohub.club/images/logo.svg',
+                  description: 'Application de tournois de pronostics football entre amis',
+                },
+                {
+                  '@type': 'WebApplication',
+                  name: 'PronoHub Football',
+                  url: 'https://www.pronohub.club',
+                  applicationCategory: 'SportsApplication',
+                  operatingSystem: 'Android, Web',
+                  offers: {
+                    '@type': 'Offer',
+                    price: '0',
+                    priceCurrency: 'EUR',
+                  },
+                  description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis. Ligue 1, Premier League, Champions League et plus encore.',
+                  inLanguage: 'fr',
+                },
+              ],
+            }),
+          }}
+        />
         {/* Skip to content link pour l'accessibilité - visible uniquement au focus clavier */}
         <a
           href="#main-content"

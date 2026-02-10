@@ -1,9 +1,23 @@
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import Navigation from '@/components/Navigation'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import PricingClient from './PricingClient'
 import PricingCapacitorWrapper from '@/components/PricingCapacitorWrapper'
+
+export const metadata: Metadata = {
+  title: 'Tarifs - PronoHub Football | Gratuit et Premium',
+  description: 'Découvrez les offres PronoHub : version gratuite ou Premium. Créez des tournois de pronostics football, invitez vos amis et débloquez des fonctionnalités exclusives.',
+  alternates: {
+    canonical: 'https://www.pronohub.club/pricing',
+  },
+  openGraph: {
+    title: 'Tarifs - PronoHub Football | Gratuit et Premium',
+    description: 'Découvrez les offres PronoHub : version gratuite ou Premium.',
+    url: 'https://www.pronohub.club/pricing',
+  },
+}
 
 // Détecter si la requête vient d'un WebView Android (Capacitor)
 function isCapacitorRequest(userAgent: string | null): boolean {

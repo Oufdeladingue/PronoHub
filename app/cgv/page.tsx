@@ -1,6 +1,19 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import Footer from '@/components/Footer'
+
+export const metadata: Metadata = {
+  title: 'Conditions Générales de Vente - PronoHub Football',
+  description: 'Consultez les conditions générales de vente et d\'utilisation de PronoHub, l\'application de pronostics football entre amis.',
+  alternates: {
+    canonical: 'https://www.pronohub.club/cgv',
+  },
+  robots: {
+    index: true,
+    follow: false,
+  },
+}
 
 export default function CGVPage() {
   return (

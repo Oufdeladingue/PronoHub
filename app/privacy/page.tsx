@@ -1,6 +1,19 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import Footer from '@/components/Footer'
+
+export const metadata: Metadata = {
+  title: 'Politique de Confidentialité - PronoHub Football',
+  description: 'Découvrez comment PronoHub protège vos données personnelles. Notre politique de confidentialité détaille la collecte et l\'utilisation de vos informations.',
+  alternates: {
+    canonical: 'https://www.pronohub.club/privacy',
+  },
+  robots: {
+    index: true,
+    follow: false,
+  },
+}
 
 export default function PrivacyPage() {
   return (
