@@ -210,9 +210,9 @@ export default function NewCommunicationPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
-        showBackButton
-        showLogo
-        title="Nouvelle communication"
+        username={profile?.username || 'Admin'}
+        userAvatar={profile?.avatar || 'avatar1'}
+        context="admin"
         adminContext={{ currentPage: 'communications' }}
       />
 
