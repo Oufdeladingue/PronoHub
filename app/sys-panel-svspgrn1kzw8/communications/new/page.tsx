@@ -1,20 +1,25 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
-import { EMAIL_TEMPLATES, TARGETING_PRESETS, type TargetingFilters } from '@/lib/admin/email-templates'
+import { EMAIL_TEMPLATES, type TargetingFilters } from '@/lib/admin/email-templates'
 import ImageUploader from '@/components/admin/ImageUploader'
+import TargetingSelector from '@/components/admin/TargetingSelector'
+import EmailEditor from '@/components/admin/EmailEditor'
+import EmojiPicker from '@/components/admin/EmojiPicker'
 
 interface FormData {
   title: string
   email_subject: string
   email_body_html: string
   email_preview_text: string
+  email_cta_text: string
+  email_cta_url: string
   notification_title: string
   notification_body: string
   notification_image_url: string
@@ -32,6 +37,8 @@ export default function NewCommunicationPage() {
     email_subject: '',
     email_body_html: '',
     email_preview_text: '',
+    email_cta_text: 'Découvrir',
+    email_cta_url: 'https://www.pronohub.club/dashboard',
     notification_title: '',
     notification_body: '',
     notification_image_url: '',
@@ -39,13 +46,13 @@ export default function NewCommunicationPage() {
     targeting_filters: {}
   })
   const [selectedTemplate, setSelectedTemplate] = useState('')
-  const [selectedTargeting, setSelectedTargeting] = useState('all')
   const [recipientCount, setRecipientCount] = useState<{
     total: number
     emailRecipients: number
     pushRecipients: number
   } | null>(null)
   const [loadingCount, setLoadingCount] = useState(false)
+  const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
 
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
@@ -119,14 +126,14 @@ export default function NewCommunicationPage() {
     }
   }
 
-  const applyTargetingPreset = (presetId: string) => {
-    const preset = TARGETING_PRESETS.find(p => p.id === presetId)
-    if (preset) {
+  const handleEmojiSelect = (emoji: string) => {
+    if (activeEmojiField) {
       setFormData(prev => ({
         ...prev,
-        targeting_filters: preset.filters
+        [activeEmojiField]: (prev[activeEmojiField as keyof FormData] as string) + emoji
       }))
     }
+    setActiveEmojiField(null)
   }
 
   // Remplacer les variables pour la preview
@@ -143,43 +150,58 @@ export default function NewCommunicationPage() {
     }
 
     setSaving(true)
-    const supabase = createClient()
+    try {
+      const supabase = createClient()
 
-    const { data, error } = await supabase
-      .from('admin_communications')
-      .insert({
-        title: formData.title,
-        status: 'draft',
-        email_subject: formData.email_subject || null,
-        email_body_html: formData.email_body_html || null,
-        email_preview_text: formData.email_preview_text || null,
-        notification_title: formData.notification_title || null,
-        notification_body: formData.notification_body || null,
-        notification_image_url: formData.notification_image_url || null,
-        notification_click_url: formData.notification_click_url || '/dashboard',
-        targeting_filters: formData.targeting_filters,
-        created_by: profile.id
-      })
-      .select()
-      .single()
+      // Vérifier l'utilisateur
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Session expirée, veuillez vous reconnecter')
+        router.push('/auth/login')
+        return
+      }
 
-    setSaving(false)
+      const { data, error } = await supabase
+        .from('admin_communications')
+        .insert({
+          title: formData.title,
+          status: 'draft',
+          email_subject: formData.email_subject || null,
+          email_body_html: formData.email_body_html || null,
+          email_preview_text: formData.email_preview_text || null,
+          email_cta_text: formData.email_cta_text || null,
+          email_cta_url: formData.email_cta_url || null,
+          notification_title: formData.notification_title || null,
+          notification_body: formData.notification_body || null,
+          notification_image_url: formData.notification_image_url || null,
+          notification_click_url: formData.notification_click_url || '/dashboard',
+          targeting_filters: formData.targeting_filters,
+          created_by: user.id
+        })
+        .select()
+        .single()
 
-    if (error) {
-      console.error('Error saving draft:', error)
-      alert('Erreur lors de la sauvegarde')
-      return
+      if (error) {
+        console.error('Error saving draft:', error)
+        alert(`Erreur lors de la sauvegarde: ${error.message}`)
+        return
+      }
+
+      router.push(`${getAdminUrl()}/communications`)
+    } catch (err: any) {
+      console.error('Unexpected error:', err)
+      alert(`Erreur inattendue: ${err.message}`)
+    } finally {
+      setSaving(false)
     }
-
-    router.push(`${getAdminUrl()}/communications`)
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
         </div>
       </div>
     )
@@ -188,43 +210,42 @@ export default function NewCommunicationPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation
-        username={profile?.username || 'Admin'}
-        userAvatar={profile?.avatar || 'avatar1'}
-        context="admin"
+        showBackButton
+        showLogo
+        title="Nouvelle communication"
         adminContext={{ currentPage: 'communications' }}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Nouvelle communication</h1>
-              <p className="text-gray-600 mt-2">
-                Créez une communication ponctuelle (email et/ou notification push)
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push(`${getAdminUrl()}/communications`)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Enregistrement...' : 'Enregistrer le brouillon'}
-              </button>
-            </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header avec actions */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Nouvelle communication</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Créez et envoyez des emails et notifications push aux utilisateurs
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={saving}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Enregistrement...' : 'Enregistrer le brouillon'}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Colonne gauche: Formulaire */}
-          <div className="space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             {/* Informations générales */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
@@ -238,7 +259,7 @@ export default function NewCommunicationPage() {
                     type="text"
                     value={formData.title}
                     onChange={(e) => handleChange('title', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Annonce nouvelle fonctionnalité"
                   />
                 </div>
@@ -277,31 +298,13 @@ export default function NewCommunicationPage() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preset de ciblage
-                  </label>
-                  <select
-                    value={selectedTargeting}
-                    onChange={(e) => {
-                      setSelectedTargeting(e.target.value)
-                      applyTargetingPreset(e.target.value)
-                    }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
-                  >
-                    {TARGETING_PRESETS.map((preset) => (
-                      <option key={preset.id} value={preset.id}>
-                        {preset.name} - {preset.description}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Les filtres personnalisés avancés seront disponibles dans une prochaine version
-                  </p>
-                </div>
+              <TargetingSelector
+                value={formData.targeting_filters}
+                onChange={(filters) => handleChange('targeting_filters', filters)}
+              />
 
-                {/* Compteur de destinataires */}
+              {/* Compteur de destinataires */}
+              <div className="mt-4">
                 {loadingCount ? (
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -326,30 +329,6 @@ export default function NewCommunicationPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Aperçu des filtres appliqués */}
-                {Object.keys(formData.targeting_filters).length > 0 && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm font-medium text-blue-900 mb-2">Filtres actifs:</p>
-                    <div className="space-y-1">
-                      {formData.targeting_filters.hasActiveTournament && (
-                        <p className="text-xs text-blue-700">✓ A un tournoi actif</p>
-                      )}
-                      {formData.targeting_filters.hasNoActiveTournament && (
-                        <p className="text-xs text-blue-700">✓ N'a pas de tournoi actif</p>
-                      )}
-                      {formData.targeting_filters.hasFcmToken && (
-                        <p className="text-xs text-blue-700">✓ A l'app Android (FCM token)</p>
-                      )}
-                      {formData.targeting_filters.inactiveDays && (
-                        <p className="text-xs text-blue-700">✓ Inactif depuis {formData.targeting_filters.inactiveDays} jours</p>
-                      )}
-                      {Object.keys(formData.targeting_filters).length === 0 && (
-                        <p className="text-xs text-blue-700">✓ Tous les utilisateurs</p>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -359,19 +338,23 @@ export default function NewCommunicationPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Sujet de l'email
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Sujet de l'email
+                    </label>
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                  </div>
                   <input
                     type="text"
                     value={formData.email_subject}
                     onChange={(e) => handleChange('email_subject', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onFocus={() => setActiveEmojiField('email_subject')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: 🎉 Découvrez notre nouvelle fonctionnalité !"
                     maxLength={255}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Emojis supportés ✅ | Variables: [username], [email]
+                    Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>
                   </p>
                 </div>
 
@@ -383,29 +366,50 @@ export default function NewCommunicationPage() {
                     type="text"
                     value={formData.email_preview_text}
                     onChange={(e) => handleChange('email_preview_text', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
                     maxLength={255}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Apparaît après le sujet dans la boîte mail
+                    Texte affiché dans les clients email avant l'ouverture
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corps de l'email (HTML)
-                  </label>
-                  <textarea
-                    value={formData.email_body_html}
-                    onChange={(e) => handleChange('email_body_html', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white"
-                    rows={10}
-                    placeholder="<html>...</html>"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Variables disponibles: [username], [email]. Emojis supportés ✅
-                  </p>
+                <EmailEditor
+                  value={formData.email_body_html}
+                  onChange={(value) => handleChange('email_body_html', value)}
+                />
+
+                {/* Champs CTA */}
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Bouton d'action (CTA)</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Texte du bouton
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.email_cta_text}
+                        onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
+                        placeholder="Ex: Découvrir"
+                        maxLength={50}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Lien du bouton
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.email_cta_url}
+                        onChange={(e) => handleChange('email_cta_url', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -416,20 +420,21 @@ export default function NewCommunicationPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Titre de la notification
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Titre de la notification
+                    </label>
+                    <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+                  </div>
                   <input
                     type="text"
                     value={formData.notification_title}
                     onChange={(e) => handleChange('notification_title', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    onFocus={() => setActiveEmojiField('notification_title')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Nouvelle fonctionnalité disponible"
                     maxLength={100}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maximum 100 caractères
-                  </p>
                 </div>
 
                 <div>
@@ -439,13 +444,14 @@ export default function NewCommunicationPage() {
                   <textarea
                     value={formData.notification_body}
                     onChange={(e) => handleChange('notification_body', e.target.value)}
+                    onFocus={() => setActiveEmojiField('notification_body')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     rows={3}
                     placeholder="Ex: Découvrez dès maintenant les nouvelles fonctionnalités de PronoHub !"
                     maxLength={200}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Maximum 200 caractères | Variables: [username], [email]
+                    Maximum 200 caractères | Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>
                   </p>
                 </div>
 
@@ -467,7 +473,7 @@ export default function NewCommunicationPage() {
                       type="text"
                       value={formData.notification_image_url}
                       onChange={(e) => handleChange('notification_image_url', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                       placeholder="https://..."
                     />
                   </div>
@@ -481,21 +487,18 @@ export default function NewCommunicationPage() {
                     type="text"
                     value={formData.notification_click_url}
                     onChange={(e) => handleChange('notification_click_url', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="/dashboard"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    URL vers laquelle rediriger au clic sur la notification
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Colonne droite: Preview */}
+          {/* Colonne droite: Previews */}
           <div className="space-y-6">
-            {/* Preview Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            {/* Aperçu Email */}
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -520,6 +523,16 @@ export default function NewCommunicationPage() {
                         />
                       </div>
                     )}
+                    {formData.email_cta_text && formData.email_cta_url && (
+                      <div className="mt-3 text-center">
+                        <a
+                          href={formData.email_cta_url}
+                          className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg shadow-md"
+                        >
+                          {formData.email_cta_text}
+                        </a>
+                      </div>
+                    )}
                     <p className="text-xs text-gray-400 italic mt-2">
                       💡 Variables remplacées par des exemples
                     </p>
@@ -532,9 +545,9 @@ export default function NewCommunicationPage() {
               </div>
             </div>
 
-            {/* Preview Notification */}
+            {/* Aperçu Notification */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {formData.notification_title ? (
@@ -559,9 +572,7 @@ export default function NewCommunicationPage() {
                               src={formData.notification_image_url}
                               alt="Preview"
                               className="w-full rounded object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
+                              style={{ maxHeight: '120px' }}
                             />
                           </div>
                         )}
