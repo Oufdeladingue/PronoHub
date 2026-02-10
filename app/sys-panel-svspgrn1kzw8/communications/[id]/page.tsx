@@ -45,13 +45,15 @@ export default function EditCommunicationPage() {
   useEffect(() => {
     if (!communication?.targeting_filters) return
 
+    const filters = communication.targeting_filters
+
     async function fetchRecipientCount() {
       setCountingRecipients(true)
       try {
         const response = await fetch('/api/admin/communications/count-recipients', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targeting_filters: communication.targeting_filters })
+          body: JSON.stringify({ targeting_filters: filters })
         })
 
         const data = await response.json()
