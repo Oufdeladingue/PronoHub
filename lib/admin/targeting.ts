@@ -8,6 +8,8 @@ export async function calculateRecipients(
   supabase: SupabaseClient,
   filters: TargetingFilters
 ): Promise<Array<{ id: string; email: string; fcm_token: string | null; username: string }>> {
+  console.log('[Targeting] Starting calculation with filters:', JSON.stringify(filters))
+
   let query = supabase
     .from('profiles')
     .select('id, email, fcm_token, username, last_seen_at, created_at')
@@ -31,21 +33,22 @@ export async function calculateRecipients(
     query = query.lte('created_at', filters.registeredBefore)
   }
 
-  // FCM token
-  if (filters.hasFcmToken) {
+  // FCM token - si les deux sont cochés, on ne filtre pas (= tous les users)
+  if (filters.hasFcmToken && !filters.hasNoFcmToken) {
     query = query.not('fcm_token', 'is', null)
-  }
-
-  if (filters.hasNoFcmToken) {
+  } else if (filters.hasNoFcmToken && !filters.hasFcmToken) {
     query = query.is('fcm_token', null)
   }
+  // Si les deux sont cochés ou aucun, on ne filtre pas
 
   const { data: profiles, error } = await query
 
   if (error || !profiles) {
-    console.error('Error fetching profiles:', error)
+    console.error('[Targeting] Error fetching profiles:', error)
     return []
   }
+
+  console.log('[Targeting] Initial profiles count:', profiles.length)
 
   // Filtres nécessitant des requêtes supplémentaires
   let filteredProfiles = profiles
@@ -70,8 +73,9 @@ export async function calculateRecipients(
     })
   }
 
-  // Filtre tournoi actif
-  if (filters.hasActiveTournament || filters.hasNoActiveTournament) {
+  // Filtre tournoi actif - si les deux sont cochés, on ne filtre pas
+  if ((filters.hasActiveTournament || filters.hasNoActiveTournament) &&
+      !(filters.hasActiveTournament && filters.hasNoActiveTournament)) {
     const userIds = filteredProfiles.map(p => p.id)
 
     const { data: memberships } = await supabase
@@ -84,17 +88,18 @@ export async function calculateRecipients(
       memberships?.map(m => m.user_id) || []
     )
 
-    if (filters.hasActiveTournament) {
+    if (filters.hasActiveTournament && !filters.hasNoActiveTournament) {
+      // Seulement ceux avec tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         usersWithActiveTournament.has(p.id)
       )
-    }
-
-    if (filters.hasNoActiveTournament) {
+    } else if (filters.hasNoActiveTournament && !filters.hasActiveTournament) {
+      // Seulement ceux sans tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         !usersWithActiveTournament.has(p.id)
       )
     }
+    // Si les deux sont cochés, on ne filtre pas (tous les users)
   }
 
   // Filtre nombre minimum de pronostics
@@ -156,6 +161,8 @@ export async function calculateRecipients(
       usersWithTrophies.has(p.id)
     )
   }
+
+  console.log('[Targeting] Final filtered profiles count:', filteredProfiles.length)
 
   return filteredProfiles
 }
