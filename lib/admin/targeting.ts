@@ -71,7 +71,7 @@ export async function calculateRecipients(
   }
 
   // Filtre tournoi actif
-  if (filters.hasActiveTournament !== undefined) {
+  if (filters.hasActiveTournament || filters.hasNoActiveTournament) {
     const userIds = filteredProfiles.map(p => p.id)
 
     const { data: memberships } = await supabase
@@ -88,7 +88,9 @@ export async function calculateRecipients(
       filteredProfiles = filteredProfiles.filter(p =>
         usersWithActiveTournament.has(p.id)
       )
-    } else if (filters.hasNoActiveTournament) {
+    }
+
+    if (filters.hasNoActiveTournament) {
       filteredProfiles = filteredProfiles.filter(p =>
         !usersWithActiveTournament.has(p.id)
       )

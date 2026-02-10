@@ -16,24 +16,25 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
     onChange(filters)
   }, [filters, onChange])
 
-  const toggleFilter = (key: keyof TargetingFilters, checkValue: boolean | number | string[]) => {
+  const toggleBooleanFilter = (key: keyof TargetingFilters, checked: boolean) => {
     setFilters(prev => {
       const newFilters = { ...prev }
-
-      // Si c'est un boolean et qu'il est déjà défini, on le supprime
-      if (typeof checkValue === 'boolean' && newFilters[key] === checkValue) {
-        delete newFilters[key]
+      if (checked) {
+        // @ts-ignore
+        newFilters[key] = true
       } else {
-        // @ts-ignore - Type complex à typer
-        newFilters[key] = checkValue
+        delete newFilters[key]
       }
-
       return newFilters
     })
   }
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        Sélectionnez un ou plusieurs critères de ciblage. Les utilisateurs correspondant à <strong>tous</strong> les critères cochés recevront la communication.
+      </p>
+
       {/* Tournois */}
       <div className="border border-gray-200 rounded-lg p-4">
         <h4 className="font-semibold text-gray-900 mb-3">🏆 Tournois</h4>
@@ -42,21 +43,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
             <input
               type="checkbox"
               checked={filters.hasActiveTournament === true}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setFilters(prev => {
-                    const newFilters = { ...prev, hasActiveTournament: true }
-                    delete newFilters.hasNoActiveTournament
-                    return newFilters
-                  })
-                } else {
-                  setFilters(prev => {
-                    const newFilters = { ...prev }
-                    delete newFilters.hasActiveTournament
-                    return newFilters
-                  })
-                }
-              }}
+              onChange={(e) => toggleBooleanFilter('hasActiveTournament', e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded"
             />
             <span className="text-sm text-gray-700">A un tournoi actif</span>
@@ -66,21 +53,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
             <input
               type="checkbox"
               checked={filters.hasNoActiveTournament === true}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setFilters(prev => {
-                    const newFilters = { ...prev, hasNoActiveTournament: true }
-                    delete newFilters.hasActiveTournament
-                    return newFilters
-                  })
-                } else {
-                  setFilters(prev => {
-                    const newFilters = { ...prev }
-                    delete newFilters.hasNoActiveTournament
-                    return newFilters
-                  })
-                }
-              }}
+              onChange={(e) => toggleBooleanFilter('hasNoActiveTournament', e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded"
             />
             <span className="text-sm text-gray-700">N'a pas de tournoi actif</span>
@@ -92,35 +65,55 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
       <div className="border border-gray-200 rounded-lg p-4">
         <h4 className="font-semibold text-gray-900 mb-3">📊 Activité</h4>
         <div className="space-y-3">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">
+              Inactif depuis X jours (laisser vide = ignorer ce filtre):
+            </label>
             <input
-              type="checkbox"
-              checked={filters.inactiveDays === 7}
-              onChange={(e) => toggleFilter('inactiveDays', e.target.checked ? 7 : 0)}
-              className="w-4 h-4 text-purple-600 rounded"
-            />
-            <span className="text-sm text-gray-700">Inactif depuis 7 jours</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={filters.inactiveDays === 30}
+              type="number"
+              value={filters.inactiveDays || ''}
               onChange={(e) => {
+                const val = parseInt(e.target.value)
                 setFilters(prev => {
                   const newFilters = { ...prev }
-                  if (e.target.checked) {
-                    newFilters.inactiveDays = 30
+                  if (val && val > 0) {
+                    newFilters.inactiveDays = val
                   } else {
                     delete newFilters.inactiveDays
                   }
                   return newFilters
                 })
               }}
-              className="w-4 h-4 text-purple-600 rounded"
+              placeholder="Ex: 7, 30, 90..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+              min="0"
             />
-            <span className="text-sm text-gray-700">Inactif depuis 30 jours</span>
-          </label>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-700 mb-1">
+              Actif dans les X derniers jours (laisser vide = ignorer ce filtre):
+            </label>
+            <input
+              type="number"
+              value={filters.activeDays || ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value)
+                setFilters(prev => {
+                  const newFilters = { ...prev }
+                  if (val && val > 0) {
+                    newFilters.activeDays = val
+                  } else {
+                    delete newFilters.activeDays
+                  }
+                  return newFilters
+                })
+              }}
+              placeholder="Ex: 7, 14, 30..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+              min="0"
+            />
+          </div>
         </div>
       </div>
 
@@ -132,21 +125,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
             <input
               type="checkbox"
               checked={filters.hasFcmToken === true}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setFilters(prev => {
-                    const newFilters = { ...prev, hasFcmToken: true }
-                    delete newFilters.hasNoFcmToken
-                    return newFilters
-                  })
-                } else {
-                  setFilters(prev => {
-                    const newFilters = { ...prev }
-                    delete newFilters.hasFcmToken
-                    return newFilters
-                  })
-                }
-              }}
+              onChange={(e) => toggleBooleanFilter('hasFcmToken', e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded"
             />
             <span className="text-sm text-gray-700">A l'app Android (FCM token)</span>
@@ -156,21 +135,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
             <input
               type="checkbox"
               checked={filters.hasNoFcmToken === true}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setFilters(prev => {
-                    const newFilters = { ...prev, hasNoFcmToken: true }
-                    delete newFilters.hasFcmToken
-                    return newFilters
-                  })
-                } else {
-                  setFilters(prev => {
-                    const newFilters = { ...prev }
-                    delete newFilters.hasNoFcmToken
-                    return newFilters
-                  })
-                }
-              }}
+              onChange={(e) => toggleBooleanFilter('hasNoFcmToken', e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded"
             />
             <span className="text-sm text-gray-700">N'a pas l'app Android</span>
@@ -186,7 +151,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
             <input
               type="checkbox"
               checked={filters.hasTrophies === true}
-              onChange={(e) => toggleFilter('hasTrophies', e.target.checked)}
+              onChange={(e) => toggleBooleanFilter('hasTrophies', e.target.checked)}
               className="w-4 h-4 text-purple-600 rounded"
             />
             <span className="text-sm text-gray-700">A des trophées</span>
@@ -212,7 +177,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
                 })
               }}
               placeholder="Ex: 10"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
               min="0"
             />
           </div>
@@ -237,7 +202,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
                 })
               }}
               placeholder="Ex: 2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
               min="0"
             />
           </div>
