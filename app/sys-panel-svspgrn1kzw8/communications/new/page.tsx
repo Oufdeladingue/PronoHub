@@ -157,10 +157,12 @@ export default function NewCommunicationPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         alert('Session expirée, veuillez vous reconnecter')
+        setSaving(false)
         router.push('/auth/login')
         return
       }
 
+      console.log('[Draft] Saving draft...')
       const { data, error } = await supabase
         .from('admin_communications')
         .insert({
@@ -182,16 +184,23 @@ export default function NewCommunicationPage() {
         .single()
 
       if (error) {
-        console.error('Error saving draft:', error)
+        console.error('[Draft] Error saving draft:', error)
         alert(`Erreur lors de la sauvegarde: ${error.message}`)
+        setSaving(false)
         return
       }
 
-      router.push(`${getAdminUrl()}/communications`)
+      console.log('[Draft] Draft saved successfully:', data)
+      console.log('[Draft] Navigating to:', `${getAdminUrl()}/communications`)
+
+      // Ensure state is reset before navigation
+      setSaving(false)
+
+      // Use window.location for reliable navigation
+      window.location.href = `${getAdminUrl()}/communications`
     } catch (err: any) {
-      console.error('Unexpected error:', err)
+      console.error('[Draft] Unexpected error:', err)
       alert(`Erreur inattendue: ${err.message}`)
-    } finally {
       setSaving(false)
     }
   }
