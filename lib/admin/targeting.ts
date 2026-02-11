@@ -78,11 +78,11 @@ export async function calculateRecipients(
       !(filters.hasActiveTournament && filters.hasNoActiveTournament)) {
     const userIds = filteredProfiles.map(p => p.id)
 
-    // Récupérer d'abord tous les tournois actifs (en cours), en attente ou en échauffement
+    // Récupérer tous les tournois qui ne sont pas terminés (= actifs ou en attente)
     const { data: activeTournaments } = await supabase
       .from('tournaments')
       .select('id')
-      .in('status', ['active', 'pending', 'warmup'])
+      .neq('status', 'completed')
 
     const activeTournamentIds = activeTournaments?.map(t => t.id) || []
 
