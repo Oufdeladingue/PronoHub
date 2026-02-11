@@ -240,11 +240,15 @@ export default function EditCommunicationPage() {
         })
         .eq('id', communicationId)
 
-      // Envoyer
+      // Envoyer avec les canaux sélectionnés passés directement
       const response = await fetch('/api/admin/communications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ communicationId })
+        body: JSON.stringify({
+          communicationId,
+          sendEmail: sendChannels.email,
+          sendPush: sendChannels.push
+        })
       })
 
       const data = await response.json()

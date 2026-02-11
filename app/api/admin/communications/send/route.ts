@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Accès refusé' }, { status: 403 })
     }
 
-    // Récupérer l'ID de la communication
-    const { communicationId } = await request.json()
+    // Récupérer l'ID de la communication et les canaux sélectionnés
+    const { communicationId, sendEmail, sendPush } = await request.json()
 
     if (!communicationId) {
       return NextResponse.json({ success: false, error: 'ID communication manquant' }, { status: 400 })
@@ -62,14 +62,15 @@ export async function POST(request: NextRequest) {
     // Cela permet de modifier les filtres et renvoyer à d'autres destinataires
 
     // Vérifier qu'il y a au moins un contenu et que le canal est activé
-    const shouldSendEmail = communication.send_email === true
-    const shouldSendPush = communication.send_push === true
+    // Utiliser les canaux passés en paramètre au lieu de ceux en base
+    const shouldSendEmail = sendEmail === true
+    const shouldSendPush = sendPush === true
     const hasEmail = shouldSendEmail && communication.email_subject && communication.email_body_html
     const hasPush = shouldSendPush && communication.notification_title && communication.notification_body
 
     console.log('[Send Communication] Channels:', {
-      send_email: communication.send_email,
-      send_push: communication.send_push,
+      fromRequest: { sendEmail, sendPush },
+      fromDatabase: { send_email: communication.send_email, send_push: communication.send_push },
       shouldSendEmail,
       shouldSendPush,
       hasEmail,
