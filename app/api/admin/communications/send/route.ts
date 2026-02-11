@@ -58,17 +58,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Communication non trouvée' }, { status: 404 })
     }
 
-    // Vérifier que la communication est un brouillon
-    if (communication.status !== 'draft') {
-      return NextResponse.json({ success: false, error: 'Cette communication a déjà été envoyée' }, { status: 400 })
-    }
+    // Les communications peuvent être renvoyées (pas de vérification de statut)
+    // Cela permet de modifier les filtres et renvoyer à d'autres destinataires
 
-    // Vérifier qu'il y a au moins un contenu
-    const hasEmail = communication.email_subject && communication.email_body_html
-    const hasPush = communication.notification_title && communication.notification_body
+    // Vérifier qu'il y a au moins un contenu et que le canal est activé
+    const sendEmail = communication.send_email !== false // Par défaut true si non spécifié
+    const sendPush = communication.send_push !== false // Par défaut true si non spécifié
+    const hasEmail = sendEmail && communication.email_subject && communication.email_body_html
+    const hasPush = sendPush && communication.notification_title && communication.notification_body
 
     if (!hasEmail && !hasPush) {
-      return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer ou aucun canal activé' }, { status: 400 })
     }
 
     // Récupérer les destinataires selon les filtres de ciblage
