@@ -637,8 +637,14 @@ export default function EditCommunicationPage() {
                           <iframe
                             srcDoc={previewText(getFullEmailHtml())}
                             className="w-full border-0"
-                            style={{ minHeight: '400px' }}
+                            style={{ minHeight: '200px' }}
                             title="Aperçu email"
+                            onLoad={(e) => {
+                              const iframe = e.target as HTMLIFrameElement
+                              if (iframe.contentDocument?.body) {
+                                iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px'
+                              }
+                            }}
                           />
                         ) : (
                           <div

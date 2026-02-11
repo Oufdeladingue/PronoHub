@@ -175,11 +175,6 @@ export default function NewCommunicationPage() {
       return
     }
 
-    if (!formData.send_email && !formData.send_push) {
-      alert('Vous devez sélectionner au moins un canal d\'envoi (Email ou Push)')
-      return
-    }
-
     setSaving(true)
     try {
       const supabase = createClient()
@@ -305,35 +300,6 @@ export default function NewCommunicationPage() {
                 />
               </div>
 
-              {/* Canaux d'envoi */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Canaux d'envoi *
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.send_email}
-                      onChange={(e) => handleChange('send_email', e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">📧 Email</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.send_push}
-                      onChange={(e) => handleChange('send_push', e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded"
-                    />
-                    <span className="text-sm text-gray-700">📱 Notification Push</span>
-                  </label>
-                </div>
-                {!formData.send_email && !formData.send_push && (
-                  <p className="text-xs text-red-600 mt-1">⚠️ Vous devez sélectionner au moins un canal d'envoi</p>
-                )}
-              </div>
             </div>
           </div>
 
@@ -543,8 +509,14 @@ export default function NewCommunicationPage() {
                           <iframe
                             srcDoc={previewText(getFullEmailHtml())}
                             className="w-full border-0"
-                            style={{ minHeight: '400px' }}
+                            style={{ minHeight: '200px' }}
                             title="Aperçu email"
+                            onLoad={(e) => {
+                              const iframe = e.target as HTMLIFrameElement
+                              if (iframe.contentDocument?.body) {
+                                iframe.style.height = iframe.contentDocument.body.scrollHeight + 'px'
+                              }
+                            }}
                           />
                         ) : (
                           <div
