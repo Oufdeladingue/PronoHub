@@ -1,5 +1,10 @@
 {
-  "crons": [],
+  "crons": [
+    {
+      "path": "/api/cron/daily-signups-summary",
+      "schedule": "0 12,20 * * *"
+    }
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true
