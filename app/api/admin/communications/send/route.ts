@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer l'ID de la communication et les canaux sélectionnés
-    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel } = await request.json()
+    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel, excludeUserIds } = await request.json()
 
     if (!communicationId) {
       return NextResponse.json({ success: false, error: 'ID communication manquant' }, { status: 400 })
@@ -73,7 +73,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer les destinataires selon les filtres de ciblage
-    const recipients = await calculateRecipients(supabase, communication.targeting_filters || {})
+    let recipients = await calculateRecipients(supabase, communication.targeting_filters || {})
+
+    // Exclure les utilisateurs désélectionnés manuellement
+    if (Array.isArray(excludeUserIds) && excludeUserIds.length > 0) {
+      const excludeSet = new Set(excludeUserIds)
+      recipients = recipients.filter(r => !excludeSet.has(r.id))
+    }
 
     if (!recipients || recipients.length === 0) {
       return NextResponse.json({ success: false, error: 'Aucun destinataire trouvé avec ces filtres' }, { status: 400 })

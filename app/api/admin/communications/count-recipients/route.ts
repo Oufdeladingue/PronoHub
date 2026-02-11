@@ -7,6 +7,7 @@ import { calculateRecipients } from '@/lib/admin/targeting'
 /**
  * API POST /api/admin/communications/count-recipients
  * Compte le nombre de destinataires selon les filtres de ciblage
+ * Si includeList=true, retourne aussi la liste complète des destinataires
  */
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer les filtres de ciblage
-    const { targeting_filters } = await request.json()
+    const { targeting_filters, includeList } = await request.json()
 
     // Calculer les destinataires
     const recipients = await calculateRecipients(supabase, targeting_filters || {})
@@ -39,13 +40,25 @@ export async function POST(request: NextRequest) {
     const emailCount = recipients.filter(r => r.email).length
     const pushCount = recipients.filter(r => r.fcm_token).length
 
-    return NextResponse.json({
+    const response: Record<string, any> = {
       success: true,
       total: recipients.length,
       emailRecipients: emailCount,
       pushRecipients: pushCount,
       bothChannels: recipients.filter(r => r.email && r.fcm_token).length
-    })
+    }
+
+    // Retourner la liste si demandé
+    if (includeList) {
+      response.recipients = recipients.map(r => ({
+        id: r.id,
+        username: r.username,
+        email: r.email,
+        hasFcmToken: !!r.fcm_token
+      }))
+    }
+
+    return NextResponse.json(response)
   } catch (error: any) {
     console.error('Error counting recipients:', error)
     return NextResponse.json(

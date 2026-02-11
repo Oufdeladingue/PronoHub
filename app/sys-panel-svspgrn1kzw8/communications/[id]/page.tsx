@@ -63,6 +63,10 @@ export default function EditCommunicationPage() {
     pushSent: number
     pushFailed: number
   } | null>(null)
+  const [showRecipientList, setShowRecipientList] = useState(false)
+  const [recipientList, setRecipientList] = useState<Array<{ id: string; username: string; email: string; hasFcmToken: boolean }>>([])
+  const [excludedUserIds, setExcludedUserIds] = useState<Set<string>>(new Set())
+  const [loadingRecipients, setLoadingRecipients] = useState(false)
 
   // Compter les destinataires quand les filtres changent
   useEffect(() => {
@@ -237,7 +241,46 @@ export default function EditCommunicationPage() {
       email: true,
       push: true
     })
+    setShowRecipientList(false)
+    setRecipientList([])
+    setExcludedUserIds(new Set())
     setShowSendModal(true)
+  }
+
+  const handleShowRecipientList = async () => {
+    if (!communication) return
+    setLoadingRecipients(true)
+    try {
+      const response = await fetch('/api/admin/communications/count-recipients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targeting_filters: communication.targeting_filters || {},
+          includeList: true
+        })
+      })
+      const data = await response.json()
+      if (data.success && data.recipients) {
+        setRecipientList(data.recipients)
+        setShowRecipientList(true)
+      }
+    } catch (error) {
+      console.error('Error fetching recipients:', error)
+    } finally {
+      setLoadingRecipients(false)
+    }
+  }
+
+  const toggleRecipient = (userId: string) => {
+    setExcludedUserIds(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
   }
 
   const handleSendNow = async () => {
@@ -271,7 +314,8 @@ export default function EditCommunicationPage() {
         body: JSON.stringify({
           communicationId,
           sendEmail: sendChannels.email,
-          sendPush: sendChannels.push
+          sendPush: sendChannels.push,
+          excludeUserIds: excludedUserIds.size > 0 ? Array.from(excludedUserIds) : undefined
         })
       })
 
@@ -746,7 +790,7 @@ export default function EditCommunicationPage() {
                 {communication.notification_title ? (
                   <div className="bg-white rounded-lg shadow-md p-4 max-w-sm">
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <img src="/images/logo.svg" alt="PronoHub" className="w-8 h-8" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -882,10 +926,81 @@ export default function EditCommunicationPage() {
                 {/* Avertissement si aucun canal */}
                 {!sendChannels.email && !sendChannels.push && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <p className="text-xs text-red-700">Vous devez sélectionner au moins un canal d'envoi</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bouton voir la liste / liste des destinataires */}
+              <div>
+                {!showRecipientList ? (
+                  <button
+                    type="button"
+                    onClick={handleShowRecipientList}
+                    disabled={loadingRecipients}
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1.5"
+                  >
+                    {loadingRecipients ? (
+                      <>
+                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-purple-600 border-t-transparent" />
+                        Chargement...
+                      </>
+                    ) : (
+                      <>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                        </svg>
+                        Voir la liste des destinataires
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">
+                        Destinataires ({recipientList.length - excludedUserIds.size}/{recipientList.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowRecipientList(false)}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Masquer
+                      </button>
+                    </div>
+                    {excludedUserIds.size > 0 && (
+                      <p className="text-xs text-orange-600">
+                        {excludedUserIds.size} utilisateur{excludedUserIds.size > 1 ? 's' : ''} exclu{excludedUserIds.size > 1 ? 's' : ''}
+                      </p>
+                    )}
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                      {recipientList.map(r => (
+                        <label
+                          key={r.id}
+                          className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors ${
+                            excludedUserIds.has(r.id) ? 'opacity-50 bg-gray-50' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!excludedUserIds.has(r.id)}
+                            onChange={() => toggleRecipient(r.id)}
+                            className="w-4 h-4 text-purple-600 rounded shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 truncate block">{r.username}</span>
+                            <span className="text-xs text-gray-500 truncate block">{r.email}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-xs" title="Email">📧</span>
+                            {r.hasFcmToken && <span className="text-xs" title="Push">📱</span>}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
