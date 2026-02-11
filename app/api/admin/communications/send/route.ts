@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
     // Cela permet de modifier les filtres et renvoyer à d'autres destinataires
 
     // Vérifier qu'il y a au moins un contenu et que le canal est activé
-    const sendEmail = communication.send_email !== false // Par défaut true si non spécifié
-    const sendPush = communication.send_push !== false // Par défaut true si non spécifié
-    const hasEmail = sendEmail && communication.email_subject && communication.email_body_html
-    const hasPush = sendPush && communication.notification_title && communication.notification_body
+    const shouldSendEmail = communication.send_email !== false // Par défaut true si non spécifié
+    const shouldSendPush = communication.send_push !== false // Par défaut true si non spécifié
+    const hasEmail = shouldSendEmail && communication.email_subject && communication.email_body_html
+    const hasPush = shouldSendPush && communication.notification_title && communication.notification_body
 
     if (!hasEmail && !hasPush) {
       return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer ou aucun canal activé' }, { status: 400 })
