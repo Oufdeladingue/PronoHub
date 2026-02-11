@@ -16,8 +16,6 @@ interface Communication {
   id: string
   title: string
   status: 'draft' | 'scheduled' | 'sent' | 'failed'
-  send_email: boolean
-  send_push: boolean
   email_template_id: string | null
   email_content_html: string | null
   email_subject: string | null
@@ -193,8 +191,6 @@ export default function EditCommunicationPage() {
       .from('admin_communications')
       .update({
         title: communication.title,
-        send_email: communication.send_email,
-        send_push: communication.send_push,
         email_template_id: communication.email_template_id || null,
         email_content_html: communication.email_content_html || null,
         email_subject: communication.email_subject || null,
@@ -229,10 +225,10 @@ export default function EditCommunicationPage() {
       return
     }
 
-    // Initialiser les canaux avec les valeurs de la communication
+    // Initialiser les canaux (les deux cochés par défaut)
     setSendChannels({
-      email: communication.send_email ?? true,
-      push: communication.send_push ?? true
+      email: true,
+      push: true
     })
     setShowSendModal(true)
   }
@@ -261,16 +257,6 @@ export default function EditCommunicationPage() {
     setSending(true)
 
     try {
-      // Sauvegarder d'abord les choix de canaux
-      const supabase = createClient()
-      await supabase
-        .from('admin_communications')
-        .update({
-          send_email: sendChannels.email,
-          send_push: sendChannels.push
-        })
-        .eq('id', communicationId)
-
       // Envoyer avec les canaux sélectionnés passés directement
       const response = await fetch('/api/admin/communications/send', {
         method: 'POST',

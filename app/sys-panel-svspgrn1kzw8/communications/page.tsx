@@ -94,6 +94,8 @@ export default function CommunicationsPage() {
         .from('admin_communications')
         .insert({
           title: `${original.title} (copie)`,
+          email_template_id: original.email_template_id,
+          email_content_html: original.email_content_html,
           email_subject: original.email_subject,
           email_body_html: original.email_body_html,
           email_preview_text: original.email_preview_text,
@@ -104,8 +106,6 @@ export default function CommunicationsPage() {
           notification_image_url: original.notification_image_url,
           notification_click_url: original.notification_click_url,
           targeting_filters: original.targeting_filters,
-          send_email: original.send_email,
-          send_push: original.send_push,
           status: 'draft',
           scheduled_at: null,
           sent_at: null,

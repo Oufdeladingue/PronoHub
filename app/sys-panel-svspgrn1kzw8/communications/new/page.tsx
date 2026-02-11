@@ -15,8 +15,6 @@ import EmojiPicker from '@/components/admin/EmojiPicker'
 
 interface FormData {
   title: string
-  send_email: boolean
-  send_push: boolean
   email_template_id: string
   email_content_html: string
   email_subject: string
@@ -38,8 +36,6 @@ export default function NewCommunicationPage() {
   const [profile, setProfile] = useState<any>(null)
   const [formData, setFormData] = useState<FormData>({
     title: '',
-    send_email: true,
-    send_push: true,
     email_template_id: '',
     email_content_html: '',
     email_subject: '',
@@ -197,8 +193,6 @@ export default function NewCommunicationPage() {
         .insert({
           title: formData.title,
           status: 'draft',
-          send_email: formData.send_email,
-          send_push: formData.send_push,
           email_template_id: formData.email_template_id || null,
           email_content_html: formData.email_content_html || null,
           email_subject: formData.email_subject || null,
