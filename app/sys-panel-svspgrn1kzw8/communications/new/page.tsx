@@ -15,6 +15,8 @@ import EmojiPicker from '@/components/admin/EmojiPicker'
 
 interface FormData {
   title: string
+  send_email: boolean
+  send_push: boolean
   email_subject: string
   email_body_html: string
   email_preview_text: string
@@ -34,6 +36,8 @@ export default function NewCommunicationPage() {
   const [profile, setProfile] = useState<any>(null)
   const [formData, setFormData] = useState<FormData>({
     title: '',
+    send_email: true,
+    send_push: true,
     email_subject: '',
     email_body_html: '',
     email_preview_text: '',
@@ -115,7 +119,7 @@ export default function NewCommunicationPage() {
     loadData()
   }, [router])
 
-  const handleChange = (field: keyof FormData, value: string | TargetingFilters) => {
+  const handleChange = (field: keyof FormData, value: string | TargetingFilters | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (field === 'targeting_filters') {
       setFilterChangeCounter(c => c + 1)
@@ -159,6 +163,11 @@ export default function NewCommunicationPage() {
       return
     }
 
+    if (!formData.send_email && !formData.send_push) {
+      alert('Vous devez sélectionner au moins un canal d\'envoi (Email ou Push)')
+      return
+    }
+
     setSaving(true)
     try {
       const supabase = createClient()
@@ -178,6 +187,8 @@ export default function NewCommunicationPage() {
         .insert({
           title: formData.title,
           status: 'draft',
+          send_email: formData.send_email,
+          send_push: formData.send_push,
           email_subject: formData.email_subject || null,
           email_body_html: formData.email_body_html || null,
           email_preview_text: formData.email_preview_text || null,
@@ -279,6 +290,36 @@ export default function NewCommunicationPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="Ex: Annonce nouvelle fonctionnalité"
                 />
+              </div>
+
+              {/* Canaux d'envoi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Canaux d'envoi *
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.send_email}
+                      onChange={(e) => handleChange('send_email', e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded"
+                    />
+                    <span className="text-sm text-gray-700">📧 Email</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.send_push}
+                      onChange={(e) => handleChange('send_push', e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded"
+                    />
+                    <span className="text-sm text-gray-700">📱 Notification Push</span>
+                  </label>
+                </div>
+                {!formData.send_email && !formData.send_push && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ Vous devez sélectionner au moins un canal d'envoi</p>
+                )}
               </div>
             </div>
           </div>
