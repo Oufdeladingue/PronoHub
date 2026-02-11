@@ -66,8 +66,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   },
   new_matches: {
     prefKey: 'email_new_matches',
-    defaultTitle: 'Nouvelles affiches au programme ! ⚽',
-    defaultBody: '{matchCount} nouveau{plural} match{plural} {verb} ajouté{plural} à {tournamentName}. Prépare tes pronos.',
+    defaultTitle: 'Nouvelles rencontres à pronostiquer ! ⚽',
+    defaultBody: "Le juge de ligne a levé son drapeau : il signale {matchCount} nouveau{plural} match{plural} ajouté{plural} dans {tournamentName}. N'oublie pas de les renseigner...",
     clickAction: '/dashboard',
   },
 }
@@ -84,6 +84,7 @@ export async function sendNotificationToUser(
     body?: string
     data?: Record<string, string>
     tournamentSlug?: string
+    imageUrl?: string
   }
 ): Promise<boolean> {
   const supabase = await createClient()
@@ -126,7 +127,7 @@ export async function sendNotificationToUser(
   // 1. Envoyer la notification push si token FCM disponible
   if (profile?.fcm_token) {
     try {
-      pushResult = await sendPushNotification(profile.fcm_token, title, body, data)
+      pushResult = await sendPushNotification(profile.fcm_token, title, body, data, options?.imageUrl)
     } catch (error) {
       console.error('[NOTIFICATION DEBUG] Push notification failed:', error)
     }

@@ -4,15 +4,17 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 import { sendBadgeUnlockedEmail } from '@/lib/email/send'
 import { getTrophyInfo } from '@/lib/trophy-info'
 
-// Test endpoint pour vérifier les notifications badge_unlocked (push + email)
+// Test endpoint pour vérifier les notifications avec images (push + email)
 // Usage: GET /api/test-push-image?email=ton@email.com
 // Optionnel: &trophy=king_of_day (par défaut: exact_score)
 // Optionnel: &mode=push|email|both (par défaut: push)
+// Optionnel: &type=badge_unlocked|new_matches (par défaut: badge_unlocked)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
   const trophyType = searchParams.get('trophy') || 'exact_score'
   const mode = searchParams.get('mode') || 'push' // push, email, both
+  const notifType = searchParams.get('type') || 'badge_unlocked'
 
   if (!email) {
     return NextResponse.json({ error: 'Email requis (?email=ton@email.com)' }, { status: 400 })
@@ -68,36 +70,62 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // --- PUSH ---
-    if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
-      const imageParams = new URLSearchParams({
-        badgeName: trophyInfo.name,
-        badgeDescription: trophyInfo.description,
-        badgeImage: trophyInfo.imagePath,
-        home: fakeMatch.homeTeamName,
-        away: fakeMatch.awayTeamName,
-        homeLogo: fakeMatch.homeTeamCrest,
-        awayLogo: fakeMatch.awayTeamCrest,
-        homeScore: String(fakeMatch.homeScore),
-        awayScore: String(fakeMatch.awayScore),
-        predHome: String(fakeMatch.predictedHomeScore),
-        predAway: String(fakeMatch.predictedAwayScore),
-        matchDate: fakeMatch.matchDate,
-      })
-      const imageUrl = `${baseUrl}/api/og/badge-unlocked?${imageParams.toString()}`
+    if (notifType === 'new_matches') {
+      // --- TEST NEW MATCHES ---
+      if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
+        const imageParams = new URLSearchParams({
+          tournament: 'PronoHub League',
+          home: fakeMatch.homeTeamName,
+          away: fakeMatch.awayTeamName,
+          homeLogo: fakeMatch.homeTeamCrest,
+          awayLogo: fakeMatch.awayTeamCrest,
+          competitionLogo: 'https://crests.football-data.org/FL1.png',
+          time: '21:00',
+          otherCount: '2',
+        })
+        const imageUrl = `${baseUrl}/api/og/new-matches?${imageParams.toString()}`
 
-      results.pushSuccess = await sendPushNotification(
-        profile.fcm_token,
-        'Trophée débloqué ! 🏅',
-        `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`,
-        { type: 'badge_unlocked', clickAction: '/profile?tab=trophees', trophyType, trophyName: trophyInfo.name },
-        imageUrl
-      )
-      results.imageUrl = imageUrl
+        results.pushSuccess = await sendPushNotification(
+          profile.fcm_token,
+          'Nouvelles rencontres à pronostiquer ! ⚽',
+          `Le juge de ligne a levé son drapeau : il signale 3 nouveaux matchs ajoutés dans PronoHub League. N'oublie pas de les renseigner...`,
+          { type: 'new_matches', clickAction: '/dashboard' },
+          imageUrl
+        )
+        results.imageUrl = imageUrl
+      }
+    } else {
+      // --- TEST BADGE UNLOCKED (default) ---
+      if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
+        const imageParams = new URLSearchParams({
+          badgeName: trophyInfo.name,
+          badgeDescription: trophyInfo.description,
+          badgeImage: trophyInfo.imagePath,
+          home: fakeMatch.homeTeamName,
+          away: fakeMatch.awayTeamName,
+          homeLogo: fakeMatch.homeTeamCrest,
+          awayLogo: fakeMatch.awayTeamCrest,
+          homeScore: String(fakeMatch.homeScore),
+          awayScore: String(fakeMatch.awayScore),
+          predHome: String(fakeMatch.predictedHomeScore),
+          predAway: String(fakeMatch.predictedAwayScore),
+          matchDate: fakeMatch.matchDate,
+        })
+        const imageUrl = `${baseUrl}/api/og/badge-unlocked?${imageParams.toString()}`
+
+        results.pushSuccess = await sendPushNotification(
+          profile.fcm_token,
+          'Trophée débloqué ! 🏅',
+          `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`,
+          { type: 'badge_unlocked', clickAction: '/profile?tab=trophees', trophyType, trophyName: trophyInfo.name },
+          imageUrl
+        )
+        results.imageUrl = imageUrl
+      }
     }
 
-    // --- EMAIL ---
-    if (mode === 'email' || mode === 'both') {
+    // --- EMAIL (badge_unlocked uniquement pour l'instant) ---
+    if ((mode === 'email' || mode === 'both') && notifType !== 'new_matches') {
       const emailResult = await sendBadgeUnlockedEmail(email, {
         username: profile.username || 'champion',
         trophyName: trophyInfo.name,

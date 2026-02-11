@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         matchday_id,
         custom_competition_id,
         change_type,
+        football_data_match_id,
         cached_home_team,
         cached_away_team,
         cached_utc_date,
@@ -161,6 +162,47 @@ export async function GET(request: NextRequest) {
     const competitionMap: Record<string, string> = {}
     for (const comp of competitions || []) {
       competitionMap[comp.id] = comp.name
+    }
+
+    // 4b. Récupérer les logos des équipes et compétitions pour l'image OG
+    //     depuis imported_matches via football_data_match_id
+    const footballDataMatchIds = changes
+      .filter(c => c.change_type === 'add' && c.football_data_match_id)
+      .map(c => c.football_data_match_id!)
+
+    const matchLogoMap: Record<number, {
+      home_team_crest: string | null
+      away_team_crest: string | null
+      competition_emblem: string | null
+    }> = {}
+
+    if (footballDataMatchIds.length > 0) {
+      const { data: importedMatches } = await supabase
+        .from('imported_matches')
+        .select('football_data_match_id, home_team_crest, away_team_crest, competition_id')
+        .in('football_data_match_id', footballDataMatchIds)
+
+      if (importedMatches && importedMatches.length > 0) {
+        // Récupérer les emblèmes des compétitions
+        const importedCompIds = [...new Set(importedMatches.map(m => m.competition_id))]
+        const { data: importedComps } = await supabase
+          .from('competitions')
+          .select('id, emblem')
+          .in('id', importedCompIds)
+
+        const compEmblemMap: Record<number, string | null> = {}
+        for (const c of importedComps || []) {
+          compEmblemMap[c.id] = c.emblem
+        }
+
+        for (const m of importedMatches) {
+          matchLogoMap[m.football_data_match_id] = {
+            home_team_crest: m.home_team_crest,
+            away_team_crest: m.away_team_crest,
+            competition_emblem: compEmblemMap[m.competition_id] || null,
+          }
+        }
+      }
     }
 
     // 5. Trouver les tournois concernés par ces compétitions custom
@@ -323,16 +365,48 @@ export async function GET(request: NextRequest) {
       const plural = matchCount > 1 ? 's' : ''
       const verb = matchCount > 1 ? 'ont été' : 'a été'
 
+      // Construire l'URL de l'image OG dynamique pour la notification push
+      // Prendre le premier match ajouté par ordre de date
+      const addedChanges = matchdayChanges
+        .filter(c => c.change_type === 'add')
+        .sort((a, b) => new Date(a.cached_utc_date || '').getTime() - new Date(b.cached_utc_date || '').getTime())
+
+      let imageUrl: string | undefined
+      if (addedChanges.length > 0) {
+        const firstMatch = addedChanges[0]
+        const logos = firstMatch.football_data_match_id
+          ? matchLogoMap[firstMatch.football_data_match_id]
+          : null
+
+        const matchDate = firstMatch.cached_utc_date ? new Date(firstMatch.cached_utc_date) : null
+        const matchTimeStr = matchDate
+          ? matchDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+          : '??:??'
+
+        const ogParams = new URLSearchParams({
+          tournament: tournament.name,
+          home: firstMatch.cached_home_team || 'Équipe A',
+          away: firstMatch.cached_away_team || 'Équipe B',
+          homeLogo: logos?.home_team_crest || '',
+          awayLogo: logos?.away_team_crest || '',
+          competitionLogo: logos?.competition_emblem || '',
+          time: matchTimeStr,
+          otherCount: String(Math.max(0, addedChanges.length - 1)),
+        })
+
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.pronohub.club'
+        imageUrl = `${baseUrl}/api/og/new-matches?${ogParams.toString()}`
+      }
+
       // Utiliser sendNotificationToUser qui vérifie automatiquement les préférences
       try {
         const result = await sendNotificationToUser(
           user.id,
           'new_matches',
           {
-            // Le body sera pris du NOTIFICATION_CONFIG et remplacera les placeholders
-            // "{matchCount} nouveau{plural} match{plural} {verb} ajouté{plural} à {tournamentName}. Prépare tes pronos."
-            body: `${matchCount} nouveau${plural} match${plural} ${verb} ajouté${plural} à ${tournament.name}. Prépare tes pronos.`,
+            body: `Le juge de ligne a levé son drapeau : il signale ${matchCount} nouveau${plural} match${plural} ajouté${plural} dans ${tournament.name}. N'oublie pas de les renseigner...`,
             tournamentSlug: tournament.slug,
+            imageUrl,
             data: {
               tournamentName: tournament.name,
               matchdayNumber: String(matchdayNumber),
