@@ -62,10 +62,19 @@ export async function POST(request: NextRequest) {
     // Cela permet de modifier les filtres et renvoyer à d'autres destinataires
 
     // Vérifier qu'il y a au moins un contenu et que le canal est activé
-    const shouldSendEmail = communication.send_email !== false // Par défaut true si non spécifié
-    const shouldSendPush = communication.send_push !== false // Par défaut true si non spécifié
+    const shouldSendEmail = communication.send_email === true
+    const shouldSendPush = communication.send_push === true
     const hasEmail = shouldSendEmail && communication.email_subject && communication.email_body_html
     const hasPush = shouldSendPush && communication.notification_title && communication.notification_body
+
+    console.log('[Send Communication] Channels:', {
+      send_email: communication.send_email,
+      send_push: communication.send_push,
+      shouldSendEmail,
+      shouldSendPush,
+      hasEmail,
+      hasPush
+    })
 
     if (!hasEmail && !hasPush) {
       return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer ou aucun canal activé' }, { status: 400 })
