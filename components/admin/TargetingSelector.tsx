@@ -14,9 +14,10 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
   // Mettre à jour le parent quand les filtres changent
   useEffect(() => {
     onChange(filters)
-  }, [filters, onChange])
+  }, [filters])
 
   const toggleBooleanFilter = (key: keyof TargetingFilters, checked: boolean) => {
+    console.log('[TargetingSelector] Toggle filter:', key, checked)
     setFilters(prev => {
       const newFilters = { ...prev }
       if (checked) {
@@ -25,6 +26,7 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
       } else {
         delete newFilters[key]
       }
+      console.log('[TargetingSelector] New filters:', newFilters)
       return newFilters
     })
   }

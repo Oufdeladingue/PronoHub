@@ -78,28 +78,36 @@ export async function calculateRecipients(
       !(filters.hasActiveTournament && filters.hasNoActiveTournament)) {
     const userIds = filteredProfiles.map(p => p.id)
 
-    // Récupérer d'abord tous les tournois actifs
+    // Récupérer d'abord tous les tournois actifs (en cours), en attente ou en échauffement
     const { data: activeTournaments } = await supabase
       .from('tournaments')
       .select('id')
-      .eq('status', 'active')
+      .in('status', ['active', 'pending', 'warmup'])
 
     const activeTournamentIds = activeTournaments?.map(t => t.id) || []
 
-    console.log('[Targeting] Active tournaments:', activeTournamentIds.length)
+    console.log('[Targeting] Active/Pending tournaments:', activeTournamentIds.length)
+    console.log('[Targeting] Active tournament IDs:', activeTournamentIds)
 
-    // Ensuite récupérer les membres de ces tournois
-    const { data: memberships } = await supabase
-      .from('tournament_members')
-      .select('user_id')
-      .in('user_id', userIds)
-      .in('tournament_id', activeTournamentIds)
+    // Si aucun tournoi actif, on a directement la réponse
+    let usersWithActiveTournament = new Set<string>()
 
-    console.log('[Targeting] Memberships found:', memberships?.length || 0)
+    if (activeTournamentIds.length > 0) {
+      // Ensuite récupérer les membres de ces tournois
+      const { data: memberships } = await supabase
+        .from('tournament_members')
+        .select('user_id')
+        .in('user_id', userIds)
+        .in('tournament_id', activeTournamentIds)
 
-    const usersWithActiveTournament = new Set(
-      memberships?.map(m => m.user_id) || []
-    )
+      console.log('[Targeting] Memberships found:', memberships?.length || 0)
+
+      usersWithActiveTournament = new Set(
+        memberships?.map(m => m.user_id) || []
+      )
+    } else {
+      console.log('[Targeting] No active tournaments, all users have no active tournament')
+    }
 
     console.log('[Targeting] Users with active tournament:', usersWithActiveTournament.size)
 
