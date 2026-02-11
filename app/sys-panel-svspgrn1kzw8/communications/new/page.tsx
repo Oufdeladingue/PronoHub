@@ -84,7 +84,7 @@ export default function NewCommunicationPage() {
     // Debounce pour éviter trop de requêtes
     const timeoutId = setTimeout(fetchRecipientCount, 500)
     return () => clearTimeout(timeoutId)
-  }, [JSON.stringify(formData.targeting_filters)])
+  }, [formData.targeting_filters])
 
   useEffect(() => {
     async function loadData() {
