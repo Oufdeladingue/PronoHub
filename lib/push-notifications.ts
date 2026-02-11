@@ -13,7 +13,6 @@ let pushNotificationsModule: typeof import('@capacitor/push-notifications') | nu
 export async function initPushNotifications(): Promise<string | null> {
   // Ne fonctionne que si le bridge Capacitor est disponible
   if (!hasCapacitorBridge()) {
-    console.log('[Push] Bridge Capacitor non disponible, notifications push désactivées')
     return null
   }
 
@@ -26,7 +25,6 @@ export async function initPushNotifications(): Promise<string | null> {
 
     // Vérifier les permissions
     let permStatus = await PushNotifications.checkPermissions()
-    console.log('[Push] Permission status:', permStatus.receive)
 
     if (permStatus.receive === 'prompt') {
       // Demander la permission
@@ -34,7 +32,6 @@ export async function initPushNotifications(): Promise<string | null> {
     }
 
     if (permStatus.receive !== 'granted') {
-      console.log('[Push] Permission refusée')
       return null
     }
 
@@ -44,7 +41,6 @@ export async function initPushNotifications(): Promise<string | null> {
     // Écouter l'événement de registration pour obtenir le token
     return new Promise((resolve) => {
       PushNotifications.addListener('registration', (token) => {
-        console.log('[Push] Token FCM:', token.value)
         resolve(token.value)
       })
 
@@ -79,13 +75,11 @@ export async function setupPushListeners(
 
     // Notification reçue pendant que l'app est au premier plan
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('[Push] Notification reçue:', notification)
       onNotificationReceived?.(notification)
     })
 
     // L'utilisateur a tapé sur la notification
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('[Push] Notification tapée:', action)
       onNotificationTapped?.(action.notification)
     })
   } catch (error) {

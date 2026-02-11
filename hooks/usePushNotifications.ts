@@ -28,8 +28,6 @@ export function usePushNotifications() {
 
   // Gérer le clic sur une notification
   const handleNotificationClick = useCallback((data: Record<string, string>) => {
-    console.log('[Push] Notification cliquée:', data)
-
     // Récupérer l'URL de redirection
     const clickAction = data.clickAction || data.click_action || '/dashboard'
 
@@ -56,7 +54,6 @@ export function usePushNotifications() {
         .update({ fcm_token: fcmToken })
         .eq('id', user.id)
 
-      console.log('[Push] Token enregistré')
     } catch (error) {
       console.error('[Push] Erreur sauvegarde token:', error)
     }
@@ -73,7 +70,6 @@ export function usePushNotifications() {
         const { PushNotifications } = await import('@capacitor/push-notifications')
 
         const result = await PushNotifications.requestPermissions()
-        console.log('[Push] Permission result:', result.receive)
 
         if (result.receive === 'granted') {
           // Enregistrer les listeners une seule fois
@@ -82,7 +78,6 @@ export function usePushNotifications() {
 
             // Écouter le token
             PushNotifications.addListener('registration', async (tokenData) => {
-              console.log('[Push] Token natif obtenu:', tokenData.value.substring(0, 20) + '...')
               setToken(tokenData.value)
               setIsSupported(true)
               await saveToken(tokenData.value)
@@ -95,14 +90,12 @@ export function usePushNotifications() {
 
             // Notification reçue en foreground
             PushNotifications.addListener('pushNotificationReceived', (notification) => {
-              console.log('[Push] Notification reçue (foreground):', notification)
               // En foreground, la notification s'affiche automatiquement
               // On pourrait afficher un toast personnalisé ici si besoin
             })
 
             // Utilisateur a cliqué sur la notification
             PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-              console.log('[Push] Clic sur notification:', action)
               const data = action.notification.data || {}
               handleNotificationClick(data)
             })
@@ -140,7 +133,6 @@ export function usePushNotifications() {
       try {
         const { PushNotifications } = await import('@capacitor/push-notifications')
         const status = await PushNotifications.checkPermissions()
-        console.log('[Push] Capacitor permission status:', status.receive)
         return status.receive as 'granted' | 'denied' | 'default'
       } catch {
         return 'default'
@@ -156,12 +148,10 @@ export function usePushNotifications() {
     if (typeof window === 'undefined') return
 
     const inCapacitor = isCapacitor()
-    console.log('[Push] Check notifications, isCapacitor:', inCapacitor)
 
     // Les notifications push ne sont activées que dans l'app Capacitor (Android/iOS)
     // Sur le web, on ne demande pas les permissions car moins pertinent
     if (!inCapacitor) {
-      console.log('[Push] Pas dans Capacitor, notifications désactivées sur web')
       setIsLoading(false)
       return
     }
@@ -171,8 +161,6 @@ export function usePushNotifications() {
       const supabase = supabaseRef.current
       const { data: { user } } = await supabase.auth.getUser()
 
-      console.log('[Push] Check notifications, user:', user?.email || 'non connecté')
-
       if (!user) {
         setIsAuthenticated(false)
 
@@ -180,7 +168,6 @@ export function usePushNotifications() {
         // Réessayer quelques fois avec un délai
         if (retryIfNoUser && checkCount.current < 3) {
           checkCount.current++
-          console.log('[Push] Pas de user, retry', checkCount.current)
           setTimeout(() => checkNotifications(true), 2000)
           return
         }
@@ -197,7 +184,6 @@ export function usePushNotifications() {
 
       // Si permission déjà accordée
       if (permissionStatus === 'granted') {
-        console.log('[Push] Permission déjà accordée')
         await requestPermission()
         setIsLoading(false)
         return
@@ -205,20 +191,17 @@ export function usePushNotifications() {
 
       // Si permission refusée
       if (permissionStatus === 'denied') {
-        console.log('[Push] Permission refusée')
         setIsLoading(false)
         return
       }
 
       // Vérifier si modale déjà affichée
       if (localStorage.getItem(NOTIFICATION_PROMPT_KEY)) {
-        console.log('[Push] Modale déjà affichée précédemment')
         setIsLoading(false)
         return
       }
 
       // Afficher la modale
-      console.log('[Push] Affichage de la modale')
       setShowPermissionModal(true)
       setIsLoading(false)
     } catch (error) {
@@ -248,8 +231,6 @@ export function usePushNotifications() {
 
     // Écouter les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Push] Auth state change:', event, session?.user?.email)
-
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         if (session?.user) {
           // Délai pour laisser le dashboard se charger

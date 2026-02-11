@@ -280,19 +280,9 @@ export async function GET(request: NextRequest) {
     // - Type free
     // - Status active (demarre)
     // - Il reste des journees dans la competition
-    console.log('[EXTEND-DURATION] Check conditions:', {
-      tournament_type: tournament.tournament_type,
-      status: tournament.status,
-      currentEndMatchday,
-      maxCompetitionMatchday,
-      competition_id: tournament.competition_id
-    })
-
     const canExtend = tournament.tournament_type === 'free' &&
       tournament.status === 'active' &&
       currentEndMatchday < maxCompetitionMatchday
-
-    console.log('[EXTEND-DURATION] canExtend:', canExtend)
 
     // Verifier si l'utilisateur a un credit disponible POUR CE TOURNOI
     const { count: creditsCount } = await supabase

@@ -32,12 +32,8 @@ export async function POST(request: NextRequest) {
     // Récupérer les paramètres
     const { targeting_filters, format = 'json' } = await request.json()
 
-    console.log('[Export Recipients] Filters received:', JSON.stringify(targeting_filters))
-
     // Calculer les destinataires
     const recipients = await calculateRecipients(supabase, targeting_filters || {})
-
-    console.log('[Export Recipients] Recipients found:', recipients.length)
 
     if (format === 'csv') {
       // Générer CSV

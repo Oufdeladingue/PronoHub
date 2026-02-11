@@ -30,7 +30,6 @@ export async function getFirebaseMessaging(): Promise<Messaging | null> {
   // Vérifier si Firebase Messaging est supporté
   const supported = await isSupported()
   if (!supported) {
-    console.log('[Firebase Web] Messaging non supporté sur ce navigateur')
     return null
   }
 
@@ -48,14 +47,12 @@ export async function requestNotificationPermission(): Promise<string | null> {
   try {
     // Vérifier si les notifications sont supportées
     if (!('Notification' in window)) {
-      console.log('[Firebase Web] Notifications non supportées')
       return null
     }
 
     // Demander la permission
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
-      console.log('[Firebase Web] Permission refusée')
       return null
     }
 
@@ -67,7 +64,6 @@ export async function requestNotificationPermission(): Promise<string | null> {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
     })
 
-    console.log('[Firebase Web] Token FCM obtenu:', token.substring(0, 20) + '...')
     return token
   } catch (error) {
     console.error('[Firebase Web] Erreur obtention token:', error)
@@ -84,7 +80,6 @@ export function onForegroundMessage(callback: (payload: any) => void): () => voi
   getFirebaseMessaging().then((messaging) => {
     if (messaging) {
       unsubscribe = onMessage(messaging, (payload) => {
-        console.log('[Firebase Web] Message reçu en premier plan:', payload)
         callback(payload)
       })
     }
@@ -98,13 +93,11 @@ export function onForegroundMessage(callback: (payload: any) => void): () => voi
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    console.log('[Firebase Web] Service Worker non supporté')
     return null
   }
 
   try {
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    console.log('[Firebase Web] Service Worker enregistré:', registration.scope)
     return registration
   } catch (error) {
     console.error('[Firebase Web] Erreur enregistrement Service Worker:', error)

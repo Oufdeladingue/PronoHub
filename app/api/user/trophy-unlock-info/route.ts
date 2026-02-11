@@ -7,13 +7,11 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[trophy-unlock-info] Début de la requête')
     const supabase = await createClient()
 
     // Vérifier l'authentification
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      console.log('[trophy-unlock-info] User non authentifié')
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
@@ -21,10 +19,7 @@ export async function GET(request: NextRequest) {
     const trophyType = searchParams.get('trophyType')
     const unlockedAt = searchParams.get('unlockedAt')
 
-    console.log('[trophy-unlock-info] Params:', { trophyType, unlockedAt, userId: user.id })
-
     if (!trophyType || !unlockedAt) {
-      console.log('[trophy-unlock-info] Paramètres manquants')
       return NextResponse.json(
         { error: 'Paramètres manquants' },
         { status: 400 }
@@ -33,7 +28,6 @@ export async function GET(request: NextRequest) {
 
     // Convertir la date de déblocage en timestamp
     const unlockDate = new Date(unlockedAt)
-    console.log('[trophy-unlock-info] Date de déblocage:', unlockDate)
 
     // Stratégie : trouver le dernier match terminé avant la date de déblocage
     // qui correspond au type de trophée
@@ -45,7 +39,6 @@ export async function GET(request: NextRequest) {
 
     // SIMPLIFICATION: Utiliser TOUJOURS le fallback qui fonctionne
     // Chercher directement le dernier match importé terminé avant le unlock
-    console.log('[trophy-unlock-info] Utilisation du fallback direct')
     const { data: importedMatches, error: matchError } = await supabase
       .from('imported_matches')
       .select('*')
@@ -53,11 +46,6 @@ export async function GET(request: NextRequest) {
       .lte('utc_date', unlockDate.toISOString())
       .order('utc_date', { ascending: false })
       .limit(1)
-
-    console.log('[trophy-unlock-info] Résultat:', {
-      found: importedMatches?.length || 0,
-      error: matchError?.message
-    })
 
     if (matchError) {
       console.error('[trophy-unlock-info] Erreur SQL:', matchError)
@@ -234,7 +222,6 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
       const matchDetails = await getMatchDetails(supabase, pred.match_id, pred.tournaments)
       // getMatchDetails peut retourner null si le match n'existe plus
       if (!matchDetails) {
-        console.log(`[trophy-unlock-info] Match ${pred.match_id} introuvable, passage au suivant`)
         continue
       }
 
@@ -245,7 +232,6 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
       }
     } catch (error) {
       // Si erreur sur ce match, passer au suivant
-      console.log(`[trophy-unlock-info] Erreur sur match ${pred.match_id}, passage au suivant`)
       continue
     }
   }
@@ -254,19 +240,14 @@ async function findLastMatchdayMatch(supabase: any, userId: string, unlockDate: 
 }
 
 async function findLastPredictedMatch(supabase: any, userId: string, unlockDate: Date) {
-  console.log('[trophy-unlock-info] findLastPredictedMatch appelée')
-
   // D'abord essayer avec les predictions (peut avoir des matchs orphelins)
   const matchFromPredictions = await findLastMatchdayMatch(supabase, userId, unlockDate)
   if (matchFromPredictions) {
-    console.log('[trophy-unlock-info] Match trouvé via predictions:', matchFromPredictions)
     return matchFromPredictions
   }
 
   // Fallback: chercher directement dans tous les matchs terminés importés avant le unlock
   // pour gérer le cas où toutes les predictions pointent vers des matchs custom supprimés
-  console.log('[trophy-unlock-info] Fallback: recherche dans imported_matches')
-
   const { data: importedMatches, error } = await supabase
     .from('imported_matches')
     .select('*')
@@ -275,19 +256,12 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
     .order('utc_date', { ascending: false })
     .limit(1)
 
-  console.log('[trophy-unlock-info] Fallback result:', {
-    found: importedMatches?.length || 0,
-    error: error?.message,
-    match: importedMatches?.[0]
-  })
-
   if (error) {
     console.error('[trophy-unlock-info] Erreur SQL fallback:', error)
     throw error
   }
 
   if (!importedMatches || importedMatches.length === 0) {
-    console.log('[trophy-unlock-info] Aucun match importé trouvé')
     return null
   }
 
@@ -302,7 +276,6 @@ async function findLastPredictedMatch(supabase: any, userId: string, unlockDate:
     competition_id: match.competition_id
   }
 
-  console.log('[trophy-unlock-info] Result final:', result)
   return result
 }
 

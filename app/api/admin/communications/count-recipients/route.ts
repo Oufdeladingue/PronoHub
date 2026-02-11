@@ -32,12 +32,8 @@ export async function POST(request: NextRequest) {
     // Récupérer les filtres de ciblage
     const { targeting_filters } = await request.json()
 
-    console.log('[Count Recipients] Filters received:', JSON.stringify(targeting_filters))
-
     // Calculer les destinataires
     const recipients = await calculateRecipients(supabase, targeting_filters || {})
-
-    console.log('[Count Recipients] Recipients found:', recipients.length)
 
     // Compter par canal
     const emailCount = recipients.filter(r => r.email).length

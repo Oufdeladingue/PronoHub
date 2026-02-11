@@ -22,7 +22,6 @@ export default function DeleteAccountPage() {
 
     // TODO: Implémenter l'envoi de la demande (email ou API)
     // Pour l'instant, on simule juste la soumission
-    console.log('Demande de suppression:', { email, reason })
 
     setSubmitted(true)
   }

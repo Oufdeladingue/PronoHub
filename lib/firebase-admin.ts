@@ -23,7 +23,6 @@ if (!admin.apps.length) {
 
       // Parser le JSON
       serviceAccount = JSON.parse(keyValue)
-      console.log('[Firebase Admin] Service account chargé pour projet:', serviceAccount.project_id)
     } catch (e) {
       console.error('[Firebase Admin] Erreur parsing FIREBASE_SERVICE_ACCOUNT_KEY:', e)
       console.error('[Firebase Admin] Valeur (premiers 100 chars):', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100))
@@ -37,7 +36,6 @@ if (!admin.apps.length) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       })
-      console.log('[Firebase Admin] Initialisé avec succès')
     } catch (e) {
       console.error('[Firebase Admin] Erreur initialisation:', e)
     }
@@ -83,11 +81,6 @@ export async function sendPushNotification(
   }
 
   try {
-    // Log l'URL de l'image pour debug
-    if (imageUrl) {
-      console.log('[Push] Image URL:', imageUrl)
-    }
-
     const message: admin.messaging.Message = {
       token: fcmToken,
       notification: {
@@ -111,8 +104,7 @@ export async function sendPushNotification(
       },
     }
 
-    const response = await admin.messaging().send(message)
-    console.log('[Push] Notification envoyée:', response)
+    await admin.messaging().send(message)
     return true
   } catch (error: any) {
     console.error('[Push] Erreur envoi notification:', error.code, error.message)
@@ -120,7 +112,6 @@ export async function sendPushNotification(
     // Si le token est invalide, on pourrait le supprimer de la base
     if (error.code === 'messaging/invalid-registration-token' ||
         error.code === 'messaging/registration-token-not-registered') {
-      console.log('[Push] Token invalide, à supprimer:', fcmToken.substring(0, 20) + '...')
     }
 
     // Retourner l'erreur pour debug
@@ -169,7 +160,6 @@ export async function sendPushNotificationToMany(
     }
 
     const response = await admin.messaging().sendEachForMulticast(message)
-    console.log(`[Push] Notifications envoyées: ${response.successCount} succès, ${response.failureCount} échecs`)
 
     return {
       success: response.successCount,

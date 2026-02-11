@@ -62,7 +62,6 @@ export default function NewCommunicationPage() {
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
     const fetchRecipientCount = async () => {
-      console.log('[Communications] Fetching recipient count with filters:', formData.targeting_filters)
       setLoadingCount(true)
       try {
         const response = await fetch('/api/admin/communications/count-recipients', {
@@ -71,7 +70,6 @@ export default function NewCommunicationPage() {
           body: JSON.stringify({ targeting_filters: formData.targeting_filters })
         })
         const data = await response.json()
-        console.log('[Communications] Recipient count response:', data)
         if (data.success) {
           setRecipientCount({
             total: data.total,
@@ -181,7 +179,6 @@ export default function NewCommunicationPage() {
         return
       }
 
-      console.log('[Draft] Saving draft...')
       const { data, error } = await supabase
         .from('admin_communications')
         .insert({
@@ -210,9 +207,6 @@ export default function NewCommunicationPage() {
         setSaving(false)
         return
       }
-
-      console.log('[Draft] Draft saved successfully:', data)
-      console.log('[Draft] Navigating to:', `${getAdminUrl()}/communications`)
 
       // Ensure state is reset before navigation
       setSaving(false)

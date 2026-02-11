@@ -8,8 +8,6 @@ export async function calculateRecipients(
   supabase: SupabaseClient,
   filters: TargetingFilters
 ): Promise<Array<{ id: string; email: string; fcm_token: string | null; username: string }>> {
-  console.log('[Targeting] Starting calculation with filters:', JSON.stringify(filters))
-
   let query = supabase
     .from('profiles')
     .select('id, email, fcm_token, username, last_seen_at, created_at')
@@ -48,8 +46,6 @@ export async function calculateRecipients(
     return []
   }
 
-  console.log('[Targeting] Initial profiles count:', profiles.length)
-
   // Filtres nécessitant des requêtes supplémentaires
   let filteredProfiles = profiles
 
@@ -86,9 +82,6 @@ export async function calculateRecipients(
 
     const activeTournamentIds = activeTournaments?.map(t => t.id) || []
 
-    console.log('[Targeting] Active/Pending tournaments:', activeTournamentIds.length)
-    console.log('[Targeting] Active tournament IDs:', activeTournamentIds)
-
     // Si aucun tournoi actif, on a directement la réponse
     let usersWithActiveTournament = new Set<string>()
 
@@ -100,29 +93,23 @@ export async function calculateRecipients(
         .in('user_id', userIds)
         .in('tournament_id', activeTournamentIds)
 
-      console.log('[Targeting] Participants found:', participants?.length || 0)
-
       usersWithActiveTournament = new Set(
         participants?.map(p => p.user_id) || []
       )
     } else {
-      console.log('[Targeting] No active tournaments, all users have no active tournament')
+      // No active tournaments, all users have no active tournament
     }
-
-    console.log('[Targeting] Users with active tournament:', usersWithActiveTournament.size)
 
     if (filters.hasActiveTournament && !filters.hasNoActiveTournament) {
       // Seulement ceux avec tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         usersWithActiveTournament.has(p.id)
       )
-      console.log('[Targeting] After hasActiveTournament filter:', filteredProfiles.length)
     } else if (filters.hasNoActiveTournament && !filters.hasActiveTournament) {
       // Seulement ceux sans tournoi actif
       filteredProfiles = filteredProfiles.filter(p =>
         !usersWithActiveTournament.has(p.id)
       )
-      console.log('[Targeting] After hasNoActiveTournament filter:', filteredProfiles.length)
     }
     // Si les deux sont cochés, on ne filtre pas (tous les users)
   }
@@ -195,8 +182,6 @@ export async function calculateRecipients(
       usersWithTrophies.has(p.id)
     )
   }
-
-  console.log('[Targeting] Final filtered profiles count:', filteredProfiles.length)
 
   return filteredProfiles
 }

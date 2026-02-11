@@ -16,7 +16,6 @@ export const getStripe = () => {
       console.warn('[Stripe Client] No publishable key configured')
       return Promise.resolve(null)
     }
-    console.log(`[Stripe Client] Initializing in ${isStripeTestMode() ? 'TEST' : 'LIVE'} mode`)
     stripePromise = loadStripe(key)
   }
   return stripePromise

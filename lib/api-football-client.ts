@@ -102,8 +102,6 @@ export class ApiFootballClient {
     })
 
     try {
-      console.log(`🔄 API Request: ${endpoint}`, params)
-
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -166,8 +164,6 @@ export class ApiFootballClient {
         response.status,
         responseTime
       )
-
-      console.log(`✅ API Success: ${data.results} résultats (${responseTime}ms)`)
 
       return data.response
     } catch (error) {

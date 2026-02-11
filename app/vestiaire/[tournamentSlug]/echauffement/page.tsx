@@ -281,7 +281,6 @@ function EchauffementPageContent() {
           filter: `id=eq.${tournament.id}`
         },
         (payload) => {
-          console.log('[Echauffement] Tournament status changed:', payload)
           // Si le tournoi est passé en "active", rediriger vers la page opposition
           if (payload.new.status === 'active') {
             window.location.href = `/${tournamentSlug}/opposition`
@@ -1025,7 +1024,7 @@ function EchauffementPageContent() {
           url: getInviteUrl()
         })
       } catch (err) {
-        console.log('Share cancelled or failed:', err)
+        // Share cancelled or failed - silenced
       }
     }
   }

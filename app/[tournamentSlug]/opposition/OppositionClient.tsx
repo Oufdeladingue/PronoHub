@@ -353,18 +353,13 @@ export default function OppositionClient({
       // Si le verrouillage est dans le futur (entre maintenant et 24h)
       // On ne programme que pour les prochaines 24h pour éviter trop de timeouts
       if (timeUntilLock > 0 && timeUntilLock < 24 * 60 * 60 * 1000) {
-        console.log(`[AUTO-REFRESH] Match ${match.home_team_name} vs ${match.away_team_name} se verrouille dans ${Math.round(timeUntilLock / 1000 / 60)} minutes`)
-
         const timeout = setTimeout(() => {
-          console.log(`[AUTO-REFRESH] Rafraîchissement automatique - Match verrouillé`)
           window.location.reload()
         }, timeUntilLock)
 
         timeouts.push(timeout)
       }
     })
-
-    console.log(`[AUTO-REFRESH] ${timeouts.length} rafraîchissement(s) programmé(s) pour les prochaines 24h`)
 
     // Cleanup: annuler tous les timeouts quand le composant se démonte
     return () => {
@@ -465,8 +460,6 @@ export default function OppositionClient({
     document.addEventListener('touchmove', handleTouchMove, { passive: false })
     document.addEventListener('touchend', handleTouchEnd, { passive: true })
 
-    console.log('[PULL-TO-REFRESH] Pull-to-refresh activé (hint: ' + HINT_THRESHOLD + 'px, ready: ' + READY_THRESHOLD + 'px)')
-
     // Cleanup
     return () => {
       document.removeEventListener('touchstart', handleTouchStart)
@@ -537,7 +530,6 @@ export default function OppositionClient({
       const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/unread-messages`)
       if (!response.ok) {
         // Si la table n'existe pas encore, on ignore silencieusement
-        console.log('Message read status table not yet created')
         return
       }
 
@@ -545,7 +537,6 @@ export default function OppositionClient({
       setUnreadMessagesCount(data.unreadCount || 0)
     } catch (err) {
       // Erreur silencieuse en attendant la migration
-      console.log('Unread messages feature not yet activated')
     }
   }
 
@@ -556,7 +547,6 @@ export default function OppositionClient({
     try {
       const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/teams`)
       if (!response.ok) {
-        console.log('Error fetching teams')
         return
       }
 
@@ -565,7 +555,7 @@ export default function OppositionClient({
         setTeams(data.teams || [])
       }
     } catch (err) {
-      console.log('Error fetching teams:', err)
+      // Error fetching teams - silenced
     } finally {
       setLoadingTeams(false)
     }
@@ -634,7 +624,6 @@ export default function OppositionClient({
       })
       if (!response.ok) {
         // Si la table n'existe pas encore, on ignore silencieusement
-        console.log('Message read status table not yet created')
         return
       }
 
@@ -642,7 +631,6 @@ export default function OppositionClient({
       setUnreadMessagesCount(0)
     } catch (err) {
       // Erreur silencieuse en attendant la migration
-      console.log('Unread messages feature not yet activated')
     }
   }
 
@@ -731,13 +719,10 @@ export default function OppositionClient({
 
   const fetchBonusMatches = async () => {
     try {
-      console.log('[BONUS] fetchBonusMatches called, tournament:', tournament?.id || 'undefined')
       if (!tournament) {
-        console.warn('[BONUS] Tournament not loaded yet, skipping')
         return
       }
 
-      console.log('[BONUS] Chargement des matchs bonus pour le tournoi:', tournament.id)
       const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/bonus-matches`)
 
       if (!response.ok) {
@@ -746,12 +731,9 @@ export default function OppositionClient({
       }
 
       const data = await response.json()
-      console.log('[BONUS] Données reçues:', data)
 
       if (data.bonusMatches) {
         const bonusIds = new Set<string>(data.bonusMatches.map((bm: any) => bm.match_id))
-        console.log('[BONUS] Matchs bonus chargés:', bonusIds.size, 'matchs')
-        console.log('[BONUS] IDs:', Array.from(bonusIds))
         setBonusMatchIds(bonusIds)
       } else {
         console.warn('[BONUS] Aucun bonusMatches dans la réponse')

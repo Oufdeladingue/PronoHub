@@ -86,8 +86,6 @@ export async function sendNotificationToUser(
     tournamentSlug?: string
   }
 ): Promise<boolean> {
-  console.log('[NOTIFICATION DEBUG] sendNotificationToUser called:', { userId, type, options })
-
   const supabase = await createClient()
 
   // Récupérer le profil avec token, préférences ET email
@@ -97,28 +95,12 @@ export async function sendNotificationToUser(
     .eq('id', userId)
     .single()
 
-  console.log('[NOTIFICATION DEBUG] Profile fetched:', {
-    userId,
-    hasFcmToken: !!profile?.fcm_token,
-    hasEmail: !!profile?.email,
-    username: profile?.username,
-    notificationPreferences: profile?.notification_preferences
-  })
-
   // Vérifier les préférences
   const config = NOTIFICATION_CONFIG[type]
   const prefs = profile?.notification_preferences || {}
 
-  console.log('[NOTIFICATION DEBUG] Checking preference:', {
-    type,
-    prefKey: config.prefKey,
-    prefValue: prefs[config.prefKey],
-    isDisabled: prefs[config.prefKey] === false
-  })
-
   // Si la préférence est explicitement désactivée, ne pas envoyer
   if (prefs[config.prefKey] === false) {
-    console.log(`[Notifications] Notification ${type} désactivée pour user ${userId}`)
     return false
   }
 
@@ -143,27 +125,15 @@ export async function sendNotificationToUser(
 
   // 1. Envoyer la notification push si token FCM disponible
   if (profile?.fcm_token) {
-    console.log('[NOTIFICATION DEBUG] Calling sendPushNotification:', {
-      fcmToken: profile.fcm_token.substring(0, 20) + '...',
-      title,
-      body,
-      data
-    })
-
     try {
       pushResult = await sendPushNotification(profile.fcm_token, title, body, data)
-      console.log('[NOTIFICATION DEBUG] sendPushNotification result:', pushResult)
     } catch (error) {
       console.error('[NOTIFICATION DEBUG] Push notification failed:', error)
     }
-  } else {
-    console.log('[Notifications] Pas de token FCM pour user ${userId}, pas de push envoyé')
   }
 
   // 2. Envoyer un email si c'est une mention et que l'email est disponible
   if (type === 'mention' && profile?.email) {
-    console.log('[NOTIFICATION DEBUG] Sending mention email to:', profile.email)
-
     try {
       const emailProps = {
         username: profile.username || 'champion',
@@ -176,7 +146,6 @@ export async function sendNotificationToUser(
 
       const emailSendResult = await sendMentionEmail(profile.email, emailProps)
       emailResult = emailSendResult.success
-      console.log('[NOTIFICATION DEBUG] Email send result:', emailSendResult)
     } catch (error) {
       console.error('[NOTIFICATION DEBUG] Email send failed:', error)
     }

@@ -255,9 +255,6 @@ export async function POST(
     const mentionRegex = /@([\w']+)/g
     const mentions = [...message.matchAll(mentionRegex)].map(match => match[1])
 
-    console.log('[MENTION DEBUG] Message content:', message)
-    console.log('[MENTION DEBUG] Mentions detected:', mentions)
-
     if (mentions.length > 0) {
       // Récupérer le nom du tournoi, compétition et l'auteur du message
       const { data: tournament } = await supabase
@@ -278,10 +275,6 @@ export async function POST(
         || (tournament?.custom_competitions as any)?.name
         || undefined
 
-      console.log('[MENTION DEBUG] Tournament:', tournament)
-      console.log('[MENTION DEBUG] Sender username:', senderUsername)
-      console.log('[MENTION DEBUG] Competition name:', competitionName)
-
       // Récupérer les participants du tournoi avec leurs usernames
       const { data: participants } = await supabase
         .from('tournament_participants')
@@ -293,24 +286,15 @@ export async function POST(
         `)
         .eq('tournament_id', tournamentId)
 
-      console.log('[MENTION DEBUG] Participants fetched:', participants?.length || 0)
-      console.log('[MENTION DEBUG] Participants usernames:', participants?.map(p => (p.profiles as any)?.username))
-
       // Pour chaque mention, envoyer une notification
       for (const mentionedUsername of mentions) {
-        console.log('[MENTION DEBUG] Processing mention for:', mentionedUsername)
-
         // Trouver l'utilisateur mentionné parmi les participants
         const mentionedUser = participants?.find(
           p => (p.profiles as any)?.username?.toLowerCase() === mentionedUsername.toLowerCase()
         )
 
-        console.log('[MENTION DEBUG] Mentioned user found:', mentionedUser)
-        console.log('[MENTION DEBUG] Is self-mention?', mentionedUser?.user_id === user.id)
-
         if (mentionedUser && mentionedUser.user_id !== user.id) {
           // Ne pas notifier l'auteur du message
-          console.log('[MENTION DEBUG] Sending notification to user_id:', mentionedUser.user_id)
           try {
             const result = await sendNotificationToUser(
               mentionedUser.user_id,
@@ -326,13 +310,10 @@ export async function POST(
                 }
               }
             )
-            console.log('[MENTION DEBUG] Notification sent successfully:', result)
           } catch (notifError) {
-            console.error(`[MENTION DEBUG] Erreur envoi notification mention pour ${mentionedUsername}:`, notifError)
+            console.error(`Erreur envoi notification mention pour ${mentionedUsername}:`, notifError)
             // Ne pas bloquer l'envoi du message si la notification échoue
           }
-        } else {
-          console.log('[MENTION DEBUG] Skipped notification for:', mentionedUsername, '(user not found or self-mention)')
         }
       }
     }

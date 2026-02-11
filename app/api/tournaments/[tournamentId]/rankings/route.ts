@@ -92,10 +92,6 @@ export async function GET(
 
     // Déterminer si c'est un tournoi custom ou standard
     const isCustomCompetition = !!tournament.custom_competition_id
-    console.log('[Rankings API] Tournament type:', isCustomCompetition ? 'CUSTOM' : 'STANDARD')
-    console.log('[Rankings API] custom_competition_id:', tournament.custom_competition_id)
-    console.log('[Rankings API] matchdaysToCalculate:', matchdaysToCalculate)
-
     if (isCustomCompetition) {
       // 4a. TOURNOI CUSTOM - Récupérer les matchs via custom_competition_matches
       // D'abord récupérer les matchdays correspondants
@@ -105,20 +101,16 @@ export async function GET(
         .eq('custom_competition_id', tournament.custom_competition_id)
         .in('matchday_number', matchdaysToCalculate)
 
-      console.log('[Rankings API] matchdaysData:', matchdaysData)
       if (matchdaysData && matchdaysData.length > 0) {
         const matchdayIds = matchdaysData.map(md => md.id)
         const matchdayNumberMap: Record<string, number> = {}
         matchdaysData.forEach(md => { matchdayNumberMap[md.id] = md.matchday_number })
-        console.log('[Rankings API] matchdayIds:', matchdayIds)
-
         // Récupérer les matchs custom
         const { data: customMatches, error: customMatchesError } = await supabase
           .from('custom_competition_matches')
           .select('id, custom_matchday_id, football_data_match_id, cached_utc_date')
           .in('custom_matchday_id', matchdayIds)
 
-        console.log('[Rankings API] customMatches:', customMatches?.length, 'error:', customMatchesError)
         if (customMatchesError) {
           matchesError = customMatchesError
         } else if (customMatches) {

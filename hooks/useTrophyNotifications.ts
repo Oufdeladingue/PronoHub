@@ -48,11 +48,8 @@ export function useTrophyNotifications() {
     const lastCheck = localStorage.getItem('trophy_last_check')
     const today = new Date().toDateString()
 
-    console.log('[TrophyNotifications] lastCheck:', lastCheck, 'today:', today)
-
     if (lastCheck === today) {
       // Déjà vérifié aujourd'hui, pas besoin de recalculer
-      console.log('[TrophyNotifications] Déjà vérifié aujourd\'hui, skip')
       return
     }
 
@@ -60,24 +57,18 @@ export function useTrophyNotifications() {
 
     try {
       // 1. Charger d'abord les trophées stockés (rapide)
-      console.log('[TrophyNotifications] Appel API /api/user/trophies...')
       const response = await fetchWithAuth('/api/user/trophies')
       const data = await response.json()
 
-      console.log('[TrophyNotifications] Réponse API:', data)
-
       if (!data.success) {
-        console.log('[TrophyNotifications] API non success, arrêt')
         setIsChecking(false)
         return
       }
 
       // Vérifier d'abord s'il y a des trophées is_new dans les trophées stockés
       const existingNewTrophies = data.trophies?.filter((t: Trophy) => t.is_new) || []
-      console.log('[TrophyNotifications] Trophées is_new trouvés:', existingNewTrophies)
 
       if (existingNewTrophies.length > 0) {
-        console.log('[TrophyNotifications] Chargement des détails pour', existingNewTrophies.length, 'trophées')
         // Charger les infos complètes pour les trophées existants marqués comme nouveaux
         const trophiesWithDetails = await Promise.all(
           existingNewTrophies.map(async (trophy: Trophy) => {
@@ -105,11 +96,9 @@ export function useTrophyNotifications() {
           })
         )
 
-        console.log('[TrophyNotifications] Trophées avec détails:', trophiesWithDetails)
         setNewTrophies(trophiesWithDetails)
         localStorage.setItem('trophy_last_check', today)
         setIsChecking(false)
-        console.log('[TrophyNotifications] ✅ Trophées définis, modale devrait s\'afficher')
         return
       }
 

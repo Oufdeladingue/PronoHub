@@ -229,8 +229,6 @@ export async function GET(request: Request) {
         })
       }
 
-      console.log(`[STATS] Nombre de journées trouvées: ${Object.keys(journeyData).length}`)
-
       // Pour chaque journée, calculer le classement en temps réel
       Object.entries(journeyData).forEach(([key, journey]) => {
         const userPoints: Record<string, number> = {}
@@ -267,16 +265,11 @@ export async function GET(request: Request) {
         const maxPoints = Math.max(...pointsArray)
         const currentUserPoints = userPoints[user.id] || 0
 
-        console.log(`[STATS] Journée ${key}: maxPoints=${maxPoints}, userPoints=${currentUserPoints}`)
-
         if (currentUserPoints === maxPoints && maxPoints > 0) {
           firstPlacesProvisional++
-          console.log(`[STATS] Première place provisoire trouvée pour journée ${key}`)
         }
       })
     }
-
-    console.log(`[STATS] Total premières places provisoires: ${firstPlacesProvisional}`)
 
     return NextResponse.json({
       success: true,

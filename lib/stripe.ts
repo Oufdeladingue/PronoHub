@@ -11,8 +11,6 @@ export const isStripeTestMode = () => {
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.warn('[Stripe Server] STRIPE_SECRET_KEY is not defined - Stripe payments will not work')
-} else {
-  console.log(`[Stripe Server] Configured in ${isStripeTestMode() ? 'TEST' : 'LIVE'} mode`)
 }
 
 // Créer l'instance Stripe seulement si la clé est disponible

@@ -292,7 +292,6 @@ export async function setupAppStateListener(onResume: () => void): Promise<void>
   try {
     await appPlugin.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('[Capacitor] App revenue au premier plan, restauration session...')
         onResume()
       }
     })
@@ -362,8 +361,6 @@ export async function saveImageToDevice(blob: Blob, filename: string): Promise<b
       recursive: true
     })
 
-    console.log('[Capacitor] Image sauvegardée:', result.uri)
-
     // Utiliser Share pour permettre à l'utilisateur de sauvegarder/partager
     if (share) {
       try {
@@ -371,9 +368,8 @@ export async function saveImageToDevice(blob: Blob, filename: string): Promise<b
           title: 'Trophée PronoHub',
           files: [result.uri]
         })
-      } catch (e) {
+      } catch {
         // L'utilisateur a peut-être annulé le partage, c'est OK
-        console.log('[Capacitor] Share annulé ou erreur:', e)
       }
     }
 

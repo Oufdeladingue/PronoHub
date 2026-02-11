@@ -68,15 +68,6 @@ export async function POST(request: NextRequest) {
     const hasEmail = shouldSendEmail && communication.email_subject && communication.email_body_html
     const hasPush = shouldSendPush && communication.notification_title && communication.notification_body
 
-    console.log('[Send Communication] Channels:', {
-      fromRequest: { sendEmail, sendPush },
-      fromDatabase: { send_email: communication.send_email, send_push: communication.send_push },
-      shouldSendEmail,
-      shouldSendPush,
-      hasEmail,
-      hasPush
-    })
-
     if (!hasEmail && !hasPush) {
       return NextResponse.json({ success: false, error: 'Aucun contenu à envoyer ou aucun canal activé' }, { status: 400 })
     }
