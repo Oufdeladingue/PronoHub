@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
               const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
               let personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
               personalizedBody = personalizedBody
+                .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
                 .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
                 .replace(/\[CTA_URL\]/gi, communication.email_cta_url || 'https://www.pronohub.club/dashboard')
               const personalizedPreview = communication.email_preview_text

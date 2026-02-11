@@ -64,7 +64,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
               <div style="width: 90px; height: 90px; margin: 0 auto 20px; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
                 <img src="https://www.pronohub.club/images/logo.svg" alt="PronoHub" style="width: 70px; height: 70px; display: block; margin: auto;">
               </div>
-              <h1 style="margin: 0 0 8px; color: #000; font-size: 24px; font-weight: 700;">Nouvelle annonce</h1>
+              <h1 style="margin: 0 0 8px; color: #000; font-size: 24px; font-weight: 700;">[HEADER_TITLE]</h1>
             </td>
           </tr>
 
@@ -139,7 +139,8 @@ export function buildEmailHtml(
   templateId: string | null,
   contentHtml: string,
   ctaText?: string,
-  ctaUrl?: string
+  ctaUrl?: string,
+  headerTitle?: string
 ): string {
   const template = EMAIL_TEMPLATES.find(t => t.id === templateId)
 
@@ -151,6 +152,9 @@ export function buildEmailHtml(
   let html = template.html
     .replace('[CONTENT]', contentHtml)
 
+  if (headerTitle) {
+    html = html.replace(/\[HEADER_TITLE\]/gi, headerTitle)
+  }
   if (ctaText) {
     html = html.replace(/\[CTA_TEXT\]/gi, ctaText)
   }

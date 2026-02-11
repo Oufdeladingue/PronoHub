@@ -165,7 +165,8 @@ export default function NewCommunicationPage() {
       formData.email_template_id || null,
       formData.email_content_html,
       formData.email_cta_text,
-      formData.email_cta_url
+      formData.email_cta_url,
+      formData.email_subject
     )
   }
 

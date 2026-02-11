@@ -172,7 +172,8 @@ export default function EditCommunicationPage() {
       communication.email_template_id || null,
       communication.email_content_html || '',
       communication.email_cta_text || undefined,
-      communication.email_cta_url || undefined
+      communication.email_cta_url || undefined,
+      communication.email_subject || undefined
     )
   }
 

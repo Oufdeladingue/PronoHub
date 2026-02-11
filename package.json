@@ -39,6 +39,7 @@
     "@supabase/supabase-js": "^2.78.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@tiptap/extension-color": "^3.19.0",
+    "@tiptap/extension-image": "^3.19.0",
     "@tiptap/extension-link": "^3.19.0",
     "@tiptap/extension-text-style": "^3.19.0",
     "@tiptap/pm": "^3.19.0",
