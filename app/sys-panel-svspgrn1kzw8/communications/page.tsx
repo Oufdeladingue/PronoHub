@@ -72,6 +72,66 @@ export default function CommunicationsPage() {
     loadData()
   }, [router])
 
+  const handleDuplicate = async (commId: string) => {
+    try {
+      const supabase = createClient()
+
+      // Récupérer la communication à dupliquer
+      const { data: original, error: fetchError } = await supabase
+        .from('admin_communications')
+        .select('*')
+        .eq('id', commId)
+        .single()
+
+      if (fetchError || !original) {
+        console.error('Error fetching communication:', fetchError)
+        alert('Erreur lors de la récupération de la communication')
+        return
+      }
+
+      // Créer la copie avec " (copie)" ajouté au titre
+      const { data: duplicate, error: insertError } = await supabase
+        .from('admin_communications')
+        .insert({
+          title: `${original.title} (copie)`,
+          email_subject: original.email_subject,
+          email_content: original.email_content,
+          push_title: original.push_title,
+          push_body: original.push_body,
+          push_data: original.push_data,
+          targeting_filters: original.targeting_filters,
+          send_email: original.send_email,
+          send_push: original.send_push,
+          status: 'draft',
+          scheduled_at: null,
+          sent_at: null,
+          stats_total_recipients: 0,
+          stats_emails_sent: 0,
+          stats_push_sent: 0,
+          stats_emails_delivered: 0,
+          stats_emails_opened: 0,
+          stats_emails_clicked: 0,
+          stats_emails_bounced: 0,
+          stats_push_delivered: 0,
+          stats_push_opened: 0
+        })
+        .select()
+        .single()
+
+      if (insertError || !duplicate) {
+        console.error('Error duplicating communication:', insertError)
+        alert(`Erreur lors de la duplication: ${insertError.message}`)
+        return
+      }
+
+      // Rediriger vers l'édition de la nouvelle communication
+      router.push(`${getAdminUrl()}/communications/${duplicate.id}`)
+    } catch (err: any) {
+      console.error('Unexpected error:', err)
+      alert(`Erreur inattendue: ${err.message}`)
+    }
+  }
+
   const handleDelete = async (commId: string, commTitle: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer la communication "${commTitle}" ?\n\nCette action est irréversible.`)) {
       return
@@ -259,7 +319,7 @@ export default function CommunicationsPage() {
                           href={`${getAdminUrl()}/communications/${comm.id}`}
                           className="text-purple-600 hover:text-purple-900"
                         >
-                          {comm.status === 'draft' ? 'Éditer' : 'Voir'}
+                          Modifier
                         </Link>
                         {comm.status === 'sent' && (
                           <Link
@@ -269,6 +329,12 @@ export default function CommunicationsPage() {
                             Statistiques
                           </Link>
                         )}
+                        <button
+                          onClick={() => handleDuplicate(comm.id)}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          Dupliquer
+                        </button>
                         <button
                           onClick={() => handleDelete(comm.id, comm.title)}
                           disabled={deleting === comm.id}

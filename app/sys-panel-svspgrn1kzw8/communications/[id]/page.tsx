@@ -236,7 +236,8 @@ export default function EditCommunicationPage() {
 
   if (!communication) return null
 
-  const canEdit = communication.status === 'draft'
+  // Allow editing all communications (including sent ones) to resend with different filters
+  const canEdit = true
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -253,10 +254,10 @@ export default function EditCommunicationPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {canEdit ? 'Éditer' : 'Voir'} la communication
+                Modifier la communication
               </h1>
               <p className="text-gray-600 mt-2">
-                {communication.status === 'sent' ? 'Communication envoyée' : 'Brouillon'}
+                {communication.status === 'sent' ? 'Communication déjà envoyée - Vous pouvez la modifier et la renvoyer' : 'Brouillon'}
               </p>
             </div>
             <div className="flex gap-3">
@@ -266,36 +267,32 @@ export default function EditCommunicationPage() {
               >
                 Retour
               </button>
-              {canEdit && (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
-                  >
-                    {saving ? 'Enregistrement...' : 'Enregistrer'}
-                  </button>
-                  <button
-                    onClick={handleSendNow}
-                    disabled={sending}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {sending ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Envoi en cours...
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                        </svg>
-                        Envoyer maintenant
-                      </>
-                    )}
-                  </button>
-                </>
-              )}
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+              <button
+                onClick={handleSendNow}
+                disabled={sending}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {sending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Envoi en cours...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
+                    {communication.status === 'sent' ? 'Renvoyer' : 'Envoyer maintenant'}
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -323,14 +320,13 @@ export default function EditCommunicationPage() {
           </div>
 
           {/* Ciblage - Pleine largeur */}
-          {canEdit && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
-              <TargetingSelector
-                value={communication.targeting_filters || {}}
-                onChange={handleTargetingChange}
-              />
+            <TargetingSelector
+              value={communication.targeting_filters || {}}
+              onChange={handleTargetingChange}
+            />
 
               {/* Compteur de destinataires */}
               <div className="mt-4">
@@ -388,7 +384,6 @@ export default function EditCommunicationPage() {
                 ) : null}
               </div>
             </div>
-          )}
 
           {/* Email + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
