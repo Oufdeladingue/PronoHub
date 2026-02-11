@@ -120,7 +120,7 @@ export default function CommunicationsPage() {
 
       if (insertError || !duplicate) {
         console.error('Error duplicating communication:', insertError)
-        alert(`Erreur lors de la duplication: ${insertError.message}`)
+        alert(`Erreur lors de la duplication: ${insertError?.message || 'Erreur inconnue'}`)
         return
       }
 
