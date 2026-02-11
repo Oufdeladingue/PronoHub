@@ -248,25 +248,25 @@ export default function NewCommunicationPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header avec actions */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Nouvelle communication</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Nouvelle communication</h1>
             <p className="text-sm text-gray-600 mt-1">
               Créez et envoyez des emails et notifications push aux utilisateurs
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => router.back()}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm sm:text-base"
             >
               Annuler
             </button>
             <button
               onClick={handleSaveDraft}
               disabled={saving}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 sm:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               {saving ? 'Enregistrement...' : 'Enregistrer le brouillon'}
             </button>
@@ -275,8 +275,8 @@ export default function NewCommunicationPage() {
 
         <div className="space-y-6">
           {/* Informations générales - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
 
             <div className="space-y-4">
               <div>
@@ -325,8 +325,8 @@ export default function NewCommunicationPage() {
           </div>
 
           {/* Ciblage - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
             <TargetingSelector
               value={formData.targeting_filters}
@@ -397,8 +397,8 @@ export default function NewCommunicationPage() {
             {/* Colonne gauche: Contenu Email */}
             <div className="space-y-6">
               {/* Template Email */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Template Email</h2>
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Template Email</h2>
 
                 <div className="space-y-4">
                   <div>
@@ -425,8 +425,8 @@ export default function NewCommunicationPage() {
               </div>
 
               {/* Contenu Email */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
 
                 <div className="space-y-4">
                 <div>
@@ -475,7 +475,7 @@ export default function NewCommunicationPage() {
                 {/* Champs CTA */}
                 <div className="border-t border-gray-200 pt-4 mt-4">
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">Bouton d'action (CTA)</h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Texte du bouton
@@ -508,8 +508,8 @@ export default function NewCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {formData.email_subject ? (
@@ -549,8 +549,8 @@ export default function NewCommunicationPage() {
           {/* Contenu Notification + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Notification Push */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
 
               <div className="space-y-4">
                 <div>
@@ -629,8 +629,8 @@ export default function NewCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Notification */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Notification</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {formData.notification_title ? (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
@@ -31,12 +31,19 @@ interface Communication {
   updated_at: string
   scheduled_at: string | null
   sent_at: string | null
+  stats_total_recipients: number
+  stats_emails_sent: number
+  stats_emails_failed: number
+  stats_push_sent: number
+  stats_push_failed: number
 }
 
 export default function EditCommunicationPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const communicationId = params.id as string
+  const showStats = searchParams.get('tab') === 'stats'
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -294,46 +301,47 @@ export default function EditCommunicationPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
                 Modifier la communication
               </h1>
-              <p className="text-gray-600 mt-2">
-                {communication.status === 'sent' ? 'Communication déjà envoyée - Vous pouvez la modifier et la renvoyer' : 'Brouillon'}
+              <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
+                {communication.status === 'sent' ? 'Communication envoyée - Modifiable et renvoyable' : 'Brouillon'}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
               <button
                 onClick={() => router.push(`${getAdminUrl()}/communications`)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm sm:text-base"
               >
                 Retour
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 text-sm sm:text-base"
               >
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
               <button
                 onClick={handleOpenSendModal}
                 disabled={sending}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2 text-sm sm:text-base"
               >
                 {sending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Envoi en cours...
+                    Envoi...
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                     </svg>
-                    {communication.status === 'sent' ? 'Renvoyer' : 'Envoyer maintenant'}
+                    <span className="hidden sm:inline">{communication.status === 'sent' ? 'Renvoyer' : 'Envoyer maintenant'}</span>
+                    <span className="sm:hidden">{communication.status === 'sent' ? 'Renvoyer' : 'Envoyer'}</span>
                   </>
                 )}
               </button>
@@ -342,8 +350,41 @@ export default function EditCommunicationPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Statistiques d'envoi (visible quand communication envoyée) */}
+          {communication.status === 'sent' && (showStats || communication.stats_total_recipients > 0) && (
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Statistiques d'envoi</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-blue-50 rounded-lg p-3 sm:p-4 text-center">
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-700">{communication.stats_total_recipients}</p>
+                  <p className="text-xs sm:text-sm text-blue-600 mt-1">Destinataires</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3 sm:p-4 text-center">
+                  <p className="text-2xl sm:text-3xl font-bold text-green-700">{communication.stats_emails_sent}</p>
+                  <p className="text-xs sm:text-sm text-green-600 mt-1">Emails envoyés</p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-3 sm:p-4 text-center">
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-700">{communication.stats_push_sent}</p>
+                  <p className="text-xs sm:text-sm text-purple-600 mt-1">Push envoyés</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-3 sm:p-4 text-center">
+                  <p className="text-2xl sm:text-3xl font-bold text-red-700">{communication.stats_emails_failed + communication.stats_push_failed}</p>
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">Échecs</p>
+                </div>
+              </div>
+              {communication.sent_at && (
+                <p className="text-xs text-gray-500 mt-3">
+                  Envoyé le {new Date(communication.sent_at).toLocaleDateString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Informations générales - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
 
             <div className="space-y-4">
@@ -364,8 +405,8 @@ export default function EditCommunicationPage() {
           </div>
 
           {/* Ciblage - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
             <TargetingSelector
               value={communication.targeting_filters || {}}
@@ -432,8 +473,8 @@ export default function EditCommunicationPage() {
           {/* Email + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
 
               <div className="space-y-4">
                 <div>
@@ -515,8 +556,8 @@ export default function EditCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {communication.email_subject ? (
@@ -556,8 +597,8 @@ export default function EditCommunicationPage() {
           {/* Notification + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Notification Push */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
 
               <div className="space-y-4">
                 <div>
@@ -626,8 +667,8 @@ export default function EditCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Notification */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6 h-fit">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
+            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {communication.notification_title ? (
