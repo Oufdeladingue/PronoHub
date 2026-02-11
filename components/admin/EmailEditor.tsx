@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Color from '@tiptap/extension-color'
@@ -19,11 +19,38 @@ const VARIABLES = [
   { label: '[email]', value: '[email]', description: 'Email' },
 ]
 
+const EMOJI_CATEGORIES = [
+  {
+    label: 'Courants',
+    emojis: ['😀', '😂', '😍', '🥳', '😎', '🤩', '😏', '🤔', '😢', '😡', '🙏', '👋'],
+  },
+  {
+    label: 'Sport',
+    emojis: ['⚽', '🏆', '🥇', '🥈', '🥉', '🏅', '🎯', '🔥', '💪', '👏', '⭐', '🌟'],
+  },
+  {
+    label: 'Objets',
+    emojis: ['📣', '📢', '🔔', '💡', '🎉', '🎊', '✅', '❌', '⚠️', '💬', '📧', '🚀'],
+  },
+  {
+    label: 'Fleches',
+    emojis: ['➡️', '⬅️', '⬆️', '⬇️', '👉', '👈', '👆', '👇', '↗️', '↘️', '🔄', '🔁'],
+  },
+]
+
 export default function EmailEditor({ value, onChange }: EmailEditorProps) {
   const [showSource, setShowSource] = useState(false)
   const [sourceValue, setSourceValue] = useState(value)
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showVariables, setShowVariables] = useState(false)
+  const [showEmojis, setShowEmojis] = useState(false)
+  const customColorRef = useRef<HTMLInputElement>(null)
+
+  const closeAllDropdowns = useCallback(() => {
+    setShowColorPicker(false)
+    setShowVariables(false)
+    setShowEmojis(false)
+  }, [])
 
   const editor = useEditor({
     extensions: [
@@ -111,6 +138,58 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
     if (!editor) return
     editor.chain().focus().insertContent(variable).run()
     setShowVariables(false)
+  }, [editor])
+
+  const insertEmoji = useCallback((emoji: string) => {
+    if (!editor) return
+    editor.chain().focus().insertContent(emoji).run()
+  }, [editor])
+
+  const indent = useCallback(() => {
+    if (!editor) return
+    // Wrap selection or current block in a div with padding-left
+    const { from, to } = editor.state.selection
+    const node = editor.state.doc.nodeAt(from)
+    // Insert content wrapped with margin
+    editor.chain().focus().command(({ tr, state }) => {
+      const { $from } = state.selection
+      const parent = $from.parent
+      // Get current indent level from existing style
+      const currentAttrs = parent.attrs
+      const currentStyle = (currentAttrs as any).style || ''
+      const match = currentStyle.match(/margin-left:\s*(\d+)px/)
+      const currentIndent = match ? parseInt(match[1]) : 0
+      const newIndent = Math.min(currentIndent + 32, 160)
+      // We'll use the HTML approach - wrap in a blockquote-like structure
+      return false
+    }).run()
+    // Simpler approach: use the native indent via wrapping in a div
+    // For email compatibility, insert non-breaking spaces at the beginning
+    const { $from } = editor.state.selection
+    const startOfLine = $from.start()
+    editor.chain().focus().insertContentAt(startOfLine, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;').run()
+  }, [editor])
+
+  const outdent = useCallback(() => {
+    if (!editor) return
+    // Remove leading non-breaking spaces from current line
+    const { $from } = editor.state.selection
+    const parent = $from.parent
+    const text = parent.textContent
+    if (text.startsWith('\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0')) {
+      const startOfLine = $from.start()
+      // Delete the 6 nbsp characters
+      editor.chain().focus().command(({ tr }) => {
+        tr.delete(startOfLine, startOfLine + 6)
+        return true
+      }).run()
+    }
+  }, [editor])
+
+  const applyCustomColor = useCallback((color: string) => {
+    if (!editor || !color) return
+    editor.chain().focus().setColor(color).run()
+    setShowColorPicker(false)
   }, [editor])
 
   if (!editor) return null
@@ -216,6 +295,28 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
               </svg>
             </button>
 
+            {/* Indent / Outdent */}
+            <button
+              type="button"
+              onClick={indent}
+              className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700"
+              title="Retrait (indenter)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5h8M13 9h5M13 13h8M13 17h5M3 5l4 4-4 4" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={outdent}
+              className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700"
+              title="Supprimer le retrait"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5h10M11 9h7M11 13h10M11 17h7M7 5L3 9l4 4" />
+              </svg>
+            </button>
+
             <div className="w-px h-5 bg-gray-300 mx-1" />
 
             {/* Link */}
@@ -237,7 +338,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
               type="button"
               onClick={insertImage}
               className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700"
-              title="Insérer une image"
+              title="Inserer une image"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -246,11 +347,44 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
 
             <div className="w-px h-5 bg-gray-300 mx-1" />
 
+            {/* Emoji picker */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowEmojis(!showEmojis); setShowColorPicker(false); setShowVariables(false) }}
+                className={`px-2 py-1 text-xs rounded ${showEmojis ? 'bg-purple-100' : 'hover:bg-gray-200'} text-gray-700`}
+                title="Inserer un emoji"
+              >
+                <span className="text-base leading-none">😀</span>
+              </button>
+              {showEmojis && (
+                <div className="absolute top-full left-0 mt-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-20 w-[280px]">
+                  {EMOJI_CATEGORIES.map(({ label, emojis }) => (
+                    <div key={label} className="mb-2">
+                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{label}</span>
+                      <div className="grid grid-cols-12 gap-0.5 mt-0.5">
+                        {emojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            onClick={() => insertEmoji(emoji)}
+                            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-base leading-none"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Color picker */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => { setShowColorPicker(!showColorPicker); setShowVariables(false) }}
+                onClick={() => { setShowColorPicker(!showColorPicker); setShowVariables(false); setShowEmojis(false) }}
                 className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700 flex items-center gap-1"
                 title="Couleur du texte"
               >
@@ -262,27 +396,49 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
                 </svg>
               </button>
               {showColorPicker && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10 grid grid-cols-5 gap-1.5 min-w-[140px]">
-                  {EMAIL_COLORS.map(({ color, label }) => (
+                <div className="absolute top-full left-0 mt-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-20 min-w-40">
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {EMAIL_COLORS.map(({ color, label }) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => {
+                          editor.chain().focus().setColor(color).run()
+                          setShowColorPicker(false)
+                        }}
+                        className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color }}
+                        title={label}
+                      />
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
+                    <input
+                      ref={customColorRef}
+                      type="color"
+                      defaultValue="#ff9900"
+                      className="w-6 h-6 rounded border border-gray-300 cursor-pointer p-0"
+                      title="Choisir une couleur personnalisee"
+                    />
                     <button
-                      key={color}
                       type="button"
                       onClick={() => {
-                        editor.chain().focus().setColor(color).run()
-                        setShowColorPicker(false)
+                        if (customColorRef.current) {
+                          applyCustomColor(customColorRef.current.value)
+                        }
                       }}
-                      className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
-                      title={label}
-                    />
-                  ))}
+                      className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      Appliquer
+                    </button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       editor.chain().focus().unsetColor().run()
                       setShowColorPicker(false)
                     }}
-                    className="col-span-5 text-xs text-gray-500 hover:text-gray-700 mt-1"
+                    className="w-full text-xs text-gray-500 hover:text-gray-700 mt-1.5 text-center"
                   >
                     Retirer la couleur
                   </button>
@@ -296,14 +452,14 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => { setShowVariables(!showVariables); setShowColorPicker(false) }}
+                onClick={() => { setShowVariables(!showVariables); setShowColorPicker(false); setShowEmojis(false) }}
                 className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700 font-medium"
-                title="Insérer une variable"
+                title="Inserer une variable"
               >
                 {'{x}'}
               </button>
               {showVariables && (
-                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-10 min-w-[180px]">
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-20 min-w-[180px]">
                   {VARIABLES.map(({ label, value: v, description }) => (
                     <button
                       key={v}
@@ -321,7 +477,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
           </div>
 
           {/* Editor content */}
-          <div onClick={() => { setShowColorPicker(false); setShowVariables(false) }}>
+          <div onClick={closeAllDropdowns}>
             <EditorContent editor={editor} />
           </div>
         </div>

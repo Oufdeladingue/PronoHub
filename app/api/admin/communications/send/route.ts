@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer l'ID de la communication et les canaux sélectionnés
-    const { communicationId, sendEmail, sendPush } = await request.json()
+    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel } = await request.json()
 
     if (!communicationId) {
       return NextResponse.json({ success: false, error: 'ID communication manquant' }, { status: 400 })
@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
 
     // Vérifier qu'il y a au moins un contenu et que le canal est activé
     // Utiliser les canaux passés en paramètre au lieu de ceux en base
-    const shouldSendEmail = sendEmail === true
-    const shouldSendPush = sendPush === true
+    const shouldSendEmail = sendEmailChannel === true
+    const shouldSendPush = sendPushChannel === true
     const hasEmail = shouldSendEmail && communication.email_subject && communication.email_body_html
     const hasPush = shouldSendPush && communication.notification_title && communication.notification_body
 
@@ -85,135 +85,126 @@ export async function POST(request: NextRequest) {
     let pushSent = 0
     let pushFailed = 0
 
-    // Envoyer par batch de 50
-    const BATCH_SIZE = 50
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-      const batch = recipients.slice(i, i + BATCH_SIZE)
+    // Envoyer séquentiellement avec délai pour respecter le rate limit Resend
+    for (let idx = 0; idx < recipients.length; idx++) {
+      const recipient = recipients[idx]
+      const logs: Array<{
+        communication_id: string
+        user_id: string
+        channel: 'email' | 'push'
+        status: 'sent' | 'failed'
+        error_message: string | null
+        sent_at: string
+        resend_message_id: string | null
+      }> = []
 
-      // Envoyer les emails et notifications en parallèle
-      await Promise.all(
-        batch.map(async (recipient) => {
-          const logs: Array<{
-            communication_id: string
-            user_id: string
-            channel: 'email' | 'push'
-            status: 'sent' | 'failed'
-            error_message: string | null
-            sent_at: string
-            resend_message_id: string | null
-          }> = []
+      // Envoyer l'email si configuré
+      if (hasEmail && recipient.email) {
+        try {
+          // Remplacer les variables utilisateur et CTA
+          const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
+          let personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
+          personalizedBody = personalizedBody
+            .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
+            .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
+            .replace(/\[CTA_URL\]/gi, communication.email_cta_url || 'https://www.pronohub.club/dashboard')
+          const personalizedPreview = communication.email_preview_text
+            ? replaceUserVariables(communication.email_preview_text, recipient)
+            : undefined
 
-          // Envoyer l'email si configuré
-          if (hasEmail && recipient.email) {
-            try {
-              // Remplacer les variables utilisateur et CTA
-              const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
-              let personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
-              personalizedBody = personalizedBody
-                .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
-                .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
-                .replace(/\[CTA_URL\]/gi, communication.email_cta_url || 'https://www.pronohub.club/dashboard')
-              const personalizedPreview = communication.email_preview_text
-                ? replaceUserVariables(communication.email_preview_text, recipient)
-                : undefined
+          const result = await sendEmail(
+            recipient.email,
+            personalizedSubject,
+            personalizedBody,
+            personalizedPreview
+          )
 
-              const result = await sendEmail(
-                recipient.email,
-                personalizedSubject,
-                personalizedBody,
-                personalizedPreview
-              )
-
-              if (result.success) {
-                emailsSent++
-                logs.push({
-                  communication_id: communicationId,
-                  user_id: recipient.id,
-                  channel: 'email',
-                  status: 'sent',
-                  error_message: null,
-                  sent_at: new Date().toISOString(),
-                  resend_message_id: result.messageId || null
-                })
-              } else {
-                emailsFailed++
-                logs.push({
-                  communication_id: communicationId,
-                  user_id: recipient.id,
-                  channel: 'email',
-                  status: 'failed',
-                  error_message: result.error || 'Erreur inconnue',
-                  sent_at: new Date().toISOString(),
-                  resend_message_id: null
-                })
-              }
-            } catch (error: any) {
-              emailsFailed++
-              logs.push({
-                communication_id: communicationId,
-                user_id: recipient.id,
-                channel: 'email',
-                status: 'failed',
-                error_message: error.message,
-                sent_at: new Date().toISOString(),
-                resend_message_id: null
-              })
-            }
+          if (result.success) {
+            emailsSent++
+            logs.push({
+              communication_id: communicationId,
+              user_id: recipient.id,
+              channel: 'email',
+              status: 'sent',
+              error_message: null,
+              sent_at: new Date().toISOString(),
+              resend_message_id: result.messageId || null
+            })
+          } else {
+            emailsFailed++
+            logs.push({
+              communication_id: communicationId,
+              user_id: recipient.id,
+              channel: 'email',
+              status: 'failed',
+              error_message: result.error || 'Erreur inconnue',
+              sent_at: new Date().toISOString(),
+              resend_message_id: null
+            })
           }
+        } catch (error: any) {
+          emailsFailed++
+          logs.push({
+            communication_id: communicationId,
+            user_id: recipient.id,
+            channel: 'email',
+            status: 'failed',
+            error_message: error.message,
+            sent_at: new Date().toISOString(),
+            resend_message_id: null
+          })
+        }
 
-          // Envoyer la notification push si configurée et si l'utilisateur a un token FCM
-          if (hasPush && recipient.fcm_token) {
-            try {
-              // Remplacer les variables utilisateur
-              const personalizedTitle = replaceUserVariables(communication.notification_title!, recipient)
-              const personalizedBody = replaceUserVariables(communication.notification_body!, recipient)
+        // Délai entre chaque email pour respecter le rate limit Resend (~2/sec)
+        await new Promise(resolve => setTimeout(resolve, 600))
+      }
 
-              await sendPushNotification(
-                recipient.fcm_token,
-                personalizedTitle,
-                personalizedBody,
-                {
-                  type: 'admin_communication',
-                  communicationId,
-                  clickUrl: communication.notification_click_url || '/dashboard'
-                },
-                communication.notification_image_url || undefined
-              )
+      // Envoyer la notification push si configurée et si l'utilisateur a un token FCM
+      if (hasPush && recipient.fcm_token) {
+        try {
+          // Remplacer les variables utilisateur
+          const personalizedTitle = replaceUserVariables(communication.notification_title!, recipient)
+          const personalizedBody = replaceUserVariables(communication.notification_body!, recipient)
 
-              pushSent++
-              logs.push({
-                communication_id: communicationId,
-                user_id: recipient.id,
-                channel: 'push',
-                status: 'sent',
-                error_message: null,
-                sent_at: new Date().toISOString(),
-                resend_message_id: null
-              })
-            } catch (error: any) {
-              pushFailed++
-              logs.push({
-                communication_id: communicationId,
-                user_id: recipient.id,
-                channel: 'push',
-                status: 'failed',
-                error_message: error.message,
-                sent_at: new Date().toISOString(),
-                resend_message_id: null
-              })
-            }
-          }
+          await sendPushNotification(
+            recipient.fcm_token,
+            personalizedTitle,
+            personalizedBody,
+            {
+              type: 'admin_communication',
+              communicationId,
+              clickUrl: communication.notification_click_url || '/dashboard'
+            },
+            communication.notification_image_url || undefined
+          )
 
-          // Sauvegarder les logs
-          if (logs.length > 0) {
-            await supabase.from('admin_communication_logs').insert(logs)
-          }
-        })
-      )
+          pushSent++
+          logs.push({
+            communication_id: communicationId,
+            user_id: recipient.id,
+            channel: 'push',
+            status: 'sent',
+            error_message: null,
+            sent_at: new Date().toISOString(),
+            resend_message_id: null
+          })
+        } catch (error: any) {
+          pushFailed++
+          logs.push({
+            communication_id: communicationId,
+            user_id: recipient.id,
+            channel: 'push',
+            status: 'failed',
+            error_message: error.message,
+            sent_at: new Date().toISOString(),
+            resend_message_id: null
+          })
+        }
+      }
 
-      // Petite pause entre les batches pour éviter de surcharger
-      if (i + BATCH_SIZE < recipients.length) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+      // Sauvegarder les logs
+      if (logs.length > 0) {
+        await supabase.from('admin_communication_logs').insert(logs)
       }
     }
 
