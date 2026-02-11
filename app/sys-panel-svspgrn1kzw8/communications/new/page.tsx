@@ -54,6 +54,9 @@ export default function NewCommunicationPage() {
   const [loadingCount, setLoadingCount] = useState(false)
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
 
+  // Créer une clé stable basée sur les filtres
+  const filtersKey = JSON.stringify(formData.targeting_filters)
+
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
     const fetchRecipientCount = async () => {
@@ -84,7 +87,7 @@ export default function NewCommunicationPage() {
     // Debounce pour éviter trop de requêtes
     const timeoutId = setTimeout(fetchRecipientCount, 500)
     return () => clearTimeout(timeoutId)
-  }, [formData.targeting_filters])
+  }, [filtersKey])
 
   useEffect(() => {
     async function loadData() {
