@@ -106,9 +106,12 @@ export async function POST(request: NextRequest) {
           // Envoyer l'email si configuré
           if (hasEmail && recipient.email) {
             try {
-              // Remplacer les variables utilisateur
+              // Remplacer les variables utilisateur et CTA
               const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
-              const personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
+              let personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
+              personalizedBody = personalizedBody
+                .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
+                .replace(/\[CTA_URL\]/gi, communication.email_cta_url || 'https://www.pronohub.club/dashboard')
               const personalizedPreview = communication.email_preview_text
                 ? replaceUserVariables(communication.email_preview_text, recipient)
                 : undefined

@@ -7,7 +7,7 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
-import { EMAIL_TEMPLATES, type TargetingFilters } from '@/lib/admin/email-templates'
+import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
 import ImageUploader from '@/components/admin/ImageUploader'
 import TargetingSelector from '@/components/admin/TargetingSelector'
 import EmailEditor from '@/components/admin/EmailEditor'
@@ -17,6 +17,8 @@ interface FormData {
   title: string
   send_email: boolean
   send_push: boolean
+  email_template_id: string
+  email_content_html: string
   email_subject: string
   email_body_html: string
   email_preview_text: string
@@ -38,6 +40,8 @@ export default function NewCommunicationPage() {
     title: '',
     send_email: true,
     send_push: true,
+    email_template_id: '',
+    email_content_html: '',
     email_subject: '',
     email_body_html: '',
     email_preview_text: '',
@@ -49,7 +53,6 @@ export default function NewCommunicationPage() {
     notification_click_url: '/dashboard',
     targeting_filters: {}
   })
-  const [selectedTemplate, setSelectedTemplate] = useState('')
   const [recipientCount, setRecipientCount] = useState<{
     total: number
     emailRecipients: number
@@ -129,8 +132,9 @@ export default function NewCommunicationPage() {
     if (template) {
       setFormData(prev => ({
         ...prev,
+        email_template_id: templateId,
         email_subject: template.subject,
-        email_body_html: template.html,
+        email_content_html: template.defaultContent,
         email_preview_text: template.previewText
       }))
     }
@@ -153,6 +157,16 @@ export default function NewCommunicationPage() {
       .replace(/\[email\]/gi, profile?.email || 'john@example.com')
       .replace(/\[CTA_TEXT\]/gi, formData.email_cta_text || 'Découvrir')
       .replace(/\[CTA_URL\]/gi, formData.email_cta_url || 'https://www.pronohub.club/dashboard')
+  }
+
+  // Construire le HTML complet de l'email (template + contenu)
+  const getFullEmailHtml = () => {
+    return buildEmailHtml(
+      formData.email_template_id || null,
+      formData.email_content_html,
+      formData.email_cta_text,
+      formData.email_cta_url
+    )
   }
 
   const handleSaveDraft = async () => {
@@ -179,6 +193,9 @@ export default function NewCommunicationPage() {
         return
       }
 
+      // Construire le HTML complet (template + contenu) pour backward compat
+      const fullHtml = getFullEmailHtml()
+
       const { data, error } = await supabase
         .from('admin_communications')
         .insert({
@@ -186,8 +203,10 @@ export default function NewCommunicationPage() {
           status: 'draft',
           send_email: formData.send_email,
           send_push: formData.send_push,
+          email_template_id: formData.email_template_id || null,
+          email_content_html: formData.email_content_html || null,
           email_subject: formData.email_subject || null,
-          email_body_html: formData.email_body_html || null,
+          email_body_html: fullHtml || null,
           email_preview_text: formData.email_preview_text || null,
           email_cta_text: formData.email_cta_text || null,
           email_cta_url: formData.email_cta_url || null,
@@ -400,9 +419,8 @@ export default function NewCommunicationPage() {
                       Partir d'un template
                     </label>
                     <select
-                      value={selectedTemplate}
+                      value={formData.email_template_id}
                       onChange={(e) => {
-                        setSelectedTemplate(e.target.value)
                         applyTemplate(e.target.value)
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
@@ -462,8 +480,8 @@ export default function NewCommunicationPage() {
                 </div>
 
                 <EmailEditor
-                  value={formData.email_body_html}
-                  onChange={(value) => handleChange('email_body_html', value)}
+                  value={formData.email_content_html}
+                  onChange={(value) => handleChange('email_content_html', value)}
                 />
 
                 {/* Champs CTA */}
@@ -505,29 +523,38 @@ export default function NewCommunicationPage() {
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {formData.email_subject ? (
+              <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
+                {formData.email_subject || formData.email_content_html ? (
                   <div className="space-y-3">
-                    <div>
+                    <div className="px-4 pt-4">
                       <p className="text-xs text-gray-500">Sujet:</p>
                       <p className="font-semibold text-gray-900">{previewText(formData.email_subject)}</p>
                     </div>
                     {formData.email_preview_text && (
-                      <div>
+                      <div className="px-4">
                         <p className="text-xs text-gray-500">Prévisualisation:</p>
                         <p className="text-sm text-gray-600">{previewText(formData.email_preview_text)}</p>
                       </div>
                     )}
-                    {formData.email_body_html && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
-                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
-                        <div
-                          className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: previewText(formData.email_body_html) }}
-                        />
+                    {formData.email_content_html && (
+                      <div className="border-t border-gray-200">
+                        <p className="text-xs text-gray-500 px-4 pt-3 mb-2">Corps:</p>
+                        {formData.email_template_id && formData.email_template_id !== 'blank' ? (
+                          <iframe
+                            srcDoc={previewText(getFullEmailHtml())}
+                            className="w-full border-0"
+                            style={{ minHeight: '400px' }}
+                            title="Aperçu email"
+                          />
+                        ) : (
+                          <div
+                            className="prose prose-sm max-w-none px-4 pb-4"
+                            dangerouslySetInnerHTML={{ __html: previewText(formData.email_content_html) }}
+                          />
+                        )}
                       </div>
                     )}
-                    <p className="text-xs text-gray-400 italic mt-2">
+                    <p className="text-xs text-gray-400 italic px-4 pb-3">
                       💡 Variables remplacées par des exemples
                     </p>
                   </div>

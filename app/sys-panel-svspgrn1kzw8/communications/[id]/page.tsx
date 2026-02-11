@@ -9,7 +9,8 @@ import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
 import TargetingSelector from '@/components/admin/TargetingSelector'
 import EmojiPicker from '@/components/admin/EmojiPicker'
-import type { TargetingFilters } from '@/lib/admin/email-templates'
+import EmailEditor from '@/components/admin/EmailEditor'
+import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
 
 interface Communication {
   id: string
@@ -17,6 +18,8 @@ interface Communication {
   status: 'draft' | 'scheduled' | 'sent' | 'failed'
   send_email: boolean
   send_push: boolean
+  email_template_id: string | null
+  email_content_html: string | null
   email_subject: string | null
   email_body_html: string | null
   email_preview_text: string | null
@@ -158,6 +161,21 @@ export default function EditCommunicationPage() {
       .replace(/\[CTA_URL\]/gi, communication?.email_cta_url || 'https://www.pronohub.club/dashboard')
   }
 
+  // Mode legacy = pas de email_content_html (ancien record avec HTML brut)
+  const isLegacy = communication ? !communication.email_content_html && !!communication.email_body_html : false
+
+  // Construire le HTML complet (template + contenu)
+  const getFullEmailHtml = () => {
+    if (!communication) return ''
+    if (isLegacy) return communication.email_body_html || ''
+    return buildEmailHtml(
+      communication.email_template_id || null,
+      communication.email_content_html || '',
+      communication.email_cta_text || undefined,
+      communication.email_cta_url || undefined
+    )
+  }
+
   const handleSave = async () => {
     if (!communication || !communication.title.trim()) {
       alert('Le titre est obligatoire')
@@ -167,14 +185,19 @@ export default function EditCommunicationPage() {
     setSaving(true)
     const supabase = createClient()
 
+    // Recombiner template + contenu pour email_body_html
+    const fullHtml = getFullEmailHtml()
+
     const { error } = await supabase
       .from('admin_communications')
       .update({
         title: communication.title,
         send_email: communication.send_email,
         send_push: communication.send_push,
+        email_template_id: communication.email_template_id || null,
+        email_content_html: communication.email_content_html || null,
         email_subject: communication.email_subject || null,
-        email_body_html: communication.email_body_html || null,
+        email_body_html: fullHtml || null,
         email_preview_text: communication.email_preview_text || null,
         email_cta_text: communication.email_cta_text || null,
         email_cta_url: communication.email_cta_url || null,
@@ -473,82 +496,117 @@ export default function EditCommunicationPage() {
           {/* Email + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+            <div className="space-y-6">
+              {/* Template (seulement pour new-style) */}
+              {!isLegacy && (
+                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Template Email</h2>
+                  <select
+                    value={communication.email_template_id || ''}
+                    onChange={(e) => {
+                      const templateId = e.target.value
+                      const template = EMAIL_TEMPLATES.find(t => t.id === templateId)
+                      handleChange('email_template_id', templateId)
+                      if (template && !communication.email_content_html) {
+                        handleChange('email_content_html', template.defaultContent)
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900"
+                  >
+                    <option value="">-- Aucun template --</option>
+                    {EMAIL_TEMPLATES.filter(t => t.id !== 'blank').map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} - {template.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Sujet de l'email
-                    </label>
-                    {canEdit && <EmojiPicker onEmojiSelect={handleEmojiSelect} />}
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Sujet de l'email
+                      </label>
+                      {canEdit && <EmojiPicker onEmojiSelect={handleEmojiSelect} />}
+                    </div>
+                    <input
+                      type="text"
+                      value={communication.email_subject || ''}
+                      onChange={(e) => handleChange('email_subject', e.target.value)}
+                      onFocus={() => setActiveEmojiField('email_subject')}
+                      disabled={!canEdit}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
+                      placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
+                      maxLength={255}
+                    />
                   </div>
-                  <input
-                    type="text"
-                    value={communication.email_subject || ''}
-                    onChange={(e) => handleChange('email_subject', e.target.value)}
-                    onFocus={() => setActiveEmojiField('email_subject')}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
-                    placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
-                    maxLength={255}
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Texte de prévisualisation
-                  </label>
-                  <input
-                    type="text"
-                    value={communication.email_preview_text || ''}
-                    onChange={(e) => handleChange('email_preview_text', e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
-                    placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
-                    maxLength={255}
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Texte de prévisualisation
+                    </label>
+                    <input
+                      type="text"
+                      value={communication.email_preview_text || ''}
+                      onChange={(e) => handleChange('email_preview_text', e.target.value)}
+                      disabled={!canEdit}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
+                      placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
+                      maxLength={255}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corps de l'email (HTML)
-                  </label>
-                  <textarea
-                    value={communication.email_body_html || ''}
-                    onChange={(e) => handleChange('email_body_html', e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
-                    rows={10}
-                    placeholder="<html>...</html>"
-                  />
-                </div>
-
-                <div className="border-t border-gray-200 pt-4">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Bouton d'action (CTA)</h3>
-                  <div className="space-y-3">
+                  {isLegacy ? (
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Texte du bouton</label>
-                      <input
-                        type="text"
-                        value={communication.email_cta_text || ''}
-                        onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Corps de l'email (HTML)
+                      </label>
+                      <textarea
+                        value={communication.email_body_html || ''}
+                        onChange={(e) => handleChange('email_body_html', e.target.value)}
                         disabled={!canEdit}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
-                        placeholder="Ex: Découvrir"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                        rows={10}
+                        placeholder="<html>...</html>"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Lien du bouton</label>
-                      <input
-                        type="text"
-                        value={communication.email_cta_url || ''}
-                        onChange={(e) => handleChange('email_cta_url', e.target.value)}
-                        disabled={!canEdit}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
-                        placeholder="https://..."
-                      />
+                  ) : (
+                    <EmailEditor
+                      value={communication.email_content_html || ''}
+                      onChange={(value) => handleChange('email_content_html', value)}
+                    />
+                  )}
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Bouton d'action (CTA)</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Texte du bouton</label>
+                        <input
+                          type="text"
+                          value={communication.email_cta_text || ''}
+                          onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                          disabled={!canEdit}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                          placeholder="Ex: Découvrir"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Lien du bouton</label>
+                        <input
+                          type="text"
+                          value={communication.email_cta_url || ''}
+                          onChange={(e) => handleChange('email_cta_url', e.target.value)}
+                          disabled={!canEdit}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                          placeholder="https://..."
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -559,29 +617,38 @@ export default function EditCommunicationPage() {
             <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {communication.email_subject ? (
+              <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
+                {communication.email_subject || communication.email_content_html || communication.email_body_html ? (
                   <div className="space-y-3">
-                    <div>
+                    <div className="px-4 pt-4">
                       <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{previewText(communication.email_subject)}</p>
+                      <p className="font-semibold text-gray-900">{previewText(communication.email_subject || '')}</p>
                     </div>
                     {communication.email_preview_text && (
-                      <div>
+                      <div className="px-4">
                         <p className="text-xs text-gray-500">Prévisualisation:</p>
                         <p className="text-sm text-gray-600">{previewText(communication.email_preview_text)}</p>
                       </div>
                     )}
-                    {communication.email_body_html && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
-                        <p className="text-xs text-gray-500 mb-2">Corps:</p>
-                        <div
-                          className="prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: previewText(communication.email_body_html) }}
-                        />
+                    {(communication.email_content_html || communication.email_body_html) && (
+                      <div className="border-t border-gray-200">
+                        <p className="text-xs text-gray-500 px-4 pt-3 mb-2">Corps:</p>
+                        {!isLegacy && communication.email_template_id && communication.email_template_id !== 'blank' ? (
+                          <iframe
+                            srcDoc={previewText(getFullEmailHtml())}
+                            className="w-full border-0"
+                            style={{ minHeight: '400px' }}
+                            title="Aperçu email"
+                          />
+                        ) : (
+                          <div
+                            className="prose prose-sm max-w-none px-4 pb-4"
+                            dangerouslySetInnerHTML={{ __html: previewText(isLegacy ? (communication.email_body_html || '') : (communication.email_content_html || '')) }}
+                          />
+                        )}
                       </div>
                     )}
-                    <p className="text-xs text-gray-400 italic mt-2">
+                    <p className="text-xs text-gray-400 italic px-4 pb-3">
                       💡 Variables remplacées par des exemples
                     </p>
                   </div>

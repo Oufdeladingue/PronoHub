@@ -1,5 +1,7 @@
 /**
  * Templates d'email prédéfinis pour les communications admin
+ * Les templates utilisent [CONTENT] comme placeholder pour le contenu WYSIWYG
+ * et [CTA_TEXT]/[CTA_URL] pour le bouton d'action
  */
 
 export interface EmailTemplate {
@@ -9,7 +11,24 @@ export interface EmailTemplate {
   subject: string
   previewText: string
   html: string
+  defaultContent: string
 }
+
+/**
+ * Palette de couleurs du thème email
+ */
+export const EMAIL_COLORS = [
+  { color: '#ff9900', label: 'Orange' },
+  { color: '#ff6600', label: 'Orange foncé' },
+  { color: '#e0e0e0', label: 'Gris clair' },
+  { color: '#94a3b8', label: 'Gris bleu' },
+  { color: '#64748b', label: 'Gris' },
+  { color: '#1a1a2e', label: 'Bleu nuit' },
+  { color: '#0f172a', label: 'Bleu foncé' },
+  { color: '#0a0a0a', label: 'Noir' },
+  { color: '#ffffff', label: 'Blanc' },
+  { color: '#000000', label: 'Noir pur' },
+]
 
 export const EMAIL_TEMPLATES: EmailTemplate[] = [
   {
@@ -18,7 +37,8 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     description: 'Partir de zéro',
     subject: '',
     previewText: '',
-    html: ''
+    html: '',
+    defaultContent: ''
   },
   {
     id: 'announcement',
@@ -26,6 +46,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     description: 'Annonce générale colorée',
     subject: '🎉 Nouvelle annonce PronoHub',
     previewText: 'Découvrez les dernières nouveautés',
+    defaultContent: `<p>Salut <strong>[username]</strong> ! 👋</p><p>Nous avons une annonce importante à te partager...</p><p>À bientôt sur PronoHub ! ⚽</p>`,
     html: `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -49,20 +70,8 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
 
           <!-- Content -->
           <tr>
-            <td style="padding: 40px;">
-              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
-                Salut <strong style="color: #ff9900;">[username]</strong> ! 👋
-              </p>
-
-              <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
-                Nous avons une annonce importante à te partager...
-              </p>
-
-              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
-                <p style="margin: 0; color: #e0e0e0; font-size: 15px; line-height: 1.6;">
-                  [Ton contenu ici]
-                </p>
-              </div>
+            <td style="padding: 40px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+              [CONTENT]
 
               <!-- CTA Button -->
               <div style="text-align: center; margin: 32px 0;">
@@ -70,10 +79,6 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
                   [CTA_TEXT]
                 </a>
               </div>
-
-              <p style="margin: 24px 0 0; color: #94a3b8; font-size: 14px; line-height: 1.6;">
-                À bientôt sur PronoHub ! ⚽
-              </p>
             </td>
           </tr>
 
@@ -98,6 +103,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
     description: 'Message simple et épuré',
     subject: 'Message de l\'équipe PronoHub',
     previewText: 'Un message important pour toi',
+    defaultContent: `<p>Bonjour <strong>[username]</strong>,</p><p>Votre message ici...</p><p>L'équipe PronoHub</p>`,
     html: `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -110,20 +116,10 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
       <td align="center" style="padding: 40px 20px;">
         <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <tr>
-            <td style="padding: 40px;">
+            <td style="padding: 40px; color: #333; font-size: 16px; line-height: 1.6;">
               <img src="https://www.pronohub.club/images/logo.svg" alt="PronoHub" style="width: 60px; height: 60px; display: block; margin: 0 0 24px;">
 
-              <p style="margin: 0 0 16px; color: #333; font-size: 16px; line-height: 1.6;">
-                Bonjour <strong>[username]</strong>,
-              </p>
-
-              <p style="margin: 0 0 16px; color: #333; font-size: 16px; line-height: 1.6;">
-                [Ton message ici]
-              </p>
-
-              <p style="margin: 24px 0 0; color: #666; font-size: 14px; line-height: 1.6;">
-                L'équipe PronoHub
-              </p>
+              [CONTENT]
             </td>
           </tr>
         </table>
@@ -134,6 +130,36 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
 </html>`
   }
 ]
+
+/**
+ * Combine un template avec le contenu WYSIWYG et les valeurs CTA
+ * pour produire le HTML final de l'email
+ */
+export function buildEmailHtml(
+  templateId: string | null,
+  contentHtml: string,
+  ctaText?: string,
+  ctaUrl?: string
+): string {
+  const template = EMAIL_TEMPLATES.find(t => t.id === templateId)
+
+  // Template blank ou inconnu → retourner juste le contenu
+  if (!template || !template.html) {
+    return contentHtml
+  }
+
+  let html = template.html
+    .replace('[CONTENT]', contentHtml)
+
+  if (ctaText) {
+    html = html.replace(/\[CTA_TEXT\]/gi, ctaText)
+  }
+  if (ctaUrl) {
+    html = html.replace(/\[CTA_URL\]/gi, ctaUrl)
+  }
+
+  return html
+}
 
 /**
  * Ciblage des utilisateurs pour les communications
