@@ -3454,3 +3454,53 @@ input[type="number"] {
   border-color: #ef4444 !important;
   transition: border-color 0.3s ease;
 }
+
+/* ========================================
+   EFFECT SHINE - Accordion link
+   ======================================== */
+
+@keyframes effect-shine {
+  0% {
+    -webkit-mask-position: 150%;
+    mask-position: 150%;
+  }
+  100% {
+    -webkit-mask-position: -50%;
+    mask-position: -50%;
+  }
+}
+
+.effect-shine {
+  color: #ff9900;
+  -webkit-mask-image: linear-gradient(
+    -75deg,
+    rgba(255, 153, 0, 0.6) 30%,
+    #ff9900 50%,
+    rgba(255, 153, 0, 0.6) 70%
+  );
+  mask-image: linear-gradient(
+    -75deg,
+    rgba(255, 153, 0, 0.6) 30%,
+    #ff9900 50%,
+    rgba(255, 153, 0, 0.6) 70%
+  );
+  -webkit-mask-size: 200%;
+  mask-size: 200%;
+  animation: effect-shine 2s linear infinite;
+}
+
+:root[data-theme="light"] .effect-shine {
+  color: #0055ff;
+  -webkit-mask-image: linear-gradient(
+    -75deg,
+    rgba(0, 85, 255, 0.6) 30%,
+    #0055ff 50%,
+    rgba(0, 85, 255, 0.6) 70%
+  );
+  mask-image: linear-gradient(
+    -75deg,
+    rgba(0, 85, 255, 0.6) 30%,
+    #0055ff 50%,
+    rgba(0, 85, 255, 0.6) 70%
+  );
+}
