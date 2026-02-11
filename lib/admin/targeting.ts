@@ -95,7 +95,7 @@ export async function calculateRecipients(
     if (activeTournamentIds.length > 0) {
       // Ensuite récupérer les membres de ces tournois
       const { data: memberships } = await supabase
-        .from('tournament_members')
+        .from('tournament_team_members')
         .select('user_id')
         .in('user_id', userIds)
         .in('tournament_id', activeTournamentIds)
@@ -153,13 +153,22 @@ export async function calculateRecipients(
     const userIds = filteredProfiles.map(p => p.id)
 
     const { data: membershipCounts } = await supabase
-      .from('tournament_members')
-      .select('user_id')
+      .from('tournament_team_members')
+      .select('user_id, tournament_id')
       .in('user_id', userIds)
 
-    const userTournamentCounts = new Map<string, number>()
+    // Compter les tournois uniques par utilisateur
+    const userTournamentSets = new Map<string, Set<string>>()
     membershipCounts?.forEach(m => {
-      userTournamentCounts.set(m.user_id, (userTournamentCounts.get(m.user_id) || 0) + 1)
+      if (!userTournamentSets.has(m.user_id)) {
+        userTournamentSets.set(m.user_id, new Set())
+      }
+      userTournamentSets.get(m.user_id)!.add(m.tournament_id)
+    })
+
+    const userTournamentCounts = new Map<string, number>()
+    userTournamentSets.forEach((tournaments, userId) => {
+      userTournamentCounts.set(userId, tournaments.size)
     })
 
     filteredProfiles = filteredProfiles.filter(p => {
