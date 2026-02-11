@@ -53,6 +53,7 @@ export default function NewCommunicationPage() {
   } | null>(null)
   const [loadingCount, setLoadingCount] = useState(false)
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
+  const [filterChangeCounter, setFilterChangeCounter] = useState(0)
 
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
@@ -84,8 +85,7 @@ export default function NewCommunicationPage() {
     // Debounce pour éviter trop de requêtes
     const timeoutId = setTimeout(fetchRecipientCount, 500)
     return () => clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.targeting_filters])
+  }, [filterChangeCounter, formData.targeting_filters])
 
   useEffect(() => {
     async function loadData() {
@@ -117,6 +117,9 @@ export default function NewCommunicationPage() {
 
   const handleChange = (field: keyof FormData, value: string | TargetingFilters) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    if (field === 'targeting_filters') {
+      setFilterChangeCounter(c => c + 1)
+    }
   }
 
   const applyTemplate = (templateId: string) => {
