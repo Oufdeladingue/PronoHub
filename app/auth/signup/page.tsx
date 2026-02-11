@@ -23,7 +23,15 @@ function SignUpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo')
+  const urlError = searchParams.get('error')
   const supabase = createClient()
+
+  // Afficher l'erreur passée en paramètre URL (ex: blocage pays OAuth)
+  useEffect(() => {
+    if (urlError) {
+      setError(decodeURIComponent(urlError))
+    }
+  }, [urlError])
 
   // Initialiser Google Auth natif au montage (Capacitor Android)
   // Status bar configurée en noir nativement dans MainActivity.java
@@ -101,6 +109,19 @@ function SignUpForm() {
     setGoogleLoading(true)
 
     try {
+      // Vérifier la restriction par pays avant OAuth
+      try {
+        const countryCheck = await fetch('/api/auth/check-country')
+        const countryData = await countryCheck.json()
+        if (!countryData.allowed) {
+          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
+          setGoogleLoading(false)
+          return
+        }
+      } catch {
+        // Fail-open
+      }
+
       // CAS 1: Google Sign-In natif Android (popup native)
       if (provider === 'google' && isNativeGoogleAuthAvailable()) {
         try {
@@ -174,6 +195,19 @@ function SignUpForm() {
     }
 
     try {
+      // Vérifier la restriction par pays avant inscription
+      try {
+        const countryCheck = await fetch('/api/auth/check-country')
+        const countryData = await countryCheck.json()
+        if (!countryData.allowed) {
+          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Fail-open : si la vérification échoue, on laisse passer
+      }
+
       // Stocker l'email et le redirectTo temporairement
       sessionStorage.setItem('pendingEmail', email)
       if (redirectTo) {

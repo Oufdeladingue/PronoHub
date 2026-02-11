@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { Euro, Save, AlertCircle, CheckCircle, Users, Calendar, Zap, Crown } from 'lucide-react'
+import { Euro, Save, AlertCircle, CheckCircle, Users, Calendar, Zap, Crown, Globe, Search } from 'lucide-react'
+import { COUNTRIES, DEFAULT_ALLOWED_COUNTRIES } from '@/lib/countries'
 
 // ============= INTERFACES =============
 
@@ -30,7 +31,7 @@ interface GroupedPricing {
   platinium: PricingItem[]
 }
 
-type TabType = 'configuration' | 'tarifs'
+type TabType = 'configuration' | 'tarifs' | 'pays'
 
 const categoryLabels: Record<string, { title: string, description: string, icon: React.ReactNode }> = {
   tournament_creation: {
@@ -79,6 +80,15 @@ export default function AdminSettingsPage() {
   const [pricingError, setPricingError] = useState<string | null>(null)
   const [pricingSuccess, setPricingSuccess] = useState<string | null>(null)
   const [pricingChanges, setPricingChanges] = useState<Record<string, number>>({})
+
+  // ===== ÉTATS PAYS =====
+  const [allowedCountries, setAllowedCountries] = useState<Set<string>>(new Set(DEFAULT_ALLOWED_COUNTRIES))
+  const [initialCountries, setInitialCountries] = useState<Set<string>>(new Set(DEFAULT_ALLOWED_COUNTRIES))
+  const [countriesLoading, setCountriesLoading] = useState(true)
+  const [countriesSaving, setCountriesSaving] = useState(false)
+  const [countriesError, setCountriesError] = useState<string | null>(null)
+  const [countriesSuccess, setCountriesSuccess] = useState<string | null>(null)
+  const [countrySearch, setCountrySearch] = useState('')
 
   // ===== FONCTIONS CONFIGURATION =====
 
@@ -206,6 +216,101 @@ export default function AdminSettingsPage() {
     }
   }
 
+  // ===== FONCTIONS PAYS =====
+
+  const fetchCountries = async () => {
+    setCountriesLoading(true)
+    setCountriesError(null)
+    try {
+      const response = await fetch('/api/admin/settings')
+      if (!response.ok) throw new Error('Erreur lors du chargement')
+
+      const data = await response.json()
+      if (data.success && data.settings?.allowed_countries) {
+        try {
+          const codes: string[] = JSON.parse(data.settings.allowed_countries)
+          setAllowedCountries(new Set(codes))
+          setInitialCountries(new Set(codes))
+        } catch {
+          setAllowedCountries(new Set(DEFAULT_ALLOWED_COUNTRIES))
+          setInitialCountries(new Set(DEFAULT_ALLOWED_COUNTRIES))
+        }
+      } else {
+        // Pas encore de config → utiliser les défauts
+        setAllowedCountries(new Set(DEFAULT_ALLOWED_COUNTRIES))
+        setInitialCountries(new Set(DEFAULT_ALLOWED_COUNTRIES))
+      }
+    } catch (err: any) {
+      setCountriesError(err.message)
+    } finally {
+      setCountriesLoading(false)
+    }
+  }
+
+  const toggleCountry = (code: string) => {
+    setAllowedCountries(prev => {
+      const next = new Set(prev)
+      if (next.has(code)) {
+        next.delete(code)
+      } else {
+        next.add(code)
+      }
+      return next
+    })
+  }
+
+  const selectAll = () => {
+    setAllowedCountries(new Set(COUNTRIES.map(c => c.code)))
+  }
+
+  const deselectAll = () => {
+    setAllowedCountries(new Set())
+  }
+
+  const handleSaveCountries = async () => {
+    setCountriesSaving(true)
+    setCountriesError(null)
+    setCountriesSuccess(null)
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            allowed_countries: JSON.stringify(Array.from(allowedCountries))
+          }
+        })
+      })
+
+      const data = await response.json()
+      if (!data.success) throw new Error(data.error || 'Erreur lors de la sauvegarde')
+
+      setInitialCountries(new Set(allowedCountries))
+      setCountriesSuccess('Pays autorisés sauvegardés avec succès!')
+      setTimeout(() => setCountriesSuccess(null), 3000)
+    } catch (err: any) {
+      setCountriesError(err.message)
+    } finally {
+      setCountriesSaving(false)
+    }
+  }
+
+  const hasCountriesChanges = useMemo(() => {
+    if (allowedCountries.size !== initialCountries.size) return true
+    for (const code of allowedCountries) {
+      if (!initialCountries.has(code)) return true
+    }
+    return false
+  }, [allowedCountries, initialCountries])
+
+  const filteredCountries = useMemo(() => {
+    if (!countrySearch.trim()) return COUNTRIES
+    const q = countrySearch.toLowerCase()
+    return COUNTRIES.filter(c =>
+      c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    )
+  }, [countrySearch])
+
   const renderPricingInput = (item: PricingItem) => {
     const value = getCurrentValue(item)
     const isModified = pricingChanges[item.config_key] !== undefined
@@ -254,8 +359,10 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     if (activeTab === 'configuration') {
       fetchSettings()
-    } else {
+    } else if (activeTab === 'tarifs') {
       fetchPricing()
+    } else if (activeTab === 'pays') {
+      fetchCountries()
     }
   }, [activeTab])
 
@@ -295,6 +402,19 @@ export default function AdminSettingsPage() {
             >
               Tarifs
               {activeTab === 'tarifs' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('pays')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'pays'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Pays couverts
+              {activeTab === 'pays' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
               )}
             </button>
@@ -544,6 +664,142 @@ export default function AdminSettingsPage() {
                       >
                         <Save className="w-6 h-6" />
                         {pricingSaving ? 'Sauvegarde en cours...' : 'Sauvegarder toutes les modifications'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {/* ===== ONGLET PAYS COUVERTS ===== */}
+          {activeTab === 'pays' && (
+            <>
+              {countriesError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <span><strong>Erreur:</strong> {countriesError}</span>
+                </div>
+              )}
+
+              {countriesSuccess && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
+                  <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  <span>{countriesSuccess}</span>
+                </div>
+              )}
+
+              {countriesLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  Chargement des pays...
+                </div>
+              ) : (
+                <>
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <Globe className="w-8 h-8 text-purple-600" />
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">Pays couverts</h2>
+                        <p className="text-gray-500 text-sm">
+                          {allowedCountries.size} pays autorisé{allowedCountries.size > 1 ? 's' : ''} sur {COUNTRIES.length}
+                          {hasCountriesChanges && (
+                            <span className="ml-2 text-orange-500 font-medium">(modifié)</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleSaveCountries}
+                      disabled={countriesSaving || !hasCountriesChanges}
+                      className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      <Save className="w-5 h-5" />
+                      {countriesSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                    </button>
+                  </div>
+
+                  {/* Barre de recherche + actions */}
+                  <div className="bg-white rounded-lg shadow p-4 mb-6">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="relative flex-1 min-w-[200px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          placeholder="Rechercher un pays..."
+                          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={selectAll}
+                          className="px-4 py-2 text-sm text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
+                        >
+                          Tout cocher
+                        </button>
+                        <button
+                          type="button"
+                          onClick={deselectAll}
+                          className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                        >
+                          Tout décocher
+                        </button>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs text-gray-500">
+                      Seuls les utilisateurs dont l'adresse IP correspond à un pays coché pourront s'inscrire. Les utilisateurs existants ne sont pas affectés.
+                    </p>
+                  </div>
+
+                  {/* Grille des pays */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {filteredCountries.map(country => (
+                        <label
+                          key={country.code}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${
+                            allowedCountries.has(country.code)
+                              ? 'bg-purple-50 border border-purple-200'
+                              : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={allowedCountries.has(country.code)}
+                            onChange={() => toggleCountry(country.code)}
+                            className="w-4 h-4 text-purple-600 rounded"
+                          />
+                          <span className="text-lg leading-none">{country.flag}</span>
+                          <span className={`text-sm ${
+                            allowedCountries.has(country.code) ? 'text-purple-900 font-medium' : 'text-gray-700'
+                          }`}>
+                            {country.name}
+                          </span>
+                          <span className="text-xs text-gray-400 ml-auto">{country.code}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {filteredCountries.length === 0 && (
+                      <p className="text-center text-gray-500 py-8">
+                        Aucun pays ne correspond à "{countrySearch}"
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Bouton de sauvegarde en bas */}
+                  {hasCountriesChanges && (
+                    <div className="mt-8 flex justify-end">
+                      <button
+                        onClick={handleSaveCountries}
+                        disabled={countriesSaving}
+                        className="flex items-center gap-2 px-8 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed text-lg font-medium"
+                      >
+                        <Save className="w-6 h-6" />
+                        {countriesSaving ? 'Sauvegarde en cours...' : 'Sauvegarder les pays autorisés'}
                       </button>
                     </div>
                   )}
