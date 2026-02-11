@@ -2469,19 +2469,6 @@ export default function OppositionClient({
                                   <div className="grid grid-cols-3 gap-2 mb-3">
                                     {/* COLONNE 1 - Équipe domicile */}
                                     <div className="flex flex-col items-center gap-1">
-                                      {/* Badge bonus en haut si c'est le match bonus - aligné à gauche */}
-                                      <div className="w-full flex justify-start mb-1">
-                                        {isBonusMatch ? (
-                                          <div className="bonus-badge flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[9px] font-bold text-white shadow-lg whitespace-nowrap">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
-                                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                            </svg>
-                                            <span>BONUS</span>
-                                          </div>
-                                        ) : (
-                                          <div className="h-5"></div>
-                                        )}
-                                      </div>
                                       {/* Logo équipe - conteneur fixe pour éviter CLS */}
                                       <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
                                         {match.home_team_crest && (
@@ -2732,8 +2719,21 @@ export default function OppositionClient({
                                     </div>
                                   )}
 
-                                  {/* Bouton d'action (sauvegarder/modifier) + Stats */}
-                                  <div className="flex justify-center items-center gap-2">
+                                  {/* Bouton d'action (sauvegarder/modifier) + Badge bonus */}
+                                  <div className="flex items-center px-1">
+                                    {/* Badge bonus à gauche (Mobile) */}
+                                    <div className="flex-1">
+                                      {isBonusMatch && (
+                                        <div className="bonus-badge inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[9px] font-bold text-white shadow-lg whitespace-nowrap">
+                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                          </svg>
+                                          <span>BONUS</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Bouton central */}
+                                    <div className="flex items-center gap-2">
                                     {isClosed ? (
                                       hasFirstMatchStarted() ? null : (
                                         <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400 opacity-50 cursor-not-allowed">
@@ -2782,13 +2782,16 @@ export default function OppositionClient({
                                         </button>
                                       </div>
                                     )}
+                                    </div>
+                                    {/* Spacer droit pour équilibrer */}
+                                    <div className="flex-1" />
                                   </div>
                                 </div>
 
                                 {/* Affichage DESKTOP */}
                                 <div className={`hidden md:block relative ${isClosed ? 'opacity-75' : ''}`}>
                                   <div className="flex items-center gap-3 w-full">
-                                    {/* COLONNE GAUCHE 15% - Horaire, logo compétition et badge bonus (alignés à gauche) */}
+                                    {/* COLONNE GAUCHE 15% - Horaire et logo compétition (alignés à gauche) */}
                                     <div className="flex flex-col items-start gap-1 w-[15%] flex-shrink-0 overflow-hidden">
                                       <div className="text-sm theme-text-secondary font-semibold whitespace-nowrap">
                                         {matchTime}
@@ -2808,14 +2811,6 @@ export default function OppositionClient({
                                             alt={match.competition_name || 'Compétition'}
                                             className="w-8 h-8 object-contain show-on-dark"
                                           />
-                                        </div>
-                                      )}
-                                      {isBonusMatch && (
-                                        <div className="bonus-badge flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[10px] font-bold text-white shadow-lg whitespace-nowrap">
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                          </svg>
-                                          <span>BONUS</span>
                                         </div>
                                       )}
                                     </div>
@@ -3098,21 +3093,33 @@ export default function OppositionClient({
                                   </div>
                                 </div>
 
-                                {/* Bouton Stats (Desktop) - positionné en bas à droite - masqué si match terminé */}
-                                {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
-                                  <div className="hidden md:flex justify-end mt-2">
-                                    <StatsButton
-                                      matchId={match.id}
-                                      tournamentId={tournament.id}
-                                      competitionId={match.competition_id || tournament.competition_id!}
-                                      homeTeamId={match.home_team_id}
-                                      awayTeamId={match.away_team_id}
-                                      homeTeamName={match.home_team_name}
-                                      awayTeamName={match.away_team_name}
-                                      hasAccess={statsAccess.hasAccess}
-                                      size="md"
-                                      returnUrl={`/${tournamentSlug}/opposition`}
-                                    />
+                                {/* Ligne bas de card desktop : badge bonus à gauche, stats à droite */}
+                                {(isBonusMatch || (!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id))) && (
+                                  <div className="hidden md:flex items-center justify-between mt-2">
+                                    {/* Badge bonus en bas à gauche */}
+                                    {isBonusMatch ? (
+                                      <div className="bonus-badge flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[10px] font-bold text-white shadow-lg whitespace-nowrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                        <span>BONUS</span>
+                                      </div>
+                                    ) : <div />}
+                                    {/* Bouton Stats à droite */}
+                                    {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
+                                      <StatsButton
+                                        matchId={match.id}
+                                        tournamentId={tournament.id}
+                                        competitionId={match.competition_id || tournament.competition_id!}
+                                        homeTeamId={match.home_team_id}
+                                        awayTeamId={match.away_team_id}
+                                        homeTeamName={match.home_team_name}
+                                        awayTeamName={match.away_team_name}
+                                        hasAccess={statsAccess.hasAccess}
+                                        size="md"
+                                        returnUrl={`/${tournamentSlug}/opposition`}
+                                      />
+                                    )}
                                   </div>
                                 )}
 
