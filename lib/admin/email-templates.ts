@@ -61,9 +61,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
           <!-- Header -->
           <tr>
             <td style="padding: 40px 40px 24px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
-              <div style="width: 90px; height: 90px; margin: 0 auto 20px; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
-                <img src="https://www.pronohub.club/images/logo.svg" alt="PronoHub" style="width: 70px; height: 70px; display: block; margin: auto;">
-              </div>
+              <img src="https://www.pronohub.club/images/logo-email.png" alt="PronoHub" style="width: 90px; height: 90px; display: block; margin: 0 auto 20px; border-radius: 50%; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
               <h1 style="margin: 0 0 8px; color: #000; font-size: 24px; font-weight: 700;">[HEADER_TITLE]</h1>
             </td>
           </tr>
@@ -117,7 +115,7 @@ export const EMAIL_TEMPLATES: EmailTemplate[] = [
         <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <tr>
             <td style="padding: 40px; color: #333; font-size: 16px; line-height: 1.6;">
-              <img src="https://www.pronohub.club/images/logo.svg" alt="PronoHub" style="width: 60px; height: 60px; display: block; margin: 0 0 24px;">
+              <img src="https://www.pronohub.club/images/logo-email.png" alt="PronoHub" style="width: 60px; height: 60px; display: block; margin: 0 0 24px; border-radius: 50%;">
 
               [CONTENT]
             </td>

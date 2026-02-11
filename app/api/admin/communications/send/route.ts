@@ -214,17 +214,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Mettre à jour la communication avec les stats
+    // Enregistrer la vague d'envoi avec les filtres utilisés
     await supabase
-      .from('admin_communications')
-      .update({
-        status: 'sent',
+      .from('admin_communication_waves')
+      .insert({
+        communication_id: communicationId,
+        targeting_filters: communication.targeting_filters || {},
+        channels: { email: shouldSendEmail, push: shouldSendPush },
+        excluded_count: Array.isArray(excludeUserIds) ? excludeUserIds.length : 0,
         sent_at: new Date().toISOString(),
         stats_total_recipients: recipients.length,
         stats_emails_sent: emailsSent,
         stats_emails_failed: emailsFailed,
         stats_push_sent: pushSent,
         stats_push_failed: pushFailed
+      })
+
+    // Mettre à jour la communication avec les stats cumulées
+    // On additionne les stats des vagues précédentes
+    await supabase
+      .from('admin_communications')
+      .update({
+        status: 'sent',
+        sent_at: new Date().toISOString(),
+        stats_total_recipients: (communication.stats_total_recipients || 0) + recipients.length,
+        stats_emails_sent: (communication.stats_emails_sent || 0) + emailsSent,
+        stats_emails_failed: (communication.stats_emails_failed || 0) + emailsFailed,
+        stats_push_sent: (communication.stats_push_sent || 0) + pushSent,
+        stats_push_failed: (communication.stats_push_failed || 0) + pushFailed
       })
       .eq('id', communicationId)
 

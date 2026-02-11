@@ -39,6 +39,37 @@ interface Communication {
   stats_push_failed: number
 }
 
+interface SendWave {
+  id: string
+  sent_at: string
+  targeting_filters: TargetingFilters
+  channels: { email?: boolean; push?: boolean }
+  excluded_count: number
+  stats_total_recipients: number
+  stats_emails_sent: number
+  stats_emails_failed: number
+  stats_push_sent: number
+  stats_push_failed: number
+}
+
+/** Résumé lisible des filtres de ciblage */
+function summarizeFilters(filters: TargetingFilters): string {
+  const parts: string[] = []
+  if (filters.hasActiveTournament) parts.push('Tournoi actif')
+  if (filters.hasNoActiveTournament) parts.push('Sans tournoi')
+  if (filters.inactiveDays) parts.push(`Inactif ${filters.inactiveDays}j`)
+  if (filters.activeDays) parts.push(`Actif ${filters.activeDays}j`)
+  if (filters.hasFcmToken) parts.push('App Android')
+  if (filters.hasNoFcmToken) parts.push('Sans app')
+  if (filters.hasTrophies) parts.push('A des trophées')
+  if (filters.minPredictions) parts.push(`Min ${filters.minPredictions} pronos`)
+  if (filters.minTournaments) parts.push(`Min ${filters.minTournaments} tournois`)
+  if (filters.registeredAfter) parts.push(`Inscrit après ${filters.registeredAfter}`)
+  if (filters.registeredBefore) parts.push(`Inscrit avant ${filters.registeredBefore}`)
+  if (filters.userIds?.length) parts.push(`${filters.userIds.length} users spécifiques`)
+  return parts.length > 0 ? parts.join(', ') : 'Tous les utilisateurs'
+}
+
 export default function EditCommunicationPage() {
   const router = useRouter()
   const params = useParams()
@@ -67,6 +98,7 @@ export default function EditCommunicationPage() {
   const [recipientList, setRecipientList] = useState<Array<{ id: string; username: string; email: string; hasFcmToken: boolean }>>([])
   const [excludedUserIds, setExcludedUserIds] = useState<Set<string>>(new Set())
   const [loadingRecipients, setLoadingRecipients] = useState(false)
+  const [sendWaves, setSendWaves] = useState<SendWave[]>([])
 
   // Compter les destinataires quand les filtres changent
   useEffect(() => {
@@ -138,6 +170,20 @@ export default function EditCommunicationPage() {
       }
 
       setCommunication(comm)
+
+      // Charger les vagues d'envoi
+      if (comm.status === 'sent') {
+        const { data: waves } = await supabase
+          .from('admin_communication_waves')
+          .select('*')
+          .eq('communication_id', communicationId)
+          .order('sent_at', { ascending: true })
+
+        if (waves && waves.length > 0) {
+          setSendWaves(waves)
+        }
+      }
+
       setLoading(false)
     }
 
@@ -332,11 +378,28 @@ export default function EditCommunicationPage() {
         pushSent: data.pushSent || 0,
         pushFailed: data.pushFailed || 0
       })
+
+      // Mettre à jour le statut et recharger les vagues
+      setCommunication(prev => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : null)
+      reloadWaves()
     } catch (error: any) {
       console.error('Error sending:', error)
       alert(`Erreur lors de l'envoi: ${error.message}`)
     } finally {
       setSending(false)
+    }
+  }
+
+  const reloadWaves = async () => {
+    const supabase = createClient()
+    const { data: waves } = await supabase
+      .from('admin_communication_waves')
+      .select('*')
+      .eq('communication_id', communicationId)
+      .order('sent_at', { ascending: true })
+
+    if (waves && waves.length > 0) {
+      setSendWaves(waves)
     }
   }
 
@@ -438,7 +501,74 @@ export default function EditCommunicationPage() {
                   <p className="text-xs sm:text-sm text-red-600 mt-1">Échecs</p>
                 </div>
               </div>
-              {communication.sent_at && (
+              {/* Historique des vagues d'envoi */}
+              {sendWaves.length > 0 && (
+                <div className="mt-5 border-t border-gray-200 pt-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                    Historique des vagues d'envoi ({sendWaves.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {sendWaves.map((wave, idx) => {
+                      const totalFailed = wave.stats_emails_failed + wave.stats_push_failed
+                      return (
+                        <div key={wave.id} className="border border-gray-200 rounded-lg p-3">
+                          {/* Ligne 1 : numéro + date + stats */}
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-bold text-gray-700">#{idx + 1}</span>
+                              <span className="text-sm text-gray-600">
+                                {new Date(wave.sent_at).toLocaleDateString('fr-FR', {
+                                  day: '2-digit', month: '2-digit', year: 'numeric'
+                                })}
+                                {' '}
+                                <span className="text-gray-400">
+                                  {new Date(wave.sent_at).toLocaleTimeString('fr-FR', {
+                                    hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </span>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                {wave.stats_total_recipients} dest.
+                              </span>
+                              {(wave.stats_emails_sent > 0 || wave.stats_emails_failed > 0) && (
+                                <span className="text-green-600 font-medium">
+                                  {wave.stats_emails_sent} email{wave.stats_emails_sent > 1 ? 's' : ''}
+                                </span>
+                              )}
+                              {(wave.stats_push_sent > 0 || wave.stats_push_failed > 0) && (
+                                <span className="text-purple-600 font-medium">
+                                  {wave.stats_push_sent} push
+                                </span>
+                              )}
+                              {totalFailed > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                                  {totalFailed} echec{totalFailed > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {/* Ligne 2 : filtres de ciblage */}
+                          <div className="mt-2 flex items-start gap-1.5">
+                            <span className="text-xs text-gray-500 shrink-0">Ciblage :</span>
+                            <span className="text-xs text-gray-700">
+                              {summarizeFilters(wave.targeting_filters || {})}
+                            </span>
+                            {wave.excluded_count > 0 && (
+                              <span className="text-xs text-orange-600 shrink-0">
+                                ({wave.excluded_count} exclu{wave.excluded_count > 1 ? 's' : ''})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {communication.sent_at && sendWaves.length === 0 && (
                 <p className="text-xs text-gray-500 mt-3">
                   Envoyé le {new Date(communication.sent_at).toLocaleDateString('fr-FR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
