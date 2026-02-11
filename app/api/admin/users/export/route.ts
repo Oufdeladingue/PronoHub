@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortDir = searchParams.get('sortDir') || 'desc'
 
-    const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at']
+    const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at', 'country']
     const actualSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
     const ascending = sortDir === 'asc'
 
     // Récupérer TOUS les users (sans pagination)
     let usersQuery = adminClient
       .from('profiles')
-      .select('id, username, email, created_at, last_seen_at')
+      .select('id, username, email, created_at, last_seen_at, country')
       .order(actualSortBy, { ascending, nullsFirst: false })
 
     if (search) {
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!usersData || usersData.length === 0) {
-      const csv = 'Email,Pseudo,Date creation,Derniere connexion,Nb tournois actifs,Tournois actifs\n'
+      const csv = 'Email,Pseudo,Pays,Date creation,Derniere connexion,Nb tournois actifs,Tournois actifs\n'
       return new NextResponse(csv, {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les tournois actifs
     const userIds = usersData.map(u => u.id)
-    const activeStatuses = ['active', 'in_progress', 'registration']
+    const activeStatuses = ['active', 'pending', 'warmup']
 
     // Supabase .in() a une limite, on batch par 500
     const allParticipations: any[] = []
@@ -112,12 +112,13 @@ export async function GET(request: NextRequest) {
       return val
     }
 
-    const header = 'Email,Pseudo,Date creation,Derniere connexion,Nb tournois actifs,Tournois actifs'
+    const header = 'Email,Pseudo,Pays,Date creation,Derniere connexion,Nb tournois actifs,Tournois actifs'
     const rows = usersData.map(u => {
       const tournaments = tournamentsMap.get(u.id) || []
       return [
         escapeCsv(u.email || ''),
         escapeCsv(u.username || 'Sans nom'),
+        escapeCsv(u.country || ''),
         escapeCsv(formatDate(u.created_at)),
         escapeCsv(formatDate(u.last_seen_at)),
         tournaments.length.toString(),

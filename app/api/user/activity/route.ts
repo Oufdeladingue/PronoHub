@@ -1,12 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getClientIP } from '@/lib/rate-limit'
+import geoip from 'geoip-lite'
 
 /**
  * POST /api/user/activity
- * Met à jour last_seen_at pour l'utilisateur connecté.
+ * Met à jour last_seen_at et le pays (via géolocalisation IP) pour l'utilisateur connecté.
  * Throttled côté client pour éviter trop de requêtes.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -16,10 +18,22 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Mettre à jour last_seen_at
+    // Détecter le pays via IP
+    const clientIP = getClientIP(request)
+    const geo = geoip.lookup(clientIP)
+    const country = geo?.country || null
+
+    // Mettre à jour last_seen_at + country
+    const updateData: Record<string, any> = {
+      last_seen_at: new Date().toISOString()
+    }
+    if (country) {
+      updateData.country = country
+    }
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ last_seen_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', user.id)
 
     if (updateError) {

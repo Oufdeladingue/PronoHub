@@ -183,6 +183,7 @@ interface AdminUser {
   id: string
   username: string
   email: string | null
+  country: string | null
   created_at: string
   last_seen_at: string | null
   active_tournaments_count: number
@@ -194,7 +195,7 @@ interface ActiveTournamentsModalState {
   tournaments: Array<{ id: string; name: string; slug: string; status: string }>
 }
 
-type UsersSortBy = 'username' | 'email' | 'created_at' | 'last_seen_at' | 'active_tournaments_count'
+type UsersSortBy = 'username' | 'email' | 'country' | 'created_at' | 'last_seen_at' | 'active_tournaments_count'
 
 type TabType = 'tournaments' | 'users' | 'credits'
 
@@ -521,6 +522,11 @@ export default function AdminUsagePage() {
   const SortArrow = ({ column }: { column: UsersSortBy }) => {
     if (usersSortBy !== column) return <span className="text-gray-300 ml-1">↕</span>
     return <span className="text-purple-500 ml-1">{usersSortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  const countryFlag = (code: string | null) => {
+    if (!code) return ''
+    return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 - 65 + c.charCodeAt(0)))
   }
 
   // ===== FONCTIONS TOURNOIS =====
@@ -1712,6 +1718,12 @@ export default function AdminUsagePage() {
                           Dernière connexion <SortArrow column="last_seen_at" />
                         </th>
                         <th
+                          onClick={() => handleUsersSort('country')}
+                          className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Pays <SortArrow column="country" />
+                        </th>
+                        <th
                           onClick={() => handleUsersSort('active_tournaments_count')}
                           className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
                         >
@@ -1722,13 +1734,13 @@ export default function AdminUsagePage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
                       ) : adminUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
@@ -1746,6 +1758,13 @@ export default function AdminUsagePage() {
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" title={u.last_seen_at ? new Date(u.last_seen_at).toLocaleString('fr-FR') : ''}>
                               {formatRelativeDate(u.last_seen_at)}
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm whitespace-nowrap" title={u.country || ''}>
+                              {u.country ? (
+                                <span>{countryFlag(u.country)} {u.country}</span>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               {u.active_tournaments_count > 0 ? (
@@ -1796,13 +1815,16 @@ export default function AdminUsagePage() {
                           <span className="ml-2 text-gray-400 text-sm flex-shrink-0">0 tournoi</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                         <span>
                           Créé le {new Date(u.created_at).toLocaleDateString('fr-FR')}
                         </span>
                         <span>
                           Vu {formatRelativeDate(u.last_seen_at).toLowerCase()}
                         </span>
+                        {u.country && (
+                          <span>{countryFlag(u.country)} {u.country}</span>
+                        )}
                       </div>
                     </div>
                   ))

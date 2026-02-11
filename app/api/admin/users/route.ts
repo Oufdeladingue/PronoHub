@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const sortDir = searchParams.get('sortDir') || 'desc'
     const offset = (page - 1) * pageSize
 
-    const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at']
+    const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at', 'country']
     const actualSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
     const ascending = sortDir === 'asc'
 
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Requête paginée
     let usersQuery = adminClient
       .from('profiles')
-      .select('id, username, email, created_at, last_seen_at')
+      .select('id, username, email, created_at, last_seen_at, country')
       .order(actualSortBy, { ascending, nullsFirst: false })
       .range(offset, offset + pageSize - 1)
 
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les tournois actifs pour ces users
     const userIds = usersData.map(u => u.id)
-    const activeStatuses = ['active', 'in_progress', 'registration']
+    const activeStatuses = ['active', 'pending', 'warmup']
 
     const { data: participations } = await adminClient
       .from('tournament_participants')
@@ -119,6 +119,7 @@ export async function GET(request: NextRequest) {
         id: u.id,
         username: u.username || 'Sans nom',
         email: u.email,
+        country: u.country || null,
         created_at: u.created_at,
         last_seen_at: u.last_seen_at,
         active_tournaments_count: activeTournaments.length,
