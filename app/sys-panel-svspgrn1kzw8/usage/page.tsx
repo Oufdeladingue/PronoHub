@@ -179,7 +179,24 @@ interface Toast {
   username?: string
 }
 
-type TabType = 'tournaments' | 'credits'
+interface AdminUser {
+  id: string
+  username: string
+  email: string | null
+  created_at: string
+  last_seen_at: string | null
+  active_tournaments_count: number
+  active_tournaments: Array<{ id: string; name: string; slug: string; status: string }>
+}
+
+interface ActiveTournamentsModalState {
+  username: string
+  tournaments: Array<{ id: string; name: string; slug: string; status: string }>
+}
+
+type UsersSortBy = 'username' | 'email' | 'created_at' | 'last_seen_at' | 'active_tournaments_count'
+
+type TabType = 'tournaments' | 'users' | 'credits'
 
 // ============= COMPOSANTS AUXILIAIRES =============
 
@@ -404,6 +421,17 @@ export default function AdminUsagePage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [tournamentsPageSize, setTournamentsPageSize] = useState(20)
 
+  // ===== ÉTATS USERS =====
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersSearch, setUsersSearch] = useState('')
+  const [usersPage, setUsersPage] = useState(1)
+  const [usersPageSize, setUsersPageSize] = useState(20)
+  const [usersTotalCount, setUsersTotalCount] = useState(0)
+  const [usersSortBy, setUsersSortBy] = useState<UsersSortBy>('created_at')
+  const [usersSortDir, setUsersSortDir] = useState<'asc' | 'desc'>('desc')
+  const [activeTournamentsModal, setActiveTournamentsModal] = useState<ActiveTournamentsModalState | null>(null)
+
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
   const [creditsLoading, setCreditsLoading] = useState(true)
@@ -425,6 +453,75 @@ export default function AdminUsagePage() {
   const [userTournamentsLoading, setUserTournamentsLoading] = useState(false)
   const [userHasLifetimeAccess, setUserHasLifetimeAccess] = useState(false)
   const [creditsPageSize, setCreditsPageSize] = useState(20)
+
+  // ===== FONCTIONS USERS =====
+
+  const fetchAdminUsers = useCallback(async () => {
+    setUsersLoading(true)
+    try {
+      const sortParam = usersSortBy === 'active_tournaments_count' ? 'created_at' : usersSortBy
+      const response = await fetch(
+        `/api/admin/users?search=${encodeURIComponent(usersSearch)}&page=${usersPage}&pageSize=${usersPageSize}&sortBy=${sortParam}&sortDir=${usersSortDir}`
+      )
+      const data = await response.json()
+
+      if (data.success) {
+        let fetchedUsers = data.users as AdminUser[]
+        // Tri côté client pour active_tournaments_count
+        if (usersSortBy === 'active_tournaments_count') {
+          fetchedUsers = [...fetchedUsers].sort((a, b) => {
+            const diff = a.active_tournaments_count - b.active_tournaments_count
+            return usersSortDir === 'asc' ? diff : -diff
+          })
+        }
+        setAdminUsers(fetchedUsers)
+        setUsersTotalCount(data.totalCount)
+      }
+    } catch (error) {
+      console.error('Error fetching admin users:', error)
+    }
+    setUsersLoading(false)
+  }, [usersSearch, usersPage, usersPageSize, usersSortBy, usersSortDir])
+
+  const handleUsersSort = (column: UsersSortBy) => {
+    if (usersSortBy === column) {
+      setUsersSortDir(prev => prev === 'asc' ? 'desc' : 'asc')
+    } else {
+      setUsersSortBy(column)
+      setUsersSortDir(column === 'created_at' || column === 'last_seen_at' ? 'desc' : 'asc')
+    }
+  }
+
+  const usersTotalPages = Math.ceil(usersTotalCount / usersPageSize)
+
+  const handleExportCSV = () => {
+    const params = new URLSearchParams({
+      search: usersSearch,
+      sortBy: usersSortBy === 'active_tournaments_count' ? 'created_at' : usersSortBy,
+      sortDir: usersSortDir
+    })
+    window.open(`/api/admin/users/export?${params.toString()}`, '_blank')
+  }
+
+  const formatRelativeDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Jamais'
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return "Aujourd'hui"
+    if (diffDays === 1) return 'Hier'
+    if (diffDays < 7) return `Il y a ${diffDays}j`
+    if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} sem.`
+    if (diffDays < 365) return `Il y a ${Math.floor(diffDays / 30)} mois`
+    return `Il y a ${Math.floor(diffDays / 365)} an(s)`
+  }
+
+  const SortArrow = ({ column }: { column: UsersSortBy }) => {
+    if (usersSortBy !== column) return <span className="text-gray-300 ml-1">↕</span>
+    return <span className="text-purple-500 ml-1">{usersSortDir === 'asc' ? '↑' : '↓'}</span>
+  }
 
   // ===== FONCTIONS TOURNOIS =====
 
@@ -768,6 +865,8 @@ export default function AdminUsagePage() {
   useEffect(() => {
     if (activeTab === 'tournaments') {
       fetchTournaments()
+    } else if (activeTab === 'users') {
+      fetchAdminUsers()
     } else {
       fetchUsers()
     }
@@ -778,6 +877,21 @@ export default function AdminUsagePage() {
       fetchUsers()
     }
   }, [creditsPage, fetchUsers, activeTab])
+
+  // Debounce search users
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setUsersPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [usersSearch, usersPageSize])
+
+  // Fetch users quand page/tri/search change
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchAdminUsers()
+    }
+  }, [usersPage, fetchAdminUsers, activeTab])
 
   // ===== RENDU =====
 
@@ -820,6 +934,24 @@ export default function AdminUsagePage() {
                 </span>
               )}
               {activeTab === 'tournaments' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'users'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Users
+              {usersTotalCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full">
+                  {usersTotalCount}
+                </span>
+              )}
+              {activeTab === 'users' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
               )}
             </button>
@@ -1516,6 +1648,215 @@ export default function AdminUsagePage() {
             </>
           )}
 
+          {/* ===== ONGLET USERS ===== */}
+          {activeTab === 'users' && (
+            <>
+              {/* Barre de recherche + Export */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                <div className="relative flex-1 w-full sm:max-w-md">
+                  <input
+                    type="text"
+                    value={usersSearch}
+                    onChange={(e) => setUsersSearch(e.target.value)}
+                    placeholder="Rechercher par pseudo ou email..."
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <button
+                  onClick={handleExportCSV}
+                  className="inline-flex items-center gap-2 px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export CSV
+                </button>
+              </div>
+
+              {/* Tableau Desktop */}
+              <div className="hidden md:block bg-white rounded-lg shadow">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          onClick={() => handleUsersSort('email')}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Email <SortArrow column="email" />
+                        </th>
+                        <th
+                          onClick={() => handleUsersSort('username')}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Pseudo <SortArrow column="username" />
+                        </th>
+                        <th
+                          onClick={() => handleUsersSort('created_at')}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Créé le <SortArrow column="created_at" />
+                        </th>
+                        <th
+                          onClick={() => handleUsersSort('last_seen_at')}
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Dernière connexion <SortArrow column="last_seen_at" />
+                        </th>
+                        <th
+                          onClick={() => handleUsersSort('active_tournaments_count')}
+                          className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+                        >
+                          Tournois actifs <SortArrow column="active_tournaments_count" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {usersLoading ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                            Chargement...
+                          </td>
+                        </tr>
+                      ) : adminUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                            Aucun utilisateur trouvé
+                          </td>
+                        </tr>
+                      ) : (
+                        adminUsers.map((u) => (
+                          <tr key={u.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate" title={u.email || ''}>
+                              {u.email || <span className="text-gray-400 italic">Aucun</span>}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                              {u.username}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                              {new Date(u.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap" title={u.last_seen_at ? new Date(u.last_seen_at).toLocaleString('fr-FR') : ''}>
+                              {formatRelativeDate(u.last_seen_at)}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {u.active_tournaments_count > 0 ? (
+                                <button
+                                  onClick={() => setActiveTournamentsModal({ username: u.username, tournaments: u.active_tournaments })}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full hover:bg-purple-200 transition-colors"
+                                >
+                                  {u.active_tournaments_count}
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                </button>
+                              ) : (
+                                <span className="text-gray-400 text-sm">0</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Vue Mobile : Cartes */}
+              <div className="md:hidden space-y-3">
+                {usersLoading ? (
+                  <div className="text-center py-8 text-gray-500">Chargement...</div>
+                ) : adminUsers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">Aucun utilisateur trouvé</div>
+                ) : (
+                  adminUsers.map((u) => (
+                    <div key={u.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900 truncate">{u.username}</p>
+                          <p className="text-sm text-gray-500 truncate">{u.email || 'Pas d\'email'}</p>
+                        </div>
+                        {u.active_tournaments_count > 0 ? (
+                          <button
+                            onClick={() => setActiveTournamentsModal({ username: u.username, tournaments: u.active_tournaments })}
+                            className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full hover:bg-purple-200 transition-colors flex-shrink-0"
+                          >
+                            {u.active_tournaments_count} tournoi{u.active_tournaments_count > 1 ? 's' : ''}
+                          </button>
+                        ) : (
+                          <span className="ml-2 text-gray-400 text-sm flex-shrink-0">0 tournoi</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>
+                          Créé le {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                        </span>
+                        <span>
+                          Vu {formatRelativeDate(u.last_seen_at).toLowerCase()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 p-4 bg-slate-800 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-white">
+                    <span className="font-semibold text-purple-400">{usersTotalCount}</span> utilisateur{usersTotalCount > 1 ? 's' : ''}
+                    {usersTotalCount > 0 && (
+                      <span className="text-slate-400 ml-2">
+                        ({(usersPage - 1) * usersPageSize + 1}-{Math.min(usersPage * usersPageSize, usersTotalCount)})
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-slate-300">Afficher :</label>
+                    <select
+                      value={usersPageSize}
+                      onChange={(e) => setUsersPageSize(Number(e.target.value))}
+                      className="px-2 py-1 border border-slate-600 rounded text-sm bg-slate-700 text-white"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-300">
+                    Page <span className="font-semibold text-white">{usersPage}</span> / {usersTotalPages || 1}
+                  </span>
+                  <button
+                    onClick={() => setUsersPage(Math.max(1, usersPage - 1))}
+                    disabled={usersPage === 1}
+                    className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={() => setUsersPage(Math.min(usersTotalPages || 1, usersPage + 1))}
+                    disabled={usersPage >= usersTotalPages}
+                    className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
           {/* ===== ONGLET CRÉDITS ===== */}
           {activeTab === 'credits' && (
             <>
@@ -1704,6 +2045,63 @@ export default function AdminUsagePage() {
           )}
         </main>
       </div>
+
+      {/* Modal tournois actifs (onglet Users) */}
+      {activeTournamentsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setActiveTournamentsModal(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Tournois actifs
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {activeTournamentsModal.username} — {activeTournamentsModal.tournaments.length} tournoi{activeTournamentsModal.tournaments.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTournamentsModal(null)}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1">
+              <div className="space-y-2">
+                {activeTournamentsModal.tournaments.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate">{t.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{t.slug}</p>
+                    </div>
+                    <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${
+                      t.status === 'active' || t.status === 'in_progress'
+                        ? 'bg-green-100 text-green-700'
+                        : t.status === 'registration'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {t.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex-shrink-0">
+              <button
+                onClick={() => setActiveTournamentsModal(null)}
+                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de sélection de tournoi pour Stats */}
       {statsTournamentModal && (
