@@ -95,10 +95,14 @@ export default function CommunicationsPage() {
         .insert({
           title: `${original.title} (copie)`,
           email_subject: original.email_subject,
-          email_content: original.email_content,
-          push_title: original.push_title,
-          push_body: original.push_body,
-          push_data: original.push_data,
+          email_body_html: original.email_body_html,
+          email_preview_text: original.email_preview_text,
+          email_cta_text: original.email_cta_text,
+          email_cta_url: original.email_cta_url,
+          notification_title: original.notification_title,
+          notification_body: original.notification_body,
+          notification_image_url: original.notification_image_url,
+          notification_click_url: original.notification_click_url,
           targeting_filters: original.targeting_filters,
           send_email: original.send_email,
           send_push: original.send_push,
@@ -107,13 +111,9 @@ export default function CommunicationsPage() {
           sent_at: null,
           stats_total_recipients: 0,
           stats_emails_sent: 0,
+          stats_emails_failed: 0,
           stats_push_sent: 0,
-          stats_emails_delivered: 0,
-          stats_emails_opened: 0,
-          stats_emails_clicked: 0,
-          stats_emails_bounced: 0,
-          stats_push_delivered: 0,
-          stats_push_opened: 0
+          stats_push_failed: 0
         })
         .select()
         .single()

@@ -15,6 +15,8 @@ interface Communication {
   id: string
   title: string
   status: 'draft' | 'scheduled' | 'sent' | 'failed'
+  send_email: boolean
+  send_push: boolean
   email_subject: string | null
   email_body_html: string | null
   email_preview_text: string | null
@@ -44,6 +46,8 @@ export default function EditCommunicationPage() {
   const [recipientCount, setRecipientCount] = useState({ total: 0, email: 0, push: 0 })
   const [countingRecipients, setCountingRecipients] = useState(false)
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [sendChannels, setSendChannels] = useState({ email: true, push: true })
 
   // Compter les destinataires quand les filtres changent
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function EditCommunicationPage() {
     loadData()
   }, [router, communicationId])
 
-  const handleChange = (field: keyof Communication, value: string) => {
+  const handleChange = (field: keyof Communication, value: string | boolean) => {
     if (!communication) return
     setCommunication(prev => prev ? { ...prev, [field]: value } : null)
   }
@@ -160,6 +164,8 @@ export default function EditCommunicationPage() {
       .from('admin_communications')
       .update({
         title: communication.title,
+        send_email: communication.send_email,
+        send_push: communication.send_push,
         email_subject: communication.email_subject || null,
         email_body_html: communication.email_body_html || null,
         email_preview_text: communication.email_preview_text || null,
@@ -184,7 +190,7 @@ export default function EditCommunicationPage() {
     alert('Communication sauvegardée !')
   }
 
-  const handleSendNow = async () => {
+  const handleOpenSendModal = () => {
     if (!communication) return
 
     if (!communication.email_subject && !communication.notification_title) {
@@ -192,15 +198,49 @@ export default function EditCommunicationPage() {
       return
     }
 
-    const confirmed = confirm(
-      'Êtes-vous sûr de vouloir envoyer cette communication immédiatement à tous les utilisateurs ?'
-    )
+    // Initialiser les canaux avec les valeurs de la communication
+    setSendChannels({
+      email: communication.send_email ?? true,
+      push: communication.send_push ?? true
+    })
+    setShowSendModal(true)
+  }
 
-    if (!confirmed) return
+  const handleSendNow = async () => {
+    if (!communication) return
 
+    // Vérifier qu'au moins un canal est sélectionné
+    if (!sendChannels.email && !sendChannels.push) {
+      alert('Vous devez sélectionner au moins un canal d\'envoi')
+      return
+    }
+
+    // Vérifier que le contenu correspond aux canaux sélectionnés
+    if (sendChannels.email && !communication.email_subject) {
+      alert('Vous devez remplir le contenu email si vous voulez envoyer par email')
+      return
+    }
+
+    if (sendChannels.push && !communication.notification_title) {
+      alert('Vous devez remplir le contenu push si vous voulez envoyer des notifications push')
+      return
+    }
+
+    setShowSendModal(false)
     setSending(true)
 
     try {
+      // Sauvegarder d'abord les choix de canaux
+      const supabase = createClient()
+      await supabase
+        .from('admin_communications')
+        .update({
+          send_email: sendChannels.email,
+          send_push: sendChannels.push
+        })
+        .eq('id', communicationId)
+
+      // Envoyer
       const response = await fetch('/api/admin/communications/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -275,7 +315,7 @@ export default function EditCommunicationPage() {
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
               <button
-                onClick={handleSendNow}
+                onClick={handleOpenSendModal}
                 disabled={sending}
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
               >
@@ -627,6 +667,135 @@ export default function EditCommunicationPage() {
           </div>
         </div>
       </main>
+
+      {/* Modale de confirmation d'envoi */}
+      {showSendModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* En-tête */}
+            <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
+              <div className="flex items-center gap-3">
+                <div className="bg-white bg-opacity-20 rounded-full p-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Confirmer l'envoi</h3>
+                  <p className="text-green-100 text-sm mt-1">Choisissez les canaux de diffusion</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6 space-y-6">
+              {/* Statistiques */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-3">Cette communication sera envoyée à :</p>
+                <div className="flex items-center justify-center gap-4">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-900">{recipientCount.total}</p>
+                    <p className="text-xs text-gray-500 mt-1">Destinataires</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Choix des canaux */}
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Canaux d'envoi *
+                </label>
+
+                {/* Option Email */}
+                <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  sendChannels.email
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={sendChannels.email}
+                    onChange={(e) => setSendChannels(prev => ({ ...prev, email: e.target.checked }))}
+                    className="w-5 h-5 text-purple-600 rounded"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">📧</span>
+                      <span className="font-medium text-gray-900">Email</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{recipientCount.email} destinataires avec email</p>
+                  </div>
+                  {sendChannels.email && (
+                    <div className="bg-purple-500 text-white rounded-full p-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </label>
+
+                {/* Option Push */}
+                <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  sendChannels.push
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={sendChannels.push}
+                    onChange={(e) => setSendChannels(prev => ({ ...prev, push: e.target.checked }))}
+                    className="w-5 h-5 text-purple-600 rounded"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">📱</span>
+                      <span className="font-medium text-gray-900">Notification Push</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{recipientCount.push} destinataires avec app mobile</p>
+                  </div>
+                  {sendChannels.push && (
+                    <div className="bg-purple-500 text-white rounded-full p-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </label>
+
+                {/* Avertissement si aucun canal */}
+                {!sendChannels.email && !sendChannels.push && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-xs text-red-700">Vous devez sélectionner au moins un canal d'envoi</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowSendModal(false)}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSendNow}
+                disabled={!sendChannels.email && !sendChannels.push}
+                className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+                Confirmer l'envoi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
