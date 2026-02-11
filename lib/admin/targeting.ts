@@ -93,17 +93,17 @@ export async function calculateRecipients(
     let usersWithActiveTournament = new Set<string>()
 
     if (activeTournamentIds.length > 0) {
-      // Ensuite récupérer les membres de ces tournois
-      const { data: memberships } = await supabase
-        .from('tournament_team_members')
+      // Ensuite récupérer les participants de ces tournois
+      const { data: participants } = await supabase
+        .from('tournament_participants')
         .select('user_id')
         .in('user_id', userIds)
         .in('tournament_id', activeTournamentIds)
 
-      console.log('[Targeting] Memberships found:', memberships?.length || 0)
+      console.log('[Targeting] Participants found:', participants?.length || 0)
 
       usersWithActiveTournament = new Set(
-        memberships?.map(m => m.user_id) || []
+        participants?.map(p => p.user_id) || []
       )
     } else {
       console.log('[Targeting] No active tournaments, all users have no active tournament')
@@ -152,18 +152,18 @@ export async function calculateRecipients(
   if (filters.minTournaments) {
     const userIds = filteredProfiles.map(p => p.id)
 
-    const { data: membershipCounts } = await supabase
-      .from('tournament_team_members')
+    const { data: participations } = await supabase
+      .from('tournament_participants')
       .select('user_id, tournament_id')
       .in('user_id', userIds)
 
     // Compter les tournois uniques par utilisateur
     const userTournamentSets = new Map<string, Set<string>>()
-    membershipCounts?.forEach(m => {
-      if (!userTournamentSets.has(m.user_id)) {
-        userTournamentSets.set(m.user_id, new Set())
+    participations?.forEach(p => {
+      if (!userTournamentSets.has(p.user_id)) {
+        userTournamentSets.set(p.user_id, new Set())
       }
-      userTournamentSets.get(m.user_id)!.add(m.tournament_id)
+      userTournamentSets.get(p.user_id)!.add(p.tournament_id)
     })
 
     const userTournamentCounts = new Map<string, number>()
