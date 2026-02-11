@@ -56,6 +56,13 @@ export default function EditCommunicationPage() {
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendChannels, setSendChannels] = useState({ email: true, push: true })
+  const [sendResult, setSendResult] = useState<{
+    totalSent: number
+    emailsSent: number
+    emailsFailed: number
+    pushSent: number
+    pushFailed: number
+  } | null>(null)
 
   // Compter les destinataires quand les filtres changent
   useEffect(() => {
@@ -274,8 +281,13 @@ export default function EditCommunicationPage() {
         throw new Error(data.error || 'Erreur lors de l\'envoi')
       }
 
-      alert(`Communication envoyée avec succès ! ${data.totalSent} destinataires`)
-      router.push(`${getAdminUrl()}/communications`)
+      setSendResult({
+        totalSent: data.totalSent,
+        emailsSent: data.emailsSent || 0,
+        emailsFailed: data.emailsFailed || 0,
+        pushSent: data.pushSent || 0,
+        pushFailed: data.pushFailed || 0
+      })
     } catch (error: any) {
       console.error('Error sending:', error)
       alert(`Erreur lors de l'envoi: ${error.message}`)
@@ -896,6 +908,71 @@ export default function EditCommunicationPage() {
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                 </svg>
                 Confirmer l'envoi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de résultat d'envoi */}
+      {sendResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            {/* En-tête */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white text-center">
+              <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold">Envoi terminé !</h3>
+              <p className="text-green-100 text-sm mt-1">{sendResult.totalSent} destinataire{sendResult.totalSent > 1 ? 's' : ''}</p>
+            </div>
+
+            {/* Stats */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4">
+                {(sendResult.emailsSent > 0 || sendResult.emailsFailed > 0) && (
+                  <>
+                    <div className="bg-green-50 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-green-700">{sendResult.emailsSent}</p>
+                      <p className="text-xs text-green-600 mt-1">Emails envoyés</p>
+                    </div>
+                    {sendResult.emailsFailed > 0 && (
+                      <div className="bg-red-50 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-red-700">{sendResult.emailsFailed}</p>
+                        <p className="text-xs text-red-600 mt-1">Emails échoués</p>
+                      </div>
+                    )}
+                  </>
+                )}
+                {(sendResult.pushSent > 0 || sendResult.pushFailed > 0) && (
+                  <>
+                    <div className="bg-purple-50 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-purple-700">{sendResult.pushSent}</p>
+                      <p className="text-xs text-purple-600 mt-1">Push envoyés</p>
+                    </div>
+                    {sendResult.pushFailed > 0 && (
+                      <div className="bg-red-50 rounded-xl p-4 text-center">
+                        <p className="text-2xl font-bold text-red-700">{sendResult.pushFailed}</p>
+                        <p className="text-xs text-red-600 mt-1">Push échoués</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Action */}
+            <div className="bg-gray-50 px-6 py-4">
+              <button
+                onClick={() => {
+                  setSendResult(null)
+                  router.push(`${getAdminUrl()}/communications`)
+                }}
+                className="w-full px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Retour aux communications
               </button>
             </div>
           </div>
