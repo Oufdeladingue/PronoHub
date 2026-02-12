@@ -28,7 +28,7 @@
 | Type | Push Android | Email |
 |------|:------------:|:-----:|
 | reminder | ✅ | ✅ |
-| badge_unlocked | ⬜ | ⬜ |
+| badge_unlocked | ✅ | ⬜ |
 | new_matches | ⬜ | ⬜ |
 | tournament_started | ⬜ | ⬜ |
 | tournament_end | ⬜ | ⬜ |
@@ -38,3 +38,8 @@
 | day_recap | ⬜ | ✅ |
 
 **Note:** `day_recap` n'envoie que des emails (pas de notifications push pour ce type)
+
+## Workflow session
+- En début de session : demander le scope (une feature ? plusieurs ? test + deploy ?)
+- Email de test pour les notifications : kochroman6@gmail.com
+- Endpoint de test : `/api/test-push-image?email=...&mode=push|email|both&trophy=...`

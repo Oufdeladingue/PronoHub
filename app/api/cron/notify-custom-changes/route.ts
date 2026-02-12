@@ -349,13 +349,20 @@ export async function GET(request: NextRequest) {
         changes: matchdayChanges
       } = notification
 
-      // Préparer les données pour l'email
-      const changesForEmail = matchdayChanges.map(change => ({
-        type: change.change_type as 'add' | 'remove',
-        homeTeam: change.cached_home_team || 'Équipe A',
-        awayTeam: change.cached_away_team || 'Équipe B',
-        matchDate: change.cached_utc_date ? formatMatchDate(change.cached_utc_date) : 'Date à déterminer'
-      }))
+      // Préparer les données pour l'email (avec logos d'équipes)
+      const changesForEmail = matchdayChanges.map(change => {
+        const logos = change.football_data_match_id
+          ? matchLogoMap[change.football_data_match_id]
+          : null
+        return {
+          type: change.change_type as 'add' | 'remove',
+          homeTeam: change.cached_home_team || 'Équipe A',
+          awayTeam: change.cached_away_team || 'Équipe B',
+          homeTeamCrest: logos?.home_team_crest || undefined,
+          awayTeamCrest: logos?.away_team_crest || undefined,
+          matchDate: change.cached_utc_date ? formatMatchDate(change.cached_utc_date) : 'Date à déterminer'
+        }
+      })
 
       const addedCount = matchdayChanges.filter(c => c.change_type === 'add').length
       const removedCount = matchdayChanges.filter(c => c.change_type === 'remove').length

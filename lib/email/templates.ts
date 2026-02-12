@@ -2735,6 +2735,8 @@ export interface MatchdayChangesEmailProps {
     type: 'add' | 'remove'
     homeTeam: string
     awayTeam: string
+    homeTeamCrest?: string
+    awayTeamCrest?: string
     matchDate: string // Format: "Samedi 8 février à 21h00"
   }>
   totalMatchesInMatchday: number
@@ -2758,38 +2760,59 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
   const addedMatches = changes.filter(c => c.type === 'add')
   const removedMatches = changes.filter(c => c.type === 'remove')
 
-  // Générer le HTML pour les matchs ajoutés
+  // Générer le HTML pour les matchs ajoutés (avec logos)
   const addedMatchesHtml = addedMatches.length > 0 ? `
-    <div style="background-color: #14532d; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
-      <h3 style="margin: 0 0 12px; color: #22c55e; font-size: 16px;">✅ Match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} (${addedMatches.length})</h3>
-      ${addedMatches.map(match => `
-        <div style="background-color: #166534; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
-          <p style="margin: 0 0 4px; color: #fff; font-size: 15px; font-weight: 600;">
-            ${match.homeTeam} - ${match.awayTeam}
-          </p>
-          <p style="margin: 0; color: #86efac; font-size: 13px;">
-            📅 ${match.matchDate}
-          </p>
-        </div>
-      `).join('')}
-    </div>
+              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                  <h3 style="margin: 0; color: #22c55e; font-size: 16px;">⚽ Match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} (${addedMatches.length})</h3>
+                  <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">À pronostiquer</p>
+                </div>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${addedMatches.map(match => `
+                  <tr>
+                    <td style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                      <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                          <td style="width: 40%; text-align: right; vertical-align: middle; padding-right: 8px;">
+                            ${match.homeTeamCrest ? `<img src="${match.homeTeamCrest}" alt="" width="28" height="28" style="width: 28px; height: 28px; object-fit: contain; vertical-align: middle; margin-right: 8px;">` : ''}
+                            <span style="color: #fff; font-size: 14px; font-weight: 600;">${match.homeTeam}</span>
+                          </td>
+                          <td style="width: 20%; text-align: center; vertical-align: middle;">
+                            <span style="color: #ff9900; font-size: 13px; font-weight: 700;">VS</span>
+                          </td>
+                          <td style="width: 40%; text-align: left; vertical-align: middle; padding-left: 8px;">
+                            ${match.awayTeamCrest ? `<img src="${match.awayTeamCrest}" alt="" width="28" height="28" style="width: 28px; height: 28px; object-fit: contain; vertical-align: middle; margin-right: 8px;">` : ''}
+                            <span style="color: #fff; font-size: 14px; font-weight: 600;">${match.awayTeam}</span>
+                          </td>
+                        </tr>
+                      </table>
+                      <p style="margin: 8px 0 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                        📅 ${match.matchDate}
+                      </p>
+                    </td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
   ` : ''
 
-  // Générer le HTML pour les matchs retirés
+  // Générer le HTML pour les matchs retirés (sans logos, simplifié)
   const removedMatchesHtml = removedMatches.length > 0 ? `
-    <div style="background-color: #7f1d1d; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
-      <h3 style="margin: 0 0 12px; color: #ef4444; font-size: 16px;">❌ Match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} (${removedMatches.length})</h3>
-      ${removedMatches.map(match => `
-        <div style="background-color: #991b1b; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
-          <p style="margin: 0 0 4px; color: #fff; font-size: 15px; font-weight: 600; text-decoration: line-through;">
-            ${match.homeTeam} - ${match.awayTeam}
-          </p>
-          <p style="margin: 0; color: #fca5a5; font-size: 13px;">
-            📅 ${match.matchDate}
-          </p>
-        </div>
-      `).join('')}
-    </div>
+              <div style="background-color: #0f172a; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+                <div style="padding: 16px; border-bottom: 1px solid #1e293b;">
+                  <h3 style="margin: 0; color: #ef4444; font-size: 16px;">❌ Match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} (${removedMatches.length})</h3>
+                </div>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  ${removedMatches.map(match => `
+                  <tr>
+                    <td style="padding: 12px 16px; border-bottom: 1px solid #1e293b;">
+                      <span style="color: #94a3b8; font-size: 14px; text-decoration: line-through;">${match.homeTeam} - ${match.awayTeam}</span>
+                      <span style="color: #64748b; font-size: 12px; margin-left: 8px;">${match.matchDate}</span>
+                    </td>
+                  </tr>
+                  `).join('')}
+                </table>
+              </div>
   ` : ''
 
   const html = `
@@ -2798,7 +2821,7 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mise à jour de la Journée ${matchdayNumber}</title>
+  <title>Nouveaux matchs à pronostiquer !</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -2807,11 +2830,11 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
         <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
               <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
                 <img src="https://www.pronohub.club/images/logo-email.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
               </td></tr></table>
-              <h1 style="margin: 0; color: #fff; font-size: 22px; font-weight: 700;">🔄 Mise à jour J${matchdayNumber}</h1>
+              <h1 style="margin: 0; color: #000; font-size: 24px; font-weight: 700;">⚽ Nouveaux matchs à pronostiquer !</h1>
             </td>
           </tr>
 
@@ -2822,54 +2845,51 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
                 Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
               </p>
               <p style="margin: 0 0 24px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
-                La <strong style="color: #3b82f6;">Journée ${matchdayNumber}</strong> de ton tournoi <strong style="color: #ff9900;">${tournamentName}</strong> a été mise à jour.
+                La <strong style="color: #ff9900;">Journée ${matchdayNumber}</strong> de ton tournoi <strong style="color: #ff9900;">${tournamentName}</strong> a été mise à jour.
               </p>
 
-              <!-- Résumé -->
-              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+              <!-- Infos tournoi -->
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <table role="presentation" style="width: 100%; border-collapse: collapse;">
                   <tr>
-                    <td style="padding: 8px; text-align: center;">
-                      <span style="display: block; color: #3b82f6; font-size: 28px; font-weight: 700;">J${matchdayNumber}</span>
-                      <span style="color: #94a3b8; font-size: 12px;">Journée</span>
+                    <td style="padding: 4px 0;">
+                      <span style="color: #94a3b8; font-size: 13px;">Tournoi</span><br>
+                      <span style="color: #fff; font-size: 16px; font-weight: 600;">${tournamentName}</span>
                     </td>
-                    <td style="padding: 8px; text-align: center;">
-                      <span style="display: block; color: ${addedMatches.length > 0 ? '#22c55e' : '#64748b'}; font-size: 28px; font-weight: 700;">+${addedMatches.length}</span>
-                      <span style="color: #94a3b8; font-size: 12px;">ajouté${addedMatches.length > 1 ? 's' : ''}</span>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 0;">
+                      <span style="color: #94a3b8; font-size: 13px;">Compétition</span><br>
+                      <span style="color: #ff9900; font-size: 15px;">${competitionName}</span>
                     </td>
-                    <td style="padding: 8px; text-align: center;">
-                      <span style="display: block; color: ${removedMatches.length > 0 ? '#ef4444' : '#64748b'}; font-size: 28px; font-weight: 700;">-${removedMatches.length}</span>
-                      <span style="color: #94a3b8; font-size: 12px;">retiré${removedMatches.length > 1 ? 's' : ''}</span>
-                    </td>
-                    <td style="padding: 8px; text-align: center;">
-                      <span style="display: block; color: #fff; font-size: 28px; font-weight: 700;">${totalMatchesInMatchday}</span>
-                      <span style="color: #94a3b8; font-size: 12px;">matchs total</span>
+                  </tr>
+                  <tr>
+                    <td style="padding: 4px 0;">
+                      <span style="color: #94a3b8; font-size: 13px;">Journée</span><br>
+                      <span style="color: #fff; font-size: 15px;">J${matchdayNumber} — ${totalMatchesInMatchday} matchs au total</span>
                     </td>
                   </tr>
                 </table>
               </div>
 
-              <!-- Compétition -->
-              <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
-                <p style="margin: 0; color: #94a3b8; font-size: 14px;">
-                  🏆 <strong style="color: #ff9900;">${competitionName}</strong>
-                </p>
-              </div>
-
-              <!-- Détails des changements -->
+              <!-- Matchs ajoutés -->
               ${addedMatchesHtml}
+
+              <!-- Matchs retirés -->
               ${removedMatchesHtml}
 
-              <!-- Message -->
-              <div style="background-color: #1e3a5f; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #3b82f6;">
-                <p style="margin: 0; color: #93c5fd; font-size: 14px; line-height: 1.5;">
-                  <strong>💡 Rappel :</strong> ${addedMatches.length > 0 ? 'Pense à pronostiquer les nouveaux matchs !' : 'Tes pronostics sur les matchs retirés ne seront plus comptabilisés.'}
+              <!-- Rappel -->
+              ${addedMatches.length > 0 ? `
+              <div style="background-color: #1e3a5f; border-radius: 12px; padding: 16px; margin-bottom: 24px; border-left: 4px solid #ff9900;">
+                <p style="margin: 0; color: #fbbf24; font-size: 14px; line-height: 1.5;">
+                  <strong>🎯 Rappel :</strong> Ces nouveaux matchs sont à pronostiquer ! Rends-toi sur la page Opposition pour remplir tes pronos.
                 </p>
               </div>
+              ` : ''}
 
               <div style="text-align: center; margin: 32px 0;">
                 <a href="${tournamentUrl}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
-                  Voir les matchs de la journée
+                  Pronostiquer maintenant
                 </a>
               </div>
             </td>
@@ -2900,31 +2920,29 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
 
   // Version texte
   const addedMatchesText = addedMatches.length > 0 ? `
-✅ MATCH${addedMatches.length > 1 ? 'S' : ''} AJOUTÉ${addedMatches.length > 1 ? 'S' : ''} (${addedMatches.length})
-${addedMatches.map(m => `  + ${m.homeTeam} - ${m.awayTeam}\n    📅 ${m.matchDate}`).join('\n')}
+⚽ MATCH${addedMatches.length > 1 ? 'S' : ''} AJOUTÉ${addedMatches.length > 1 ? 'S' : ''} (${addedMatches.length})
+${addedMatches.map(m => `  + ${m.homeTeam} vs ${m.awayTeam}\n    📅 ${m.matchDate}`).join('\n')}
 ` : ''
 
   const removedMatchesText = removedMatches.length > 0 ? `
 ❌ MATCH${removedMatches.length > 1 ? 'S' : ''} RETIRÉ${removedMatches.length > 1 ? 'S' : ''} (${removedMatches.length})
-${removedMatches.map(m => `  - ${m.homeTeam} - ${m.awayTeam}\n    📅 ${m.matchDate}`).join('\n')}
+${removedMatches.map(m => `  - ${m.homeTeam} - ${m.awayTeam} (${m.matchDate})`).join('\n')}
 ` : ''
 
   const text = `
-🔄 Mise à jour de la Journée ${matchdayNumber}
+⚽ Nouveaux matchs à pronostiquer !
 
 Salut ${username} !
 
 La Journée ${matchdayNumber} de ton tournoi "${tournamentName}" a été mise à jour.
 
-📊 RÉSUMÉ
----
-J${matchdayNumber} • +${addedMatches.length} ajouté${addedMatches.length > 1 ? 's' : ''} • -${removedMatches.length} retiré${removedMatches.length > 1 ? 's' : ''} • ${totalMatchesInMatchday} matchs total
-
-🏆 ${competitionName}
+Tournoi : ${tournamentName}
+Compétition : ${competitionName}
+Journée : J${matchdayNumber} — ${totalMatchesInMatchday} matchs au total
 ${addedMatchesText}${removedMatchesText}
-💡 ${addedMatches.length > 0 ? 'Pense à pronostiquer les nouveaux matchs !' : 'Tes pronostics sur les matchs retirés ne seront plus comptabilisés.'}
+${addedMatches.length > 0 ? '🎯 Ces nouveaux matchs sont à pronostiquer !' : 'Tes pronostics sur les matchs retirés ne seront plus comptabilisés.'}
 
-👉 Voir les matchs : ${tournamentUrl}
+👉 Pronostiquer : ${tournamentUrl}
 
 ---
 © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
@@ -2934,11 +2952,11 @@ Gérer mes notifications : ${baseUrl}/profile
   // Sujet dynamique
   let subject: string
   if (addedMatches.length > 0 && removedMatches.length === 0) {
-    subject = `🔄 ${addedMatches.length} match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} à la J${matchdayNumber} - ${tournamentName}`
+    subject = `⚽ ${addedMatches.length} match${addedMatches.length > 1 ? 's' : ''} ajouté${addedMatches.length > 1 ? 's' : ''} — ${tournamentName} J${matchdayNumber}`
   } else if (removedMatches.length > 0 && addedMatches.length === 0) {
-    subject = `🔄 ${removedMatches.length} match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} de la J${matchdayNumber} - ${tournamentName}`
+    subject = `🔄 ${removedMatches.length} match${removedMatches.length > 1 ? 's' : ''} retiré${removedMatches.length > 1 ? 's' : ''} — ${tournamentName} J${matchdayNumber}`
   } else {
-    subject = `🔄 Mise à jour J${matchdayNumber} : ${addedMatches.length} ajouté${addedMatches.length > 1 ? 's' : ''}, ${removedMatches.length} retiré${removedMatches.length > 1 ? 's' : ''} - ${tournamentName}`
+    subject = `⚽ Mise à jour J${matchdayNumber} : ${addedMatches.length} ajouté${addedMatches.length > 1 ? 's' : ''}, ${removedMatches.length} retiré${removedMatches.length > 1 ? 's' : ''} — ${tournamentName}`
   }
 
   return {
