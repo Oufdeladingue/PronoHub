@@ -165,6 +165,9 @@ function ProfileContent() {
   const [savingNotifications, setSavingNotifications] = useState(false)
   const [notificationSaved, setNotificationSaved] = useState(false)
   const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false)
+  const [hasChosenUsername, setHasChosenUsername] = useState(true)
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
+  const [checkingUsername, setCheckingUsername] = useState(false)
   const [showDeleteZone, setShowDeleteZone] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
@@ -194,7 +197,7 @@ function ProfileContent() {
       // Requête de base pour le profil
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('username, theme_preference, avatar')
+        .select('username, theme_preference, avatar, has_chosen_username')
         .eq('id', user.id)
         .single()
 
@@ -206,6 +209,7 @@ function ProfileContent() {
         setUsername(profile.username || '')
         setInitialUsername(profile.username || '')
         setSelectedAvatar(profile.avatar || 'avatar1')
+        setHasChosenUsername(profile.has_chosen_username !== false)
       }
 
       // Charger les préférences de notifications séparément (colonne optionnelle)
@@ -282,20 +286,51 @@ function ProfileContent() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Si le pseudo a changé et qu'on n'avait pas encore choisi, vérifier l'unicité
+    const usernameChanged = username !== initialUsername
+    if (usernameChanged && !hasChosenUsername) {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .neq('id', user.id)
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        setMessage('Ce pseudo est déjà pris')
+        setSaving(false)
+        return
+      }
+    }
+
+    const updateData: any = {
+      username,
+      theme_preference: theme,
+      avatar: selectedAvatar
+    }
+
+    // Marquer le pseudo comme choisi si c'est un changement
+    if (usernameChanged && !hasChosenUsername) {
+      updateData.has_chosen_username = true
+    }
+
     const { error } = await supabase
       .from('profiles')
-      .update({
-        username,
-        theme_preference: theme,
-        avatar: selectedAvatar
-      })
+      .update(updateData)
       .eq('id', user.id)
 
     if (error) {
-      setMessage('Erreur lors de la sauvegarde')
+      if (error.code === '23505') {
+        setMessage('Ce pseudo est déjà pris')
+      } else {
+        setMessage('Erreur lors de la sauvegarde')
+      }
     } else {
       setMessage('Profil mis à jour avec succès')
       setInitialUsername(username)
+      if (usernameChanged && !hasChosenUsername) {
+        setHasChosenUsername(true)
+      }
       // Rafraîchir les données utilisateur dans le context global
       await refreshUserData()
     }
@@ -659,7 +694,7 @@ function ProfileContent() {
     }
   }
 
-  const isUsernameSet = Boolean(initialUsername && initialUsername.trim().length > 0)
+  const isUsernameLocked = hasChosenUsername && Boolean(initialUsername && initialUsername.trim().length > 0)
 
   if (loading) {
     return (
@@ -933,15 +968,27 @@ function ProfileContent() {
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={isUsernameSet}
-                  maxLength={14}
-                  className={`theme-input max-w-[200px] mx-auto text-center ${isUsernameSet ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setUsername(val)
+                    if (!hasChosenUsername && val.length >= 3 && val !== initialUsername) {
+                      setCheckingUsername(true)
+                      setUsernameAvailable(null)
+                    }
+                  }}
+                  disabled={isUsernameLocked}
+                  maxLength={12}
+                  className={`theme-input max-w-[200px] mx-auto text-center ${isUsernameLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                   placeholder="Votre pseudo"
                 />
-                {isUsernameSet && (
+                {isUsernameLocked && (
                   <p className="text-sm theme-text-secondary mt-1">
-                    Le nom d'utilisateur ne peut pas être modifié une fois défini
+                    Le pseudo ne peut pas être modifié
+                  </p>
+                )}
+                {!hasChosenUsername && !isUsernameLocked && (
+                  <p className="text-sm text-[#ff9900] mt-1 font-medium">
+                    Tu peux changer ton pseudo une seule fois
                   </p>
                 )}
               </div>

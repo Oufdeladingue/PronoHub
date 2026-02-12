@@ -112,6 +112,7 @@ function ChooseUsernameForm() {
           id: user.id,
           username: username,
           email: user.email,
+          has_chosen_username: true,
           updated_at: new Date().toISOString(),
         })
 
