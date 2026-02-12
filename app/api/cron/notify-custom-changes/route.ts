@@ -405,42 +405,48 @@ export async function GET(request: NextRequest) {
         imageUrl = `${baseUrl}/api/og/new-matches?${ogParams.toString()}`
       }
 
-      // Utiliser sendNotificationToUser qui vérifie automatiquement les préférences
-      try {
-        const result = await sendNotificationToUser(
-          user.id,
-          'new_matches',
-          {
-            body: `Le juge de ligne a levé son drapeau : il signale ${matchCount} nouveau${plural} match${plural} ajouté${plural} dans ${tournament.name}. N'oublie pas de les renseigner...`,
-            tournamentSlug: tournament.slug,
-            imageUrl,
-            data: {
-              tournamentName: tournament.name,
-              matchdayNumber: String(matchdayNumber),
-              matchCount: String(matchCount)
-            }
-          }
-        )
+      // Vérifier les préférences
+      const prefs = user.notification_preferences || {}
+      const notifEnabled = prefs.email_new_matches !== false // Par défaut activé
 
-        if (result) {
-          pushSent++
-          console.log(`[CUSTOM-CHANGES] Notification envoyée à user ${user.id} pour J${matchdayNumber}`)
-        } else {
-          pushFailed++
-          console.log(`[CUSTOM-CHANGES] Notification skipped pour user ${user.id} (pas de token ou préférence désactivée)`)
-        }
-      } catch (err) {
-        pushFailed++
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-        errors.push(`User ${user.id}: ${errorMsg}`)
+      if (!notifEnabled) {
+        console.log(`[CUSTOM-CHANGES] Notification skipped pour user ${user.id} (préférence désactivée)`)
+        continue
       }
 
-      // Envoyer l'email détaillé (garde l'ancien système pour l'email riche)
-      // Vérifier d'abord les préférences email
-      const prefs = user.notification_preferences || {}
-      const emailEnabled = prefs.email_new_matches !== false // Par défaut activé
+      // Canal : push si FCM token, sinon email (jamais les deux)
+      if (user.fcm_token) {
+        // --- PUSH ---
+        try {
+          const result = await sendNotificationToUser(
+            user.id,
+            'new_matches',
+            {
+              body: `Le juge de ligne a levé son drapeau : il signale ${matchCount} nouveau${plural} match${plural} ajouté${plural} dans ${tournament.name}. N'oublie pas de les renseigner...`,
+              tournamentSlug: tournament.slug,
+              imageUrl,
+              data: {
+                tournamentName: tournament.name,
+                matchdayNumber: String(matchdayNumber),
+                matchCount: String(matchCount)
+              }
+            }
+          )
 
-      if (user.email && emailEnabled) {
+          if (result) {
+            pushSent++
+            console.log(`[CUSTOM-CHANGES] Push envoyé à user ${user.id} pour J${matchdayNumber}`)
+          } else {
+            pushFailed++
+            console.log(`[CUSTOM-CHANGES] Push failed pour user ${user.id}`)
+          }
+        } catch (err) {
+          pushFailed++
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          errors.push(`Push ${user.id}: ${errorMsg}`)
+        }
+      } else if (user.email) {
+        // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendMatchdayChangesEmail(user.email, {
             username: user.username || 'Joueur',
@@ -464,8 +470,6 @@ export async function GET(request: NextRequest) {
           const errorMsg = err instanceof Error ? err.message : 'Unknown error'
           errors.push(`Email ${user.email}: ${errorMsg}`)
         }
-      } else if (!emailEnabled) {
-        console.log(`[CUSTOM-CHANGES] Email skipped pour ${user.email} (préférence désactivée)`)
       }
     }
 

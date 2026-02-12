@@ -124,11 +124,34 @@ export async function GET(request: NextRequest) {
     const errors: string[] = []
 
     for (const user of usersToNotify) {
-      let emailSuccess = false
-      let pushSuccess = false
+      let success = false
 
-      // Envoyer l'email si l'utilisateur a un email
-      if (user.email) {
+      // Canal : push si FCM token, sinon email (jamais les deux)
+      if (user.fcm_token) {
+        // --- PUSH (prioritaire si FCM token) ---
+        try {
+          const pushResult = await sendPushNotification(
+            user.fcm_token,
+            PUSH_TITLE,
+            PUSH_BODY,
+            { type: 'inactive_reminder', url: '/vestiaire' }
+          )
+
+          if (pushResult) {
+            pushSent++
+            success = true
+            console.log(`[INACTIVE-REMINDER] Push envoyé à user ${user.id}`)
+          } else {
+            pushFailed++
+          }
+        } catch (err) {
+          pushFailed++
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+          errors.push(`Push ${user.id}: ${errorMsg}`)
+          console.error(`[INACTIVE-REMINDER] Exception push pour ${user.id}:`, err)
+        }
+      } else if (user.email) {
+        // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendInactiveUserReminderEmail(user.email, {
             username: user.username || ''
@@ -136,7 +159,7 @@ export async function GET(request: NextRequest) {
 
           if (result.success) {
             emailsSent++
-            emailSuccess = true
+            success = true
             console.log(`[INACTIVE-REMINDER] Email envoyé à ${user.email}`)
           } else {
             emailsFailed++
@@ -151,33 +174,8 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Envoyer la notification push si l'utilisateur a un token FCM
-      if (user.fcm_token) {
-        try {
-          const pushResult = await sendPushNotification(
-            user.fcm_token,
-            PUSH_TITLE,
-            PUSH_BODY,
-            { type: 'inactive_reminder', url: '/vestiaire' }
-          )
-
-          if (pushResult) {
-            pushSent++
-            pushSuccess = true
-            console.log(`[INACTIVE-REMINDER] Push envoyé à user ${user.id}`)
-          } else {
-            pushFailed++
-          }
-        } catch (err) {
-          pushFailed++
-          const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-          errors.push(`Push ${user.id}: ${errorMsg}`)
-          console.error(`[INACTIVE-REMINDER] Exception push pour ${user.id}:`, err)
-        }
-      }
-
-      // Marquer comme envoyé si au moins un canal a fonctionné
-      if (emailSuccess || pushSuccess) {
+      // Marquer comme envoyé si le canal a fonctionné
+      if (success) {
         await supabase
           .from('profiles')
           .update({ inactive_reminder_sent_at: now.toISOString() })

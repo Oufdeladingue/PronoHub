@@ -157,9 +157,9 @@ export async function GET(request: NextRequest) {
             // Construire l'URL de l'image OG dynamique
             const imageUrl = buildBadgeImageUrl(trophyInfo, triggerMatch)
 
-            // --- PUSH NOTIFICATION ---
+            // Canal : push si FCM token, sinon email (jamais les deux)
             if (profile?.fcm_token) {
-              // Vérifier déduplication push
+              // --- PUSH (prioritaire si FCM token) ---
               const { data: existingPushLog } = await supabase
                 .from('notification_logs')
                 .select('id')
@@ -201,77 +201,73 @@ export async function GET(request: NextRequest) {
                   totalErrors++
                 }
               }
-            }
+            } else {
+              // --- EMAIL (seulement si pas de FCM token) ---
+              const email = profile?.email
+              if (email && !EMAIL_BLACKLIST.has(email.toLowerCase())) {
+                const { data: existingEmailLog } = await supabase
+                  .from('notification_logs')
+                  .select('id')
+                  .eq('user_id', userId)
+                  .eq('notification_type', 'badge_unlocked')
+                  .eq('match_id', trophyUuid)
+                  .eq('channel', 'email')
+                  .eq('status', 'sent')
+                  .limit(1)
 
-            // --- EMAIL ---
-            const email = profile?.email
-            if (email && !EMAIL_BLACKLIST.has(email.toLowerCase())) {
-              // Vérifier déduplication email
-              const { data: existingEmailLog } = await supabase
-                .from('notification_logs')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('notification_type', 'badge_unlocked')
-                .eq('match_id', trophyUuid)
-                .eq('channel', 'email')
-                .eq('status', 'sent')
-                .limit(1)
+                if (!existingEmailLog || existingEmailLog.length === 0) {
+                  try {
+                    await supabase
+                      .from('notification_logs')
+                      .delete()
+                      .eq('user_id', userId)
+                      .eq('notification_type', 'badge_unlocked')
+                      .eq('match_id', trophyUuid)
+                      .eq('channel', 'email')
+                      .eq('status', 'failed')
 
-              if (!existingEmailLog || existingEmailLog.length === 0) {
-                try {
-                  // Supprimer les anciens logs 'failed' pour retry propre
-                  await supabase
-                    .from('notification_logs')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('notification_type', 'badge_unlocked')
-                    .eq('match_id', trophyUuid)
-                    .eq('channel', 'email')
-                    .eq('status', 'failed')
+                    await new Promise(resolve => setTimeout(resolve, 600))
 
-                  // Rate limit Resend (2 req/s max)
-                  await new Promise(resolve => setTimeout(resolve, 600))
+                    const emailResult = await sendBadgeUnlockedEmail(email, {
+                      username: profile?.username || 'champion',
+                      trophyName: trophyInfo.name,
+                      trophyDescription: trophyInfo.description,
+                      trophyImageUrl: `${BASE_URL}${trophyInfo.imagePath}`,
+                      triggerMatch: triggerMatch ? {
+                        homeTeamName: triggerMatch.homeTeamName,
+                        awayTeamName: triggerMatch.awayTeamName,
+                        homeTeamCrest: triggerMatch.homeTeamCrest || undefined,
+                        awayTeamCrest: triggerMatch.awayTeamCrest || undefined,
+                        homeScore: triggerMatch.homeScore,
+                        awayScore: triggerMatch.awayScore,
+                        predictedHomeScore: triggerMatch.predictedHomeScore,
+                        predictedAwayScore: triggerMatch.predictedAwayScore,
+                        matchDate: triggerMatch.utcDate,
+                      } : undefined,
+                    })
 
-                  const emailResult = await sendBadgeUnlockedEmail(email, {
-                    username: profile?.username || 'champion',
-                    trophyName: trophyInfo.name,
-                    trophyDescription: trophyInfo.description,
-                    trophyImageUrl: `${BASE_URL}${trophyInfo.imagePath}`,
-                    triggerMatch: triggerMatch ? {
-                      homeTeamName: triggerMatch.homeTeamName,
-                      awayTeamName: triggerMatch.awayTeamName,
-                      homeTeamCrest: triggerMatch.homeTeamCrest || undefined,
-                      awayTeamCrest: triggerMatch.awayTeamCrest || undefined,
-                      homeScore: triggerMatch.homeScore,
-                      awayScore: triggerMatch.awayScore,
-                      predictedHomeScore: triggerMatch.predictedHomeScore,
-                      predictedAwayScore: triggerMatch.predictedAwayScore,
-                      matchDate: triggerMatch.utcDate,
-                    } : undefined,
-                  })
+                    await supabase.from('notification_logs').insert({
+                      user_id: userId,
+                      notification_type: 'badge_unlocked',
+                      match_id: trophyUuid,
+                      channel: 'email',
+                      status: emailResult.success ? 'sent' : 'failed',
+                      sent_at: emailResult.success ? new Date().toISOString() : null,
+                      error_message: emailResult.error || null
+                    })
 
-                  await supabase.from('notification_logs').insert({
-                    user_id: userId,
-                    notification_type: 'badge_unlocked',
-                    match_id: trophyUuid,
-                    channel: 'email',
-                    status: emailResult.success ? 'sent' : 'failed',
-                    sent_at: emailResult.success ? new Date().toISOString() : null,
-                    error_message: emailResult.error || null
-                  })
-
-                  if (emailResult.success) {
-                    totalEmailsSent++
-                    console.log(`[CHECK-TROPHIES] ✅ Email sent to ${profile?.username} for "${trophyInfo.name}"`)
-                  } else {
+                    if (emailResult.success) {
+                      totalEmailsSent++
+                      console.log(`[CHECK-TROPHIES] ✅ Email sent to ${profile?.username} for "${trophyInfo.name}"`)
+                    } else {
+                      totalErrors++
+                      errors.push(`Email failed for ${profile?.username}: ${emailResult.error}`)
+                    }
+                  } catch (emailError: any) {
                     totalErrors++
-                    errors.push(`Email failed for ${profile?.username}: ${emailResult.error}`)
+                    errors.push(`Email exception for ${profile?.username}: ${emailError.message}`)
+                    console.error(`[CHECK-TROPHIES] ❌ Email error for ${profile?.username}:`, emailError.message)
                   }
-                } catch (emailError: any) {
-                  totalErrors++
-                  errors.push(`Email exception for ${profile?.username}: ${emailError.message}`)
-                  console.error(`[CHECK-TROPHIES] ❌ Email error for ${profile?.username}:`, emailError.message)
-                }
               }
             }
           }
