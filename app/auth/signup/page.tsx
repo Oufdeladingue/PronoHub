@@ -139,6 +139,21 @@ function SignUpForm() {
 
           await saveSessionToPreferences()
 
+          // Vérifier si l'utilisateur a déjà un pseudo
+          if (data.user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('id', data.user.id)
+              .single()
+
+            if (!profile?.username) {
+              // Nouveau compte → choisir un pseudo
+              router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
+              return
+            }
+          }
+
           const redirectPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
           router.push(redirectPath)
           return

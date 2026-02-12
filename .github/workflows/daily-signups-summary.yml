@@ -1,0 +1,48 @@
+name: Daily Signups Summary
+
+on:
+  schedule:
+    # 12h et 20h heure française (11h et 19h UTC)
+    - cron: '0 11 * * *'  # 12h France
+    - cron: '0 19 * * *'  # 20h France
+
+  # Permet de déclencher manuellement depuis GitHub UI
+  workflow_dispatch:
+
+jobs:
+  daily-signups:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📊 Trigger daily-signups-summary cron
+        run: |
+          response=$(curl -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}" \
+            -s \
+            https://www.pronohub.club/api/cron/daily-signups-summary)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if command -v jq &> /dev/null; then
+            echo "$body" | jq '.' || echo "$body"
+          else
+            echo "$body"
+          fi
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+
+          echo "✅ Cron exécuté avec succès"
+
+      - name: 📊 Log execution time
+        if: always()
+        run: |
+          echo "Execution time (UTC): $(date -u +"%Y-%m-%d %H:%M:%S")"
+          echo "Execution time (Paris): $(TZ=Europe/Paris date +"%Y-%m-%d %H:%M:%S")"

@@ -66,6 +66,32 @@ export async function GET(request: Request) {
     }
   }
 
+  // Vérifier si l'utilisateur a un username (nécessaire pour les nouveaux comptes OAuth)
+  if (code) {
+    try {
+      const supabaseCheck = await createClient()
+      const { data: { user } } = await supabaseCheck.auth.getUser()
+      if (user) {
+        const adminSupabase = createAdminClient()
+        const { data: profile } = await adminSupabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single()
+
+        if (!profile?.username) {
+          // Nouveau compte OAuth sans pseudo → rediriger vers choose-username
+          const chooseUsernameUrl = redirectTo
+            ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+            : '/auth/choose-username'
+          return NextResponse.redirect(`${origin}${chooseUsernameUrl}`)
+        }
+      }
+    } catch {
+      // En cas d'erreur, continuer vers le dashboard
+    }
+  }
+
   // Utiliser redirectTo si présent, sinon rediriger vers le dashboard
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
   return NextResponse.redirect(`${origin}${finalRedirect}`)

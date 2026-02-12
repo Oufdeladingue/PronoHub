@@ -122,12 +122,18 @@ function LoginForm() {
           // Sauvegarder la session dans Capacitor Preferences pour persistance
           await saveSessionToPreferences()
 
-          // Vérifier le rôle pour la redirection
+          // Vérifier le profil (rôle + username)
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, username')
             .eq('id', data.user.id)
             .single()
+
+          // Si pas de pseudo, rediriger vers choose-username
+          if (!profile?.username) {
+            router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
+            return
+          }
 
           const redirectPath = redirectTo
             ? decodeURIComponent(redirectTo)
