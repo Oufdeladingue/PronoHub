@@ -894,7 +894,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
       <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #1e293b;">
         <p style="margin: 0 0 6px; color: #3b82f6; font-size: 14px; font-weight: 600;">🏃 Prime d'avant-match</p>
         <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5;">
-          <strong style="color: #3b82f6;">+1 point</strong> supplémentaire si <strong>tous tes pronos</strong> sont renseignés <strong>avant le début de la journée</strong> de compétition.
+          <strong style="color: #3b82f6;">+1 point</strong> supplémentaire par journée si <strong>tous tes pronos</strong> sont renseignés <strong>en temps et en heure</strong>.
         </p>
       </div>
       ` : ''}

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email/send'
-import { getMatchdayChangesTemplate, getTournamentStartedTemplate } from '@/lib/email/templates'
+import {
+  getMatchdayChangesTemplate,
+  getTournamentStartedTemplate,
+  getTournamentEndTemplate,
+  getTournamentInviteDetailedTemplate,
+  getNewPlayerJoinedTemplate,
+  getMentionTemplate
+} from '@/lib/email/templates'
 
 const TEST_EMAIL = 'kochroman6@gmail.com'
 
@@ -13,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     switch (type) {
       case 'tournament_started': {
-        const result = getTournamentStartedTemplate({
+        const r = getTournamentStartedTemplate({
           username: 'TestUser',
           tournamentName: 'Ligue des Champions 2025',
           tournamentSlug: 'ligue-des-champions-2025',
@@ -38,14 +45,101 @@ export async function GET(request: NextRequest) {
           },
           userActiveTournaments: 3
         })
-        html = result.html
-        text = result.text
-        subject = result.subject
+        html = r.html; text = r.text; subject = r.subject
+        break
+      }
+
+      case 'tournament_end': {
+        const r = getTournamentEndTemplate({
+          username: 'TestUser',
+          tournamentName: 'Ligue des Champions 2025',
+          tournamentSlug: 'ligue-des-champions-2025',
+          competitionName: 'UEFA Champions League',
+          finalRanking: [
+            { rank: 1, username: 'Marie', totalPoints: 156, isCurrentUser: false },
+            { rank: 2, username: 'TestUser', totalPoints: 142, isCurrentUser: true },
+            { rank: 3, username: 'Alex', totalPoints: 138, isCurrentUser: false },
+            { rank: 4, username: 'Thomas', totalPoints: 121, isCurrentUser: false },
+            { rank: 5, username: 'Sophie', totalPoints: 109, isCurrentUser: false },
+          ],
+          userFinalStats: {
+            finalRank: 2,
+            totalPoints: 142,
+            exactScores: 12,
+            correctResults: 45,
+            perfectMatchdays: 3
+          },
+          winner: { username: 'Marie', totalPoints: 156 },
+          newTrophies: [
+            { name: 'Podium', description: 'Terminer dans le top 3 d\'un tournoi' },
+            { name: 'Nostradamus', description: '10+ scores exacts dans un tournoi' }
+          ]
+        })
+        html = r.html; text = r.text; subject = r.subject
+        break
+      }
+
+      case 'invite': {
+        const r = getTournamentInviteDetailedTemplate({
+          inviterUsername: 'Alex',
+          tournamentName: 'Ligue des Champions 2025',
+          tournamentSlug: 'ligue-des-champions-2025',
+          inviteCode: 'ABC123',
+          competitionName: 'UEFA Champions League',
+          participants: [
+            { username: 'Alex', isCaptain: true },
+            { username: 'Marie', isCaptain: false },
+            { username: 'Thomas', isCaptain: false },
+          ],
+          matchdayRange: { start: 1, end: 8, totalMatches: 144 },
+          rules: {
+            exactScore: 3,
+            correctResult: 1,
+            correctGoalDiff: 2,
+            bonusEnabled: true,
+            bonusPoints: 2
+          }
+        })
+        html = r.html; text = r.text; subject = r.subject
+        break
+      }
+
+      case 'player_joined': {
+        const r = getNewPlayerJoinedTemplate({
+          captainUsername: 'Alex',
+          tournamentName: 'Ligue des Champions 2025',
+          tournamentSlug: 'ligue-des-champions-2025',
+          competitionName: 'UEFA Champions League',
+          newPlayerUsername: 'Sophie',
+          currentParticipants: 4,
+          maxParticipants: 10,
+          participants: [
+            { username: 'Alex', isCaptain: true },
+            { username: 'Marie', isCaptain: false },
+            { username: 'Thomas', isCaptain: false },
+            { username: 'Sophie', isCaptain: false },
+          ],
+          canLaunchTournament: true
+        })
+        html = r.html; text = r.text; subject = r.subject
+        break
+      }
+
+      case 'mention': {
+        const r = getMentionTemplate({
+          username: 'TestUser',
+          senderUsername: 'Alex',
+          tournamentName: 'Ligue des Champions 2025',
+          tournamentSlug: 'ligue-des-champions-2025',
+          competitionName: 'UEFA Champions League',
+          message: 'Hey @TestUser tu as vu le match de hier soir ? PSG a été incroyable ! Je pense que tu vas avoir du mal à battre mon prono cette semaine 😄'
+        })
+        html = r.html; text = r.text; subject = r.subject
         break
       }
 
       default: {
-        const result = getMatchdayChangesTemplate({
+        const r = getMatchdayChangesTemplate({
           username: 'TestUser',
           tournamentName: 'Ligue des Champions 2025',
           tournamentSlug: 'ligue-des-champions-2025',
@@ -77,9 +171,7 @@ export async function GET(request: NextRequest) {
           ],
           totalMatchesInMatchday: 8
         })
-        html = result.html
-        text = result.text
-        subject = result.subject
+        html = r.html; text = r.text; subject = r.subject
         break
       }
     }
