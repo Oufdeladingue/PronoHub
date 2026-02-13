@@ -168,6 +168,7 @@ export async function sendNotificationToTournament(
     data?: Record<string, string>
     tournamentSlug?: string
     excludeUserId?: string // Exclure un utilisateur (ex: le capitaine qui lance)
+    imageUrl?: string
   }
 ): Promise<{ sent: number; skipped: number }> {
   const supabase = await createClient()
@@ -222,7 +223,7 @@ export async function sendNotificationToTournament(
     ...(options?.data || {}),
   }
 
-  const result = await sendPushNotificationToMany(tokens, title, body, data)
+  const result = await sendPushNotificationToMany(tokens, title, body, data, options?.imageUrl)
 
   return {
     sent: result.success,
@@ -260,10 +261,10 @@ export async function sendTournamentStarted(
 ): Promise<{ sent: number; skipped: number }> {
   const supabase = await createClient()
 
-  // Récupérer le premier match du tournoi (celui avec la date la plus proche)
+  // Récupérer le premier match du tournoi avec les infos équipes
   const { data: firstMatch } = await supabase
     .from('matches')
-    .select('scheduled_at')
+    .select('scheduled_at, cached_home_team, cached_away_team, cached_home_logo, cached_away_logo, football_data_match_id')
     .eq('tournament_id', tournamentId)
     .order('scheduled_at', { ascending: true })
     .limit(1)
@@ -271,6 +272,7 @@ export async function sendTournamentStarted(
 
   // Formater la date en français (ex: "samedi 15 mars à 21h00")
   let firstMatchDate = ''
+  let matchTime = '21:00'
   if (firstMatch?.scheduled_at) {
     const date = new Date(firstMatch.scheduled_at)
     const options: Intl.DateTimeFormatOptions = {
@@ -284,9 +286,51 @@ export async function sendTournamentStarted(
     const formatted = new Intl.DateTimeFormat('fr-FR', options).format(date)
     // Format: "samedi 15 mars à 21h00"
     firstMatchDate = formatted.replace(' à ', ' à ').replace(':', 'h')
+    matchTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
   } else {
     firstMatchDate = 'bientôt'
   }
+
+  // Récupérer les logos depuis imported_matches si disponible
+  let homeLogo = firstMatch?.cached_home_logo || ''
+  let awayLogo = firstMatch?.cached_away_logo || ''
+  let competitionLogo = ''
+
+  if (firstMatch?.football_data_match_id) {
+    const { data: imported } = await supabase
+      .from('imported_matches')
+      .select('home_team_crest, away_team_crest, competition_id')
+      .eq('football_data_match_id', firstMatch.football_data_match_id)
+      .single()
+
+    if (imported) {
+      homeLogo = imported.home_team_crest || homeLogo
+      awayLogo = imported.away_team_crest || awayLogo
+
+      // Récupérer l'emblème de la compétition
+      if (imported.competition_id) {
+        const { data: comp } = await supabase
+          .from('competitions')
+          .select('emblem')
+          .eq('id', imported.competition_id)
+          .single()
+        competitionLogo = comp?.emblem || ''
+      }
+    }
+  }
+
+  // Construire l'imageUrl OG
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.pronohub.club'
+  const ogParams = new URLSearchParams({
+    tournament: tournamentName,
+    home: firstMatch?.cached_home_team || 'Équipe 1',
+    away: firstMatch?.cached_away_team || 'Équipe 2',
+    homeLogo,
+    awayLogo,
+    competitionLogo,
+    time: matchTime,
+  })
+  const imageUrl = `${baseUrl}/api/og/tournament-started?${ogParams.toString()}`
 
   const config = NOTIFICATION_CONFIG.tournament_started
   const body = config.defaultBody
@@ -297,6 +341,7 @@ export async function sendTournamentStarted(
     body,
     tournamentSlug,
     excludeUserId: captainId,
+    imageUrl,
   })
 }
 

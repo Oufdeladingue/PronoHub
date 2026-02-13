@@ -8,7 +8,7 @@ import { getTrophyInfo } from '@/lib/trophy-info'
 // Usage: GET /api/test-push-image?email=ton@email.com
 // Optionnel: &trophy=king_of_day (par défaut: exact_score)
 // Optionnel: &mode=push|email|both (par défaut: push)
-// Optionnel: &type=badge_unlocked|new_matches (par défaut: badge_unlocked)
+// Optionnel: &type=badge_unlocked|new_matches|tournament_started (par défaut: badge_unlocked)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
@@ -70,7 +70,30 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (notifType === 'new_matches') {
+    if (notifType === 'tournament_started') {
+      // --- TEST TOURNAMENT STARTED ---
+      if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
+        const imageParams = new URLSearchParams({
+          tournament: 'PronoHub League',
+          home: fakeMatch.homeTeamName,
+          away: fakeMatch.awayTeamName,
+          homeLogo: fakeMatch.homeTeamCrest,
+          awayLogo: fakeMatch.awayTeamCrest,
+          competitionLogo: 'https://crests.football-data.org/FL1.png',
+          time: '21:00',
+        })
+        const imageUrl = `${baseUrl}/api/og/tournament-started?${imageParams.toString()}`
+
+        results.pushSuccess = await sendPushNotification(
+          profile.fcm_token,
+          'Le coup d\'envoi est lancé ! ⚽',
+          `PronoHub League vient de démarrer ! Premier match : ${fakeMatch.homeTeamName} vs ${fakeMatch.awayTeamName}. Valide tes pronos !`,
+          { type: 'tournament_started', clickAction: '/dashboard' },
+          imageUrl
+        )
+        results.imageUrl = imageUrl
+      }
+    } else if (notifType === 'new_matches') {
       // --- TEST NEW MATCHES ---
       if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
         const imageParams = new URLSearchParams({
