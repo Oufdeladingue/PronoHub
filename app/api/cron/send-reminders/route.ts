@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     // 1a. Récupérer les matchs IMPORTÉS du jour qui n'ont pas encore commencé
     const { data: importedMatches, error: importedMatchesError } = await supabase
       .from('imported_matches')
-      .select('id, competition_id, matchday, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date')
+      .select('id, competition_id, matchday, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date, football_data_match_id')
       .gte('utc_date', now.toISOString())
       .lte('utc_date', endOfDay.toISOString())
       .in('status', ['SCHEDULED', 'TIMED'])
@@ -91,35 +91,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur récupération matchs importés' }, { status: 500 })
     }
 
-    // 1b. Récupérer les matchs CUSTOM du jour (via custom_competition_matchdays)
-    // D'abord, récupérer toutes les journées de compétitions custom
+    // Créer une map football_data_match_id → imported match pour cross-référencer avec les matchs custom
+    const importedMatchByFdId = new Map<number, (typeof importedMatches)[number]>()
+    for (const m of importedMatches || []) {
+      if (m.football_data_match_id) {
+        importedMatchByFdId.set(m.football_data_match_id, m)
+      }
+    }
+
+    // 1b. Récupérer les matchs CUSTOM qui référencent les matchs importés du jour
+    // On utilise football_data_match_id (clé stable) au lieu de cached_utc_date (cache potentiellement désynchronisé)
     const { data: customMatchdays } = await supabase
       .from('custom_competition_matchdays')
       .select('id, matchday_number, custom_competition_id')
-
-    // Puis récupérer les matchs custom du jour
-    const { data: customMatches, error: customMatchesError } = await supabase
-      .from('custom_competition_matches')
-      .select(`
-        id,
-        custom_matchday_id,
-        imported_match_id,
-        cached_home_team,
-        cached_away_team,
-        cached_utc_date
-      `)
-      .gte('cached_utc_date', now.toISOString())
-      .lte('cached_utc_date', endOfDay.toISOString())
-
-    if (customMatchesError) {
-      console.error('Error fetching custom matches:', customMatchesError)
-      return NextResponse.json({ error: 'Erreur récupération matchs custom' }, { status: 500 })
-    }
 
     // Créer une map pour les journées custom
     const customMatchdayMap = new Map<string, { matchday_number: number; custom_competition_id: string }>()
     for (const md of customMatchdays || []) {
       customMatchdayMap.set(md.id, { matchday_number: md.matchday_number, custom_competition_id: md.custom_competition_id })
+    }
+
+    const footballDataIds = Array.from(importedMatchByFdId.keys())
+
+    let customMatches: { id: string; custom_matchday_id: string; imported_match_id: string | null; football_data_match_id: number }[] = []
+    if (footballDataIds.length > 0) {
+      const { data: customMatchesData, error: customMatchesError } = await supabase
+        .from('custom_competition_matches')
+        .select('id, custom_matchday_id, imported_match_id, football_data_match_id')
+        .in('football_data_match_id', footballDataIds)
+
+      if (customMatchesError) {
+        console.error('Error fetching custom matches:', customMatchesError)
+        return NextResponse.json({ error: 'Erreur récupération matchs custom' }, { status: 500 })
+      }
+      customMatches = customMatchesData || []
     }
 
     // Normaliser les matchs importés
@@ -135,19 +140,20 @@ export async function GET(request: NextRequest) {
       custom_competition_id: null
     }))
 
-    // Normaliser les matchs custom
-    const normalizedCustomMatches: NormalizedMatch[] = (customMatches || [])
-      .filter(m => customMatchdayMap.has(m.custom_matchday_id))
+    // Normaliser les matchs custom en utilisant les données imported_matches (source de vérité)
+    const normalizedCustomMatches: NormalizedMatch[] = customMatches
+      .filter(m => customMatchdayMap.has(m.custom_matchday_id) && m.football_data_match_id && importedMatchByFdId.has(m.football_data_match_id))
       .map(m => {
         const mdInfo = customMatchdayMap.get(m.custom_matchday_id)!
+        const importedMatch = importedMatchByFdId.get(m.football_data_match_id)!
         return {
-          id: m.imported_match_id || m.id, // Utiliser imported_match_id si disponible, sinon l'ID custom
+          id: importedMatch.id, // Toujours utiliser l'ID imported_matches (FK pour predictions)
           matchday: mdInfo.matchday_number,
-          home_team: m.cached_home_team || 'Équipe A',
-          away_team: m.cached_away_team || 'Équipe B',
-          home_team_crest: null, // Custom matches n'ont pas de logos
-          away_team_crest: null,
-          utc_date: m.cached_utc_date,
+          home_team: importedMatch.home_team_name,
+          away_team: importedMatch.away_team_name,
+          home_team_crest: importedMatch.home_team_crest || null,
+          away_team_crest: importedMatch.away_team_crest || null,
+          utc_date: importedMatch.utc_date,
           competition_id: null,
           custom_competition_id: mdInfo.custom_competition_id
         }
