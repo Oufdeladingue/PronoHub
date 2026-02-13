@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
+import { sendTournamentEnd } from '@/lib/notifications'
 
 /**
  * Cron de finalisation automatique des tournois
@@ -102,6 +103,18 @@ export async function GET(request: NextRequest) {
           } else {
             results.finalized++
             console.log(`[FINALIZE-TOURNAMENTS] ✅ Tournament finalized: ${tournament.name}`)
+
+            // Envoyer les notifications push de fin de tournoi
+            try {
+              const notifResult = await sendTournamentEnd(
+                tournament.id,
+                tournament.name,
+                tournament.slug
+              )
+              console.log(`[FINALIZE-TOURNAMENTS] Push notifications sent for ${tournament.name}:`, notifResult)
+            } catch (notifError: any) {
+              console.error(`[FINALIZE-TOURNAMENTS] Error sending end notifications for ${tournament.name}:`, notifError)
+            }
           }
         } else {
           // Certains matchs ne sont pas terminés : recalculer la ending_date

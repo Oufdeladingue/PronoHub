@@ -3,9 +3,10 @@
  * Gère l'envoi de notifications en fonction des préférences utilisateur
  */
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendPushNotification, sendPushNotificationToMany, NotificationType } from '@/lib/firebase-admin'
 import { sendMentionEmail } from '@/lib/email/send'
+import { getAvatarUrl } from '@/lib/avatars'
 
 // Types de notifications avec leurs configurations
 // Utilise les mêmes préférences que les emails pour être synchronisé
@@ -343,6 +344,107 @@ export async function sendTournamentStarted(
     excludeUserId: captainId,
     imageUrl,
   })
+}
+
+/**
+ * Notifier la fin d'un tournoi à tous les participants
+ * Chaque joueur reçoit une push personnalisée avec son classement final
+ * Utilise createAdminClient car appelée depuis un cron
+ */
+export async function sendTournamentEnd(
+  tournamentId: string,
+  tournamentName: string,
+  tournamentSlug: string
+): Promise<{ sent: number; skipped: number }> {
+  const supabase = createAdminClient()
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+
+  // Récupérer les participants avec profils
+  const { data: participants } = await supabase
+    .from('tournament_participants')
+    .select('user_id, profiles(username, avatar, fcm_token, notification_preferences)')
+    .eq('tournament_id', tournamentId)
+
+  if (!participants || participants.length === 0) {
+    return { sent: 0, skipped: 0 }
+  }
+
+  // Appeler l'API rankings pour avoir le classement final
+  let rankings: any[] = []
+  try {
+    const rankingsUrl = `${baseUrl}/api/tournaments/${tournamentId}/rankings`
+    const res = await fetch(rankingsUrl)
+    if (res.ok) {
+      const data = await res.json()
+      rankings = data.rankings || []
+    }
+  } catch (e) {
+    console.error('[sendTournamentEnd] Error fetching rankings:', e)
+  }
+
+  // Map rank par userId
+  const rankByUserId = new Map<string, number>()
+  for (const r of rankings) {
+    rankByUserId.set(r.playerId, r.rank)
+  }
+
+  const config = NOTIFICATION_CONFIG.tournament_end
+  const totalPlayers = participants.length
+  let sent = 0
+  let skipped = 0
+
+  for (const participant of participants) {
+    const profile = participant.profiles as any
+    if (!profile?.fcm_token) {
+      skipped++
+      continue
+    }
+
+    const prefs = profile.notification_preferences || {}
+    if (prefs[config.prefKey] === false) {
+      skipped++
+      continue
+    }
+
+    const username = profile.username || 'champion'
+    const avatar = profile.avatar || 'avatar1'
+    const rank = rankByUserId.get(participant.user_id) || totalPlayers
+
+    // Construire l'URL de l'image OG personnalisée
+    const avatarPath = getAvatarUrl(avatar)
+
+    const ogParams = new URLSearchParams({
+      tournament: tournamentName,
+      username,
+      avatar: avatarPath,
+      rank: String(rank),
+      totalPlayers: String(totalPlayers),
+    })
+    const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
+
+    const title = config.defaultTitle
+    const body = config.defaultBody.replace('{tournamentName}', tournamentName)
+
+    try {
+      const success = await sendPushNotification(
+        profile.fcm_token,
+        title,
+        body,
+        {
+          type: 'tournament_end',
+          clickAction: `/${tournamentSlug}/opposition?tab=classement`,
+        },
+        imageUrl
+      )
+      if (success) sent++
+      else skipped++
+    } catch (e) {
+      console.error(`[sendTournamentEnd] Error sending to ${username}:`, e)
+      skipped++
+    }
+  }
+
+  return { sent, skipped }
 }
 
 /**

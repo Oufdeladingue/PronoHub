@@ -3,12 +3,13 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { sendPushNotification } from '@/lib/firebase-admin'
 import { sendBadgeUnlockedEmail } from '@/lib/email/send'
 import { getTrophyInfo } from '@/lib/trophy-info'
+import { getAvatarUrl } from '@/lib/avatars'
 
 // Test endpoint pour vérifier les notifications avec images (push + email)
 // Usage: GET /api/test-push-image?email=ton@email.com
 // Optionnel: &trophy=king_of_day (par défaut: exact_score)
 // Optionnel: &mode=push|email|both (par défaut: push)
-// Optionnel: &type=badge_unlocked|new_matches|tournament_started (par défaut: badge_unlocked)
+// Optionnel: &type=badge_unlocked|new_matches|tournament_started|tournament_end (par défaut: badge_unlocked)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
   // Récupérer le FCM token de l'utilisateur
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, username, email, fcm_token')
+    .select('id, username, email, fcm_token, avatar')
     .eq('email', email)
     .single()
 
@@ -89,6 +90,28 @@ export async function GET(request: NextRequest) {
           'Place au jeu, le tournoi démarre ! ⚽',
           `PronoHub League vient de démarrer ! Premier match : ${fakeMatch.homeTeamName} vs ${fakeMatch.awayTeamName}. Valide tes pronos !`,
           { type: 'tournament_started', clickAction: '/dashboard' },
+          imageUrl
+        )
+        results.imageUrl = imageUrl
+      }
+    } else if (notifType === 'tournament_end') {
+      // --- TEST TOURNAMENT END ---
+      if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
+        const avatarPath = getAvatarUrl((profile as any).avatar || 'avatar1')
+        const imageParams = new URLSearchParams({
+          tournament: 'PronoHub League',
+          username: profile.username || 'champion',
+          avatar: avatarPath,
+          rank: '2',
+          totalPlayers: '8',
+        })
+        const imageUrl = `${baseUrl}/api/og/tournament-end?${imageParams.toString()}`
+
+        results.pushSuccess = await sendPushNotification(
+          profile.fcm_token,
+          'Rideau ! Le champion est couronné 🏆',
+          'PronoHub League touche à sa fin. Découvre le podium et les meilleurs buteurs virtuels.',
+          { type: 'tournament_end', clickAction: '/dashboard' },
           imageUrl
         )
         results.imageUrl = imageUrl
