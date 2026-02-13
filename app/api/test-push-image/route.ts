@@ -9,7 +9,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 // Usage: GET /api/test-push-image?email=ton@email.com
 // Optionnel: &trophy=king_of_day (par défaut: exact_score)
 // Optionnel: &mode=push|email|both (par défaut: push)
-// Optionnel: &type=badge_unlocked|new_matches|tournament_started|tournament_end (par défaut: badge_unlocked)
+// Optionnel: &type=badge_unlocked|new_matches|tournament_started|tournament_end|player_joined (par défaut: badge_unlocked)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get('email')
@@ -112,6 +112,26 @@ export async function GET(request: NextRequest) {
           'Alors ? C\'est qui le champion ? 🏆',
           'Le tournoi PronoHub League est terminé, c\'est le moment de voir qui est n°1 dans ta team...',
           { type: 'tournament_end', clickAction: '/dashboard' },
+          imageUrl
+        )
+        results.imageUrl = imageUrl
+      }
+    } else if (notifType === 'player_joined') {
+      // --- TEST PLAYER JOINED ---
+      if ((mode === 'push' || mode === 'both') && profile.fcm_token) {
+        const avatarPath = getAvatarUrl((profile as any).avatar || 'avatar1')
+        const imageParams = new URLSearchParams({
+          tournament: 'PronoHub League',
+          username: profile.username || 'champion',
+          avatar: avatarPath,
+        })
+        const imageUrl = `${baseUrl}/api/og/player-joined?${imageParams.toString()}`
+
+        results.pushSuccess = await sendPushNotification(
+          profile.fcm_token,
+          'Un nouveau joueur dans le vestiaire ! 👋',
+          `${profile.username || 'Un joueur'} vient de rejoindre PronoHub League. La concurrence s'intensifie.`,
+          { type: 'player_joined', clickAction: '/dashboard' },
           imageUrl
         )
         results.imageUrl = imageUrl

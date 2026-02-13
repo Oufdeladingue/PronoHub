@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentType, PRICES, InviteType } from '@/types/monetization'
 import { sendNewPlayerJoinedEmail } from '@/lib/email/send'
+import { sendPushNotification } from '@/lib/firebase-admin'
+import { getAvatarUrl } from '@/lib/avatars'
+import { NOTIFICATION_CONFIG } from '@/lib/notifications'
 
 // =====================================================
 // Système de join tournoi v2
@@ -600,14 +603,14 @@ export async function POST(request: NextRequest) {
       // Récupérer les infos du capitaine (créateur du tournoi)
       const { data: captain } = await supabase
         .from('profiles')
-        .select('id, username, email')
+        .select('id, username, email, fcm_token, notification_preferences')
         .eq('id', tournament.creator_id)
         .single()
 
-      // Récupérer le username du nouveau joueur
+      // Récupérer le username et avatar du nouveau joueur
       const { data: newPlayer } = await supabase
         .from('profiles')
-        .select('username')
+        .select('username, avatar')
         .eq('id', user.id)
         .single()
 
@@ -664,9 +667,45 @@ export async function POST(request: NextRequest) {
 
         console.log(`[JOIN] Email sent to captain ${captain.email} for new player ${newPlayer?.username}`)
       }
+
+      // Envoyer la notification push au capitaine
+      if (captain && captain.fcm_token && captain.id !== user.id) {
+        const prefs = (captain as any).notification_preferences || {}
+        const config = NOTIFICATION_CONFIG.player_joined
+        if (prefs[config.prefKey] !== false) {
+          const playerUsername = newPlayer?.username || 'Nouveau joueur'
+          const playerAvatar = getAvatarUrl((newPlayer as any)?.avatar || 'avatar1')
+          const tournamentSlugForPush = `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+
+          const ogParams = new URLSearchParams({
+            tournament: tournament.name,
+            username: playerUsername,
+            avatar: playerAvatar,
+          })
+          const imageUrl = `${baseUrl}/api/og/player-joined?${ogParams.toString()}`
+
+          const title = config.defaultTitle
+          const body = config.defaultBody
+            .replace('{playerName}', playerUsername)
+            .replace('{tournamentName}', tournament.name)
+
+          await sendPushNotification(
+            captain.fcm_token,
+            title,
+            body,
+            {
+              type: 'player_joined',
+              clickAction: `/${tournamentSlugForPush}/echauffement`,
+            },
+            imageUrl
+          )
+          console.log(`[JOIN] Push sent to captain ${captain.username} for new player ${playerUsername}`)
+        }
+      }
     } catch (emailError) {
-      // Ne pas bloquer le join si l'email échoue
-      console.error('[JOIN] Error sending email to captain:', emailError)
+      // Ne pas bloquer le join si l'email/push échoue
+      console.error('[JOIN] Error sending notification to captain:', emailError)
     }
 
     // Construire le slug complet pour la redirection
