@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
         results.pushSuccess = await sendPushNotification(
           profile.fcm_token,
-          'Le coup d\'envoi est lancé ! ⚽',
+          'Place au jeu, le tournoi démarre ! ⚽',
           `PronoHub League vient de démarrer ! Premier match : ${fakeMatch.homeTeamName} vs ${fakeMatch.awayTeamName}. Valide tes pronos !`,
           { type: 'tournament_started', clickAction: '/dashboard' },
           imageUrl

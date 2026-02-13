@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
                   type: 'span',
                   props: {
                     style: {
-                      fontSize: '52px',
+                      fontSize: '68px',
                       fontWeight: 900,
                       color: '#ffffff',
                       lineHeight: 1.15,
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
                   type: 'span',
                   props: {
                     style: {
-                      fontSize: '52px',
+                      fontSize: '68px',
                       fontWeight: 900,
                       color: '#ff9900',
                       lineHeight: 1.15,
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
                   type: 'span',
                   props: {
                     style: {
-                      fontSize: '52px',
+                      fontSize: '68px',
                       fontWeight: 900,
                       color: '#ffffff',
                       lineHeight: 1.15,
@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
                   type: 'span',
                   props: {
                     style: {
-                      fontSize: '28px',
+                      fontSize: '40px',
                       fontWeight: 700,
                       color: '#ff9900',
                       textAlign: 'center',
@@ -202,8 +202,8 @@ export async function GET(request: NextRequest) {
                         type: 'img',
                         props: {
                           src: competitionLogoBase64,
-                          width: 64,
-                          height: 64,
+                          width: 77,
+                          height: 77,
                           style: {
                             filter: 'brightness(0) invert(1)',
                           },
@@ -241,8 +241,8 @@ export async function GET(request: NextRequest) {
                                   type: 'img',
                                   props: {
                                     src: homeLogoBase64,
-                                    width: 80,
-                                    height: 80,
+                                    width: 96,
+                                    height: 96,
                                   },
                                 }
                               : {
@@ -265,11 +265,11 @@ export async function GET(request: NextRequest) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '20px',
+                                  fontSize: '24px',
                                   fontWeight: 700,
                                   color: '#ffffff',
                                   textAlign: 'center',
-                                  maxWidth: '140px',
+                                  maxWidth: '160px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
@@ -337,8 +337,8 @@ export async function GET(request: NextRequest) {
                                   type: 'img',
                                   props: {
                                     src: awayLogoBase64,
-                                    width: 80,
-                                    height: 80,
+                                    width: 96,
+                                    height: 96,
                                   },
                                 }
                               : {
@@ -361,11 +361,11 @@ export async function GET(request: NextRequest) {
                               type: 'span',
                               props: {
                                 style: {
-                                  fontSize: '20px',
+                                  fontSize: '24px',
                                   fontWeight: 700,
                                   color: '#ffffff',
                                   textAlign: 'center',
-                                  maxWidth: '140px',
+                                  maxWidth: '160px',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
@@ -390,18 +390,19 @@ export async function GET(request: NextRequest) {
                       justifyContent: 'center',
                       background: 'rgba(30, 41, 59, 0.90)',
                       border: '2px solid #ff9900',
-                      borderRadius: '14px',
-                      padding: '12px 32px',
+                      borderRadius: '16px',
+                      padding: '14px 40px',
                       marginTop: '4px',
                     },
                     children: {
                       type: 'span',
                       props: {
                         style: {
-                          fontSize: '24px',
+                          fontSize: '32px',
                           fontWeight: 700,
                           color: '#ff9900',
                           letterSpacing: '1px',
+                          whiteSpace: 'nowrap',
                         },
                         children: 'VALIDE TES PRONOS',
                       },

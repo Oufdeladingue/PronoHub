@@ -24,7 +24,7 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   },
   tournament_started: {
     prefKey: 'email_tournament_started',
-    defaultTitle: 'Le coup d\'envoi est lancé ! ⚽',
+    defaultTitle: 'Place au jeu, le tournoi démarre ! ⚽',
     defaultBody: 'Le tournoi {tournamentName} démarre {firstMatchDate}. En piste champion !',
     clickAction: '/dashboard',
   },
