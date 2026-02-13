@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface StandingRow {
   team_id: number
@@ -41,6 +41,27 @@ export default function StandingsModal({
   const [error, setError] = useState<string | null>(null)
   const [standings, setStandings] = useState<StandingRow[]>([])
 
+  // Bloquer le scroll du body quand la modale est ouverte
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow
+    const originalPosition = document.body.style.position
+    const originalWidth = document.body.style.width
+    const scrollY = window.scrollY
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+    document.body.style.top = `-${scrollY}px`
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      document.body.style.position = originalPosition
+      document.body.style.width = originalWidth
+      document.body.style.top = ''
+      window.scrollTo(0, scrollY)
+    }
+  }, [])
+
   useEffect(() => {
     const fetchStandings = async () => {
       try {
@@ -74,9 +95,9 @@ export default function StandingsModal({
   const logoDark = competitionCustomEmblemWhite || competitionEmblem
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10000] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000] p-4" onClick={onClose}>
       <div
-        className="theme-card max-w-lg w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden"
+        className="theme-card max-w-lg w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden bg-white dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
