@@ -1,0 +1,35 @@
+/* ── Spotlight radial overlay ──────────────── */
+.landing-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 30%,
+    rgba(255, 153, 0, 0.035) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ── Section entrance animations ───────────── */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 500ms ease var(--stagger, 0ms),
+    transform 500ms ease var(--stagger, 0ms);
+}
+
+[data-animate].animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Reduced motion ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-animate] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
