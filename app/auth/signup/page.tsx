@@ -17,6 +17,7 @@ function SignUpForm() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptCGU, setAcceptCGU] = useState(false)
   const [titleFontSize, setTitleFontSize] = useState(16)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -287,7 +288,7 @@ function SignUpForm() {
   }
 
   return (
-    <div className="h-screen-safe flex flex-col auth-page bg-black pt-safe overflow-y-auto">
+    <div className="fixed inset-0 flex flex-col auth-page bg-black overflow-y-auto">
       <div
         className="flex-1 flex items-center justify-center relative px-4 py-4"
         style={{
@@ -452,9 +453,29 @@ function SignUpForm() {
             )}
           </div>
 
+          <div className="flex items-start gap-2">
+            <input
+              id="accept-cgu"
+              type="checkbox"
+              checked={acceptCGU}
+              onChange={(e) => setAcceptCGU(e.target.checked)}
+              className="mt-1 h-4 w-4 accent-[#ff9900] cursor-pointer shrink-0"
+            />
+            <label htmlFor="accept-cgu" className="text-xs text-gray-400 cursor-pointer leading-relaxed">
+              J'accepte les{' '}
+              <Link href="/cgv" target="_blank" className="text-[#ffb84d] hover:text-[#ff9900] underline">
+                Conditions Générales d'Utilisation
+              </Link>{' '}
+              et la{' '}
+              <Link href="/privacy" target="_blank" className="text-[#ffb84d] hover:text-[#ff9900] underline">
+                Politique de confidentialité
+              </Link>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !acceptCGU}
             className="w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
             {loading ? 'Inscription...' : 'S\'inscrire'}
@@ -473,8 +494,14 @@ function SignUpForm() {
 
         {/* Bouton de connexion sociale */}
         <button
-          onClick={() => handleOAuthSignIn('google')}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg bg-[#1a1a1a] hover:bg-[#222] transition-all duration-[250ms]"
+          onClick={() => {
+            if (!acceptCGU) {
+              setError('Veuillez accepter les CGU et la politique de confidentialité')
+              return
+            }
+            handleOAuthSignIn('google')
+          }}
+          className={`w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg transition-all duration-[250ms] ${acceptCGU ? 'bg-[#1a1a1a] hover:bg-[#222]' : 'bg-[#1a1a1a] opacity-60 cursor-not-allowed'}`}
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -493,8 +520,8 @@ function SignUpForm() {
         </p>
       </div>
       </div>
-      {/* Footer minimal inline pour éviter la zone grise */}
-      <div className="text-center py-2 text-[10px] text-gray-500">
+      {/* Footer minimal inline */}
+      <div className="text-center py-3 text-[10px] text-gray-400">
         © {new Date().getFullYear()} PronoHub
         <span className="mx-2">•</span>
         <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>

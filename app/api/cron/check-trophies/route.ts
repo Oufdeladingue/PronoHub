@@ -272,6 +272,7 @@ export async function GET(request: NextRequest) {
             }
           }
         }
+        }
       } catch (tournamentError: any) {
         totalErrors++
         errors.push(`Tournament ${tournament.name}: ${tournamentError.message}`)

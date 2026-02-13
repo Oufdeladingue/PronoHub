@@ -389,8 +389,12 @@ function ProfileContent() {
       return
     }
 
-    if (newPassword.length < 6) {
-      setSecurityMessage('Le nouveau mot de passe doit contenir au moins 6 caractères')
+    const hasMinLength = newPassword.length >= 8
+    const hasUpperCase = /[A-Z]/.test(newPassword)
+    const hasLowerCase = /[a-z]/.test(newPassword)
+    const hasNumber = /\d/.test(newPassword)
+    if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasNumber) {
+      setSecurityMessage('Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre')
       setChangingPassword(false)
       return
     }

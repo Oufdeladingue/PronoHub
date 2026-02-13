@@ -20,19 +20,29 @@ function ContactForm() {
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
     try {
-      // Pour l'instant, on simule l'envoi
-      // TODO: Integrer avec un service d'email (SendGrid, Resend, etc.)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de l\'envoi')
+      }
+
       setSuccess(true)
-    } catch (error) {
-      console.error('Error submitting form:', error)
-      alert('Erreur lors de l\'envoi du message')
+    } catch (err) {
+      console.error('Error submitting form:', err)
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'envoi du message')
     } finally {
       setLoading(false)
     }
@@ -155,6 +165,12 @@ function ContactForm() {
                 : 'Votre message...'}
             />
           </div>
+
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"

@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server'
 import { stripe, isStripeEnabled } from '@/lib/stripe'
+import { timingSafeEqual } from 'crypto'
+
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
 
 /**
  * Route de test pour vérifier la configuration du webhook Stripe
  * Accessible à : /api/stripe/webhook-test
  */
-export async function GET() {
+export async function GET(request: Request) {
+  // Protéger avec CRON_SECRET (timing-safe)
+  const authHeader = request.headers.get('authorization') || ''
+  const expected = `Bearer ${process.env.CRON_SECRET}`
+  if (!safeCompare(authHeader, expected)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const checks = {
     stripeEnabled: isStripeEnabled,
     stripeInstance: !!stripe,

@@ -148,29 +148,23 @@ function DashboardContent({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  // Vérifier périodiquement si des tournois ont des matchs LIVE
+  // Vérifier périodiquement si des tournois ont des matchs LIVE (batch: 1 requête)
   useEffect(() => {
     const checkLiveMatches = async () => {
       const activeTournaments = tournaments.filter(t => t.status === 'active')
       if (activeTournaments.length === 0) return
 
       try {
+        const ids = activeTournaments.map(t => t.id).join(',')
+        const response = await fetchWithAuth(`/api/tournaments/batch-live-status?ids=${ids}`)
+        const data = await response.json()
+
         const liveSet = new Set<string>()
-
-        // Vérifier chaque tournoi actif
-        await Promise.all(activeTournaments.map(async (tournament) => {
-          try {
-            const response = await fetchWithAuth(`/api/tournaments/${tournament.id}/live-status`)
-            const data = await response.json()
-
-            if (data.hasLiveMatch) {
-              liveSet.add(tournament.id)
-            }
-          } catch (err) {
-            console.error(`Erreur vérification LIVE pour ${tournament.id}:`, err)
+        if (data.liveMap) {
+          for (const [id, isLive] of Object.entries(data.liveMap)) {
+            if (isLive) liveSet.add(id)
           }
-        }))
-
+        }
         setTournamentsWithLiveMatches(liveSet)
       } catch (err) {
         console.error('Erreur vérification matchs LIVE:', err)
@@ -180,8 +174,8 @@ function DashboardContent({
     // Vérifier immédiatement au chargement
     checkLiveMatches()
 
-    // Puis vérifier toutes les 2 minutes
-    const interval = setInterval(checkLiveMatches, 2 * 60 * 1000)
+    // Puis vérifier toutes les 3 minutes
+    const interval = setInterval(checkLiveMatches, 3 * 60 * 1000)
 
     return () => clearInterval(interval)
   }, [tournaments])
@@ -444,9 +438,27 @@ function DashboardContent({
             </div>
           </div>
           {activeTournaments.length === 0 ? (
-            <p className="theme-text-secondary text-center py-8">
-              Vous n'avez actuellement aucun tournoi en cours
-            </p>
+            <div className="flex flex-col items-center text-center py-10 px-4">
+              <div className="text-5xl mb-4">⚽</div>
+              <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
+              <p className="theme-text-secondary text-sm mb-6 max-w-xs">
+                Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href="/vestiaire"
+                  className="px-6 py-2.5 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
+                >
+                  Créer un tournoi
+                </a>
+                <button
+                  onClick={() => setShowJoinInput(true)}
+                  className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
+                >
+                  Rejoindre avec un code
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
               {activeTournaments.map((tournament, index) => {

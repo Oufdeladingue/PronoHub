@@ -421,6 +421,12 @@ function LoginForm() {
               className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 mb-4 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
               placeholder="••••••••"
             />
+            <a
+              href="/auth/forgot-password"
+              className="text-sm text-[#ff9900] hover:text-[#e68a00] transition-colors"
+            >
+              Mot de passe oublié ?
+            </a>
           </div>
 
           <button

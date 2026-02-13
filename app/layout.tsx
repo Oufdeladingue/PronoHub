@@ -38,9 +38,9 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/images/logo.svg',
-        width: 200,
-        height: 200,
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
         alt: 'PronoHub Football - Tournois de pronostics entre amis',
       },
     ],
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'PronoHub Football - Tournois de Pronostics entre Amis',
     description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis',
-    images: ['/images/logo.svg'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
