@@ -405,23 +405,44 @@ export default function StatsModal({
   const [awaySelectedIndex, setAwaySelectedIndex] = useState(0)
   const [showStandings, setShowStandings] = useState(false)
 
-  // Bloquer le scroll du body quand la modale est ouverte
+  // Bloquer le scroll du body quand la modale est ouverte (y compris Android WebView)
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow
-    const originalPosition = document.body.style.position
-    const originalWidth = document.body.style.width
     const scrollY = window.scrollY
 
+    // Verrouiller html + body
+    document.documentElement.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
     document.body.style.width = '100%'
     document.body.style.top = `-${scrollY}px`
+    document.body.style.touchAction = 'none'
+
+    // Bloquer touchmove sur le document entier (Android WebView)
+    const preventScroll = (e: TouchEvent) => {
+      // Autoriser le scroll dans la zone de contenu de la modale
+      const target = e.target as HTMLElement
+      const scrollableParent = target.closest('[data-modal-scroll]')
+      if (scrollableParent) {
+        const { scrollHeight, clientHeight, scrollTop } = scrollableParent
+        const isAtTop = scrollTop <= 0
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+        const deltaY = e.touches[0].clientY
+
+        // Laisser le scroll si on n'est pas aux bords
+        if (scrollHeight > clientHeight && !isAtTop && !isAtBottom) return
+      }
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', preventScroll, { passive: false })
 
     return () => {
-      document.body.style.overflow = originalOverflow
-      document.body.style.position = originalPosition
-      document.body.style.width = originalWidth
+      document.removeEventListener('touchmove', preventScroll)
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
       document.body.style.top = ''
+      document.body.style.touchAction = ''
       window.scrollTo(0, scrollY)
     }
   }, [])
@@ -538,7 +559,7 @@ export default function StatsModal({
           </div>
 
           {/* Content */}
-          <div className="p-4 overflow-y-auto flex-1 space-y-5">
+          <div className="p-4 overflow-y-auto flex-1 space-y-5" data-modal-scroll>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>

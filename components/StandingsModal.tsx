@@ -41,23 +41,36 @@ export default function StandingsModal({
   const [error, setError] = useState<string | null>(null)
   const [standings, setStandings] = useState<StandingRow[]>([])
 
-  // Bloquer le scroll du body quand la modale est ouverte
+  // Bloquer le scroll du body quand la modale est ouverte (y compris Android WebView)
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow
-    const originalPosition = document.body.style.position
-    const originalWidth = document.body.style.width
     const scrollY = window.scrollY
 
+    document.documentElement.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     document.body.style.position = 'fixed'
     document.body.style.width = '100%'
     document.body.style.top = `-${scrollY}px`
+    document.body.style.touchAction = 'none'
+
+    const preventScroll = (e: TouchEvent) => {
+      const target = e.target as HTMLElement
+      const scrollableParent = target.closest('[data-modal-scroll]')
+      if (scrollableParent) {
+        const { scrollHeight, clientHeight, scrollTop } = scrollableParent
+        if (scrollHeight > clientHeight && scrollTop > 0 && scrollTop + clientHeight < scrollHeight - 1) return
+      }
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', preventScroll, { passive: false })
 
     return () => {
-      document.body.style.overflow = originalOverflow
-      document.body.style.position = originalPosition
-      document.body.style.width = originalWidth
+      document.removeEventListener('touchmove', preventScroll)
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
       document.body.style.top = ''
+      document.body.style.touchAction = ''
       window.scrollTo(0, scrollY)
     }
   }, [])
@@ -139,7 +152,7 @@ export default function StandingsModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto flex-1" data-modal-scroll>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>
