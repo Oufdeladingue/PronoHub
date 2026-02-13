@@ -40,6 +40,13 @@ interface SendEmailResult {
   error?: string
 }
 
+// Adresses email bloquées (comptes de test avec faux emails)
+const BLOCKED_EMAILS = new Set([
+  'joueur1@test.fr',
+  'joueur2@test.fr',
+  'admin@test.fr',
+])
+
 // Envoi d'email générique
 export async function sendEmail(
   to: string,
@@ -47,6 +54,12 @@ export async function sendEmail(
   html: string,
   text?: string
 ): Promise<SendEmailResult> {
+  // Bloquer les adresses de test pour ne pas consommer le quota Resend
+  if (BLOCKED_EMAILS.has(to.toLowerCase())) {
+    console.log(`[EMAIL] Bloqué (adresse de test): ${to}`)
+    return { success: true, messageId: 'blocked-test-email' }
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: EMAIL_CONFIG.from,
