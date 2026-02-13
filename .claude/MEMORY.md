@@ -28,16 +28,24 @@
 | Type | Push Android | Email |
 |------|:------------:|:-----:|
 | reminder | ✅ | ✅ |
-| badge_unlocked | ✅ | ⬜ |
-| new_matches | ⬜ | ⬜ |
-| tournament_started | ⬜ | ⬜ |
-| tournament_end | ⬜ | ⬜ |
-| invite | ⬜ | ⬜ |
-| player_joined | ⬜ | ⬜ |
-| mention | ⬜ | ⬜ |
-| day_recap | ⬜ | ✅ |
+| badge_unlocked | ✅ | ✅ |
+| new_matches | ✅ | ✅ |
+| tournament_started | ✅ | ✅ |
+| tournament_end | ✅ | ✅ |
+| invite | N/A | ✅ |
+| player_joined | ✅ | ✅ |
+| mention | ⬜ | ✅ |
+| day_recap | N/A (email only) | ✅ |
 
-**Note:** `day_recap` n'envoie que des emails (pas de notifications push pour ce type)
+**Note:** `day_recap` n'envoie que des emails (pas de push)
+**Note:** `invite` push N/A car le destinataire n'est pas encore inscrit (pas de FCM token)
+
+## TODO - Prochaine session
+- [ ] **mention** : dernier type push Android restant
+  - Créer bg `og-mention-bg.png` + endpoint OG `/api/og/mention`
+  - La push est déjà envoyée via `sendNotificationToUser` dans `lib/notifications.ts` (type mention), il faut juste ajouter l'image OG
+  - Le push mention est déclenché dans le tchat quand un user @mentionne un autre
+  - Clic mène vers `/{tournamentSlug}/opposition?tab=tchat`
 
 ## Workflow session
 - En début de session : demander le scope (une feature ? plusieurs ? test + deploy ?)
