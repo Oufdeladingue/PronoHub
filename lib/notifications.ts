@@ -37,8 +37,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   },
   tournament_end: {
     prefKey: 'email_tournament_end',
-    defaultTitle: 'Rideau ! Le champion est couronné 🏆',
-    defaultBody: '{tournamentName} touche à sa fin. Découvre le podium et les meilleurs buteurs virtuels.',
+    defaultTitle: 'Alors ? C\'est qui le champion ? 🏆',
+    defaultBody: 'Le tournoi {tournamentName} est terminé, c\'est le moment de voir qui est n°1 dans ta team...',
     clickAction: '/dashboard',
   },
   invite: {

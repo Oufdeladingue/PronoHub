@@ -109,8 +109,8 @@ export async function GET(request: NextRequest) {
 
         results.pushSuccess = await sendPushNotification(
           profile.fcm_token,
-          'Rideau ! Le champion est couronné 🏆',
-          'PronoHub League touche à sa fin. Découvre le podium et les meilleurs buteurs virtuels.',
+          'Alors ? C\'est qui le champion ? 🏆',
+          'Le tournoi PronoHub League est terminé, c\'est le moment de voir qui est n°1 dans ta team...',
           { type: 'tournament_end', clickAction: '/dashboard' },
           imageUrl
         )
