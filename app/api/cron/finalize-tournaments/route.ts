@@ -92,7 +92,6 @@ export async function GET(request: NextRequest) {
             .from('tournaments')
             .update({
               status: 'completed',
-              end_date: now
             })
             .eq('id', tournament.id)
 

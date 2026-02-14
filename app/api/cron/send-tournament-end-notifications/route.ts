@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       .from('tournaments')
       .select('id, name, slug, competition_id, custom_competition_id')
       .eq('status', 'completed')
-      .gte('end_date', cutoff)
+      .gte('updated_at', cutoff)
 
     if (fetchError) {
       console.error('[TOURNAMENT-END-NOTIF] Error fetching tournaments:', fetchError)
