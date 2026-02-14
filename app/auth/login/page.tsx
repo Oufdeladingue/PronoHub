@@ -125,12 +125,12 @@ function LoginForm() {
           // Vérifier le profil (rôle + username)
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role, username')
+            .select('role, has_chosen_username')
             .eq('id', data.user.id)
             .single()
 
-          // Si pas de pseudo, rediriger vers choose-username
-          if (!profile?.username) {
+          // Si pas de pseudo choisi (OAuth), rediriger vers choose-username
+          if (profile && profile.has_chosen_username === false) {
             router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
             return
           }

@@ -75,12 +75,12 @@ export async function GET(request: Request) {
         const adminSupabase = createAdminClient()
         const { data: profile } = await adminSupabase
           .from('profiles')
-          .select('username')
+          .select('has_chosen_username')
           .eq('id', user.id)
           .single()
 
-        if (!profile?.username) {
-          // Nouveau compte OAuth sans pseudo → rediriger vers choose-username
+        if (profile && profile.has_chosen_username === false) {
+          // Compte OAuth sans pseudo choisi → rediriger vers choose-username
           const chooseUsernameUrl = redirectTo
             ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
             : '/auth/choose-username'

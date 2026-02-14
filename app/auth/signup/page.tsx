@@ -144,12 +144,12 @@ function SignUpForm() {
           if (data.user) {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('username')
+              .select('has_chosen_username')
               .eq('id', data.user.id)
               .single()
 
-            if (!profile?.username) {
-              // Nouveau compte → choisir un pseudo
+            if (profile && profile.has_chosen_username === false) {
+              // Compte OAuth sans pseudo choisi → choisir un pseudo
               router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
               return
             }
