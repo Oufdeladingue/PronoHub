@@ -434,10 +434,10 @@ export default function AdminUsagePage() {
   const [usersSortDir, setUsersSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTournamentsModal, setActiveTournamentsModal] = useState<ActiveTournamentsModalState | null>(null)
   const [usersFilter, setUsersFilter] = useState<'' | 'suspect'>('')
-  const [deleteModal, setDeleteModal] = useState<{ userId: string; username: string } | null>(null)
-  const [deleteLoading, setDeleteLoading] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [deleteBlockers, setDeleteBlockers] = useState<string[]>([])
+  const [userDeleteModal, setUserDeleteModal] = useState<{ userId: string; username: string } | null>(null)
+  const [userDeleteLoading, setUserDeleteLoading] = useState(false)
+  const [userDeleteError, setUserDeleteError] = useState<string | null>(null)
+  const [userDeleteBlockers, setUserDeleteBlockers] = useState<string[]>([])
 
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
@@ -503,34 +503,33 @@ export default function AdminUsagePage() {
   const usersTotalPages = Math.ceil(usersTotalCount / usersPageSize)
 
   const handleDeleteUser = async (userId: string) => {
-    setDeleteLoading(true)
-    setDeleteError(null)
-    setDeleteBlockers([])
+    setUserDeleteLoading(true)
+    setUserDeleteError(null)
+    setUserDeleteBlockers([])
 
     try {
       const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
       const data = await response.json()
 
       if (response.status === 409) {
-        // Suppression bloquée
-        setDeleteBlockers(data.blockers || [])
-        setDeleteError(data.error)
+        setUserDeleteBlockers(data.blockers || [])
+        setUserDeleteError(data.error)
         return
       }
 
       if (!response.ok) {
-        setDeleteError(data.error || 'Erreur lors de la suppression')
+        setUserDeleteError(data.error || 'Erreur lors de la suppression')
         return
       }
 
       // Succès
-      setDeleteModal(null)
+      setUserDeleteModal(null)
       setToasts(prev => [...prev, { id: Date.now(), type: 'success', message: data.message }])
       fetchAdminUsers()
     } catch {
-      setDeleteError('Erreur réseau')
+      setUserDeleteError('Erreur réseau')
     } finally {
-      setDeleteLoading(false)
+      setUserDeleteLoading(false)
     }
   }
 
@@ -1859,7 +1858,7 @@ export default function AdminUsagePage() {
                             </td>
                             <td className="px-4 py-3 text-center">
                               <button
-                                onClick={() => { setDeleteModal({ userId: u.id, username: u.username }); setDeleteError(null); setDeleteBlockers([]) }}
+                                onClick={() => { setUserDeleteModal({ userId: u.id, username: u.username }); setUserDeleteError(null); setUserDeleteBlockers([]) }}
                                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                                 title="Supprimer cet utilisateur"
                               >
@@ -1952,7 +1951,7 @@ export default function AdminUsagePage() {
                           )}
                         </div>
                         <button
-                          onClick={() => { setDeleteModal({ userId: u.id, username: u.username }); setDeleteError(null); setDeleteBlockers([]) }}
+                          onClick={() => { setUserDeleteModal({ userId: u.id, username: u.username }); setUserDeleteError(null); setUserDeleteBlockers([]) }}
                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
                           title="Supprimer"
                         >
@@ -2012,8 +2011,8 @@ export default function AdminUsagePage() {
                 </div>
               </div>
               {/* Modale de suppression utilisateur */}
-              {deleteModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !deleteLoading && setDeleteModal(null)}>
+              {userDeleteModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !userDeleteLoading && setUserDeleteModal(null)}>
                   <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -2025,14 +2024,14 @@ export default function AdminUsagePage() {
                     </div>
 
                     <p className="text-gray-600 mb-4">
-                      Êtes-vous sûr de vouloir supprimer <strong className="text-gray-900">{deleteModal.username}</strong> ? Cette action est <strong className="text-red-600">irréversible</strong>.
+                      Êtes-vous sûr de vouloir supprimer <strong className="text-gray-900">{userDeleteModal.username}</strong> ? Cette action est <strong className="text-red-600">irréversible</strong>.
                     </p>
 
-                    {deleteBlockers.length > 0 && (
+                    {userDeleteBlockers.length > 0 && (
                       <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <p className="text-sm font-semibold text-amber-800 mb-2">Suppression impossible :</p>
                         <ul className="text-sm text-amber-700 space-y-1">
-                          {deleteBlockers.map((b, i) => (
+                          {userDeleteBlockers.map((b, i) => (
                             <li key={i} className="flex items-start gap-2">
                               <span className="text-amber-500 mt-0.5">•</span>
                               {b}
@@ -2042,27 +2041,27 @@ export default function AdminUsagePage() {
                       </div>
                     )}
 
-                    {deleteError && deleteBlockers.length === 0 && (
+                    {userDeleteError && userDeleteBlockers.length === 0 && (
                       <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-700">{deleteError}</p>
+                        <p className="text-sm text-red-700">{userDeleteError}</p>
                       </div>
                     )}
 
                     <div className="flex gap-3 justify-end">
                       <button
-                        onClick={() => setDeleteModal(null)}
-                        disabled={deleteLoading}
+                        onClick={() => setUserDeleteModal(null)}
+                        disabled={userDeleteLoading}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
                       >
                         Annuler
                       </button>
-                      {deleteBlockers.length === 0 && (
+                      {userDeleteBlockers.length === 0 && (
                         <button
-                          onClick={() => handleDeleteUser(deleteModal.userId)}
-                          disabled={deleteLoading}
+                          onClick={() => handleDeleteUser(userDeleteModal.userId)}
+                          disabled={userDeleteLoading}
                           className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
-                          {deleteLoading ? (
+                          {userDeleteLoading ? (
                             <>
                               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
