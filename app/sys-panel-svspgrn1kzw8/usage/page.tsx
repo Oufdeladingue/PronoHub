@@ -188,6 +188,7 @@ interface AdminUser {
   last_seen_at: string | null
   active_tournaments_count: number
   active_tournaments: Array<{ id: string; name: string; slug: string; status: string }>
+  suspect_reasons: string[]
 }
 
 interface ActiveTournamentsModalState {
@@ -432,6 +433,7 @@ export default function AdminUsagePage() {
   const [usersSortBy, setUsersSortBy] = useState<UsersSortBy>('created_at')
   const [usersSortDir, setUsersSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTournamentsModal, setActiveTournamentsModal] = useState<ActiveTournamentsModalState | null>(null)
+  const [usersFilter, setUsersFilter] = useState<'' | 'suspect'>('')
 
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
@@ -461,8 +463,9 @@ export default function AdminUsagePage() {
     setUsersLoading(true)
     try {
       const sortParam = usersSortBy === 'active_tournaments_count' ? 'created_at' : usersSortBy
+      const filterParam = usersFilter ? `&filter=${usersFilter}` : ''
       const response = await fetch(
-        `/api/admin/users?search=${encodeURIComponent(usersSearch)}&page=${usersPage}&pageSize=${usersPageSize}&sortBy=${sortParam}&sortDir=${usersSortDir}`
+        `/api/admin/users?search=${encodeURIComponent(usersSearch)}&page=${usersPage}&pageSize=${usersPageSize}&sortBy=${sortParam}&sortDir=${usersSortDir}${filterParam}`
       )
       const data = await response.json()
 
@@ -482,7 +485,7 @@ export default function AdminUsagePage() {
       console.error('Error fetching admin users:', error)
     }
     setUsersLoading(false)
-  }, [usersSearch, usersPage, usersPageSize, usersSortBy, usersSortDir])
+  }, [usersSearch, usersPage, usersPageSize, usersSortBy, usersSortDir, usersFilter])
 
   const handleUsersSort = (column: UsersSortBy) => {
     if (usersSortBy === column) {
@@ -1689,6 +1692,28 @@ export default function AdminUsagePage() {
                 </button>
               </div>
 
+              {/* Filtre Suspects */}
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => { setUsersFilter(usersFilter === 'suspect' ? '' : 'suspect'); setUsersPage(1) }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    usersFilter === 'suspect'
+                      ? 'bg-red-100 text-red-700 border-red-300'
+                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Suspects
+                </button>
+                {usersFilter === 'suspect' && (
+                  <span className="text-xs text-gray-500">
+                    Comptes jamais connect{'\u00e9'}s, cr{'\u00e9'}{'\u00e9'}s depuis +24h
+                  </span>
+                )}
+              </div>
+
               {/* Tableau Desktop */}
               <div className="hidden md:block bg-white rounded-lg shadow">
                 <div className="overflow-x-auto">
@@ -1748,12 +1773,22 @@ export default function AdminUsagePage() {
                         </tr>
                       ) : (
                         adminUsers.map((u) => (
-                          <tr key={u.id} className="hover:bg-gray-50">
+                          <tr key={u.id} className={`hover:bg-gray-50 ${u.suspect_reasons.length > 0 ? 'bg-red-50/50' : ''}`}>
                             <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate" title={u.email || ''}>
                               {u.email || <span className="text-gray-400 italic">Aucun</span>}
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                              {u.username}
+                              <span className="flex items-center gap-2">
+                                {u.username}
+                                {u.suspect_reasons.length > 0 && (
+                                  <span
+                                    className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-700 rounded"
+                                    title={u.suspect_reasons.join(' / ')}
+                                  >
+                                    SUSPECT
+                                  </span>
+                                )}
+                              </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                               {new Date(u.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -1828,11 +1863,21 @@ export default function AdminUsagePage() {
                   <div className="text-center py-8 text-gray-500">Aucun utilisateur trouvé</div>
                 ) : (
                   adminUsers.map((u) => (
-                    <div key={u.id} className="bg-white rounded-lg shadow p-4 border border-gray-200">
+                    <div key={u.id} className={`bg-white rounded-lg shadow p-4 border ${u.suspect_reasons.length > 0 ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
                       <div className="flex items-start justify-between mb-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-gray-900 truncate">{u.username}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900 truncate">{u.username}</p>
+                            {u.suspect_reasons.length > 0 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-700 rounded flex-shrink-0">
+                                SUSPECT
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500 truncate">{u.email || 'Pas d\'email'}</p>
+                          {u.suspect_reasons.length > 0 && (
+                            <p className="text-xs text-red-600 mt-0.5">{u.suspect_reasons.join(' \u00b7 ')}</p>
+                          )}
                         </div>
                         {u.active_tournaments_count > 0 ? (
                           <button

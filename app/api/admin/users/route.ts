@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
+import { isDisposableEmail } from '@/lib/disposable-emails'
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,11 +32,16 @@ export async function GET(request: NextRequest) {
     const pageSize = parseInt(searchParams.get('pageSize') || '20')
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortDir = searchParams.get('sortDir') || 'desc'
+    const filter = searchParams.get('filter') || ''
     const offset = (page - 1) * pageSize
 
     const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at', 'country']
     const actualSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at'
     const ascending = sortDir === 'asc'
+
+    // Filtre "suspect" : jamais connecté + inscrit depuis > 24h + 0 tournois
+    const isSuspectFilter = filter === 'suspect'
+    const suspectCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
     // Count query
     let countQuery = adminClient
@@ -44,6 +50,9 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       countQuery = countQuery.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
+    }
+    if (isSuspectFilter) {
+      countQuery = countQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
     }
 
     const { count: totalCount } = await countQuery
@@ -57,6 +66,9 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       usersQuery = usersQuery.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
+    }
+    if (isSuspectFilter) {
+      usersQuery = usersQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
     }
 
     const { data: usersData, error: usersError } = await usersQuery
@@ -112,9 +124,25 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Construire la réponse
+    // Construire la réponse avec détection de comptes suspects
     const users = usersData.map(u => {
       const activeTournaments = tournamentsMap.get(u.id) || []
+      const suspectReasons: string[] = []
+
+      // Heuristiques de détection
+      const accountAge = Date.now() - new Date(u.created_at).getTime()
+      const isOlderThan24h = accountAge > 24 * 60 * 60 * 1000
+
+      if (!u.last_seen_at && isOlderThan24h) {
+        suspectReasons.push('Jamais connecté')
+      }
+      if (activeTournaments.length === 0 && isOlderThan24h) {
+        suspectReasons.push('Aucun tournoi')
+      }
+      if (u.email && isDisposableEmail(u.email)) {
+        suspectReasons.push('Email jetable')
+      }
+
       return {
         id: u.id,
         username: u.username || 'Sans nom',
@@ -123,7 +151,8 @@ export async function GET(request: NextRequest) {
         created_at: u.created_at,
         last_seen_at: u.last_seen_at,
         active_tournaments_count: activeTournaments.length,
-        active_tournaments: activeTournaments
+        active_tournaments: activeTournaments,
+        suspect_reasons: suspectReasons
       }
     })
 
