@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionToPreferences } from '@/lib/capacitor'
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
+import TurnstileWidget from '@/components/TurnstileWidget'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -18,6 +19,7 @@ function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptCGU, setAcceptCGU] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [titleFontSize, setTitleFontSize] = useState(16)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -222,6 +224,25 @@ function SignUpForm() {
         }
       } catch {
         // Fail-open : si la vérification échoue, on laisse passer
+      }
+
+      // Vérifier Turnstile (si configuré)
+      if (turnstileToken) {
+        try {
+          const turnstileCheck = await fetch('/api/auth/verify-turnstile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: turnstileToken }),
+          })
+          const turnstileData = await turnstileCheck.json()
+          if (!turnstileData.success) {
+            setError('La vérification anti-bot a échoué. Veuillez réessayer.')
+            setLoading(false)
+            return
+          }
+        } catch {
+          // Fail-open
+        }
       }
 
       // Stocker l'email et le redirectTo temporairement
@@ -472,6 +493,13 @@ function SignUpForm() {
               </Link>
             </label>
           </div>
+
+          {/* Cloudflare Turnstile (anti-bot) — affiché seulement si configuré */}
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken(null)}
+            onError={() => setTurnstileToken(null)}
+          />
 
           <button
             type="submit"
