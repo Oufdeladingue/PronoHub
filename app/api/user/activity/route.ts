@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getClientIP } from '@/lib/rate-limit'
-import geoip from 'geoip-lite'
 
 /**
  * POST /api/user/activity
@@ -18,10 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Détecter le pays via IP
-    const clientIP = getClientIP(request)
-    const geo = geoip.lookup(clientIP)
-    const country = geo?.country || null
+    // Détecter le pays via IP (non-bloquant : si geoip échoue, on continue)
+    let country: string | null = null
+    try {
+      const clientIP = getClientIP(request)
+      const geoip = await import('geoip-lite').then(m => m.default || m)
+      const geo = geoip.lookup(clientIP)
+      country = geo?.country || null
+    } catch {
+      // geoip-lite non disponible ou erreur — on continue sans le pays
+    }
 
     // Mettre à jour last_seen_at + country
     const updateData: Record<string, any> = {
