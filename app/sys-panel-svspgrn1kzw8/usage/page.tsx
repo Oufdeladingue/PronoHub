@@ -1804,7 +1804,7 @@ export default function AdminUsagePage() {
                       setUsersSortBy(col)
                       setUsersSortDir(col === 'created_at' || col === 'last_seen_at' ? 'desc' : 'asc')
                     }}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900"
                   >
                     <option value="created_at">Date de création</option>
                     <option value="last_seen_at">Dernière connexion</option>
@@ -1815,7 +1815,7 @@ export default function AdminUsagePage() {
                   </select>
                   <button
                     onClick={() => setUsersSortDir(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 hover:bg-gray-50"
                     title={usersSortDir === 'asc' ? 'Croissant' : 'Décroissant'}
                   >
                     {usersSortDir === 'asc' ? '↑' : '↓'}
