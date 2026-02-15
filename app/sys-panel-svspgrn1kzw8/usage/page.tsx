@@ -1680,7 +1680,7 @@ export default function AdminUsagePage() {
                 </div>
                 <button
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-2 px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                  className="hidden sm:inline-flex items-center gap-2 px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1792,8 +1792,36 @@ export default function AdminUsagePage() {
                 </div>
               </div>
 
-              {/* Vue Mobile : Cartes */}
+              {/* Vue Mobile : Tri + Cartes */}
               <div className="md:hidden space-y-3">
+                {/* Sélecteur de tri mobile */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-500 whitespace-nowrap">Trier par :</label>
+                  <select
+                    value={usersSortBy}
+                    onChange={(e) => {
+                      const col = e.target.value as UsersSortBy
+                      setUsersSortBy(col)
+                      setUsersSortDir(col === 'created_at' || col === 'last_seen_at' ? 'desc' : 'asc')
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                  >
+                    <option value="created_at">Date de création</option>
+                    <option value="last_seen_at">Dernière connexion</option>
+                    <option value="username">Pseudo</option>
+                    <option value="email">Email</option>
+                    <option value="country">Pays</option>
+                    <option value="active_tournaments_count">Tournois actifs</option>
+                  </select>
+                  <button
+                    onClick={() => setUsersSortDir(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
+                    title={usersSortDir === 'asc' ? 'Croissant' : 'Décroissant'}
+                  >
+                    {usersSortDir === 'asc' ? '↑' : '↓'}
+                  </button>
+                </div>
+
                 {usersLoading ? (
                   <div className="text-center py-8 text-gray-500">Chargement...</div>
                 ) : adminUsers.length === 0 ? (
