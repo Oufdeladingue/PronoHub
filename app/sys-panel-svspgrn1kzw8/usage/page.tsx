@@ -233,7 +233,9 @@ function ToastNotification({ toast, onClose }: { toast: Toast; onClose: () => vo
       )}
       <div className="flex-1">
         <p className="font-semibold text-sm">
-          {toast.type === 'success' ? 'Crédit ajouté !' : 'Erreur'}
+          {toast.type === 'success'
+            ? (toast.creditType ? 'Crédit ajouté !' : 'Succès')
+            : 'Erreur'}
         </p>
         <p className="text-sm opacity-90 mt-0.5">
           {toast.type === 'success' && toast.creditType && toast.username ? (
