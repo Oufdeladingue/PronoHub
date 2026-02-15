@@ -434,6 +434,10 @@ export default function AdminUsagePage() {
   const [usersSortDir, setUsersSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTournamentsModal, setActiveTournamentsModal] = useState<ActiveTournamentsModalState | null>(null)
   const [usersFilter, setUsersFilter] = useState<'' | 'suspect'>('')
+  const [deleteModal, setDeleteModal] = useState<{ userId: string; username: string } | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteBlockers, setDeleteBlockers] = useState<string[]>([])
 
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
@@ -497,6 +501,38 @@ export default function AdminUsagePage() {
   }
 
   const usersTotalPages = Math.ceil(usersTotalCount / usersPageSize)
+
+  const handleDeleteUser = async (userId: string) => {
+    setDeleteLoading(true)
+    setDeleteError(null)
+    setDeleteBlockers([])
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+      const data = await response.json()
+
+      if (response.status === 409) {
+        // Suppression bloquée
+        setDeleteBlockers(data.blockers || [])
+        setDeleteError(data.error)
+        return
+      }
+
+      if (!response.ok) {
+        setDeleteError(data.error || 'Erreur lors de la suppression')
+        return
+      }
+
+      // Succès
+      setDeleteModal(null)
+      setToasts(prev => [...prev, { id: Date.now(), type: 'success', message: data.message }])
+      fetchAdminUsers()
+    } catch {
+      setDeleteError('Erreur réseau')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   const handleExportCSV = () => {
     const params = new URLSearchParams({
@@ -1756,18 +1792,20 @@ export default function AdminUsagePage() {
                         >
                           Tournois actifs <SortArrow column="active_tournaments_count" />
                         </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
                       ) : adminUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
@@ -1818,6 +1856,17 @@ export default function AdminUsagePage() {
                               ) : (
                                 <span className="text-gray-400 text-sm">0</span>
                               )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => { setDeleteModal({ userId: u.id, username: u.username }); setDeleteError(null); setDeleteBlockers([]) }}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title="Supprimer cet utilisateur"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -1890,16 +1939,27 @@ export default function AdminUsagePage() {
                           <span className="ml-2 text-gray-400 text-sm flex-shrink-0">0 tournoi</span>
                         )}
                       </div>
-                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                        <span>
-                          Créé le {new Date(u.created_at).toLocaleDateString('fr-FR')}
-                        </span>
-                        <span>
-                          Vu {formatRelativeDate(u.last_seen_at).toLowerCase()}
-                        </span>
-                        {u.country && (
-                          <span>{countryFlag(u.country)} {u.country}</span>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                          <span>
+                            Créé le {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                          </span>
+                          <span>
+                            Vu {formatRelativeDate(u.last_seen_at).toLowerCase()}
+                          </span>
+                          {u.country && (
+                            <span>{countryFlag(u.country)} {u.country}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setDeleteModal({ userId: u.id, username: u.username }); setDeleteError(null); setDeleteBlockers([]) }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                          title="Supprimer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))
@@ -1951,6 +2011,74 @@ export default function AdminUsagePage() {
                   </button>
                 </div>
               </div>
+              {/* Modale de suppression utilisateur */}
+              {deleteModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !deleteLoading && setDeleteModal(null)}>
+                  <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Supprimer l&apos;utilisateur</h3>
+                    </div>
+
+                    <p className="text-gray-600 mb-4">
+                      Êtes-vous sûr de vouloir supprimer <strong className="text-gray-900">{deleteModal.username}</strong> ? Cette action est <strong className="text-red-600">irréversible</strong>.
+                    </p>
+
+                    {deleteBlockers.length > 0 && (
+                      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-sm font-semibold text-amber-800 mb-2">Suppression impossible :</p>
+                        <ul className="text-sm text-amber-700 space-y-1">
+                          {deleteBlockers.map((b, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-amber-500 mt-0.5">•</span>
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {deleteError && deleteBlockers.length === 0 && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-700">{deleteError}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        onClick={() => setDeleteModal(null)}
+                        disabled={deleteLoading}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        Annuler
+                      </button>
+                      {deleteBlockers.length === 0 && (
+                        <button
+                          onClick={() => handleDeleteUser(deleteModal.userId)}
+                          disabled={deleteLoading}
+                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {deleteLoading ? (
+                            <>
+                              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              Suppression...
+                            </>
+                          ) : (
+                            'Confirmer la suppression'
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
