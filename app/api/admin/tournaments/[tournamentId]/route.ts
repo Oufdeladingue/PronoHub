@@ -62,7 +62,7 @@ export async function GET(
       calculateTournamentStats({
         supabase: adminClient,
         tournamentId,
-        includeDetailedStats: false
+        includeDetailedStats: true
       }),
 
       // Créateur

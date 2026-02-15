@@ -59,7 +59,7 @@ export async function calculateTournamentStats(
     exactScore: parseInt(exactScoreSetting?.setting_value || '3'),
     correctResult: parseInt(correctResultSetting?.setting_value || '1'),
     incorrectResult: parseInt(incorrectResultSetting?.setting_value || '0'),
-    drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction ?? 0
+    drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
   }
 
   // 3. Récupérer les participants avec leurs profils
@@ -263,18 +263,8 @@ export async function calculateTournamentStats(
     const predictionsCount = allUserPredictions.filter(p => !p.is_default_prediction).length
 
     // Calculer le bonus early prediction par journée si activé
+    // Logique alignée sur le classement public : +1 point par journée si tous les pronos sont non-défaut
     if (tournament.early_prediction_bonus) {
-      // Récupérer toutes les prédictions de l'utilisateur avec created_at
-      const { data: userPredictionsWithTime } = await supabase
-        .from('predictions')
-        .select('match_id, created_at, is_default_prediction')
-        .eq('tournament_id', tournamentId)
-        .eq('user_id', userId)
-
-      const predictionsTimeMap = new Map(
-        (userPredictionsWithTime || []).map(p => [p.match_id, { created_at: p.created_at, is_default: p.is_default_prediction }])
-      )
-
       // Grouper les matchs terminés par journée
       const matchesByMatchday = new Map<number, any[]>()
       for (const match of finishedMatches) {
@@ -284,32 +274,18 @@ export async function calculateTournamentStats(
         matchesByMatchday.get(match.matchday)!.push(match)
       }
 
-      // Pour chaque journée, vérifier si tous les pronos ont été faits avant chaque match respectif
-      for (const [matchday, matchdayMatches] of matchesByMatchday.entries()) {
-        let allPredictionsOnTime = true
+      for (const [, matchdayMatches] of matchesByMatchday.entries()) {
+        let hasDefaultPrediction = false
 
         for (const match of matchdayMatches) {
-          const predInfo = predictionsTimeMap.get(match.id)
-
-          // Si pas de prono ou prono par défaut, pas de bonus pour cette journée
-          if (!predInfo || predInfo.is_default) {
-            allPredictionsOnTime = false
+          const pred = predictionsMap.get(match.id)
+          if (!pred || pred.is_default_prediction) {
+            hasDefaultPrediction = true
             break
-          }
-
-          // Si le prono a été fait après le début du match, pas de bonus
-          if (predInfo.created_at) {
-            const predCreatedAt = new Date(predInfo.created_at)
-            const matchStartTime = new Date(match.utc_date)
-            if (predCreatedAt >= matchStartTime) {
-              allPredictionsOnTime = false
-              break
-            }
           }
         }
 
-        // Ajouter +1 point si tous les pronos de la journée ont été faits à temps
-        if (allPredictionsOnTime && matchdayMatches.length > 0) {
+        if (!hasDefaultPrediction && matchdayMatches.length > 0) {
           totalPoints += 1
         }
       }
@@ -389,7 +365,9 @@ export async function calculateTournamentStats(
   participantStats.forEach((stat, index) => {
     if (index > 0) {
       const prev = participantStats[index - 1]
-      const isTied = stat.total_points === prev.total_points
+      const isTied = stat.total_points === prev.total_points &&
+        stat.exact_scores === prev.exact_scores &&
+        stat.correct_results === prev.correct_results
       if (!isTied) {
         currentRank = index + 1
       }
