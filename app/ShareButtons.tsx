@@ -114,7 +114,18 @@ export function ShareButtons() {
         setGlowIdx(null)
       }, 700)
     } catch {
-      // Fallback
+      // Fallback: select+copy for older browsers / restricted contexts
+      const ta = document.createElement('textarea')
+      ta.value = `${SHARE_TEXT} ${SHARE_URL}`
+      ta.style.cssText = 'position:fixed;opacity:0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      ta.remove()
+      createBurst(el)
+      setGlowIdx(socials.length - 1)
+      setCopied(true)
+      setTimeout(() => { setCopied(false); setGlowIdx(null) }, 700)
     }
   }
 
@@ -127,7 +138,7 @@ export function ShareButtons() {
         const btnClass = [
           'share-btn group relative flex items-center justify-center w-12 h-12 rounded-full',
           'bg-[#1e293b] border border-white/10 text-[#94a3b8]',
-          'outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]/50',
+          'outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]',
           isGlowing ? 'share-btn-glow' : '',
         ].join(' ')
 

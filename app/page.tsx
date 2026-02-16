@@ -57,7 +57,7 @@ function HeroSection() {
           className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
           data-animate
         >
-          Fais-toi plaisir,
+          Pronostics foot entre potes :
           <br className="hidden sm:block" />
           {' '}deviens le <span className="text-[#ff9900]">roi du prono</span>.
         </h1>
@@ -79,13 +79,13 @@ function HeroSection() {
         >
           <Link
             href="/auth/signup"
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ff9900] px-6 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,153,0,0.18)] transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900]/60 focus:ring-offset-0 active:scale-[0.98]"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ff9900] px-6 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,153,0,0.18)] transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900] focus:ring-offset-0 active:scale-[0.98]"
           >
             Créer mon tournoi
           </Link>
           <Link
             href="/auth/login"
-            className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 active:scale-[0.98]"
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60 active:scale-[0.98]"
           >
             Se connecter
           </Link>
@@ -110,7 +110,7 @@ function HeroSection() {
           data-animate
           style={{ '--stagger': '400ms' } as React.CSSProperties}
         >
-          <Image src="/images/hero-img.png" alt="PronoHub - Aperçu de l'application" width={1200} height={800} className="mx-auto w-full h-auto" unoptimized />
+          <Image src="/images/hero-img.png" alt="PronoHub - Aperçu de l'application" width={1200} height={800} className="mx-auto w-full h-auto" priority sizes="(max-width: 1024px) 100vw, 896px" />
         </div>
       </div>
     </section>
@@ -153,7 +153,7 @@ function HowItWorksSection() {
       id="how"
       data-chapter="Comment ça marche"
       aria-labelledby="how-title"
-      className="relative py-14 sm:py-16 lg:py-20 scroll-mt-24 md:snap-start"
+      className="relative py-20 scroll-mt-24 md:snap-start"
     >
       <div className="mx-auto max-w-5xl px-6">
         <div className="text-center">
@@ -165,7 +165,7 @@ function HowItWorksSection() {
             Comment jouer ?
           </h2>
           <p
-            className="mx-auto mt-2 max-w-xl text-sm text-slate-400 sm:text-base"
+            className="mx-auto mt-2 max-w-xl text-sm text-slate-300 sm:text-base"
             data-animate
             style={{ '--stagger': '80ms' } as React.CSSProperties}
           >
@@ -173,8 +173,11 @@ function HowItWorksSection() {
           </p>
         </div>
 
-        <div className="mt-8 lg:mt-10">
-          {/* Progress line + nodes (desktop) */}
+        <div className="relative mt-8 pl-8 lg:mt-10 lg:pl-0">
+          {/* Mobile vertical timeline line */}
+          <div className="absolute left-[11px] top-4 bottom-4 w-px bg-white/[0.08] lg:hidden" aria-hidden="true" />
+
+          {/* Desktop horizontal progress line + nodes */}
           <div className="timeline-bar relative mx-auto mb-6 hidden h-4 lg:block" aria-hidden="true" data-animate>
             <div className="absolute left-[60px] right-[60px] top-1/2 h-px bg-white/[0.08]" />
             <div className="timeline-node timeline-node-1 absolute left-[calc(16.67%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
@@ -184,15 +187,17 @@ function HowItWorksSection() {
 
           <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
             {steps.map((step, i) => (
-              <div
-                key={step.n}
-                className={`step-card step-card-${i + 1} group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]`}
-                data-animate
-                style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
-              >
+              <div key={step.n} className="relative">
+                {/* Mobile timeline node */}
+                <div className="absolute top-6 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25 lg:hidden" style={{ left: '-21px' }} aria-hidden="true" />
+                <div
+                  className={`step-card step-card-${i + 1} group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]`}
+                  data-animate
+                  style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
+                >
                 {step.bg && (
                   <>
-                    <Image src={step.bg} alt="" fill className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" unoptimized />
+                    <Image src={step.bg} alt="" fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 via-[#0f172a]/30 to-transparent" />
                   </>
                 )}
@@ -204,13 +209,14 @@ function HowItWorksSection() {
                 </div>
 
                 <h3 className="relative mt-3.5 text-[17px] font-semibold text-white leading-snug">{step.title}</h3>
-                <p className="relative mt-1.5 text-[13px] leading-relaxed text-slate-400">{step.text}</p>
+                <p className="relative mt-1.5 text-[13px] leading-relaxed text-slate-300">{step.text}</p>
 
                 {step.chip && (
                   <div className="relative mt-3 inline-flex items-center rounded-full border border-[#ff9900]/15 bg-[#ff9900]/5 px-3 py-1 text-xs font-medium text-[#ff9900]/90">
                     {step.chip}
                   </div>
                 )}
+                </div>
               </div>
             ))}
           </div>
@@ -278,7 +284,7 @@ function FeaturesSection() {
     >
       {/* ── Section background ── */}
       <div className="absolute inset-0" aria-hidden="true">
-        <Image src="/images/bg-section-3.jpg" alt="" fill className="object-cover opacity-50" unoptimized />
+        <Image src="/images/bg-section-3.jpg" alt="" fill sizes="100vw" className="object-cover opacity-50" />
       </div>
 
       <div className="relative z-[2] max-w-5xl mx-auto w-full">
@@ -289,7 +295,7 @@ function FeaturesSection() {
           Tout pour vivre le foot à fond
         </h2>
         <p
-          className="text-slate-400 text-center mt-3 mb-12 sm:mb-16 max-w-lg mx-auto text-sm sm:text-base font-normal"
+          className="text-slate-300 text-center mt-3 mb-12 sm:mb-16 max-w-lg mx-auto text-sm sm:text-base font-normal"
           data-animate
           style={{ '--stagger': '80ms' } as React.CSSProperties}
         >
@@ -306,7 +312,7 @@ function FeaturesSection() {
             >
               {f.bg && (
                 <>
-                  <Image src={f.bg} alt="" fill className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" unoptimized />
+                  <Image src={f.bg} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 via-[#0f172a]/30 to-transparent" />
                 </>
               )}
@@ -319,7 +325,7 @@ function FeaturesSection() {
               </div>
 
               <h3 className="relative mt-3.5 text-lg font-semibold tracking-[-0.02em] text-white leading-snug">{f.title}</h3>
-              <p className="relative mt-1.5 text-sm font-normal leading-[1.6] text-slate-400">{f.description}</p>
+              <p className="relative mt-1.5 text-sm font-normal leading-[1.6] text-slate-300">{f.description}</p>
             </div>
           ))}
         </div>
@@ -370,7 +376,7 @@ function SocialProofSection() {
           className="text-3xl md:text-4xl font-bold text-white mb-16"
           data-animate
         >
-          Ils s&apos;affrontent déjà sur <Image src="/images/logo.svg" alt="PronoHub" width={72} height={72} className="inline-block align-middle w-18 h-auto -mt-2 ml-2" unoptimized />
+          Ils s&apos;affrontent déjà sur <Image src="/images/logo.svg" alt="" width={72} height={72} className="inline-block align-middle w-18 h-auto -mt-2 ml-2" unoptimized aria-hidden /> PronoHub
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16">
@@ -384,7 +390,7 @@ function SocialProofSection() {
               <div className="text-4xl md:text-5xl font-bold text-[#ff9900]">
                 <AnimatedCounter target={stat.target} suffix={stat.suffix} />
               </div>
-              <div className="text-[#94a3b8]">{stat.label}</div>
+              <div className="text-[#cbd5e1]">{stat.label}</div>
             </div>
           ))}
         </div>
@@ -408,13 +414,13 @@ function SocialProofSection() {
               {/* Head: avatar + name + stars */}
               <div className="relative z-[1] flex items-center gap-3 mb-3.5">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-[#ff9900]/35 shadow-[0_0_0_6px_rgba(255,153,0,0.06)] flex-shrink-0">
-                  <Image src={t.avatar} alt={t.name} width={44} height={44} className="w-full h-full object-cover" unoptimized />
+                  <Image src={t.avatar} alt={t.name} width={44} height={44} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="font-semibold text-white tracking-tight">{t.name}</span>
-                  <div className="flex gap-0.5 text-[#ff9900] text-sm leading-none drop-shadow-[0_6px_14px_rgba(255,153,0,0.15)]">
+                  <div className="flex gap-0.5 text-[#ff9900] text-sm leading-none drop-shadow-[0_6px_14px_rgba(255,153,0,0.15)]" aria-label="5 étoiles sur 5" role="img">
                     {[...Array(5)].map((_, s) => (
-                      <span key={s}>&#9733;</span>
+                      <span key={`star-${s}`} aria-hidden="true">&#9733;</span>
                     ))}
                   </div>
                 </div>
@@ -456,7 +462,7 @@ function PricingTeaser() {
           Gratuit pour commencer
         </h2>
         <p
-          className="text-[#94a3b8] mb-12 max-w-lg mx-auto"
+          className="text-[#cbd5e1] mb-12 max-w-lg mx-auto"
           data-animate
           style={{ '--stagger': '80ms' } as React.CSSProperties}
         >
@@ -530,7 +536,7 @@ function CTAFooter() {
             Prêt à défier tes potes ?
           </h2>
           <p
-            className="text-[#94a3b8] text-lg"
+            className="text-[#cbd5e1] text-lg"
             data-animate
             style={{ '--stagger': '100ms' } as React.CSSProperties}
           >
@@ -549,7 +555,7 @@ function CTAFooter() {
             </Link>
           </div>
           <p
-            className="text-sm text-[#94a3b8]"
+            className="text-sm text-[#cbd5e1]"
             data-animate
             style={{ '--stagger': '300ms' } as React.CSSProperties}
           >

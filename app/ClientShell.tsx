@@ -313,7 +313,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
             key={s.id}
             href={`#${s.id}`}
             onClick={(e) => scrollTo(e, s.id)}
-            className="group relative flex items-center justify-end p-2 outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]/50 rounded-sm"
+            className="group relative flex items-center justify-end p-2 outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900] rounded-sm"
             aria-label={s.label}
             aria-current={activeSection === s.id ? 'true' : undefined}
           >

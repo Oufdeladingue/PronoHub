@@ -129,6 +129,43 @@ export default function RootLayout({
                   description: 'Créez et participez à des tournois de pronostics sportifs avec vos amis. Ligue 1, Premier League, Champions League et plus encore.',
                   inLanguage: 'fr',
                 },
+                {
+                  '@type': 'FAQPage',
+                  mainEntity: [
+                    {
+                      '@type': 'Question',
+                      name: 'PronoHub est-il gratuit ?',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'Oui, PronoHub est 100 % gratuit. Créez vos tournois, invitez vos amis et jouez sans aucun frais.',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Comment créer un tournoi de pronostics ?',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'Inscrivez-vous gratuitement, cliquez sur « Créer un tournoi », choisissez vos compétitions (Ligue 1, Premier League, Champions League…) et partagez le lien d\'invitation à vos amis.',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Quelles compétitions sont disponibles ?',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'PronoHub couvre les principales compétitions européennes : Ligue 1, Premier League, La Liga, Serie A, Bundesliga, Champions League, Europa League et plus encore.',
+                      },
+                    },
+                    {
+                      '@type': 'Question',
+                      name: 'Combien de joueurs peuvent participer à un tournoi ?',
+                      acceptedAnswer: {
+                        '@type': 'Answer',
+                        text: 'Il n\'y a pas de limite ! Invitez autant d\'amis que vous le souhaitez dans votre tournoi de pronostics.',
+                      },
+                    },
+                  ],
+                },
               ],
             }),
           }}
