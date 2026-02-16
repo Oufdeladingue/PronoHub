@@ -88,6 +88,8 @@ export interface MatchdayRecapEmailProps {
   bestMatch?: {
     homeTeam: string
     awayTeam: string
+    homeCrest?: string
+    awayCrest?: string
     homeScore: number
     awayScore: number
     userPredictionHome: number
@@ -97,6 +99,8 @@ export interface MatchdayRecapEmailProps {
   worstMatch?: {
     homeTeam: string
     awayTeam: string
+    homeCrest?: string
+    awayCrest?: string
     homeScore: number
     awayScore: number
     userPredictionHome: number
@@ -1324,9 +1328,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                         <tr>
                           <td style="text-align: center; padding: 8px 0;">
                             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${bestMatch.homeTeam}</div>
-                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                              <span style="font-size: 16px;">⚽</span>
-                            </div>
+                            ${bestMatch.homeCrest ? `<img src="${bestMatch.homeCrest}" alt="${bestMatch.homeTeam}" width="32" height="32" style="display: block; margin: 0 auto;" />` : `<div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="font-size: 16px;">⚽</span></div>`}
                           </td>
                           <td style="text-align: center; vertical-align: middle; padding: 8px;">
                             <div style="font-size: 16px; font-weight: 700; color: #22c55e;">${bestMatch.homeScore} - ${bestMatch.awayScore}</div>
@@ -1335,9 +1337,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                           </td>
                           <td style="text-align: center; padding: 8px 0;">
                             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${bestMatch.awayTeam}</div>
-                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                              <span style="font-size: 16px;">⚽</span>
-                            </div>
+                            ${bestMatch.awayCrest ? `<img src="${bestMatch.awayCrest}" alt="${bestMatch.awayTeam}" width="32" height="32" style="display: block; margin: 0 auto;" />` : `<div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="font-size: 16px;">⚽</span></div>`}
                           </td>
                         </tr>
                       </table>
@@ -1354,9 +1354,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                         <tr>
                           <td style="text-align: center; padding: 8px 0;">
                             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${worstMatch.homeTeam}</div>
-                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                              <span style="font-size: 16px;">⚽</span>
-                            </div>
+                            ${worstMatch.homeCrest ? `<img src="${worstMatch.homeCrest}" alt="${worstMatch.homeTeam}" width="32" height="32" style="display: block; margin: 0 auto;" />` : `<div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="font-size: 16px;">⚽</span></div>`}
                           </td>
                           <td style="text-align: center; vertical-align: middle; padding: 8px;">
                             <div style="font-size: 16px; font-weight: 700; color: #ef4444;">${worstMatch.homeScore} - ${worstMatch.awayScore}</div>
@@ -1365,9 +1363,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                           </td>
                           <td style="text-align: center; padding: 8px 0;">
                             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${worstMatch.awayTeam}</div>
-                            <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                              <span style="font-size: 16px;">⚽</span>
-                            </div>
+                            ${worstMatch.awayCrest ? `<img src="${worstMatch.awayCrest}" alt="${worstMatch.awayTeam}" width="32" height="32" style="display: block; margin: 0 auto;" />` : `<div style="width: 32px; height: 32px; margin: 0 auto; background-color: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><span style="font-size: 16px;">⚽</span></div>`}
                           </td>
                         </tr>
                       </table>

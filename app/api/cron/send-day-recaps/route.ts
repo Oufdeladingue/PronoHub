@@ -270,13 +270,16 @@ export async function GET(request: NextRequest) {
                     .single()
                 : await supabase
                     .from('imported_matches')
-                    .select('home_team, away_team')
+                    .select('home_team_name, away_team_name, home_team_crest, away_team_crest')
                     .eq('id', match.id)
                     .single()
 
+              const details = matchDetails as any
               const matchData = {
-                homeTeam: matchDetails?.home_team || 'Équipe 1',
-                awayTeam: matchDetails?.away_team || 'Équipe 2',
+                homeTeam: (isCustom ? details?.home_team : details?.home_team_name) || 'Équipe 1',
+                awayTeam: (isCustom ? details?.away_team : details?.away_team_name) || 'Équipe 2',
+                homeCrest: isCustom ? undefined : details?.home_team_crest,
+                awayCrest: isCustom ? undefined : details?.away_team_crest,
                 homeScore: match.home_score,
                 awayScore: match.away_score,
                 userPredictionHome: userPred.predicted_home_score,
