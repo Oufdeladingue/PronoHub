@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 
 declare global {
   interface Window {
@@ -30,26 +30,34 @@ export default function TurnstileWidget({ onVerify, onError, onExpire }: Turnsti
   const widgetIdRef = useRef<string | null>(null)
   const scriptLoadedRef = useRef(false)
 
-  const renderWidget = useCallback(() => {
-    if (!containerRef.current || !window.turnstile) return
-    if (widgetIdRef.current) return // Already rendered
-
-    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-    if (!siteKey) return
-
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: siteKey,
-      callback: onVerify,
-      'error-callback': onError,
-      'expired-callback': onExpire,
-      theme: 'dark',
-      size: 'normal',
-    })
-  }, [onVerify, onError, onExpire])
+  // Store callbacks in refs so useEffect doesn't depend on them
+  const onVerifyRef = useRef(onVerify)
+  const onErrorRef = useRef(onError)
+  const onExpireRef = useRef(onExpire)
+  onVerifyRef.current = onVerify
+  onErrorRef.current = onError
+  onExpireRef.current = onExpire
 
   useEffect(() => {
     // If Turnstile is not configured, skip
     if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return
+
+    const renderWidget = () => {
+      if (!containerRef.current || !window.turnstile) return
+      if (widgetIdRef.current) return // Already rendered
+
+      const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+      if (!siteKey) return
+
+      widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        callback: (token: string) => onVerifyRef.current(token),
+        'error-callback': () => onErrorRef.current?.(),
+        'expired-callback': () => onExpireRef.current?.(),
+        theme: 'dark',
+        size: 'invisible',
+      })
+    }
 
     // Load script if not already loaded
     if (!scriptLoadedRef.current && !document.getElementById('cf-turnstile-script')) {
@@ -72,7 +80,7 @@ export default function TurnstileWidget({ onVerify, onError, onExpire }: Turnsti
         widgetIdRef.current = null
       }
     }
-  }, [renderWidget])
+  }, []) // No dependencies — runs once, callbacks accessed via refs
 
   // If not configured, don't render anything
   if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) return null

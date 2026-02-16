@@ -174,18 +174,18 @@ function HowItWorksSection() {
 
         <div className="mt-8 lg:mt-10">
           {/* Progress line + nodes (desktop) */}
-          <div className="relative mx-auto mb-6 hidden h-4 lg:block" aria-hidden="true">
+          <div className="timeline-bar relative mx-auto mb-6 hidden h-4 lg:block" aria-hidden="true" data-animate>
             <div className="absolute left-[60px] right-[60px] top-1/2 h-px bg-white/[0.08]" />
-            <div className="absolute left-[calc(16.67%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
-            <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
-            <div className="absolute left-[calc(83.33%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+            <div className="timeline-node timeline-node-1 absolute left-[calc(16.67%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+            <div className="timeline-node timeline-node-2 absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+            <div className="timeline-node timeline-node-3 absolute left-[calc(83.33%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
           </div>
 
           <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
             {steps.map((step, i) => (
               <div
                 key={step.n}
-                className="group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]"
+                className={`step-card step-card-${i + 1} group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]`}
                 data-animate
                 style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
               >

@@ -38,6 +38,12 @@
     transform 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--stagger, 0ms);
 }
 
+/* Timeline bar: fade in without translateY (nodes handle their own animation) */
+.js-loaded .timeline-bar[data-animate]:not(.animate-in) {
+  opacity: 0;
+  transform: none;
+}
+
 .js-loaded [data-animate].animate-in {
   opacity: 1;
   transform: translateY(0);
@@ -51,6 +57,212 @@
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+  }
+}
+
+/* ── Timeline "Comment jouer" animation ────── */
+.timeline-node {
+  transition: none;
+}
+
+/*
+ * Full cycle = 7.5s:
+ *   0.0s → node1 ON    (0%)
+ *   2.0s → node2 ON    (26.7%)
+ *   4.0s → node3 ON    (53.3%)
+ *   5.5s → all fade OFF (73.3%)
+ *   7.5s → loop restart (100%)
+ *
+ * Each node: glow in 0.6s, stay lit ~1.4-3.5s, fade out 0.6s, stay off rest.
+ */
+
+.js-loaded .timeline-bar.animate-in .timeline-node-1 {
+  animation: node-glow-1 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in .timeline-node-2 {
+  animation: node-glow-2 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in .timeline-node-3 {
+  animation: node-glow-3 7.5s ease-out 0.5s infinite;
+}
+
+/* Node 1: ON at 0%, OFF at 73.3% */
+@keyframes node-glow-1 {
+  0% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  4% {
+    background-color: #ff9900;
+    border-color: #ffb84d;
+    box-shadow: 0 0 18px 6px rgba(255, 153, 0, 0.55);
+  }
+  8% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  66% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  81% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  100% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+}
+
+/* Node 2: ON at 26.7%, OFF at 73.3% */
+@keyframes node-glow-2 {
+  0%, 24% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  30.7% {
+    background-color: #ff9900;
+    border-color: #ffb84d;
+    box-shadow: 0 0 18px 6px rgba(255, 153, 0, 0.55);
+  }
+  34.7% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  66% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  81% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  100% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+}
+
+/* Node 3: ON at 53.3%, OFF at 73.3% */
+@keyframes node-glow-3 {
+  0%, 50.7% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  57.3% {
+    background-color: #ff9900;
+    border-color: #ffb84d;
+    box-shadow: 0 0 18px 6px rgba(255, 153, 0, 0.55);
+  }
+  61.3% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  66% {
+    background-color: #ff9900;
+    border-color: #ff9900;
+    box-shadow: 0 0 8px 2px rgba(255, 153, 0, 0.3);
+  }
+  81% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+  100% {
+    background-color: rgba(255, 153, 0, 0.25);
+    border-color: rgba(255, 153, 0, 0.4);
+    box-shadow: none;
+  }
+}
+
+/* Step cards: simulated hover synced with node glow */
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-1 {
+  animation: card-pulse-1 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-2 {
+  animation: card-pulse-2 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-3 {
+  animation: card-pulse-3 7.5s ease-out 0.5s infinite;
+}
+
+@keyframes card-pulse-1 {
+  0% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  4% { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); box-shadow: 0 12px 48px rgba(255,153,0,0.06); }
+  13% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  100% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+}
+
+@keyframes card-pulse-2 {
+  0%, 24% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  30.7% { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); box-shadow: 0 12px 48px rgba(255,153,0,0.06); }
+  40% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  100% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+}
+
+@keyframes card-pulse-3 {
+  0%, 50.7% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  57.3% { transform: translateY(-4px); border-color: rgba(255,255,255,0.2); box-shadow: 0 12px 48px rgba(255,153,0,0.06); }
+  66% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  100% { transform: translateY(0); border-color: rgba(255,255,255,0.12); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+}
+
+/* Step card bg image: opacity + scale synced with card pulse */
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-1 > img {
+  animation: card-bg-1 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-2 > img {
+  animation: card-bg-2 7.5s ease-out 0.5s infinite;
+}
+
+.js-loaded .timeline-bar.animate-in ~ .grid .step-card-3 > img {
+  animation: card-bg-3 7.5s ease-out 0.5s infinite;
+}
+
+@keyframes card-bg-1 {
+  0% { opacity: 0.2; scale: 1; }
+  4% { opacity: 0.3; scale: 1.05; }
+  13% { opacity: 0.2; scale: 1; }
+  100% { opacity: 0.2; scale: 1; }
+}
+
+@keyframes card-bg-2 {
+  0%, 24% { opacity: 0.2; scale: 1; }
+  30.7% { opacity: 0.3; scale: 1.05; }
+  40% { opacity: 0.2; scale: 1; }
+  100% { opacity: 0.2; scale: 1; }
+}
+
+@keyframes card-bg-3 {
+  0%, 50.7% { opacity: 0.2; scale: 1; }
+  57.3% { opacity: 0.3; scale: 1.05; }
+  66% { opacity: 0.2; scale: 1; }
+  100% { opacity: 0.2; scale: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-node,
+  .step-card,
+  .step-card > img {
+    animation: none !important;
   }
 }
 

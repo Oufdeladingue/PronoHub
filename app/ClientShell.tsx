@@ -267,7 +267,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
           id="mobile-menu"
           aria-label="Menu mobile"
           aria-hidden={!mobileMenuOpen}
-          className={`md:hidden bg-[#020617]/95 border-t border-white/[0.08] px-4 mobile-menu ${mobileMenuOpen ? 'mobile-menu-open py-3' : ''}`}
+          className={`md:hidden relative z-[40] bg-[#020617]/95 border-t border-white/[0.08] px-4 mobile-menu ${mobileMenuOpen ? 'mobile-menu-open py-3' : ''}`}
         >
           <div className="space-y-1.5">
             {SECTIONS.map(s => (
@@ -313,7 +313,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
             key={s.id}
             href={`#${s.id}`}
             onClick={(e) => scrollTo(e, s.id)}
-            className="group relative flex items-center justify-end p-2 focus:outline-none focus:ring-2 focus:ring-[#ff9900]/50 rounded-sm"
+            className="group relative flex items-center justify-end p-2 outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]/50 rounded-sm"
             aria-label={s.label}
             aria-current={activeSection === s.id ? 'true' : undefined}
           >

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
+import Link from 'next/link'
 import Navigation from '@/components/Navigation'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import PricingClient from './PricingClient'
@@ -50,13 +51,23 @@ export default async function PricingPage() {
 
   return (
     <ThemeProvider>
-      {profile && (
+      {profile ? (
         <Navigation
           username={profile.username || 'Utilisateur'}
           userAvatar={profile.avatar}
           context="app"
           appContext={{ showBackToDashboard: true }}
         />
+      ) : (
+        <Link
+          href="/"
+          className="fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-white hover:bg-white/20 transition-colors"
+          aria-label="Retour à l'accueil"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </Link>
       )}
       <PricingClient isLoggedIn={!!user} />
     </ThemeProvider>
