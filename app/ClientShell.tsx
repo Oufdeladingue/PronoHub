@@ -198,7 +198,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           headerCompact
-            ? 'py-1.5 bg-transparent shadow-lg shadow-black/30'
+            ? 'py-1.5 bg-[#020617]/85 backdrop-blur-md shadow-lg shadow-black/30'
             : 'py-3 bg-transparent'
         }`}
       >
