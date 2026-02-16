@@ -221,7 +221,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
                 key={s.id}
                 href={`#${s.id}`}
                 onClick={(e) => scrollTo(e, s.id)}
-                className={`text-sm font-medium transition-colors duration-200 ${
+                className={`text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#ff9900]/50 focus:ring-offset-0 rounded-sm ${
                   activeSection === s.id ? 'text-[#ff9900]' : 'text-[#94a3b8] hover:text-white'
                 }`}
               >
@@ -234,7 +234,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <Link
               href="/auth/login"
-              className="hidden sm:inline-block text-sm text-[#94a3b8] hover:text-white transition-colors"
+              className="hidden sm:inline-block text-sm text-[#94a3b8] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff9900]/50 rounded-sm"
             >
               Se connecter
             </Link>
@@ -266,6 +266,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
         <nav
           id="mobile-menu"
           aria-label="Menu mobile"
+          aria-hidden={!mobileMenuOpen}
           className={`md:hidden bg-[#020617]/95 border-t border-white/[0.08] px-4 mobile-menu ${mobileMenuOpen ? 'mobile-menu-open py-3' : ''}`}
         >
           <div className="space-y-1.5">
@@ -295,7 +296,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
         {/* Backdrop overlay for mobile menu */}
         {mobileMenuOpen && (
           <div
-            className="fixed inset-0 bg-black/40 z-[-1] md:hidden"
+            className="fixed inset-0 bg-black/40 z-[39] md:hidden"
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden="true"
           />
@@ -312,7 +313,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
             key={s.id}
             href={`#${s.id}`}
             onClick={(e) => scrollTo(e, s.id)}
-            className="group relative flex items-center justify-end p-2"
+            className="group relative flex items-center justify-end p-2 focus:outline-none focus:ring-2 focus:ring-[#ff9900]/50 rounded-sm"
             aria-label={s.label}
             aria-current={activeSection === s.id ? 'true' : undefined}
           >
