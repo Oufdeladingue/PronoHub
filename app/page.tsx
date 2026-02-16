@@ -173,11 +173,8 @@ function HowItWorksSection() {
           </p>
         </div>
 
-        <div className="relative mt-8 pl-8 lg:mt-10 lg:pl-0">
-          {/* Mobile vertical timeline line */}
-          <div className="absolute left-[11px] top-4 bottom-4 w-px bg-white/[0.08] lg:hidden" aria-hidden="true" />
-
-          {/* Desktop horizontal progress line + nodes */}
+        <div className="mt-8 lg:mt-10">
+          {/* Progress line + nodes (desktop) */}
           <div className="timeline-bar relative mx-auto mb-6 hidden h-4 lg:block" aria-hidden="true" data-animate>
             <div className="absolute left-[60px] right-[60px] top-1/2 h-px bg-white/[0.08]" />
             <div className="timeline-node timeline-node-1 absolute left-[calc(16.67%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
@@ -187,14 +184,12 @@ function HowItWorksSection() {
 
           <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
             {steps.map((step, i) => (
-              <div key={step.n} className="relative">
-                {/* Mobile timeline node */}
-                <div className="absolute top-6 h-2.5 w-2.5 -translate-x-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25 lg:hidden" style={{ left: '-21px' }} aria-hidden="true" />
-                <div
-                  className={`step-card step-card-${i + 1} group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]`}
-                  data-animate
-                  style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
-                >
+              <div
+                key={step.n}
+                className={`step-card step-card-${i + 1} group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]`}
+                data-animate
+                style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
+              >
                 {step.bg && (
                   <>
                     <Image src={step.bg} alt="" fill sizes="(max-width: 1024px) 100vw, 33vw" className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" />
@@ -216,7 +211,6 @@ function HowItWorksSection() {
                     {step.chip}
                   </div>
                 )}
-                </div>
               </div>
             ))}
           </div>
