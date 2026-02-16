@@ -278,3 +278,111 @@
   max-height: 400px;
   opacity: 1;
 }
+
+/* ── Share buttons micro-interactions ─────── */
+
+/* Hover lift + brand color via CSS custom property */
+.share-btn {
+  transition:
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms ease,
+    background-color 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+
+.share-btn:hover,
+.share-btn:focus-visible {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand) 40%, transparent);
+  background-color: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+}
+
+.share-btn:active {
+  transform: translateY(-1px);
+}
+
+/* Click glow state (applied via JS class) */
+.share-btn-glow {
+  border-color: rgba(255, 153, 0, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 12px rgba(255, 153, 0, 0.3);
+}
+
+/* Icon subtle scale on hover */
+.share-btn .share-icon {
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.share-btn:hover .share-icon,
+.share-btn:focus-visible .share-icon {
+  transform: scale(1.1);
+}
+
+/* Ball trajectory (SVG path draws on hover) */
+.share-trajectory path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  transition:
+    stroke-dashoffset 300ms cubic-bezier(0.16, 1, 0.3, 1) 60ms,
+    opacity 180ms ease;
+}
+
+.share-btn:hover .share-trajectory path,
+.share-btn:focus-visible .share-trajectory path {
+  stroke-dashoffset: 0;
+  opacity: 0.4;
+}
+
+/* Tooltip */
+.share-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: white;
+  background: rgba(30, 41, 59, 0.95);
+  padding: 5px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 20;
+  transition:
+    opacity 180ms ease,
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.share-btn:hover .share-tooltip,
+.share-btn:focus-visible .share-tooltip,
+.share-tooltip-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Share buttons: reduced motion ───────── */
+@media (prefers-reduced-motion: reduce) {
+  .share-btn {
+    transform: none !important;
+    transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease !important;
+  }
+
+  .share-btn .share-icon {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .share-trajectory {
+    display: none !important;
+  }
+
+  .share-tooltip {
+    transform: translateX(-50%) !important;
+    transition: opacity 180ms ease !important;
+  }
+}
