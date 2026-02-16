@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
+import { ShareButtons } from './ShareButtons'
 import './landing.css'
 
 export const metadata = {
@@ -554,6 +555,16 @@ function CTAFooter() {
           >
             Pas de carte bancaire requise
           </p>
+
+          {/* Share buttons */}
+          <div
+            className="pt-10 flex flex-col items-center gap-4"
+            data-animate
+            style={{ '--stagger': '400ms' } as React.CSSProperties}
+          >
+            <p className="text-sm text-[#64748b]">Partage PronoHub avec tes potes</p>
+            <ShareButtons />
+          </div>
         </div>
       </div>
 

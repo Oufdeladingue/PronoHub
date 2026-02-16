@@ -61,7 +61,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
         })
         if (best && bestRatio > 0.05) {
           setActiveSection(best)
-          history.replaceState(null, '', `#${best}`)
+          history.replaceState(null, '', best === 'hero' ? window.location.pathname : `#${best}`)
         }
       },
       { root: container, threshold: [0, 0.1, 0.2, 0.3, 0.5, 0.7, 1] }
