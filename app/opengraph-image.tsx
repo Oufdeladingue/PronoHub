@@ -7,7 +7,7 @@ export const contentType = 'image/png'
 
 export default async function Image() {
   const interBold = fetch(
-    new URL('https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hjp-Ek-_EeA.woff', import.meta.url)
+    'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hjp-Ek-_EeA.woff'
   ).then((res) => res.arrayBuffer())
 
   return new ImageResponse(

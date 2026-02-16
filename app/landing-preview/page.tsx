@@ -4,8 +4,25 @@ import { ClientShell } from './ClientShell'
 import './landing.css'
 
 export const metadata = {
-  title: 'PronoHub - Tournois de Pronostics Football entre Amis',
-  description: 'Crée ton tournoi de pronostics, invite tes potes et prouve que tu es le roi du prono. Gratuit, sans pub, 100% fun.',
+  title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
+  description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis sur la Ligue 1, Champions League et Premier League. Classements en direct, trophées et chat. Inscription en 30 secondes, sans carte bancaire.',
+  openGraph: {
+    title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
+    description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis. Classements en direct, trophées et chat.',
+    url: 'https://www.pronohub.club',
+    siteName: 'PronoHub',
+    type: 'website',
+    images: [{ url: 'https://www.pronohub.club/images/og-image.png', width: 1200, height: 630, alt: 'PronoHub - Pronostics Football entre Amis' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
+    description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis.',
+    images: ['https://www.pronohub.club/images/og-image.png'],
+  },
+  alternates: {
+    canonical: 'https://www.pronohub.club',
+  },
 }
 
 // =============================================
@@ -13,90 +30,86 @@ export const metadata = {
 // =============================================
 function HeroSection() {
   return (
-    <section
-      id="hero"
-      data-chapter="Hero"
-      className="relative min-h-screen flex flex-col items-center justify-center px-4 pt-20 pb-8 md:snap-start"
-    >
-      {/* Background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#ff9900]/[0.06] rounded-full blur-[150px]" />
+    <section id="hero" data-chapter="Hero" className="relative overflow-hidden md:snap-start">
+      {/* ── Parallax background image ── */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/bg-landing.jpg"
+          alt=""
+          className="hero-parallax-bg"
+        />
+      </div>
 
-      <div className="relative z-10 text-center max-w-2xl mx-auto space-y-6">
-        {/* Logo + Crown */}
-        <div className="flex flex-col items-center" data-animate>
-          <Image
-            src="/images/king.svg"
-            alt="Couronne PronoHub"
-            width={140}
-            height={140}
-            className="h-auto mb-2 drop-shadow-[0_0_60px_rgba(255,220,150,0.7)]"
-            priority
-          />
-          <Image
-            src="/images/logo.svg"
-            alt="PronoHub"
-            width={160}
-            height={160}
-            className="w-auto drop-shadow-[0_0_100px_rgba(255,220,150,0.6)]"
-            style={{ height: '6rem' }}
-            priority
-          />
-        </div>
+      {/* ── Overlay gradient (over image, under content) ── */}
+      <div className="pointer-events-none absolute inset-0 z-[1]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(15,23,41,0.35)_0%,rgba(2,6,23,0.7)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,153,0,0.14)_0%,rgba(255,153,0,0.00)_45%)]" />
+      </div>
+
+      {/* ── Content ── */}
+      <div className="relative z-[2] mx-auto flex min-h-[calc(100vh-56px)] max-w-6xl flex-col items-center px-6 pb-10 pt-20 text-center sm:pt-24">
 
         {/* H1 */}
         <h1
-          className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
+          className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
           data-animate
-          style={{ '--stagger': '100ms' } as React.CSSProperties}
         >
-          Fais-toi plaisir,<br />
-          deviens le <span className="text-[#ff9900]">roi du prono</span>.
+          Fais-toi plaisir,
+          <br className="hidden sm:block" />
+          {' '}deviens le <span className="text-[#ff9900]">roi du prono</span>.
         </h1>
 
         {/* Subtitle */}
         <p
-          className="text-lg md:text-xl text-[#94a3b8] max-w-lg mx-auto"
+          className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:text-lg"
           data-animate
-          style={{ '--stagger': '200ms' } as React.CSSProperties}
+          style={{ '--stagger': '100ms' } as React.CSSProperties}
         >
-          Crée un tournoi, invite tes potes, pronostique les matchs et prouve que t&apos;es le meilleur.
+          Crée un tournoi, invite tes potes et grimpe au classement en temps réel.
         </p>
 
         {/* CTAs */}
         <div
-          className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4"
+          className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:justify-center"
           data-animate
-          style={{ '--stagger': '300ms' } as React.CSSProperties}
+          style={{ '--stagger': '200ms' } as React.CSSProperties}
         >
           <Link
             href="/auth/signup"
-            className="font-semibold text-base rounded-[14px] px-8 py-3.5 bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_20px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_30px_rgba(255,153,0,0.6)] hover:-translate-y-0.5 transition-all duration-300 w-56 text-center"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ff9900] px-6 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,153,0,0.18)] transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900]/60 focus:ring-offset-0 active:scale-[0.98]"
           >
             Créer mon tournoi
           </Link>
           <Link
             href="/auth/login"
-            className="font-semibold text-base rounded-[14px] px-8 py-3.5 bg-white/10 text-white border border-white/[0.08] hover:bg-white/[0.15] hover:-translate-y-0.5 transition-all duration-300 w-56 text-center"
+            className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 active:scale-[0.98]"
           >
             Se connecter
           </Link>
         </div>
 
-        {/* Badge */}
+        {/* Trust line */}
         <p
-          className="text-sm text-[#94a3b8] pt-2"
+          className="mt-3 flex items-center gap-2 text-xs text-slate-400"
+          data-animate
+          style={{ '--stagger': '300ms' } as React.CSSProperties}
+        >
+          <span>Gratuit</span>
+          <span className="text-slate-600">&bull;</span>
+          <span>Sans pub</span>
+          <span className="text-slate-600">&bull;</span>
+          <span>30 secondes</span>
+        </p>
+
+        {/* ── Hero image ── */}
+        <div
+          className="relative mt-8 w-full max-w-4xl"
           data-animate
           style={{ '--stagger': '400ms' } as React.CSSProperties}
         >
-          Gratuit, sans pub — inscription en 30 secondes, sans CB
-        </p>
-      </div>
-
-      {/* Scroll hint */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce opacity-40">
-        <svg className="w-5 h-5 text-[#94a3b8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
+          <Image src="/images/hero-img.png" alt="PronoHub - Aperçu de l'application" width={1200} height={800} className="mx-auto w-full h-auto" unoptimized />
+        </div>
       </div>
     </section>
   )
@@ -108,34 +121,28 @@ function HeroSection() {
 function HowItWorksSection() {
   const steps = [
     {
-      number: '01',
+      n: '01',
       title: 'Crée ton tournoi',
-      description: 'Choisis ta compétition (Ligue 1, Champions League, Best of Week...) et configure les règles.',
-      icon: (
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-        </svg>
-      ),
+      text: 'Choisis ta compétition et configure tes règles en quelques clics.',
+      chip: "Champion's League, Ligue 1,...",
+      icon: <Image src="/images/icons/stadium-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      bg: '/images/bg-step-1.jpg',
     },
     {
-      number: '02',
+      n: '02',
       title: 'Invite tes potes',
-      description: 'Partage le code du tournoi et constitue ton équipe. Plus on est de fous, plus on rit.',
-      icon: (
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
+      text: 'Partage le code et constitue ton groupe. Plus on est de fous, plus on rit.',
+      chip: 'Trophées, tchat, bonus, stats',
+      icon: <Image src="/images/icons/friends-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      bg: '/images/bg-step-2.jpg',
     },
     {
-      number: '03',
+      n: '03',
       title: 'Pronostique et grimpe',
-      description: 'Score exact = 3 pts, bon résultat = 1 pt. Décroche des trophées et deviens le roi.',
-      icon: (
-        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-        </svg>
-      ),
+      text: 'Décroche des trophées et deviens le roi du classement.',
+      chip: '+3 pts score exact \u2022 +1 pt bon résultat',
+      icon: <Image src="/images/icons/cup-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      bg: '/images/bg-step-3.jpg',
     },
   ]
 
@@ -143,39 +150,68 @@ function HowItWorksSection() {
     <section
       id="how"
       data-chapter="Comment ça marche"
-      className="min-h-screen flex items-center px-4 py-20 md:py-0 bg-[#0f1729] md:snap-start"
+      aria-labelledby="how-title"
+      className="relative py-14 sm:py-16 lg:py-20 scroll-mt-24 md:snap-start"
     >
-      <div className="max-w-4xl mx-auto w-full">
-        <h2
-          className="text-3xl md:text-4xl font-bold text-white text-center mb-4"
-          data-animate
-        >
-          Comment ça marche ?
-        </h2>
-        <p
-          className="text-[#94a3b8] text-center mb-16 max-w-lg mx-auto"
-          data-animate
-          style={{ '--stagger': '80ms' } as React.CSSProperties}
-        >
-          En 3 étapes, tu passes de spectateur à roi du prono.
-        </p>
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="text-center">
+          <h2
+            id="how-title"
+            className="text-2xl font-semibold tracking-tight text-white sm:text-3xl"
+            data-animate
+          >
+            Comment jouer ?
+          </h2>
+          <p
+            className="mx-auto mt-2 max-w-xl text-sm text-slate-400 sm:text-base"
+            data-animate
+            style={{ '--stagger': '80ms' } as React.CSSProperties}
+          >
+            En 3 étapes, tu passes de remplaçant à ballon d'or.
+          </p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
-          {steps.map((step, i) => (
-            <div
-              key={step.number}
-              className="relative text-center group"
-              data-animate
-              style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
-            >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-[16px] bg-[#ff9900]/10 border border-[#ff9900]/20 text-[#ff9900] mb-6 group-hover:bg-[#ff9900]/20 group-hover:shadow-[0_0_20px_rgba(255,153,0,0.15)] transition-all duration-300">
-                {step.icon}
+        <div className="mt-8 lg:mt-10">
+          {/* Progress line + nodes (desktop) */}
+          <div className="relative mx-auto mb-6 hidden h-4 lg:block" aria-hidden="true">
+            <div className="absolute left-[60px] right-[60px] top-1/2 h-px bg-white/[0.08]" />
+            <div className="absolute left-[calc(16.67%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+            <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+            <div className="absolute left-[calc(83.33%)] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff9900]/40 bg-[#ff9900]/25" />
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-3 lg:gap-6">
+            {steps.map((step, i) => (
+              <div
+                key={step.n}
+                className="group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]"
+                data-animate
+                style={{ '--stagger': `${160 + i * 100}ms` } as React.CSSProperties}
+              >
+                {step.bg && (
+                  <>
+                    <Image src={step.bg} alt="" fill className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" unoptimized />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 via-[#0f172a]/30 to-transparent" />
+                  </>
+                )}
+                <div className="relative flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#ff9900]/25 bg-[#ff9900]/10 text-[#ff9900] transition duration-300 group-hover:bg-[#ff9900]/20 group-hover:shadow-[0_0_20px_rgba(255,153,0,0.2)]">
+                    {step.icon}
+                  </div>
+                  <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#ff9900]/70">Étape {step.n}</span>
+                </div>
+
+                <h3 className="relative mt-3.5 text-[17px] font-semibold text-white leading-snug">{step.title}</h3>
+                <p className="relative mt-1.5 text-[13px] leading-relaxed text-slate-400">{step.text}</p>
+
+                {step.chip && (
+                  <div className="relative mt-3 inline-flex items-center rounded-full border border-[#ff9900]/15 bg-[#ff9900]/5 px-3 py-1 text-xs font-medium text-[#ff9900]/90">
+                    {step.chip}
+                  </div>
+                )}
               </div>
-              <div className="text-xs font-bold text-[#ff9900]/60 tracking-widest mb-2">{step.number}</div>
-              <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
-              <p className="text-[#94a3b8] leading-relaxed">{step.description}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -186,78 +222,72 @@ function HowItWorksSection() {
 // SECTION 3 — FEATURES
 // =============================================
 function FeaturesSection() {
+  const iconFilter = { filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }
   const features = [
     {
+      label: 'Toujours leader ?',
       title: 'Classements en temps réel',
       description: 'Suis ton évolution et celle de tes potes à chaque journée. Qui prend la tête ?',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/podium.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card1.jpg',
     },
     {
+      label: 'Déploie ta banderole',
       title: 'Chat entre joueurs',
       description: 'Chambre tes potes, réagis à leurs pronos, mentionne-les. Le vestiaire est chaud.',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/chat.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card2.jpg',
     },
     {
+      label: 'Palmarès',
       title: '16 trophées à débloquer',
       description: "Nostradamus, Ballon d'Or, Roi de la journée... Collectionne-les tous.",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/trophy-section.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card3.jpg',
     },
     {
+      label: 'Match retardé ?',
       title: 'Rappels automatiques',
       description: 'On te prévient avant chaque match pour ne jamais oublier un prono.',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/rappel.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card4.jpg',
     },
     {
+      label: 'Pas de répit',
       title: 'Compétitions variées',
       description: "Ligue 1, Premier League, Champions League, Best of Week... Il y en a pour tous les goûts.",
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/compet.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card5.jpg',
     },
     {
+      label: "Pas d'excuses",
       title: 'Mobile et web',
       description: 'Joue depuis ton téléphone ou ton ordi. Tes pronos se synchronisent partout.',
-      icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <Image src="/images/icons/mobile.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
+      bg: '/images/bg-sect3-card6.jpg',
     },
   ]
 
   return (
     <section
       id="features"
-      data-chapter="Fonctionnalités"
-      className="min-h-screen flex items-center px-4 py-20 md:py-0 bg-[#020617] md:snap-start"
+      data-chapter="Les plus"
+      className="relative min-h-screen flex items-center px-5 py-20 md:py-0 md:snap-start overflow-hidden"
     >
-      <div className="max-w-5xl mx-auto w-full">
+      {/* ── Section background ── */}
+      <div className="absolute inset-0" aria-hidden="true">
+        <Image src="/images/bg-section-3.jpg" alt="" fill className="object-cover opacity-50" unoptimized />
+      </div>
+
+      <div className="relative z-[2] max-w-5xl mx-auto w-full">
         <h2
-          className="text-3xl md:text-4xl font-bold text-white text-center mb-4"
+          className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-[-0.02em] leading-[1.1] text-white text-center"
           data-animate
         >
           Tout pour vivre le foot à fond
         </h2>
         <p
-          className="text-[#94a3b8] text-center mb-16 max-w-lg mx-auto"
+          className="text-slate-400 text-center mt-3 mb-12 sm:mb-16 max-w-lg mx-auto text-sm sm:text-base font-normal"
           data-animate
           style={{ '--stagger': '80ms' } as React.CSSProperties}
         >
@@ -268,15 +298,31 @@ function FeaturesSection() {
           {features.map((f, i) => (
             <div
               key={f.title}
-              className="p-6 rounded-[16px] bg-[#1e293b]/50 border border-white/[0.08] hover:border-[#ff9900]/30 hover:bg-[#1e293b]/80 hover:shadow-[0_0_20px_rgba(255,153,0,0.08)] transition-all duration-300"
+              className="group relative overflow-hidden rounded-2xl border border-white/[0.12] bg-[#0f172a]/80 p-5 text-left shadow-[0_8px_40px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_12px_48px_rgba(255,153,0,0.06)]"
               data-animate
               style={{ '--stagger': `${160 + i * 80}ms` } as React.CSSProperties}
             >
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#ff9900]/10 text-[#ff9900] mb-4">
-                {f.icon}
+              {/* Card background image (placeholder — quand bg fourni) */}
+              {f.bg && (
+                <>
+                  <Image src={f.bg} alt="" fill className="object-cover opacity-20 transition duration-300 group-hover:opacity-30 group-hover:scale-105" unoptimized />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a]/80 via-[#0f172a]/30 to-transparent" />
+                </>
+              )}
+
+              {/* Icon badge + label */}
+              <div className="relative flex items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#ff9900]/25 bg-[#ff9900]/10 text-[#ff9900] transition duration-300 group-hover:bg-[#ff9900]/20 group-hover:shadow-[0_0_20px_rgba(255,153,0,0.2)]">
+                  {f.icon}
+                </div>
+                <span className="text-sm font-bold tracking-[0.08em] uppercase text-[#ff9900]">{f.label}</span>
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
-              <p className="text-[#94a3b8] text-sm leading-relaxed">{f.description}</p>
+
+              {/* Title */}
+              <h3 className="relative mt-3.5 text-lg font-semibold tracking-[-0.02em] text-white leading-snug">{f.title}</h3>
+
+              {/* Description */}
+              <p className="relative mt-1.5 text-sm font-normal leading-[1.6] text-slate-400">{f.description}</p>
             </div>
           ))}
         </div>
@@ -334,8 +380,8 @@ function PricingTeaser() {
   return (
     <section
       id="pricing"
-      data-chapter="Tarifs"
-      className="min-h-screen flex items-center px-4 py-20 md:py-0 bg-[#020617] md:snap-start"
+      data-chapter="C'est gratuit"
+      className="min-h-screen flex items-center px-5 py-20 md:py-0 bg-[#020617] md:snap-start"
     >
       <div className="max-w-3xl mx-auto w-full text-center">
         <h2
@@ -361,7 +407,7 @@ function PricingTeaser() {
           >
             <div className="text-sm font-semibold text-[#94a3b8] uppercase tracking-wider mb-2">Free-Kick</div>
             <div className="text-3xl font-bold text-white mb-4">0 &euro;</div>
-            <ul className="space-y-3 text-sm text-[#94a3b8] text-left">
+            <ul className="space-y-3 text-sm text-[#cbd5e1] text-left">
               <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 2 tournois actifs</li>
               <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 5 joueurs max</li>
               <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Toutes les compétitions</li>
@@ -377,7 +423,7 @@ function PricingTeaser() {
           >
             <div className="text-sm font-semibold text-[#ff9900] uppercase tracking-wider mb-2">Premium</div>
             <div className="text-3xl font-bold text-white mb-4">dès 4,99 &euro;</div>
-            <ul className="space-y-3 text-sm text-[#94a3b8] text-left">
+            <ul className="space-y-3 text-sm text-[#cbd5e1] text-left">
               <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Jusqu&apos;à 30 joueurs</li>
               <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Tournois illimités</li>
               <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Match bonus x2</li>
@@ -401,7 +447,6 @@ function PricingTeaser() {
 
 // =============================================
 // SECTION 6 — CTA FINAL + FOOTER
-// Combined as one snap unit so footer is reachable with snap-mandatory
 // =============================================
 function CTAFooter() {
   return (
@@ -433,13 +478,13 @@ function CTAFooter() {
           >
             <Link
               href="/auth/signup"
-              className="inline-block font-semibold text-base rounded-[14px] px-10 py-4 bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_30px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_40px_rgba(255,153,0,0.6)] hover:-translate-y-0.5 transition-all duration-300"
+              className="inline-block font-semibold text-base rounded-[14px] px-10 py-4 bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_30px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_40px_rgba(255,153,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-none transition-all duration-300"
             >
-              Commencer gratuitement
+              Lancer mon tournoi gratuit
             </Link>
           </div>
           <p
-            className="text-sm text-[#64748b]"
+            className="text-sm text-[#94a3b8]"
             data-animate
             style={{ '--stagger': '300ms' } as React.CSSProperties}
           >
@@ -453,10 +498,10 @@ function CTAFooter() {
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Image src="/images/logo.svg" alt="PronoHub" width={20} height={20} className="w-5 h-auto" />
-              <span className="text-sm text-[#64748b]">PronoHub &copy; {new Date().getFullYear()}</span>
+              <Image src="/images/logo.svg" alt="PronoHub" width={20} height={20} className="w-5 h-auto" unoptimized />
+              <span className="text-sm text-[#94a3b8]">PronoHub &copy; {new Date().getFullYear()}</span>
             </div>
-            <nav className="flex flex-wrap justify-center gap-6 text-sm text-[#64748b]">
+            <nav className="flex flex-wrap justify-center gap-6 text-sm text-[#94a3b8]">
               <Link href="/about" className="hover:text-[#ff9900] transition-colors">À propos</Link>
               <Link href="/pricing" className="hover:text-[#ff9900] transition-colors">Tarifs</Link>
               <Link href="/contact" className="hover:text-[#ff9900] transition-colors">Contact</Link>

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -11,11 +10,11 @@ const SECTIONS = [
   { id: 'how', label: 'Comment ça marche' },
   { id: 'features', label: 'Fonctionnalités' },
   { id: 'proof', label: 'Communauté' },
-  { id: 'pricing', label: 'Tarifs' },
+  { id: 'pricing', label: "C'est gratuit" },
   { id: 'cta', label: 'Commencer' },
 ] as const
 
-const NAV_LINKS = SECTIONS.filter(s => ['how', 'features', 'pricing'].includes(s.id))
+const NAV_LINKS = SECTIONS.filter(s => ['how', 'features'].includes(s.id))
 
 export function ClientShell({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -24,31 +23,75 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const [headerCompact, setHeaderCompact] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // ── Auth redirect ──────────────────────────────────
+  // ── Auth redirect (lazy-load Supabase pour réduire le bundle) ──
   useEffect(() => {
-    createClient().auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/dashboard')
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      createClient().auth.getSession().then(({ data: { session } }) => {
+        if (session) router.replace('/dashboard')
+      })
     })
   }, [router])
 
-  // ── ScrollSpy (IntersectionObserver) ───────────────
+  // ── Add js-loaded class for CSS animations ──────────
+  useEffect(() => {
+    document.documentElement.classList.add('js-loaded')
+  }, [])
+
+  // ── ScrollSpy (tracks which section is most visible) ──
   useEffect(() => {
     const container = scrollRef.current
     if (!container) return
+
     const sections = container.querySelectorAll<HTMLElement>('[data-chapter]')
+    const ratios = new Map<string, number>()
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            const id = entry.target.id
-            setActiveSection(id)
-            history.replaceState(null, '', `#${id}`)
+          ratios.set(entry.target.id, entry.intersectionRatio)
+        }
+        // Pick the section with the highest visible ratio
+        let best = ''
+        let bestRatio = 0
+        ratios.forEach((ratio, id) => {
+          if (ratio > bestRatio) {
+            best = id
+            bestRatio = ratio
+          }
+        })
+        if (best && bestRatio > 0.05) {
+          setActiveSection(best)
+          history.replaceState(null, '', `#${best}`)
+        }
+      },
+      { root: container, threshold: [0, 0.1, 0.2, 0.3, 0.5, 0.7, 1] }
+    )
+
+    sections.forEach(s => observer.observe(s))
+    return () => observer.disconnect()
+  }, [])
+
+  // ── Animations (separate observer, respects reduced-motion) ──
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const animElements = container.querySelectorAll<HTMLElement>('[data-animate]')
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in')
+            observer.unobserve(entry.target)
           }
         }
       },
-      { root: container, threshold: 0.55 }
+      { root: container, threshold: 0.1 }
     )
-    sections.forEach(s => observer.observe(s))
+
+    animElements.forEach(el => observer.observe(el))
     return () => observer.disconnect()
   }, [])
 
@@ -63,29 +106,37 @@ export function ClientShell({ children }: { children: ReactNode }) {
     return () => container.removeEventListener('scroll', handler)
   }, [])
 
-  // ── Section entrance animations ────────────────────
+  // ── Hero parallax (desktop only, reduced-motion aware) ──
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const container = scrollRef.current
     if (!container) return
-    const elements = container.querySelectorAll<HTMLElement>('[data-animate]')
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in')
-            observer.unobserve(entry.target)
-          }
-        })
-      },
-      { root: container, threshold: 0.1 }
-    )
-    elements.forEach(el => observer.observe(el))
-    return () => observer.disconnect()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (window.innerWidth < 768) return
+
+    const bg = container.querySelector<HTMLImageElement>('.hero-parallax-bg')
+    if (!bg) return
+
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        const hero = container.querySelector('#hero')
+        if (!hero) { ticking = false; return }
+        const rect = hero.getBoundingClientRect()
+        const offset = Math.max(-15, Math.min(15, rect.top * 0.05))
+        bg.style.setProperty('--parallax', `${offset}px`)
+        ticking = false
+      })
+    }
+
+    container.addEventListener('scroll', onScroll, { passive: true })
+    return () => container.removeEventListener('scroll', onScroll)
   }, [])
 
   // ── Scroll to section ──────────────────────────────
-  const scrollTo = useCallback((id: string) => {
+  const scrollTo = useCallback((e: React.MouseEvent, id: string) => {
+    e.preventDefault()
     const el = scrollRef.current?.querySelector(`#${id}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setMobileMenuOpen(false)
@@ -100,20 +151,26 @@ export function ClientShell({ children }: { children: ReactNode }) {
         case 'ArrowDown':
         case 'PageDown':
           e.preventDefault()
-          if (idx < SECTIONS.length - 1) scrollTo(SECTIONS[idx + 1].id)
+          if (idx < SECTIONS.length - 1) {
+            const el = scrollRef.current?.querySelector(`#${SECTIONS[idx + 1].id}`)
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
           break
         case 'ArrowUp':
         case 'PageUp':
           e.preventDefault()
-          if (idx > 0) scrollTo(SECTIONS[idx - 1].id)
+          if (idx > 0) {
+            const el = scrollRef.current?.querySelector(`#${SECTIONS[idx - 1].id}`)
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
           break
         case 'Home':
           e.preventDefault()
-          scrollTo('hero')
+          scrollRef.current?.querySelector('#hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           break
         case 'End':
           e.preventDefault()
-          scrollTo('cta')
+          scrollRef.current?.querySelector('#cta')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           break
         case 'Escape':
           setMobileMenuOpen(false)
@@ -122,11 +179,11 @@ export function ClientShell({ children }: { children: ReactNode }) {
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [activeSection, scrollTo])
+  }, [activeSection])
 
   return (
     <div className="fixed inset-0 z-10 bg-[#020617]">
-      {/* Noise overlay (SVG feTurbulence) */}
+      {/* Noise texture overlay */}
       <svg className="fixed inset-0 z-[1] w-full h-full pointer-events-none opacity-[0.02]" aria-hidden="true">
         <filter id="landing-noise">
           <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
@@ -141,32 +198,35 @@ export function ClientShell({ children }: { children: ReactNode }) {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           headerCompact
-            ? 'py-2 bg-[#020617]/90 backdrop-blur-xl shadow-lg shadow-black/30'
-            : 'py-3 bg-[#020617]/60 backdrop-blur-md'
+            ? 'py-1.5 bg-transparent shadow-lg shadow-black/30'
+            : 'py-3 bg-transparent'
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
-          <button
-            onClick={() => scrollTo('hero')}
-            className="flex items-center gap-2 shrink-0"
+          <a
+            href="#hero"
+            onClick={(e) => scrollTo(e, 'hero')}
+            className="flex items-center gap-2 shrink-0 min-h-[44px] min-w-[44px]"
             aria-label="Retour en haut"
           >
-            <Image src="/images/logo.svg" alt="PronoHub" width={28} height={28} className="w-7 h-auto" />
-          </button>
+            <Image src="/images/logo.svg" alt="PronoHub" width={28} height={28} className="w-7 h-auto" unoptimized />
+            <span className="hidden sm:inline text-white font-semibold text-sm">PronoHub</span>
+          </a>
 
           {/* Desktop nav links */}
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(s => (
-              <button
+              <a
                 key={s.id}
-                onClick={() => scrollTo(s.id)}
+                href={`#${s.id}`}
+                onClick={(e) => scrollTo(e, s.id)}
                 className={`text-sm font-medium transition-colors duration-200 ${
                   activeSection === s.id ? 'text-[#ff9900]' : 'text-[#94a3b8] hover:text-white'
                 }`}
               >
                 {s.label}
-              </button>
+              </a>
             ))}
           </nav>
 
@@ -180,14 +240,16 @@ export function ClientShell({ children }: { children: ReactNode }) {
             </Link>
             <Link
               href="/auth/signup"
-              className="text-sm font-semibold rounded-[14px] px-5 py-2 bg-[#ff9900] text-[#1a1a1a] hover:bg-[#e68a00] transition-colors shadow-[0_0_12px_rgba(255,153,0,0.3)]"
+              className="text-sm font-semibold rounded-[14px] px-5 py-2.5 bg-[#ff9900] text-[#1a1a1a] hover:bg-[#e68a00] transition-all duration-200 shadow-[0_0_12px_rgba(255,153,0,0.3)] active:scale-[0.98] active:shadow-none"
             >
               Créer mon tournoi
             </Link>
             <button
-              className="md:hidden p-2 text-[#94a3b8]"
+              className="md:hidden p-3 text-[#94a3b8]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
@@ -200,29 +262,43 @@ export function ClientShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#020617]/95 backdrop-blur-xl border-t border-white/[0.08] px-4 py-3 space-y-1">
+        {/* Mobile menu dropdown with transition */}
+        <nav
+          id="mobile-menu"
+          aria-label="Menu mobile"
+          className={`md:hidden bg-[#020617]/95 border-t border-white/[0.08] px-4 mobile-menu ${mobileMenuOpen ? 'mobile-menu-open py-3' : ''}`}
+        >
+          <div className="space-y-1.5">
             {SECTIONS.map(s => (
-              <button
+              <a
                 key={s.id}
-                onClick={() => scrollTo(s.id)}
-                className={`block w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                href={`#${s.id}`}
+                onClick={(e) => scrollTo(e, s.id)}
+                className={`block w-full text-left px-4 py-3 rounded-lg text-sm transition-colors ${
                   activeSection === s.id
                     ? 'text-[#ff9900] bg-[#ff9900]/10'
                     : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
                 }`}
               >
                 {s.label}
-              </button>
+              </a>
             ))}
             <Link
               href="/auth/login"
-              className="block w-full text-left px-3 py-2.5 rounded-lg text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 sm:hidden"
+              className="block w-full text-left px-4 py-3 rounded-lg text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 sm:hidden"
             >
               Se connecter
             </Link>
           </div>
+        </nav>
+
+        {/* Backdrop overlay for mobile menu */}
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-[-1] md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
         )}
       </header>
 
@@ -232,33 +308,44 @@ export function ClientShell({ children }: { children: ReactNode }) {
         aria-label="Navigation des chapitres"
       >
         {SECTIONS.map(s => (
-          <button
+          <a
             key={s.id}
-            onClick={() => scrollTo(s.id)}
-            className="group relative flex items-center justify-end"
+            href={`#${s.id}`}
+            onClick={(e) => scrollTo(e, s.id)}
+            className="group relative flex items-center justify-end p-2"
             aria-label={s.label}
             aria-current={activeSection === s.id ? 'true' : undefined}
           >
             {/* Tooltip */}
-            <span className="absolute right-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-white bg-[#1e293b]/90 backdrop-blur-sm px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none border border-white/[0.08]">
+            <span className="absolute right-9 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-white bg-[#1e293b]/90 px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none border border-white/[0.08]">
               {s.label}
             </span>
-            {/* Dot */}
-            <span
-              className={`block rounded-full transition-all duration-300 ${
-                activeSection === s.id
-                  ? 'w-3 h-3 bg-[#ff9900] shadow-[0_0_10px_rgba(255,153,0,0.6)]'
-                  : 'w-2 h-2 bg-[#64748b] hover:bg-[#94a3b8]'
-              }`}
-            />
-          </button>
+            {/* Hexagon */}
+            <svg width="16" height="18" viewBox="0 0 16 18" className={`transition-all duration-300 ${
+              activeSection === s.id
+                ? 'drop-shadow-[0_0_6px_rgba(255,153,0,0.5)]'
+                : ''
+            }`}>
+              <polygon
+                points="8,1 15,5 15,13 8,17 1,13 1,5"
+                className={`transition-all duration-300 ${
+                  activeSection === s.id
+                    ? 'fill-[#ff9900] stroke-[#ff9900]'
+                    : 'fill-transparent stroke-[#94a3b8]/40 group-hover:stroke-white/60'
+                }`}
+                strokeWidth="1.2"
+              />
+            </svg>
+          </a>
         ))}
       </nav>
 
-      {/* ── Scroll Container ─────────────────────── */}
+      {/* ── Scroll Container (main for semantics + SEO) ── */}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto scroll-smooth overscroll-contain md:snap-y md:snap-mandatory"
+        role="main"
+        id="main-content"
+        className="h-full overflow-y-auto scroll-smooth overscroll-contain md:snap-y md:snap-proximity"
         style={{ scrollPaddingTop: '64px' }}
       >
         {children}

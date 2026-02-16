@@ -1,3 +1,14 @@
+/* ── Hero parallax background ─────────────── */
+.hero-parallax-bg {
+  position: absolute;
+  width: 100%;
+  height: 120%;
+  object-fit: cover;
+  top: -10%;
+  transform: translateY(var(--parallax, 0px));
+  will-change: transform;
+}
+
 /* ── Spotlight radial overlay ──────────────── */
 .landing-spotlight {
   position: fixed;
@@ -12,24 +23,46 @@
 }
 
 /* ── Section entrance animations ───────────── */
+/* Visible par défaut (SSR + crawlers voient le contenu) */
 [data-animate] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Caché seulement quand JS est chargé, avant animation */
+.js-loaded [data-animate]:not(.animate-in) {
   opacity: 0;
   transform: translateY(24px);
   transition:
-    opacity 500ms ease var(--stagger, 0ms),
-    transform 500ms ease var(--stagger, 0ms);
+    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--stagger, 0ms),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1) var(--stagger, 0ms);
 }
 
-[data-animate].animate-in {
+.js-loaded [data-animate].animate-in {
   opacity: 1;
   transform: translateY(0);
 }
 
 /* ── Reduced motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  [data-animate] {
+  [data-animate],
+  .js-loaded [data-animate]:not(.animate-in),
+  .js-loaded [data-animate].animate-in {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
   }
+}
+
+/* ── Mobile menu transition ────────────────── */
+.mobile-menu {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 200ms ease-in-out, opacity 200ms ease-in-out;
+}
+
+.mobile-menu.mobile-menu-open {
+  max-height: 400px;
+  opacity: 1;
 }
