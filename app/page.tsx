@@ -57,7 +57,7 @@ function HeroSection() {
           className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
           data-animate
         >
-          Pronostics foot entre potes :
+          Fais-toi plaisir,
           <br className="hidden sm:block" />
           {' '}deviens le <span className="text-[#ff9900]">roi du prono</span>.
         </h1>
