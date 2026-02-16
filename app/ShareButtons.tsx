@@ -169,7 +169,6 @@ export function ShareButtons() {
             style={{ '--brand': s.brandColor } as React.CSSProperties}
             aria-label={s.tooltip}
           >
-            {trajectory}
             {tooltip}
             {copied ? (
               <svg className="share-icon w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
