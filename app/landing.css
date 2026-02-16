@@ -281,72 +281,65 @@
 
 /* ── Share buttons micro-interactions ─────── */
 
-/* Hover lift + brand color via CSS custom property */
 .share-btn {
-  transition:
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 200ms ease,
-    background-color 200ms ease,
-    box-shadow 200ms ease,
-    color 200ms ease;
+  isolation: isolate;
+  transition: color 0.5s, box-shadow 0.5s;
+}
+
+/* Glow ring behind the button */
+.share-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--brand);
+  transition: 0.5s;
+  transform: scale(0.9);
+  z-index: -1;
+  opacity: 0;
+}
+
+.share-btn:hover::before,
+.share-btn:focus-visible::before {
+  transform: scale(1.2);
+  opacity: 1;
+  box-shadow: 0 0 15px var(--brand);
 }
 
 .share-btn:hover,
 .share-btn:focus-visible {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--brand) 40%, transparent);
-  background-color: color-mix(in srgb, var(--brand) 12%, transparent);
   color: var(--brand);
+  box-shadow: 0 0 5px var(--brand);
+  text-shadow: 0 0 5px var(--brand);
 }
 
-.share-btn:active {
-  transform: translateY(-1px);
-}
-
-/* Click glow state (applied via JS class) */
+/* Click glow state (applied via JS) */
 .share-btn-glow {
-  border-color: rgba(255, 153, 0, 0.6) !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 0 12px rgba(255, 153, 0, 0.3);
+  color: #ff9900 !important;
+  box-shadow: 0 0 8px rgba(255, 153, 0, 0.5) !important;
 }
 
-/* Icon subtle scale on hover */
-.share-btn .share-icon {
-  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.share-btn:hover .share-icon,
-.share-btn:focus-visible .share-icon {
-  transform: scale(1.1);
-}
-
-/* Ball trajectory (SVG path draws on hover) */
-.share-trajectory path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  opacity: 0;
-  transition:
-    stroke-dashoffset 300ms cubic-bezier(0.16, 1, 0.3, 1) 60ms,
-    opacity 180ms ease;
-}
-
-.share-btn:hover .share-trajectory path,
-.share-btn:focus-visible .share-trajectory path {
-  stroke-dashoffset: 0;
-  opacity: 0.4;
+.share-btn-glow::before {
+  transform: scale(1.2) !important;
+  opacity: 1 !important;
+  background: #ff9900 !important;
+  box-shadow: 0 0 15px #ff9900 !important;
 }
 
 /* Tooltip */
 .share-tooltip {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%) translateY(4px);
   opacity: 0;
   font-size: 0.75rem;
   line-height: 1rem;
   color: white;
-  background: rgba(30, 41, 59, 0.95);
+  background: rgba(15, 23, 42, 0.95);
   padding: 5px 10px;
   border-radius: 8px;
   white-space: nowrap;
@@ -368,17 +361,13 @@
 /* ── Share buttons: reduced motion ───────── */
 @media (prefers-reduced-motion: reduce) {
   .share-btn {
-    transform: none !important;
-    transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease !important;
+    transition: color 200ms ease, box-shadow 200ms ease !important;
   }
 
-  .share-btn .share-icon {
-    transform: none !important;
-    transition: none !important;
-  }
-
-  .share-trajectory {
-    display: none !important;
+  .share-btn::before {
+    transition: opacity 200ms ease !important;
+    transform: scale(1.2) !important;
+    box-shadow: none !important;
   }
 
   .share-tooltip {

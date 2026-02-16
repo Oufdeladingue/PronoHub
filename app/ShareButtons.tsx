@@ -118,23 +118,6 @@ export function ShareButtons() {
     }
   }
 
-  const trajectory = (
-    <svg
-      className="share-trajectory absolute inset-0 w-full h-full pointer-events-none overflow-visible"
-      viewBox="0 0 48 48"
-      aria-hidden="true"
-    >
-      <path
-        d="M24 20 Q18 8 28 2"
-        pathLength="1"
-        fill="none"
-        stroke="#ff9900"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-
   return (
     <div className="flex items-center gap-4">
       {socials.map((s, i) => {
@@ -142,11 +125,10 @@ export function ShareButtons() {
         const isCopy = s.href === null
 
         const btnClass = [
-          'share-btn group relative flex items-center justify-center w-12 h-12 rounded-full border',
-          'text-[#94a3b8] outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]/50',
-          isGlowing
-            ? 'share-btn-glow'
-            : 'border-white/15 bg-white/5',
+          'share-btn group relative flex items-center justify-center w-12 h-12 rounded-full',
+          'bg-[#1e293b] border border-white/10 text-[#94a3b8]',
+          'outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900]/50',
+          isGlowing ? 'share-btn-glow' : '',
         ].join(' ')
 
         const tooltipText = isCopy && copied ? 'Copié !' : s.tooltip
@@ -173,7 +155,6 @@ export function ShareButtons() {
               aria-label={s.tooltip}
               onClick={(e) => handleClick(i, e.currentTarget)}
             >
-              {trajectory}
               {tooltip}
               {s.icon}
             </a>
