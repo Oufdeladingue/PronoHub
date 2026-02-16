@@ -49,13 +49,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!userId || activityTracked.current) return
 
     // Vérifier si on a déjà tracké récemment
-    const lastTracked = sessionStorage.getItem(ACTIVITY_STORAGE_KEY)
-    if (lastTracked) {
-      const lastTrackedTime = parseInt(lastTracked, 10)
-      if (Date.now() - lastTrackedTime < ACTIVITY_THROTTLE_INTERVAL) {
-        activityTracked.current = true
-        return
+    try {
+      const lastTracked = sessionStorage.getItem(ACTIVITY_STORAGE_KEY)
+      if (lastTracked) {
+        const lastTrackedTime = parseInt(lastTracked, 10)
+        if (Date.now() - lastTrackedTime < ACTIVITY_THROTTLE_INTERVAL) {
+          activityTracked.current = true
+          return
+        }
       }
+    } catch {
+      // sessionStorage peut être indisponible (Capacitor, iframe, etc.)
     }
 
     // Tracker l'activité
@@ -66,11 +70,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
           headers: { 'Content-Type': 'application/json' }
         })
         if (response.ok) {
-          sessionStorage.setItem(ACTIVITY_STORAGE_KEY, Date.now().toString())
+          try {
+            sessionStorage.setItem(ACTIVITY_STORAGE_KEY, Date.now().toString())
+          } catch {
+            // sessionStorage indisponible — on continue quand même
+          }
           activityTracked.current = true
         }
+        // Si !response.ok (401, 500...), on ne set pas le ref
+        // pour permettre un retry au prochain mount
       } catch {
-        // Silently fail - ce n'est pas critique
+        // Erreur réseau — on ne set pas le ref pour permettre un retry
       }
     }
 

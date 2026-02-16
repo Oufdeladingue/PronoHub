@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendNotificationToUser } from '@/lib/notifications'
 import { checkMessage } from '@/lib/profanity-filter'
+import { updateLastSeen } from '@/lib/update-last-seen'
 
 // GET - Récupérer les messages du tournoi
 export async function GET(
@@ -169,6 +170,9 @@ export async function POST(
     if (participantError || !participant) {
       return NextResponse.json({ error: 'Vous devez être participant du tournoi' }, { status: 403 })
     }
+
+    // Tracker l'activité (fire-and-forget)
+    updateLastSeen(supabase, user.id)
 
     // Récupérer le message depuis le body
     const body = await request.json()
@@ -351,6 +355,9 @@ export async function PUT(
     if (participantError || !participant) {
       return NextResponse.json({ error: 'Vous devez être participant du tournoi' }, { status: 403 })
     }
+
+    // Tracker l'activité (fire-and-forget)
+    updateLastSeen(supabase, user.id)
 
     // Mettre à jour ou créer le statut de lecture
     const { error: upsertError } = await supabase

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { updateLastSeen } from '@/lib/update-last-seen'
 
 const VALID_EMOJIS = ['🔥', '🏆', '😂', '👏', '🎯', '😢', '😡']
 
@@ -29,6 +30,9 @@ export async function POST(
     if (participantError || !participant) {
       return NextResponse.json({ error: 'Vous devez être participant du tournoi' }, { status: 403 })
     }
+
+    // Tracker l'activité (fire-and-forget)
+    updateLastSeen(supabase, user.id)
 
     // Récupérer les données depuis le body
     const body = await request.json()
