@@ -311,9 +311,8 @@
 
 .share-btn:hover,
 .share-btn:focus-visible {
-  color: var(--brand);
+  color: #0f172a;
   box-shadow: 0 0 5px var(--brand);
-  text-shadow: 0 0 5px var(--brand);
 }
 
 /* Click glow state (applied via JS) */
