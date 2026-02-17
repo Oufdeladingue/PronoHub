@@ -4,7 +4,7 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { sendFinalizeRegistrationEmail } from '@/lib/email/send'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient()
     const adminClient = createAdminClient()
@@ -25,11 +25,21 @@ export async function POST() {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
     }
 
+    // Optionnel : filtrer par emails spécifiques
+    const body = await request.json().catch(() => ({}))
+    const emailFilter: string[] | undefined = body.emails
+
     // Récupérer les users qui n'ont pas choisi leur pseudo
-    const { data: incompleteUsers, error: fetchError } = await adminClient
+    let query = adminClient
       .from('profiles')
       .select('id, username, email')
       .eq('has_chosen_username', false)
+
+    if (emailFilter && emailFilter.length > 0) {
+      query = query.in('email', emailFilter)
+    }
+
+    const { data: incompleteUsers, error: fetchError } = await query
 
     if (fetchError) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 })
