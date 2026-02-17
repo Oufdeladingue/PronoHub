@@ -1,43 +1,44 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import Link from 'next/link'
 
-export default function AgeGate() {
-  const [showGate, setShowGate] = useState(false)
+interface AgeGateProps {
+  children: ReactNode
+}
+
+export default function AgeGate({ children }: AgeGateProps) {
+  const [verified, setVerified] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Verifier si l'utilisateur a deja accepte
     const hasAccepted = localStorage.getItem('pronohub_age_verified')
-    if (!hasAccepted) {
-      setShowGate(true)
+    if (hasAccepted) {
+      setVerified(true)
     }
     setIsLoading(false)
   }, [])
 
   const handleAccept = () => {
     localStorage.setItem('pronohub_age_verified', 'true')
-    localStorage.setItem('pronohub_cookies_accepted', 'true')
-    setShowGate(false)
+    setVerified(true)
   }
 
   const handleDecline = () => {
-    // Rediriger vers Google
     window.location.href = 'https://www.google.com'
   }
 
-  // Ne rien afficher pendant le chargement pour eviter le flash
+  // Pendant le chargement, ne rien afficher pour éviter le flash
   if (isLoading) return null
 
-  if (!showGate) return null
+  // Déjà vérifié → afficher le contenu
+  if (verified) return <>{children}</>
 
+  // Pas vérifié → afficher le gate
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center p-4">
-      {/* Overlay sombre */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Contenu */}
       <div className="relative z-10 max-w-lg w-full text-center">
         {/* Logo */}
         <div className="mb-8">
@@ -84,15 +85,15 @@ export default function AgeGate() {
           </button>
         </div>
 
-        {/* Mention legale */}
+        {/* Mention légale */}
         <p className="text-gray-500 text-xs">
-          En entrant sur ce site, vous confirmez avoir 18 ans ou plus et acceptez nos{' '}
+          En continuant, vous confirmez avoir 18 ans ou plus et acceptez nos{' '}
           <Link href="/cgv" className="text-[#ff9900] hover:underline">
             Conditions Générales
           </Link>{' '}
           et notre{' '}
           <Link href="/privacy" className="text-[#ff9900] hover:underline">
-            Politique de cookies
+            Politique de confidentialité
           </Link>
           .
         </p>

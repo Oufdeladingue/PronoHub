@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionToPreferences } from '@/lib/capacitor'
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import TurnstileWidget from '@/components/TurnstileWidget'
+import AgeGate from '@/components/AgeGate'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -564,12 +565,14 @@ function SignUpForm() {
 
 export default function SignUpPage() {
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
-      </div>
-    }>
-      <SignUpForm />
-    </Suspense>
+    <AgeGate>
+      <Suspense fallback={
+        <div className="fixed inset-0 flex items-center justify-center bg-black">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+        </div>
+      }>
+        <SignUpForm />
+      </Suspense>
+    </AgeGate>
   )
 }

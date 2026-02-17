@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { Suspense } from 'react'
 import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionToPreferences } from '@/lib/capacitor'
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
+import AgeGate from '@/components/AgeGate'
 
 function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -502,12 +503,14 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
-      </div>
-    }>
-      <LoginForm />
-    </Suspense>
+    <AgeGate>
+      <Suspense fallback={
+        <div className="fixed inset-0 flex items-center justify-center bg-black">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+        </div>
+      }>
+        <LoginForm />
+      </Suspense>
+    </AgeGate>
   )
 }

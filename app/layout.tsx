@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import AgeGate from "@/components/AgeGate";
 import { UserProvider } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import NavigationLoader from "@/components/NavigationLoader";
@@ -184,7 +183,6 @@ export default function RootLayout({
                 <Suspense fallback={null}>
                   <NavigationLoader />
                 </Suspense>
-                <AgeGate />
                 {children}
                 <DebugModalContainer />
               </PushNotificationsProvider>
