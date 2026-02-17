@@ -174,6 +174,7 @@ export default function DashboardCapacitorWrapper() {
         isSuper={dashboardData.isSuper}
         canCreateTournament={dashboardData.canCreateTournament}
         hasSubscription={dashboardData.hasSubscription}
+        hasChosenUsername={dashboardData.profile?.has_chosen_username !== false}
         quotas={dashboardData.quotas}
         credits={dashboardData.credits}
         tournaments={dashboardData.tournaments}
