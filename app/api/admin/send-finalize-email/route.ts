@@ -44,11 +44,17 @@ export async function POST() {
     let failed = 0
     const errors: string[] = []
 
-    for (const u of incompleteUsers) {
+    for (let i = 0; i < incompleteUsers.length; i++) {
+      const u = incompleteUsers[i]
       if (!u.email) {
         failed++
         errors.push(`${u.username}: pas d'email`)
         continue
+      }
+
+      // Resend rate limit: 2 req/s → attendre 600ms entre chaque envoi
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 600))
       }
 
       const result = await sendFinalizeRegistrationEmail(u.email, {
