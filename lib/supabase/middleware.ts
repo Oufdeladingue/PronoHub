@@ -33,6 +33,12 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Si connecté et sur la page d'accueil, rediriger vers le dashboard côté serveur
+  // (évite le flash de la landing page)
+  if (user && request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   // URL sécurisée du panel admin (définie dans .env.local)
   const adminPath = process.env.ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
 
