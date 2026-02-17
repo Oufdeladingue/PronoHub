@@ -45,8 +45,8 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}${chooseUsernameUrl}`)
         }
       }
-    } catch {
-      // En cas d'erreur, continuer vers le dashboard
+    } catch (err) {
+      console.error('[AUTH CALLBACK] Erreur vérification has_chosen_username:', err)
     }
   }
 
