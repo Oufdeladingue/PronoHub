@@ -90,11 +90,7 @@ export default async function DashboardPage() {
       .maybeSingle()
   ])
 
-  // Filet de sécurité : si un user OAuth n'a jamais choisi son username,
-  // le rediriger vers choose-username (au cas où le callback aurait échoué)
-  if (profile && profile.has_chosen_username === false) {
-    redirect('/auth/choose-username')
-  }
+  const hasChosenUsername = profile?.has_chosen_username !== false
 
   const isSuper = isSuperAdmin(profile?.role as UserRole)
   const hasSubscription = subscription?.status === 'active'
@@ -634,6 +630,7 @@ export default async function DashboardPage() {
           isSuper={isSuper}
           canCreateTournament={canCreateTournament}
           hasSubscription={hasSubscription}
+          hasChosenUsername={hasChosenUsername}
           quotas={{
             freeTournaments: freeTournamentsParticipating,
             freeTournamentsMax: FREE_KICK_MAX,

@@ -90,11 +90,12 @@ function VerifyCodeForm() {
 
       if (verifyError) throw verifyError
 
-      // Nettoyer le sessionStorage (garder authRedirectTo pour choose-username)
+      // Nettoyer le sessionStorage
       sessionStorage.removeItem('pendingEmail')
+      sessionStorage.removeItem('authRedirectTo')
 
-      // Rediriger vers la page de choix du pseudo (avec redirectTo si présent)
-      router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
+      // Rediriger vers le dashboard (la modale de choix de pseudo s'affichera)
+      router.push(redirectTo ? decodeURIComponent(redirectTo) : '/dashboard')
     } catch (err: any) {
       setError(err.message || 'Code invalide ou expiré. Veuillez réessayer.')
     } finally {
