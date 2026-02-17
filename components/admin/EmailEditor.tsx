@@ -8,6 +8,7 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import { EMAIL_COLORS } from '@/lib/admin/email-templates'
+import MatchPickerModal from '@/components/admin/MatchPickerModal'
 
 interface EmailEditorProps {
   value: string
@@ -44,6 +45,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [showVariables, setShowVariables] = useState(false)
   const [showEmojis, setShowEmojis] = useState(false)
+  const [showMatchPicker, setShowMatchPicker] = useState(false)
   const customColorRef = useRef<HTMLInputElement>(null)
 
   const closeAllDropdowns = useCallback(() => {
@@ -138,6 +140,12 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
     if (!editor) return
     editor.chain().focus().insertContent(variable).run()
     setShowVariables(false)
+  }, [editor])
+
+  const insertMatch = useCallback((matchId: string, homeTeam: string, awayTeam: string) => {
+    if (!editor) return
+    editor.chain().focus().insertContent(`[match_ID=${matchId}]`).run()
+    setShowMatchPicker(false)
   }, [editor])
 
   const insertEmoji = useCallback((emoji: string) => {
@@ -474,6 +482,18 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
                 </div>
               )}
             </div>
+
+            <div className="w-px h-5 bg-gray-300 mx-1" />
+
+            {/* Match picker */}
+            <button
+              type="button"
+              onClick={() => { setShowMatchPicker(true); closeAllDropdowns() }}
+              className="px-2 py-1 text-xs rounded hover:bg-gray-200 text-gray-700"
+              title="Insérer un match"
+            >
+              <span className="text-base leading-none">⚽</span>
+            </button>
           </div>
 
           {/* Editor content */}
@@ -484,8 +504,14 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
       )}
 
       <p className="text-xs text-gray-500 mt-2">
-        Variables disponibles: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>
+        Variables disponibles: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[match_ID=...]</code> (via ⚽)
       </p>
+
+      <MatchPickerModal
+        isOpen={showMatchPicker}
+        onClose={() => setShowMatchPicker(false)}
+        onSelectMatch={insertMatch}
+      />
     </div>
   )
 }

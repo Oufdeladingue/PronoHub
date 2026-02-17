@@ -5,6 +5,7 @@ import { UserRole } from '@/types'
 import { sendEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
 import { calculateRecipients } from '@/lib/admin/targeting'
+import { replaceMatchShortcodes } from '@/lib/admin/match-shortcodes'
 
 /**
  * Remplace les variables utilisateur dans un texte
@@ -85,6 +86,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Aucun destinataire trouvé avec ces filtres' }, { status: 400 })
     }
 
+    // Pré-traitement : remplacer les shortcodes matchs (indépendant de l'utilisateur)
+    let preProcessedBody = communication.email_body_html || ''
+    if (hasEmail) {
+      preProcessedBody = await replaceMatchShortcodes(preProcessedBody, supabase)
+    }
+
     // Statistiques d'envoi
     let emailsSent = 0
     let emailsFailed = 0
@@ -109,7 +116,7 @@ export async function POST(request: NextRequest) {
         try {
           // Remplacer les variables utilisateur et CTA
           const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
-          let personalizedBody = replaceUserVariables(communication.email_body_html!, recipient)
+          let personalizedBody = replaceUserVariables(preProcessedBody, recipient)
           personalizedBody = personalizedBody
             .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
             .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
