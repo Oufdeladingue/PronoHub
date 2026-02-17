@@ -11,6 +11,7 @@ import TargetingSelector from '@/components/admin/TargetingSelector'
 import EmojiPicker from '@/components/admin/EmojiPicker'
 import EmailEditor from '@/components/admin/EmailEditor'
 import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
+import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
 
 interface Communication {
   id: string
@@ -779,6 +780,7 @@ export default function EditCommunicationPage() {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
                           placeholder="https://..."
                         />
+                        <CtaQuickLinks onSelect={(url) => handleChange('email_cta_url', url)} disabled={!canEdit} />
                       </div>
                     </div>
                   </div>

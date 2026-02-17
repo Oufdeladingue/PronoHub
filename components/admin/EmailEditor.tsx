@@ -142,9 +142,10 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
     setShowVariables(false)
   }, [editor])
 
-  const insertMatch = useCallback((matchId: string, homeTeam: string, awayTeam: string) => {
-    if (!editor) return
-    editor.chain().focus().insertContent(`[match_ID=${matchId}]`).run()
+  const insertMatches = useCallback((matchIds: string[]) => {
+    if (!editor || matchIds.length === 0) return
+    const content = matchIds.map(id => `[match_ID=${id}]`).join('<br/>')
+    editor.chain().focus().insertContent(content).run()
     setShowMatchPicker(false)
   }, [editor])
 
@@ -510,7 +511,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
       <MatchPickerModal
         isOpen={showMatchPicker}
         onClose={() => setShowMatchPicker(false)}
-        onSelectMatch={insertMatch}
+        onSelectMatches={insertMatches}
       />
     </div>
   )

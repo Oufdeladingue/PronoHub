@@ -12,6 +12,7 @@ import ImageUploader from '@/components/admin/ImageUploader'
 import TargetingSelector from '@/components/admin/TargetingSelector'
 import EmailEditor from '@/components/admin/EmailEditor'
 import EmojiPicker from '@/components/admin/EmojiPicker'
+import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
 
 interface FormData {
   title: string
@@ -473,6 +474,7 @@ export default function NewCommunicationPage() {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                         placeholder="https://..."
                       />
+                      <CtaQuickLinks onSelect={(url) => handleChange('email_cta_url', url)} />
                     </div>
                   </div>
                 </div>
