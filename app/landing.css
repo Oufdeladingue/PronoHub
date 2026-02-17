@@ -1,12 +1,20 @@
-/* ── Hero parallax background ─────────────── */
+/* ── Hero parallax background + Ken Burns ─── */
 .hero-parallax-bg {
   position: absolute;
-  width: 100%;
-  height: 120%;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
   object-fit: cover;
-  top: -10%;
-  transform: translateY(var(--parallax, 0px));
+  object-position: 50% 55%;
+  transform: translateY(var(--parallax, 0px)) translate3d(-1.2%, 0.6%, 0) scale(1.06);
   will-change: transform;
+  filter: saturate(1.05) contrast(1.05);
+  animation: kenburns 18s ease-in-out infinite alternate;
+}
+
+@keyframes kenburns {
+  0%   { transform: translateY(var(--parallax, 0px)) translate3d(-1.2%,  0.6%, 0) scale(1.06); }
+  100% { transform: translateY(var(--parallax, 0px)) translate3d( 1.2%, -0.6%, 0) scale(1.10); }
 }
 
 /* ── Spotlight radial overlay ──────────────── */
@@ -57,6 +65,14 @@
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
+  }
+
+  .hero-parallax-bg {
+    animation: none !important;
+    transform: none !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
   }
 }
 
