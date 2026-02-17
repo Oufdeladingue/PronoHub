@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { DEFAULT_ALLOWED_COUNTRIES, getCountryByCode } from '@/lib/countries'
+import { checkCountryAllowed } from '@/lib/geo'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -13,56 +13,15 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     await supabase.auth.exchangeCodeForSession(code)
 
-    // Vérifier la restriction par pays pour les inscriptions OAuth
-    try {
-      const forwarded = request.headers.get('x-forwarded-for')
-      const realIp = request.headers.get('x-real-ip')
-      const ip = forwarded?.split(',')[0]?.trim() || realIp || null
-
-      if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-        const geoResponse = await fetch(
-          `http://ip-api.com/json/${ip}?fields=status,countryCode,country`
-        )
-
-        if (geoResponse.ok) {
-          const geoData = await geoResponse.json()
-
-          if (geoData.status === 'success') {
-            const countryCode = geoData.countryCode as string
-
-            // Récupérer les pays autorisés
-            const adminSupabase = createAdminClient()
-            const { data: setting } = await adminSupabase
-              .from('admin_settings')
-              .select('setting_value')
-              .eq('setting_key', 'allowed_countries')
-              .single()
-
-            let allowedCountries: string[]
-            if (setting?.setting_value) {
-              try {
-                allowedCountries = JSON.parse(setting.setting_value)
-              } catch {
-                allowedCountries = DEFAULT_ALLOWED_COUNTRIES
-              }
-            } else {
-              allowedCountries = DEFAULT_ALLOWED_COUNTRIES
-            }
-
-            if (!allowedCountries.includes(countryCode)) {
-              // Pays non autorisé : déconnecter et rediriger avec erreur
-              await supabase.auth.signOut()
-              const country = getCountryByCode(countryCode)
-              const countryLabel = country ? `${country.flag} ${country.name}` : countryCode
-              return NextResponse.redirect(
-                `${origin}/auth/signup?error=${encodeURIComponent(`PronoHub n'est pas encore disponible dans votre pays (${countryLabel}).`)}`
-              )
-            }
-          }
-        }
-      }
-    } catch {
-      // Fail-open : si la vérification échoue, on laisse passer
+    // Vérifier la restriction par pays (fail-closed via geoip-lite)
+    const countryCheck = await checkCountryAllowed(request)
+    if (!countryCheck.allowed) {
+      // Pays non autorisé ou indétectable : déconnecter et rediriger
+      await supabase.auth.signOut()
+      const msg = countryCheck.message || "PronoHub n'est pas encore disponible dans votre pays."
+      return NextResponse.redirect(
+        `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
+      )
     }
   }
 
@@ -80,7 +39,6 @@ export async function GET(request: Request) {
           .single()
 
         if (profile && profile.has_chosen_username === false) {
-          // Compte OAuth sans pseudo choisi → rediriger vers choose-username
           const chooseUsernameUrl = redirectTo
             ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
             : '/auth/choose-username'
@@ -92,7 +50,6 @@ export async function GET(request: Request) {
     }
   }
 
-  // Utiliser redirectTo si présent, sinon rediriger vers le dashboard
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
   return NextResponse.redirect(`${origin}${finalRedirect}`)
 }

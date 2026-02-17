@@ -1,31 +1,35 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getClientIP } from '@/lib/rate-limit'
+import { detectCountry, getAllowedCountries } from '@/lib/geo'
 
 /**
  * POST /api/user/activity
- * Met à jour last_seen_at et le pays (via géolocalisation IP) pour l'utilisateur connecté.
- * Throttled côté client pour éviter trop de requêtes.
+ * Met à jour last_seen_at et le pays (via geoip-lite) pour l'utilisateur connecté.
+ * Vérifie aussi que le pays est toujours autorisé (filet de sécurité post-login).
  */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Vérifier l'authentification
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Détecter le pays via IP (non-bloquant : si geoip échoue, on continue)
-    let country: string | null = null
-    try {
-      const clientIP = getClientIP(request)
-      const geoip = await import('geoip-lite').then(m => m.default || m)
-      const geo = geoip.lookup(clientIP)
-      country = geo?.country || null
-    } catch {
-      // geoip-lite non disponible ou erreur — on continue sans le pays
+    // Détecter le pays via geoip-lite (base locale, pas d'appel réseau)
+    const country = detectCountry(request)
+
+    // Filet de sécurité : vérifier que le pays est autorisé
+    if (country) {
+      const allowedCountries = await getAllowedCountries()
+      if (!allowedCountries.includes(country)) {
+        // Pays non autorisé → déconnecter
+        await supabase.auth.signOut()
+        return NextResponse.json(
+          { error: 'country_blocked', country },
+          { status: 403 }
+        )
+      }
     }
 
     // Mettre à jour last_seen_at + country
