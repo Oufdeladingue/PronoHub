@@ -2,11 +2,19 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 const MATCH_SHORTCODE_REGEX = /\[match_ID=([a-f0-9-]{36})\]/gi
 
+function formatMatchDate(utcDate: string): string {
+  const d = new Date(utcDate)
+  const date = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return `${date} à ${time}`
+}
+
 function buildMatchCardHtml(match: {
   home_team_name: string
   away_team_name: string
   home_team_crest: string | null
   away_team_crest: string | null
+  utc_date: string | null
 }): string {
   const homeCrest = match.home_team_crest
     ? `<img src="${match.home_team_crest}" alt="${match.home_team_name}" width="32" height="32" style="display: block; margin: 0 auto 6px;" />`
@@ -16,7 +24,12 @@ function buildMatchCardHtml(match: {
     ? `<img src="${match.away_team_crest}" alt="${match.away_team_name}" width="32" height="32" style="display: block; margin: 0 auto 6px;" />`
     : `<div style="width: 32px; height: 32px; margin: 0 auto 6px; background-color: #1e293b; border-radius: 50%; text-align: center; line-height: 32px;"><span style="font-size: 16px;">⚽</span></div>`
 
+  const dateRow = match.utc_date
+    ? `<tr><td colspan="3" style="text-align: center; padding: 0 8px 10px; font-size: 11px; color: #94a3b8;">📅 ${formatMatchDate(match.utc_date)}</td></tr>`
+    : ''
+
   return `<table role="presentation" style="width: 100%; border-collapse: collapse; margin: 12px 0; background-color: #0f172a; border-radius: 12px;">
+  ${dateRow}
   <tr>
     <td style="text-align: center; padding: 12px 8px; width: 40%;">
       ${homeCrest}
@@ -56,7 +69,7 @@ export async function replaceMatchShortcodes(
   // Batch-fetch tous les matchs en 1 requête
   const { data: matches } = await supabase
     .from('imported_matches')
-    .select('id, home_team_name, away_team_name, home_team_crest, away_team_crest')
+    .select('id, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date')
     .in('id', Array.from(matchIds))
 
   const matchMap = new Map(
