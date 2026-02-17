@@ -189,6 +189,12 @@ export interface CaptainTransferEmailProps {
   tournamentStatus: string // 'pending' | 'warmup' | 'active'
 }
 
+// Interface pour l'email de finalisation d'inscription
+export interface FinalizeRegistrationEmailProps {
+  username: string
+  email: string
+}
+
 // Interface pour mention dans le chat
 export interface MentionEmailProps {
   username: string // Username de la personne mentionnée
@@ -3135,4 +3141,111 @@ Voir mes trophées : ${trophiesUrl}
     text,
     subject: `🏅 Trophée débloqué : ${trophyName} !`
   }
+}
+
+// Template: Email de finalisation d'inscription (pour users OAuth avec pseudo auto-généré)
+export function getFinalizeRegistrationTemplate({ username, email }: FinalizeRegistrationEmailProps) {
+  const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finalise ton inscription sur PronoHub</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0a0a;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #1a1a2e; border-radius: 16px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%);">
+              <table role="presentation" align="center" style="margin-bottom: 16px;"><tr><td style="width: 90px; height: 90px; background-color: #1e293b; border-radius: 50%; text-align: center; vertical-align: middle;">
+                <img src="https://www.pronohub.club/images/logo-email.png" alt="PronoHub" style="width: 60px; height: 60px; display: inline-block;">
+              </td></tr></table>
+              <h1 style="margin: 0; color: #000; font-size: 26px; font-weight: 700;">Plus qu'une étape !</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Salut <strong style="color: #ff9900;">${username}</strong> ! 👋
+              </p>
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Tu t'es inscrit(e) sur PronoHub avec ton compte Google, mais tu n'as pas encore choisi ton <strong style="color: #ffffff;">pseudo personnalisé</strong>.
+              </p>
+              <p style="margin: 0 0 20px; color: #e0e0e0; font-size: 16px; line-height: 1.6;">
+                Pour le moment, ton pseudo est <strong style="color: #94a3b8;">"${username}"</strong> (généré automatiquement depuis ton email). Choisis un vrai pseudo pour que tes amis te reconnaissent dans les classements !
+              </p>
+
+              <div style="background-color: #0f172a; border-radius: 12px; padding: 24px; margin: 24px 0;">
+                <h3 style="margin: 0 0 16px; color: #ff9900; font-size: 18px;">⚡ C'est rapide</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #94a3b8; font-size: 14px; line-height: 1.8;">
+                  <li>Connecte-toi avec ton compte Google</li>
+                  <li>Choisis ton pseudo unique</li>
+                  <li>C'est parti, tu es prêt(e) à jouer !</li>
+                </ul>
+              </div>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="https://www.pronohub.club/auth/login" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                  Choisir mon pseudo
+                </a>
+              </div>
+
+              <p style="margin: 0; color: #64748b; font-size: 14px; line-height: 1.6;">
+                Tu seras redirigé(e) vers le choix de ton pseudo après connexion.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0f172a; border-top: 1px solid #1e293b;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="color: #64748b; font-size: 12px;">
+                    © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+                  </td>
+                  <td style="text-align: right;">
+                    <a href="https://www.pronohub.club/privacy" style="color: #64748b; font-size: 12px; text-decoration: none; margin-left: 16px;">Confidentialité</a>
+                    <a href="https://www.pronohub.club/cgv" style="color: #64748b; font-size: 12px; text-decoration: none; margin-left: 16px;">CGU</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim()
+
+  const text = `
+Plus qu'une étape !
+
+Salut ${username} !
+
+Tu t'es inscrit(e) sur PronoHub avec ton compte Google, mais tu n'as pas encore choisi ton pseudo personnalisé.
+
+Pour le moment, ton pseudo est "${username}" (généré automatiquement depuis ton email). Choisis un vrai pseudo pour que tes amis te reconnaissent dans les classements !
+
+C'est rapide :
+- Connecte-toi avec ton compte Google
+- Choisis ton pseudo unique
+- C'est parti, tu es prêt(e) à jouer !
+
+Choisir mon pseudo : https://www.pronohub.club/auth/login
+
+Tu seras redirigé(e) vers le choix de ton pseudo après connexion.
+
+© ${new Date().getFullYear()} PronoHub. Tous droits réservés.
+  `.trim()
+
+  return { html, text, subject: 'Plus qu\'une étape pour finaliser ton inscription ! ⚡' }
 }

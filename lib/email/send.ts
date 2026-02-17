@@ -20,6 +20,7 @@ import {
   getInactiveUserReminderTemplate,
   getMatchdayChangesTemplate,
   getBadgeUnlockedTemplate,
+  getFinalizeRegistrationTemplate,
   EmailTemplateProps,
   ReminderEmailProps,
   TournamentStartedEmailProps,
@@ -31,7 +32,8 @@ import {
   MultiTournamentReminderEmailProps,
   InactiveUserReminderEmailProps,
   MatchdayChangesEmailProps,
-  BadgeUnlockedEmailProps
+  BadgeUnlockedEmailProps,
+  FinalizeRegistrationEmailProps
 } from './templates'
 
 interface SendEmailResult {
@@ -252,5 +254,14 @@ export async function sendMatchdayChangesEmail(
   props: MatchdayChangesEmailProps
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getMatchdayChangesTemplate(props)
+  return sendEmail(to, subject, html, text)
+}
+
+// Email finalisation d'inscription (users OAuth avec pseudo auto-généré)
+export async function sendFinalizeRegistrationEmail(
+  to: string,
+  props: FinalizeRegistrationEmailProps
+): Promise<SendEmailResult> {
+  const { html, text, subject } = getFinalizeRegistrationTemplate(props)
   return sendEmail(to, subject, html, text)
 }
