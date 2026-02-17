@@ -439,7 +439,7 @@ function DashboardContent({
           </div>
           {activeTournaments.length === 0 ? (
             <div className="flex flex-col items-center text-center py-10 px-4">
-              <img src="/images/no-tournoi.png" alt="" width={252} height={246} className="mb-4" />
+              <img src="/images/no-tournoi.png" alt="" className="mb-4 max-w-[252px]" />
               <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
               <p className="theme-text-secondary text-sm mb-6 max-w-xs">
                 Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
