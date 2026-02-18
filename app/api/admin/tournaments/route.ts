@@ -68,10 +68,10 @@ export async function GET() {
       allImportedMatches,
       allLastPredictions
     ] = await Promise.all([
-      // Récupérer toutes les compétitions standard
+      // Récupérer toutes les compétitions standard (custom_emblem_color prioritaire sur emblem)
       competitionIds.length > 0 ? supabase
         .from('competitions')
-        .select('id, name, emblem')
+        .select('id, name, emblem, custom_emblem_color')
         .in('id', competitionIds)
         .then(r => r.data || []) : Promise.resolve([]),
 
@@ -162,7 +162,7 @@ export async function GET() {
       .then(r => r.data || []) : []
 
     // Créer des maps pour un accès rapide
-    const competitionsMap = new Map(allCompetitions.map((c: any) => [c.id, { name: c.name, emblem: c.emblem }]))
+    const competitionsMap = new Map(allCompetitions.map((c: any) => [c.id, { name: c.name, emblem: c.custom_emblem_color || c.emblem }]))
     const customCompetitionsMap = new Map(allCustomCompetitions.map((c: any) => [c.id, { name: c.name, emblem: c.custom_emblem_color }]))
     const profilesMap = new Map(allProfiles.map((p: any) => [p.id, p.username]))
 
