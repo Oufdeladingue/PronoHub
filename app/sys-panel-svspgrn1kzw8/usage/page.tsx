@@ -1440,326 +1440,6 @@ export default function AdminUsagePage() {
                 </div>
               )}
 
-              {/* Modal de détail */}
-              {detailModal.tournament && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closeDetailModal}>
-                  <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                    <div className="p-6 border-b border-gray-200 flex-shrink-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Détail du tournoi
-                        </h3>
-                        <button
-                          onClick={closeDetailModal}
-                          className="p-1 rounded-lg hover:bg-gray-100 transition"
-                        >
-                          <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-6 overflow-y-auto flex-1">
-                      {detailModal.loading ? (
-                        <div className="text-center py-8 text-gray-500">
-                          Chargement des détails...
-                        </div>
-                      ) : detailModal.detail ? (
-                        <div className="space-y-4">
-                          {/* Infos générales - compact */}
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-base font-semibold text-gray-900">{detailModal.detail.name}</h4>
-                              <div className="flex items-center gap-2">
-                                {getTournamentTypeBadge(detailModal.detail.tournament_type)}
-                                {getStatusBadge(detailModal.detail.status)}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm">
-                              <div>
-                                <span className="text-gray-500">Créateur :</span>{' '}
-                                <span className="font-medium text-gray-900">{detailModal.detail.creator_username}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Code :</span>{' '}
-                                <span className="font-mono text-gray-700">{detailModal.detail.invite_code}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Créé le :</span>{' '}
-                                <span className="text-gray-700">
-                                  {new Date(detailModal.detail.created_at).toLocaleDateString('fr-FR', {
-                                    day: '2-digit', month: '2-digit', year: 'numeric'
-                                  })}
-                                </span>
-                              </div>
-                              {detailModal.detail.competition && (
-                                <div className="col-span-2 sm:col-span-1">
-                                  <span className="text-gray-500">Compétition :</span>{' '}
-                                  <span className="font-medium text-gray-900">
-                                    {detailModal.detail.competition.name}
-                                    {detailModal.detail.competition.is_custom && (
-                                      <span className="ml-1 text-xs text-purple-600">(custom)</span>
-                                    )}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <span className="text-gray-500">Joueurs max :</span>{' '}
-                                <span className="font-medium text-gray-900">
-                                  {detailModal.detail.max_participants || 'Illimité'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Journées + Scoring + Options - fusionnés */}
-                          <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
-                              <div>
-                                <span className="text-gray-500">Journées :</span>{' '}
-                                <span className="font-medium text-gray-900">
-                                  {detailModal.detail.starting_matchday && detailModal.detail.ending_matchday
-                                    ? `J${detailModal.detail.starting_matchday}→J${detailModal.detail.ending_matchday}`
-                                    : detailModal.detail.all_matchdays
-                                      ? 'Toutes'
-                                      : 'Non défini'}
-                                  {' '}({detailModal.detail.actual_matchdays || detailModal.detail.planned_matchdays || '-'})
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Exact :</span>{' '}
-                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_exact_score} pts</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Bon résultat :</span>{' '}
-                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_correct_winner} pt</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Mauvais :</span>{' '}
-                                <span className="font-semibold text-blue-800">{detailModal.detail.scoring_draw_with_default_prediction} pt</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {detailModal.detail.teams_enabled && (
-                                <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">Équipes</span>
-                              )}
-                              {detailModal.detail.bonus_match_enabled && (
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Match bonus</span>
-                              )}
-                              {detailModal.detail.early_prediction_bonus && (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Bonus early</span>
-                              )}
-                              {detailModal.detail.all_matchdays && (
-                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Toutes journées</span>
-                              )}
-                              {!detailModal.detail.teams_enabled && !detailModal.detail.bonus_match_enabled && !detailModal.detail.early_prediction_bonus && !detailModal.detail.all_matchdays && (
-                                <span className="text-xs text-gray-400">Aucune option</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Participants */}
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                              Participants ({detailModal.detail.participants.length})
-                              <span className="ml-2 text-gray-400 font-normal">
-                                — {detailModal.detail.total_predictions} pronostic{detailModal.detail.total_predictions !== 1 ? 's' : ''} au total
-                              </span>
-                            </h4>
-                            {detailModal.detail.participants.length === 0 ? (
-                              <p className="text-sm text-gray-400">Aucun participant</p>
-                            ) : (
-                              <>
-                                {/* Version desktop */}
-                                <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden">
-                                  <table className="min-w-full text-sm">
-                                    <thead className="bg-gray-100">
-                                      <tr>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
-                                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
-                                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
-                                        {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
-                                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Stats</th>
-                                        )}
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                      {detailModal.detail.participants.map((p) => (
-                                        <tr
-                                          key={p.user_id}
-                                          className="hover:bg-purple-50 cursor-pointer transition-colors"
-                                          onClick={() => openUserDetailModal(p.user_id, p.username)}
-                                        >
-                                          <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
-                                          <td className="px-3 py-2">
-                                            <div className="flex items-center gap-2">
-                                              <img
-                                                src={getAvatarUrl(p.avatar || 'avatar1')}
-                                                alt={p.username}
-                                                className="w-6 h-6 rounded-full"
-                                                onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
-                                              />
-                                              <span className="font-medium text-gray-900 hover:text-purple-700">{p.username}</span>
-                                            </div>
-                                          </td>
-                                          <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
-                                          <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
-                                          {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
-                                            <td className="px-3 py-2 text-center">
-                                              {p.has_stats_access ? (
-                                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                                  p.stats_access_type === 'lifetime'
-                                                    ? 'bg-pink-100 text-pink-700'
-                                                    : 'bg-rose-100 text-rose-700'
-                                                }`}>
-                                                  {p.stats_access_type === 'lifetime' ? '∞' : 'T'}
-                                                </span>
-                                              ) : (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
-                                                    // Rafraîchir les données du tournoi après attribution
-                                                    setTimeout(() => {
-                                                      if (detailModal.tournament) {
-                                                        openDetailModal(detailModal.tournament)
-                                                      }
-                                                    }, 500)
-                                                  }}
-                                                  disabled={addingCredit?.userId === p.user_id}
-                                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
-                                                  title="Attribuer accès stats pour ce tournoi"
-                                                >
-                                                  {addingCredit?.userId === p.user_id ? '...' : '+'}
-                                                </button>
-                                              )}
-                                            </td>
-                                          )}
-                                          <td className="px-3 py-2 text-gray-500">
-                                            {new Date(p.joined_at).toLocaleDateString('fr-FR', {
-                                              day: '2-digit', month: '2-digit', year: '2-digit'
-                                            })}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-
-                                {/* Version mobile */}
-                                <div className="md:hidden space-y-2">
-                                  {detailModal.detail.participants.map((p) => (
-                                    <div
-                                      key={p.user_id}
-                                      className="p-3 border border-gray-200 rounded-lg bg-white"
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-xs text-gray-500 font-medium">#{p.rank || '-'}</span>
-                                          <img
-                                            src={getAvatarUrl(p.avatar || 'avatar1')}
-                                            alt={p.username}
-                                            className="w-6 h-6 rounded-full"
-                                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
-                                          />
-                                          <button
-                                            onClick={() => openUserDetailModal(p.user_id, p.username)}
-                                            className="font-medium text-purple-700 text-sm underline underline-offset-2 hover:text-purple-900 active:text-purple-900"
-                                          >
-                                            {p.username}
-                                          </button>
-                                          {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
-                                            <>
-                                              {p.has_stats_access ? (
-                                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
-                                                  p.stats_access_type === 'lifetime'
-                                                    ? 'bg-pink-100 text-pink-700'
-                                                    : 'bg-rose-100 text-rose-700'
-                                                }`}>
-                                                  {p.stats_access_type === 'lifetime' ? '∞ Stats' : 'Stats'}
-                                                </span>
-                                              ) : (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
-                                                    setTimeout(() => {
-                                                      if (detailModal.tournament) {
-                                                        openDetailModal(detailModal.tournament)
-                                                      }
-                                                    }, 500)
-                                                  }}
-                                                  disabled={addingCredit?.userId === p.user_id}
-                                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
-                                                  title="Attribuer accès stats"
-                                                >
-                                                  {addingCredit?.userId === p.user_id ? '...' : '+ Stats'}
-                                                </button>
-                                              )}
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center justify-between text-xs">
-                                        <div className="flex gap-4">
-                                          <div>
-                                            <span className="text-gray-500">Points: </span>
-                                            <span className="font-semibold text-purple-700">{p.total_points}</span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500">Pronos: </span>
-                                            <span className="text-gray-600">{p.predictions_count}</span>
-                                          </div>
-                                        </div>
-                                        <div className="text-gray-400">
-                                          {new Date(p.joined_at).toLocaleDateString('fr-FR', {
-                                            day: '2-digit', month: '2-digit', year: '2-digit'
-                                          })}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-red-500">
-                          Erreur lors du chargement des détails.
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-4 border-t border-gray-200 flex justify-between flex-shrink-0">
-                      <button
-                        onClick={() => {
-                          if (detailModal.detail) {
-                            const url = `/${detailModal.detail.slug}/opposition`
-                            window.open(url, '_blank', 'noopener,noreferrer')
-                          }
-                        }}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Visiter en guest
-                      </button>
-                      <button
-                        onClick={closeDetailModal}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                      >
-                        Fermer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -2338,6 +2018,326 @@ export default function AdminUsagePage() {
           )}
         </main>
       </div>
+
+      {/* Modal de détail tournoi (global, accessible depuis tous les onglets) */}
+      {detailModal.tournament && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closeDetailModal}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Détail du tournoi
+                </h3>
+                <button
+                  onClick={closeDetailModal}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+              {detailModal.loading ? (
+                <div className="text-center py-8 text-gray-500">
+                  Chargement des détails...
+                </div>
+              ) : detailModal.detail ? (
+                <div className="space-y-4">
+                  {/* Infos générales - compact */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-base font-semibold text-gray-900">{detailModal.detail.name}</h4>
+                      <div className="flex items-center gap-2">
+                        {getTournamentTypeBadge(detailModal.detail.tournament_type)}
+                        {getStatusBadge(detailModal.detail.status)}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm">
+                      <div>
+                        <span className="text-gray-500">Créateur :</span>{' '}
+                        <span className="font-medium text-gray-900">{detailModal.detail.creator_username}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Code :</span>{' '}
+                        <span className="font-mono text-gray-700">{detailModal.detail.invite_code}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Créé le :</span>{' '}
+                        <span className="text-gray-700">
+                          {new Date(detailModal.detail.created_at).toLocaleDateString('fr-FR', {
+                            day: '2-digit', month: '2-digit', year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      {detailModal.detail.competition && (
+                        <div className="col-span-2 sm:col-span-1">
+                          <span className="text-gray-500">Compétition :</span>{' '}
+                          <span className="font-medium text-gray-900">
+                            {detailModal.detail.competition.name}
+                            {detailModal.detail.competition.is_custom && (
+                              <span className="ml-1 text-xs text-purple-600">(custom)</span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-gray-500">Joueurs max :</span>{' '}
+                        <span className="font-medium text-gray-900">
+                          {detailModal.detail.max_participants || 'Illimité'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Journées + Scoring + Options - fusionnés */}
+                  <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+                      <div>
+                        <span className="text-gray-500">Journées :</span>{' '}
+                        <span className="font-medium text-gray-900">
+                          {detailModal.detail.starting_matchday && detailModal.detail.ending_matchday
+                            ? `J${detailModal.detail.starting_matchday}→J${detailModal.detail.ending_matchday}`
+                            : detailModal.detail.all_matchdays
+                              ? 'Toutes'
+                              : 'Non défini'}
+                          {' '}({detailModal.detail.actual_matchdays || detailModal.detail.planned_matchdays || '-'})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Exact :</span>{' '}
+                        <span className="font-semibold text-blue-800">{detailModal.detail.scoring_exact_score} pts</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Bon résultat :</span>{' '}
+                        <span className="font-semibold text-blue-800">{detailModal.detail.scoring_correct_winner} pt</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Mauvais :</span>{' '}
+                        <span className="font-semibold text-blue-800">{detailModal.detail.scoring_draw_with_default_prediction} pt</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {detailModal.detail.teams_enabled && (
+                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full">Équipes</span>
+                      )}
+                      {detailModal.detail.bonus_match_enabled && (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">Match bonus</span>
+                      )}
+                      {detailModal.detail.early_prediction_bonus && (
+                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">Bonus early</span>
+                      )}
+                      {detailModal.detail.all_matchdays && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Toutes journées</span>
+                      )}
+                      {!detailModal.detail.teams_enabled && !detailModal.detail.bonus_match_enabled && !detailModal.detail.early_prediction_bonus && !detailModal.detail.all_matchdays && (
+                        <span className="text-xs text-gray-400">Aucune option</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Participants */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                      Participants ({detailModal.detail.participants.length})
+                      <span className="ml-2 text-gray-400 font-normal">
+                        — {detailModal.detail.total_predictions} pronostic{detailModal.detail.total_predictions !== 1 ? 's' : ''} au total
+                      </span>
+                    </h4>
+                    {detailModal.detail.participants.length === 0 ? (
+                      <p className="text-sm text-gray-400">Aucun participant</p>
+                    ) : (
+                      <>
+                        {/* Version desktop */}
+                        <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Joueur</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Points</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Pronos</th>
+                                {detailModal.detail.tournament_type !== 'elite' && detailModal.detail.tournament_type !== 'platinium' && (
+                                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Stats</th>
+                                )}
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rejoint le</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {detailModal.detail.participants.map((p) => (
+                                <tr
+                                  key={p.user_id}
+                                  className="hover:bg-purple-50 cursor-pointer transition-colors"
+                                  onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                >
+                                  <td className="px-3 py-2 text-gray-500">{p.rank || '-'}</td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <img
+                                        src={getAvatarUrl(p.avatar || 'avatar1')}
+                                        alt={p.username}
+                                        className="w-6 h-6 rounded-full"
+                                        onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
+                                      />
+                                      <span className="font-medium text-gray-900 hover:text-purple-700">{p.username}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-semibold text-purple-700">{p.total_points}</td>
+                                  <td className="px-3 py-2 text-center text-gray-600">{p.predictions_count}</td>
+                                  {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
+                                    <td className="px-3 py-2 text-center">
+                                      {p.has_stats_access ? (
+                                        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                          p.stats_access_type === 'lifetime'
+                                            ? 'bg-pink-100 text-pink-700'
+                                            : 'bg-rose-100 text-rose-700'
+                                        }`}>
+                                          {p.stats_access_type === 'lifetime' ? '∞' : 'T'}
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
+                                            setTimeout(() => {
+                                              if (detailModal.tournament) {
+                                                openDetailModal(detailModal.tournament)
+                                              }
+                                            }, 500)
+                                          }}
+                                          disabled={addingCredit?.userId === p.user_id}
+                                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
+                                          title="Attribuer accès stats pour ce tournoi"
+                                        >
+                                          {addingCredit?.userId === p.user_id ? '...' : '+'}
+                                        </button>
+                                      )}
+                                    </td>
+                                  )}
+                                  <td className="px-3 py-2 text-gray-500">
+                                    {new Date(p.joined_at).toLocaleDateString('fr-FR', {
+                                      day: '2-digit', month: '2-digit', year: '2-digit'
+                                    })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Version mobile */}
+                        <div className="md:hidden space-y-2">
+                          {detailModal.detail.participants.map((p) => (
+                            <div
+                              key={p.user_id}
+                              className="p-3 border border-gray-200 rounded-lg bg-white"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500 font-medium">#{p.rank || '-'}</span>
+                                  <img
+                                    src={getAvatarUrl(p.avatar || 'avatar1')}
+                                    alt={p.username}
+                                    className="w-6 h-6 rounded-full"
+                                    onError={(e) => { (e.target as HTMLImageElement).src = '/avatars/avatar1.png' }}
+                                  />
+                                  <button
+                                    onClick={() => openUserDetailModal(p.user_id, p.username)}
+                                    className="font-medium text-purple-700 text-sm underline underline-offset-2 hover:text-purple-900 active:text-purple-900"
+                                  >
+                                    {p.username}
+                                  </button>
+                                  {detailModal.detail?.tournament_type !== 'elite' && detailModal.detail?.tournament_type !== 'platinium' && (
+                                    <>
+                                      {p.has_stats_access ? (
+                                        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                                          p.stats_access_type === 'lifetime'
+                                            ? 'bg-pink-100 text-pink-700'
+                                            : 'bg-rose-100 text-rose-700'
+                                        }`}>
+                                          {p.stats_access_type === 'lifetime' ? '∞ Stats' : 'Stats'}
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleAddCredit(p.user_id, 'stats_access_tournament', p.username, detailModal.detail?.id)
+                                            setTimeout(() => {
+                                              if (detailModal.tournament) {
+                                                openDetailModal(detailModal.tournament)
+                                              }
+                                            }, 500)
+                                          }}
+                                          disabled={addingCredit?.userId === p.user_id}
+                                          className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-500 hover:bg-pink-100 hover:text-pink-700 transition-colors disabled:opacity-50"
+                                          title="Attribuer accès stats"
+                                        >
+                                          {addingCredit?.userId === p.user_id ? '...' : '+ Stats'}
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex gap-4">
+                                  <div>
+                                    <span className="text-gray-500">Points: </span>
+                                    <span className="font-semibold text-purple-700">{p.total_points}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Pronos: </span>
+                                    <span className="text-gray-600">{p.predictions_count}</span>
+                                  </div>
+                                </div>
+                                <div className="text-gray-400">
+                                  {new Date(p.joined_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit', month: '2-digit', year: '2-digit'
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-red-500">
+                  Erreur lors du chargement des détails.
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-200 flex justify-between flex-shrink-0">
+              <button
+                onClick={() => {
+                  if (detailModal.detail) {
+                    const url = `/${detailModal.detail.slug}/opposition`
+                    window.open(url, '_blank', 'noopener,noreferrer')
+                  }
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Visiter en guest
+              </button>
+              <button
+                onClick={closeDetailModal}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal tournois actifs (onglet Users) */}
       {activeTournamentsModal && (

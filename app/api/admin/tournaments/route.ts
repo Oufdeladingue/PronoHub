@@ -135,15 +135,15 @@ export async function GET() {
         )
       ).then(results => results.filter(Boolean)),
 
-      // Récupérer le dernier pronostic par tournoi (1 requête par tournoi, chacune retourne 1 ligne)
+      // Récupérer le dernier pronostic par tournoi (updated_at = quand l'user a réellement renseigné/modifié son prono)
       Promise.all(
         tournamentIds.map(tid =>
           supabase
             .from('predictions')
-            .select('tournament_id, created_at')
+            .select('tournament_id, updated_at')
             .eq('tournament_id', tid)
             .eq('is_default_prediction', false)
-            .order('created_at', { ascending: false })
+            .order('updated_at', { ascending: false })
             .limit(1)
             .single()
             .then(r => r.data)
@@ -206,7 +206,7 @@ export async function GET() {
     const lastPredictionMap = new Map<string, string>()
     allLastPredictions.forEach((p: any) => {
       if (!lastPredictionMap.has(p.tournament_id)) {
-        lastPredictionMap.set(p.tournament_id, p.created_at)
+        lastPredictionMap.set(p.tournament_id, p.updated_at)
       }
     })
 
