@@ -2299,21 +2299,33 @@ export default function AdminUsagePage() {
             <div className="p-4 overflow-y-auto flex-1">
               <div className="space-y-2">
                 {activeTournamentsModal.tournaments.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <button
+                    key={t.id}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-orange-50 hover:ring-1 hover:ring-orange-200 transition cursor-pointer text-left"
+                    onClick={() => {
+                      setActiveTournamentsModal(null)
+                      openDetailModal({ ...t, tournament_type: '', competition_name: '', competition_id: 0, created_at: '', creator_username: '', participants_count: 0, total_revenue: 0, end_date: null })
+                    }}
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 text-sm truncate">{t.name}</p>
                       <p className="text-xs text-gray-500 truncate">{t.slug}</p>
                     </div>
-                    <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${
-                      t.status === 'active' || t.status === 'in_progress'
-                        ? 'bg-green-100 text-green-700'
-                        : t.status === 'registration'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {t.status}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        t.status === 'active' || t.status === 'in_progress'
+                          ? 'bg-green-100 text-green-700'
+                          : t.status === 'registration'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {t.status}
+                      </span>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
                 ))}
               </div>
             </div>
