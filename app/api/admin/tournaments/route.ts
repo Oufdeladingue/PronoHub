@@ -135,14 +135,13 @@ export async function GET() {
         )
       ).then(results => results.filter(Boolean)),
 
-      // Récupérer le dernier pronostic par tournoi (updated_at = quand l'user a réellement renseigné/modifié son prono)
+      // Récupérer la dernière activité prono par tournoi (max updated_at, sans filtre is_default)
       Promise.all(
         tournamentIds.map(tid =>
           supabase
             .from('predictions')
             .select('tournament_id, updated_at')
             .eq('tournament_id', tid)
-            .eq('is_default_prediction', false)
             .order('updated_at', { ascending: false })
             .limit(1)
             .single()
