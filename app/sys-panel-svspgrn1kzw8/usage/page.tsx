@@ -424,6 +424,7 @@ export default function AdminUsagePage() {
   const [filterText, setFilterText] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [showFinished, setShowFinished] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [tournamentsPageSize, setTournamentsPageSize] = useState(20)
 
@@ -698,9 +699,20 @@ export default function AdminUsagePage() {
     setUserDetailModal({ userId: null, username: null, detail: null, loading: false })
   }
 
+  // Compteur de tournois terminés (avant filtrage)
+  const finishedCount = useMemo(() =>
+    tournaments.filter(t => t.status === 'finished' || t.status === 'completed').length,
+    [tournaments]
+  )
+
   // Filtrage et tri des tournois
   const filteredAndSortedTournaments = useMemo(() => {
     let result = [...tournaments]
+
+    // Masquer les terminés par défaut (sauf si showFinished ou filtre explicite)
+    if (!showFinished && filterStatus !== 'finished') {
+      result = result.filter(t => t.status !== 'finished' && t.status !== 'completed')
+    }
 
     if (filterText) {
       const searchLower = filterText.toLowerCase()
@@ -755,7 +767,7 @@ export default function AdminUsagePage() {
     }
 
     return result
-  }, [tournaments, filterText, filterType, filterStatus, sortColumn, sortDirection])
+  }, [tournaments, filterText, filterType, filterStatus, sortColumn, sortDirection, showFinished])
 
   const totalPages = Math.ceil(filteredAndSortedTournaments.length / tournamentsPageSize)
   const paginatedTournaments = useMemo(() => {
@@ -1095,9 +1107,23 @@ export default function AdminUsagePage() {
                   )}
                 </div>
 
-                <div className="mt-3 text-sm text-gray-600">
-                  {filteredAndSortedTournaments.length} tournoi{filteredAndSortedTournaments.length > 1 ? 's' : ''} trouvé{filteredAndSortedTournaments.length > 1 ? 's' : ''}
-                  {filterText || filterType !== 'all' || filterStatus !== 'all' ? ' (filtré)' : ''}
+                <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+                  <span>
+                    {filteredAndSortedTournaments.length} tournoi{filteredAndSortedTournaments.length > 1 ? 's' : ''} trouvé{filteredAndSortedTournaments.length > 1 ? 's' : ''}
+                    {filterText || filterType !== 'all' || filterStatus !== 'all' ? ' (filtré)' : ''}
+                  </span>
+                  {finishedCount > 0 && filterStatus !== 'finished' && (
+                    <button
+                      onClick={() => setShowFinished(prev => !prev)}
+                      className={`px-3 py-1 text-xs font-medium rounded-full border transition ${
+                        showFinished
+                          ? 'bg-blue-50 border-blue-300 text-blue-700'
+                          : 'bg-gray-50 border-gray-300 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      {showFinished ? `Masquer terminés (${finishedCount})` : `Afficher terminés (${finishedCount})`}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1190,10 +1216,11 @@ export default function AdminUsagePage() {
                               {tournament.last_prediction_at
                                 ? (() => {
                                     const days = Math.floor((Date.now() - new Date(tournament.last_prediction_at).getTime()) / (1000 * 60 * 60 * 24))
+                                    const isFinished = tournament.status === 'finished' || tournament.status === 'completed'
                                     return (
-                                      <span className={days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
+                                      <span className={isFinished ? 'text-gray-600' : days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
                                         {new Date(tournament.last_prediction_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                        {days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
+                                        {!isFinished && days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
                                       </span>
                                     )
                                   })()
@@ -1280,10 +1307,11 @@ export default function AdminUsagePage() {
                             {tournament.last_prediction_at
                               ? (() => {
                                   const days = Math.floor((Date.now() - new Date(tournament.last_prediction_at).getTime()) / (1000 * 60 * 60 * 24))
+                                  const isFinished = tournament.status === 'finished' || tournament.status === 'completed'
                                   return (
-                                    <span className={days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
+                                    <span className={isFinished ? 'text-gray-600' : days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
                                       {new Date(tournament.last_prediction_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                                      {days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
+                                      {!isFinished && days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
                                     </span>
                                   )
                                 })()

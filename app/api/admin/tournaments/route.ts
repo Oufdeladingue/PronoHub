@@ -36,7 +36,7 @@ export async function GET() {
     // Récupérer tous les tournois
     const { data: tournaments, error } = await supabase
       .from('tournaments')
-      .select('id, name, slug, status, competition_id, custom_competition_id, created_at, creator_id, tournament_type')
+      .select('id, name, slug, status, competition_id, custom_competition_id, created_at, creator_id, tournament_type, ending_matchday')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -123,19 +123,22 @@ export async function GET() {
         .in('custom_competition_id', customCompetitionIds)
         .then(r => r.data || []) : Promise.resolve([]),
 
-      // Récupérer le dernier match par compétition (1 requête par compétition, chacune retourne 1 ligne)
+      // Récupérer la date du dernier match du ending_matchday par tournoi standard
       Promise.all(
-        [...new Set(competitionIds)].map(cid =>
-          supabase
-            .from('imported_matches')
-            .select('competition_id, utc_date')
-            .eq('competition_id', cid)
-            .not('utc_date', 'is', null)
-            .order('utc_date', { ascending: false })
-            .limit(1)
-            .single()
-            .then(r => r.data)
-        )
+        tournaments
+          .filter((t: any) => t.competition_id && !t.custom_competition_id && t.ending_matchday)
+          .map((t: any) =>
+            supabase
+              .from('imported_matches')
+              .select('utc_date')
+              .eq('competition_id', t.competition_id)
+              .eq('matchday', t.ending_matchday)
+              .not('utc_date', 'is', null)
+              .order('utc_date', { ascending: false })
+              .limit(1)
+              .single()
+              .then(r => r.data ? { tournament_id: t.id, utc_date: r.data.utc_date } : null)
+          )
       ).then(results => results.filter(Boolean)),
 
       // Récupérer la dernière activité prono par tournoi (admin client pour bypasser RLS)
@@ -189,10 +192,11 @@ export async function GET() {
       customMatchdayMap.get(m.custom_competition_id)!.push(m.id)
     })
 
-    const lastMatchDateMap = new Map<number, string>()
+    // Map de la date de fin par tournoi (basée sur le ending_matchday du tournoi)
+    const endDateByTournamentMap = new Map<string, string>()
     allImportedMatches.forEach((m: any) => {
-      if (!lastMatchDateMap.has(m.competition_id)) {
-        lastMatchDateMap.set(m.competition_id, m.utc_date)
+      if (!endDateByTournamentMap.has(m.tournament_id)) {
+        endDateByTournamentMap.set(m.tournament_id, m.utc_date)
       }
     })
 
@@ -233,8 +237,10 @@ export async function GET() {
       const participantsCount = participantsCountMap.get(tournament.id) || 0
       const totalRevenue = revenueMap.get(tournament.id) || 0
 
-      let endDate: string | null = null
-      if (tournament.custom_competition_id) {
+      // Date de fin basée sur le ending_matchday du tournoi (pas de la compétition entière)
+      let endDate: string | null = endDateByTournamentMap.get(tournament.id) || null
+      if (!endDate && tournament.custom_competition_id) {
+        // Pour les custom, chercher le dernier match dans les matchdays de la compétition
         const matchdayIds = customMatchdayMap.get(tournament.custom_competition_id) || []
         const dates: string[] = []
         matchdayIds.forEach(mdId => {
@@ -244,8 +250,6 @@ export async function GET() {
         if (dates.length > 0) {
           endDate = dates.sort().reverse()[0]
         }
-      } else if (tournament.competition_id) {
-        endDate = lastMatchDateMap.get(tournament.competition_id) || null
       }
 
       return {
