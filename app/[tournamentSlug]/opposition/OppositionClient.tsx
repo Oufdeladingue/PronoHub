@@ -2556,7 +2556,7 @@ export default function OppositionClient({
                                       </div>
 
                                       {/* Bouton Stats (Mobile) - sous le score - masqué si match terminé */}
-                                      {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
+                                      {!isMatchFinished(match) && !!match.home_team_id && !!match.away_team_id && (match.competition_id || tournament?.competition_id) && (
                                         <div className="md:hidden">
                                           <StatsButton
                                             matchId={match.id}
@@ -3107,7 +3107,7 @@ export default function OppositionClient({
                                 </div>
 
                                 {/* Ligne bas de card desktop : badge bonus à gauche, stats à droite */}
-                                {(isBonusMatch || (!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id))) && (
+                                {(isBonusMatch || (!isMatchFinished(match) && !!match.home_team_id && !!match.away_team_id && !!(match.competition_id || tournament?.competition_id))) && (
                                   <div className="hidden md:flex items-center justify-between mt-2">
                                     {/* Badge bonus en bas à gauche */}
                                     {isBonusMatch ? (
@@ -3119,7 +3119,7 @@ export default function OppositionClient({
                                       </div>
                                     ) : <div />}
                                     {/* Bouton Stats à droite */}
-                                    {!isMatchFinished(match) && match.home_team_id && match.away_team_id && (match.competition_id || tournament?.competition_id) && (
+                                    {!isMatchFinished(match) && !!match.home_team_id && !!match.away_team_id && !!(match.competition_id || tournament?.competition_id) && (
                                       <StatsButton
                                         matchId={match.id}
                                         tournamentId={tournament.id}
