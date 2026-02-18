@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 
@@ -29,6 +29,9 @@ export async function GET() {
         { status: 403 }
       )
     }
+
+    // Client admin pour bypasser le RLS (nécessaire pour les predictions)
+    const adminClient = createAdminClient()
 
     // Récupérer tous les tournois
     const { data: tournaments, error } = await supabase
@@ -135,10 +138,10 @@ export async function GET() {
         )
       ).then(results => results.filter(Boolean)),
 
-      // Récupérer la dernière activité prono par tournoi (max updated_at, sans filtre is_default)
+      // Récupérer la dernière activité prono par tournoi (admin client pour bypasser RLS)
       Promise.all(
         tournamentIds.map(tid =>
-          supabase
+          adminClient
             .from('predictions')
             .select('tournament_id, updated_at')
             .eq('tournament_id', tid)
