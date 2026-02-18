@@ -79,22 +79,22 @@ export async function GET(
     // Récupérer les achats d'accès stats pour ce tournoi
     const participantIds = participantsDetails.map(p => p.user_id)
 
-    // Récupérer les achats stats_access_tournament pour ce tournoi + stats_access_lifetime
-    const { data: statsAccessPurchases } = await adminClient
-      .from('tournament_purchases')
-      .select('user_id, purchase_type')
-      .in('user_id', participantIds)
-      .in('purchase_type', ['stats_access_tournament', 'stats_access_lifetime'])
-      .eq('status', 'completed')
-
-    // Filtrer: stats_access_tournament doit correspondre à ce tournamentId
-    const { data: tournamentStatsPurchases } = await adminClient
-      .from('tournament_purchases')
-      .select('user_id')
-      .in('user_id', participantIds)
-      .eq('purchase_type', 'stats_access_tournament')
-      .eq('tournament_id', tournamentId)
-      .eq('status', 'completed')
+    // Récupérer en parallèle : achats lifetime + achats tournament-specific
+    const [{ data: statsAccessPurchases }, { data: tournamentStatsPurchases }] = await Promise.all([
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id, purchase_type')
+        .in('user_id', participantIds)
+        .in('purchase_type', ['stats_access_tournament', 'stats_access_lifetime'])
+        .eq('status', 'completed'),
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id')
+        .in('user_id', participantIds)
+        .eq('purchase_type', 'stats_access_tournament')
+        .eq('tournament_id', tournamentId)
+        .eq('status', 'completed')
+    ])
 
     // Créer un map des accès stats par user
     const statsAccessMap = new Map<string, 'lifetime' | 'tournament'>()

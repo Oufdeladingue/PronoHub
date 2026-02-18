@@ -65,19 +65,20 @@ export async function GET() {
       allCreatorPurchases,
       allParticipantPurchases,
       allCustomMatchdays,
-      allImportedMatches
+      allImportedMatches,
+      allLastPredictions
     ] = await Promise.all([
       // Récupérer toutes les compétitions standard
       competitionIds.length > 0 ? supabase
         .from('competitions')
-        .select('id, name')
+        .select('id, name, emblem')
         .in('id', competitionIds)
         .then(r => r.data || []) : Promise.resolve([]),
 
       // Récupérer toutes les compétitions custom
       customCompetitionIds.length > 0 ? supabase
         .from('custom_competitions')
-        .select('id, name')
+        .select('id, name, custom_emblem_color')
         .in('id', customCompetitionIds)
         .then(r => r.data || []) : Promise.resolve([]),
 
@@ -119,14 +120,35 @@ export async function GET() {
         .in('custom_competition_id', customCompetitionIds)
         .then(r => r.data || []) : Promise.resolve([]),
 
-      // Récupérer les derniers matchs importés pour toutes les compétitions
-      competitionIds.length > 0 ? supabase
-        .from('imported_matches')
-        .select('competition_id, utc_date')
-        .in('competition_id', competitionIds)
-        .not('utc_date', 'is', null)
-        .order('utc_date', { ascending: false })
-        .then(r => r.data || []) : Promise.resolve([])
+      // Récupérer le dernier match par compétition (1 requête par compétition, chacune retourne 1 ligne)
+      Promise.all(
+        [...new Set(competitionIds)].map(cid =>
+          supabase
+            .from('imported_matches')
+            .select('competition_id, utc_date')
+            .eq('competition_id', cid)
+            .not('utc_date', 'is', null)
+            .order('utc_date', { ascending: false })
+            .limit(1)
+            .single()
+            .then(r => r.data)
+        )
+      ).then(results => results.filter(Boolean)),
+
+      // Récupérer le dernier pronostic par tournoi (1 requête par tournoi, chacune retourne 1 ligne)
+      Promise.all(
+        tournamentIds.map(tid =>
+          supabase
+            .from('predictions')
+            .select('tournament_id, created_at')
+            .eq('tournament_id', tid)
+            .eq('is_default_prediction', false)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+            .then(r => r.data)
+        )
+      ).then(results => results.filter(Boolean))
     ])
 
     // Récupérer les matchs custom si nécessaire
@@ -140,8 +162,8 @@ export async function GET() {
       .then(r => r.data || []) : []
 
     // Créer des maps pour un accès rapide
-    const competitionsMap = new Map(allCompetitions.map((c: any) => [c.id, c.name]))
-    const customCompetitionsMap = new Map(allCustomCompetitions.map((c: any) => [c.id, c.name]))
+    const competitionsMap = new Map(allCompetitions.map((c: any) => [c.id, { name: c.name, emblem: c.emblem }]))
+    const customCompetitionsMap = new Map(allCustomCompetitions.map((c: any) => [c.id, { name: c.name, emblem: c.custom_emblem_color }]))
     const profilesMap = new Map(allProfiles.map((p: any) => [p.id, p.username]))
 
     const participantsCountMap = new Map<string, number>()
@@ -180,18 +202,29 @@ export async function GET() {
       customMatchesMap.get(m.custom_matchday_id)!.push(m.cached_utc_date)
     })
 
+    // Map du dernier pronostic par tournoi (premier trouvé = le plus récent grâce au order desc)
+    const lastPredictionMap = new Map<string, string>()
+    allLastPredictions.forEach((p: any) => {
+      if (!lastPredictionMap.has(p.tournament_id)) {
+        lastPredictionMap.set(p.tournament_id, p.created_at)
+      }
+    })
+
     // Construire les résultats
     const tournamentsWithCounts = tournaments.map((tournament: any) => {
       let competitionName = 'N/A'
+      let competitionEmblem: string | null = null
       let competitionId = tournament.competition_id
 
       if (tournament.custom_competition_id) {
-        competitionName = customCompetitionsMap.get(tournament.custom_competition_id)
-          ? `Custom: ${customCompetitionsMap.get(tournament.custom_competition_id)}`
-          : 'Custom'
+        const custom = customCompetitionsMap.get(tournament.custom_competition_id)
+        competitionName = custom ? `Custom: ${custom.name}` : 'Custom'
+        competitionEmblem = custom?.emblem || null
         competitionId = tournament.custom_competition_id
       } else if (tournament.competition_id) {
-        competitionName = competitionsMap.get(tournament.competition_id) || 'N/A'
+        const comp = competitionsMap.get(tournament.competition_id)
+        competitionName = comp?.name || 'N/A'
+        competitionEmblem = comp?.emblem || null
       }
 
       const creatorUsername = profilesMap.get(tournament.creator_id) || 'N/A'
@@ -222,11 +255,13 @@ export async function GET() {
         competition_id: competitionId,
         custom_competition_id: tournament.custom_competition_id,
         competition_name: competitionName,
+        competition_emblem: competitionEmblem,
         created_at: tournament.created_at,
         creator_username: creatorUsername,
         participants_count: participantsCount,
         total_revenue: totalRevenue,
         end_date: endDate,
+        last_prediction_at: lastPredictionMap.get(tournament.id) || null,
       }
     })
 

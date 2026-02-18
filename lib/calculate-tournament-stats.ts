@@ -34,22 +34,22 @@ export async function calculateTournamentStats(
 ): Promise<ParticipantStats[]> {
   const { supabase, tournamentId, includeDetailedStats = false } = options
 
-  // 1. Récupérer le tournoi et ses paramètres
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('*')
-    .eq('id', tournamentId)
-    .single()
+  // 1. Batch parallèle : tournoi + paramètres scoring + participants (indépendants)
+  const [{ data: tournament }, { data: pointsSettingsData }, { data: participants }] = await Promise.all([
+    supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
+    supabase.from('admin_settings').select('setting_key, setting_value')
+      .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result']),
+    supabase.from('tournament_participants').select('user_id, joined_at, profiles(username, avatar)')
+      .eq('tournament_id', tournamentId)
+  ])
 
   if (!tournament) {
     throw new Error('Tournament not found')
   }
 
-  // 2. Récupérer les paramètres de scoring
-  const { data: pointsSettingsData } = await supabase
-    .from('admin_settings')
-    .select('setting_key, setting_value')
-    .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result'])
+  if (!participants || participants.length === 0) {
+    return []
+  }
 
   const exactScoreSetting = pointsSettingsData?.find(s => s.setting_key === 'points_exact_score')
   const correctResultSetting = pointsSettingsData?.find(s => s.setting_key === 'points_correct_result')
@@ -60,16 +60,6 @@ export async function calculateTournamentStats(
     correctResult: parseInt(correctResultSetting?.setting_value || '1'),
     incorrectResult: parseInt(incorrectResultSetting?.setting_value || '0'),
     drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
-  }
-
-  // 3. Récupérer les participants avec leurs profils
-  const { data: participants } = await supabase
-    .from('tournament_participants')
-    .select('user_id, joined_at, profiles(username, avatar)')
-    .eq('tournament_id', tournamentId)
-
-  if (!participants || participants.length === 0) {
-    return []
   }
 
   // 4. Déterminer les journées à calculer
@@ -106,21 +96,21 @@ export async function calculateTournamentStats(
     (_, i) => startMatchday + i
   )
 
-  // 5. Récupérer les matchs terminés
+  // 5. Récupérer matchs + bonus + prédictions en parallèle
   const tournamentStartDate = tournament.start_date ? new Date(tournament.start_date) : null
   const isCustomCompetition = !!tournament.custom_competition_id
 
-  let finishedMatchesRaw: any[] = []
+  // Fonction pour récupérer les matchs terminés (custom = chaîne séquentielle interne)
+  const fetchFinishedMatches = async (): Promise<any[]> => {
+    if (isCustomCompetition) {
+      const { data: matchdaysData } = await supabase
+        .from('custom_competition_matchdays')
+        .select('id, matchday_number')
+        .eq('custom_competition_id', tournament.custom_competition_id)
+        .in('matchday_number', matchdaysToCalculate)
 
-  if (isCustomCompetition) {
-    // Tournoi custom
-    const { data: matchdaysData } = await supabase
-      .from('custom_competition_matchdays')
-      .select('id, matchday_number')
-      .eq('custom_competition_id', tournament.custom_competition_id)
-      .in('matchday_number', matchdaysToCalculate)
+      if (!matchdaysData || matchdaysData.length === 0) return []
 
-    if (matchdaysData && matchdaysData.length > 0) {
       const matchdayIds = matchdaysData.map(md => md.id)
       const matchdayNumberMap: Record<string, number> = {}
       matchdaysData.forEach(md => { matchdayNumberMap[md.id] = md.matchday_number })
@@ -130,48 +120,61 @@ export async function calculateTournamentStats(
         .select('id, custom_matchday_id, football_data_match_id, cached_utc_date')
         .in('custom_matchday_id', matchdayIds)
 
-      if (customMatches) {
-        const footballDataIds = customMatches
-          .map(m => m.football_data_match_id)
-          .filter(id => id !== null)
+      if (!customMatches) return []
 
-        const { data: importedMatches } = await supabase
-          .from('imported_matches')
-          .select('id, football_data_match_id, home_score, away_score, status, utc_date')
-          .in('football_data_match_id', footballDataIds)
+      const footballDataIds = customMatches
+        .map(m => m.football_data_match_id)
+        .filter(id => id !== null)
 
-        const importedMatchesMap: Record<number, any> = {}
-        importedMatches?.forEach(im => {
-          importedMatchesMap[im.football_data_match_id] = im
+      const { data: importedMatches } = await supabase
+        .from('imported_matches')
+        .select('id, football_data_match_id, home_score, away_score, status, utc_date')
+        .in('football_data_match_id', footballDataIds)
+
+      const importedMatchesMap: Record<number, any> = {}
+      importedMatches?.forEach(im => {
+        importedMatchesMap[im.football_data_match_id] = im
+      })
+
+      return customMatches
+        .map(cm => {
+          const im = importedMatchesMap[cm.football_data_match_id]
+          return {
+            id: im?.id || cm.id,
+            matchday: matchdayNumberMap[cm.custom_matchday_id],
+            utc_date: im?.utc_date || cm.cached_utc_date,
+            home_score: im?.home_score ?? null,
+            away_score: im?.away_score ?? null,
+            status: im?.status || 'SCHEDULED'
+          }
         })
+        .filter(m => m.home_score !== null && m.away_score !== null)
+    } else {
+      const { data: matchesData } = await supabase
+        .from('imported_matches')
+        .select('*')
+        .eq('competition_id', tournament.competition_id)
+        .in('matchday', matchdaysToCalculate)
+        .not('home_score', 'is', null)
+        .not('away_score', 'is', null)
 
-        finishedMatchesRaw = customMatches
-          .map(cm => {
-            const im = importedMatchesMap[cm.football_data_match_id]
-            return {
-              id: im?.id || cm.id,
-              matchday: matchdayNumberMap[cm.custom_matchday_id],
-              utc_date: im?.utc_date || cm.cached_utc_date,
-              home_score: im?.home_score ?? null,
-              away_score: im?.away_score ?? null,
-              status: im?.status || 'SCHEDULED'
-            }
-          })
-          .filter(m => m.home_score !== null && m.away_score !== null)
-      }
+      return matchesData || []
     }
-  } else {
-    // Tournoi standard
-    const { data: matchesData } = await supabase
-      .from('imported_matches')
-      .select('*')
-      .eq('competition_id', tournament.competition_id)
-      .in('matchday', matchdaysToCalculate)
-      .not('home_score', 'is', null)
-      .not('away_score', 'is', null)
-
-    finishedMatchesRaw = matchesData || []
   }
+
+  // Batch parallèle : matchs + bonus + prédictions (indépendants)
+  const [finishedMatchesRaw, { data: bonusMatches }, { data: allPredictionsData }] = await Promise.all([
+    fetchFinishedMatches(),
+    supabase
+      .from('tournament_bonus_matches')
+      .select('match_id, matchday')
+      .eq('tournament_id', tournamentId)
+      .in('matchday', matchdaysToCalculate),
+    supabase
+      .from('predictions')
+      .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction')
+      .eq('tournament_id', tournamentId)
+  ])
 
   // Filtrer par date de démarrage du tournoi
   const finishedMatches = tournamentStartDate
@@ -180,21 +183,7 @@ export async function calculateTournamentStats(
 
   const finishedMatchesMap = new Map(finishedMatches.map(m => [m.id, m]))
 
-  // 6. Récupérer les matchs bonus
-  const { data: bonusMatches } = await supabase
-    .from('tournament_bonus_matches')
-    .select('match_id, matchday')
-    .eq('tournament_id', tournamentId)
-    .in('matchday', matchdaysToCalculate)
-
   const bonusMatchIds = new Set(bonusMatches?.map(bm => bm.match_id) || [])
-
-  // 7. Récupérer toutes les prédictions du tournoi (matchs terminés ET à venir)
-  // Cela permet de voir combien de pronos les users ont déjà renseignés
-  const { data: allPredictionsData } = await supabase
-    .from('predictions')
-    .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction')
-    .eq('tournament_id', tournamentId)
 
   const predictionsByUser = new Map<string, any[]>()
   const allPredictionsByUser = new Map<string, any[]>() // Toutes les prédictions (pour le count)

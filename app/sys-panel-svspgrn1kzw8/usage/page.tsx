@@ -14,12 +14,14 @@ interface Tournament {
   status: string
   tournament_type: string
   competition_name: string
+  competition_emblem: string | null
   competition_id: number
   created_at: string
   creator_username: string
   participants_count: number
   total_revenue: number
   end_date: string | null
+  last_prediction_at: string | null
 }
 
 interface CreditInfo {
@@ -737,7 +739,7 @@ export default function AdminUsagePage() {
             : (bVal as number) - (aVal as number)
         }
 
-        if (sortColumn === 'created_at' || sortColumn === 'end_date') {
+        if (sortColumn === 'created_at' || sortColumn === 'end_date' || sortColumn === 'last_prediction_at') {
           const aTime = aVal ? new Date(aVal as string).getTime() : 0
           const bTime = bVal ? new Date(bVal as string).getTime() : 0
           return sortDirection === 'asc' ? aTime - bTime : bTime - aTime
@@ -1114,25 +1116,32 @@ export default function AdminUsagePage() {
                     <table className="min-w-full border-collapse">
                       <thead className="bg-gray-700 text-white">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('name')}>
+                          <th className="w-10 px-2 py-3"></th>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('name')}>
                             Tournoi <SortIndicator column="name" />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('tournament_type')}>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('tournament_type')}>
                             Type <SortIndicator column="tournament_type" />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('status')}>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('status')}>
                             Statut <SortIndicator column="status" />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('creator_username')}>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('creator_username')}>
                             Créateur <SortIndicator column="creator_username" />
                           </th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('participants_count')}>
+                          <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('participants_count')}>
                             Joueurs <SortIndicator column="participants_count" />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('created_at')}>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('created_at')}>
                             Créé le <SortIndicator column="created_at" />
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider">
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('end_date')}>
+                            Fin prévue <SortIndicator column="end_date" />
+                          </th>
+                          <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-gray-600 select-none" onClick={() => handleSort('last_prediction_at')}>
+                            Dernier prono <SortIndicator column="last_prediction_at" />
+                          </th>
+                          <th className="w-20 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wider">
                             Actions
                           </th>
                         </tr>
@@ -1140,44 +1149,71 @@ export default function AdminUsagePage() {
                       <tbody className="divide-y divide-gray-300">
                         {paginatedTournaments.map((tournament, index) => (
                           <tr key={tournament.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-purple-50 transition-colors`}>
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="w-10 px-2 py-3 text-center">
+                              {tournament.competition_emblem ? (
+                                <img src={tournament.competition_emblem} alt="" className="w-6 h-6 mx-auto object-contain" />
+                              ) : (
+                                <span className="text-gray-300 text-lg">⚽</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap">
                               <div className="text-sm font-medium text-gray-900">{tournament.name}</div>
                               <div className="text-xs text-gray-400 font-mono">{tournament.slug}</div>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               {getTournamentTypeBadge(tournament.tournament_type)}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               {getStatusBadge(tournament.status)}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap">
+                            <td className="px-3 py-3 whitespace-nowrap">
                               <span className="text-sm font-medium text-gray-700">{tournament.creator_username}</span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                            <td className="px-3 py-3 whitespace-nowrap text-center">
                               <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold">
                                 {tournament.participants_count}
                               </span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                               {new Date(tournament.created_at).toLocaleDateString('fr-FR', {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: '2-digit',
                               })}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-right">
-                              <div className="flex gap-2 justify-end">
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {tournament.end_date
+                                ? new Date(tournament.end_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                                : <span className="text-gray-300">—</span>}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm">
+                              {tournament.last_prediction_at
+                                ? (() => {
+                                    const days = Math.floor((Date.now() - new Date(tournament.last_prediction_at).getTime()) / (1000 * 60 * 60 * 24))
+                                    return (
+                                      <span className={days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
+                                        {new Date(tournament.last_prediction_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                        {days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
+                                      </span>
+                                    )
+                                  })()
+                                : <span className="text-gray-300">Aucun</span>}
+                            </td>
+                            <td className="w-20 px-2 py-3 whitespace-nowrap text-center">
+                              <div className="flex gap-1.5 justify-center">
                                 <button
                                   onClick={() => openDetailModal(tournament)}
-                                  className="px-3 py-1.5 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
+                                  className="p-1.5 bg-purple-100 text-purple-600 rounded-md hover:bg-purple-200 transition"
+                                  title="Détail"
                                 >
-                                  Détail
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 </button>
                                 <button
                                   onClick={() => openDeleteModal(tournament)}
-                                  className="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
+                                  className="p-1.5 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition"
+                                  title="Supprimer"
                                 >
-                                  Supprimer
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                               </div>
                             </td>
@@ -1192,9 +1228,16 @@ export default function AdminUsagePage() {
                     {paginatedTournaments.map((tournament) => (
                       <div key={tournament.id} className="bg-white rounded-lg shadow border border-gray-200 p-4">
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="text-sm font-bold text-gray-900 mb-1">{tournament.name}</h3>
-                            <p className="text-xs text-gray-400 font-mono">{tournament.slug}</p>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {tournament.competition_emblem ? (
+                              <img src={tournament.competition_emblem} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+                            ) : (
+                              <span className="text-gray-300 text-xl flex-shrink-0">⚽</span>
+                            )}
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-gray-900 mb-1 truncate">{tournament.name}</h3>
+                              <p className="text-xs text-gray-400 font-mono truncate">{tournament.slug}</p>
+                            </div>
                           </div>
                           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold ml-2">
                             {tournament.participants_count}
@@ -1224,19 +1267,43 @@ export default function AdminUsagePage() {
                               })}
                             </span>
                           </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Fin prévue:</span>
+                            <span className="text-gray-600">
+                              {tournament.end_date
+                                ? new Date(tournament.end_date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-500">Dernier prono:</span>
+                            {tournament.last_prediction_at
+                              ? (() => {
+                                  const days = Math.floor((Date.now() - new Date(tournament.last_prediction_at).getTime()) / (1000 * 60 * 60 * 24))
+                                  return (
+                                    <span className={days > 14 ? 'text-red-500 font-medium' : days > 7 ? 'text-orange-500' : 'text-gray-600'}>
+                                      {new Date(tournament.last_prediction_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                                      {days > 7 && <span className="ml-1 text-xs">({days}j)</span>}
+                                    </span>
+                                  )
+                                })()
+                              : <span className="text-gray-300">Aucun</span>}
+                          </div>
                         </div>
 
                         <div className="flex gap-2 pt-3 border-t border-gray-100">
                           <button
                             onClick={() => openDetailModal(tournament)}
-                            className="flex-1 px-3 py-2 bg-purple-500 text-white text-sm font-medium rounded-md hover:bg-purple-600 transition shadow-sm"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-100 text-purple-700 text-sm font-medium rounded-md hover:bg-purple-200 transition"
                           >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             Détail
                           </button>
                           <button
                             onClick={() => openDeleteModal(tournament)}
-                            className="flex-1 px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-md hover:bg-red-600 transition shadow-sm"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-md hover:bg-red-200 transition"
                           >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                             Supprimer
                           </button>
                         </div>
@@ -2304,7 +2371,7 @@ export default function AdminUsagePage() {
                     className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-orange-50 hover:ring-1 hover:ring-orange-200 transition cursor-pointer text-left"
                     onClick={() => {
                       setActiveTournamentsModal(null)
-                      openDetailModal({ ...t, tournament_type: '', competition_name: '', competition_id: 0, created_at: '', creator_username: '', participants_count: 0, total_revenue: 0, end_date: null })
+                      openDetailModal({ ...t, tournament_type: '', competition_name: '', competition_emblem: null, competition_id: 0, created_at: '', creator_username: '', participants_count: 0, total_revenue: 0, end_date: null, last_prediction_at: null })
                     }}
                   >
                     <div className="min-w-0 flex-1">

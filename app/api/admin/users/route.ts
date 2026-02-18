@@ -55,8 +55,6 @@ export async function GET(request: NextRequest) {
       countQuery = countQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
     }
 
-    const { count: totalCount } = await countQuery
-
     // Requête paginée
     let usersQuery = adminClient
       .from('profiles')
@@ -71,7 +69,11 @@ export async function GET(request: NextRequest) {
       usersQuery = usersQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
     }
 
-    const { data: usersData, error: usersError } = await usersQuery
+    // Count + data en parallèle (économise 1 round-trip)
+    const [{ count: totalCount }, { data: usersData, error: usersError }] = await Promise.all([
+      countQuery,
+      usersQuery
+    ])
 
     if (usersError) {
       console.error('Error fetching users:', usersError)
