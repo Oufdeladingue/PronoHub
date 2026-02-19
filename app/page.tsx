@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
@@ -593,7 +595,14 @@ function CTAFooter() {
 // =============================================
 // PAGE (SSR entry)
 // =============================================
-export default function Home() {
+export default async function Home() {
+  // Sur l'app Android (Capacitor), pas besoin de la landing → rediriger vers le dashboard
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent') || ''
+  if (/Android.*wv/.test(userAgent) || /; wv\)/.test(userAgent)) {
+    redirect('/dashboard')
+  }
+
   return (
     <ClientShell>
       <HeroSection />
