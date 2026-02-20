@@ -363,7 +363,7 @@ export default function AdminCustomCompetitionsPage() {
                       value={newCompetition.name}
                       onChange={(e) => setNewCompetition({ ...newCompetition, name: e.target.value })}
                       placeholder="ex: Best of Week"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="admin-input"
                     />
                   </div>
 
@@ -378,7 +378,7 @@ export default function AdminCustomCompetitionsPage() {
                       onChange={(e) => setNewCompetition({ ...newCompetition, code: e.target.value.toUpperCase() })}
                       placeholder="ex: BOTW"
                       maxLength={10}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase"
+                      className="admin-input uppercase"
                     />
                     <p className="text-xs text-gray-500 mt-1">Code unique pour identifier la compétition</p>
                   </div>
@@ -393,7 +393,7 @@ export default function AdminCustomCompetitionsPage() {
                       onChange={(e) => setNewCompetition({ ...newCompetition, description: e.target.value })}
                       placeholder="Description de la compétition..."
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                      className="admin-input resize-none"
                     />
                   </div>
 
@@ -406,7 +406,7 @@ export default function AdminCustomCompetitionsPage() {
                       <select
                         value={newCompetition.competition_type}
                         onChange={(e) => setNewCompetition({ ...newCompetition, competition_type: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="admin-input"
                       >
                         <option value="best_of_week">Best of Week</option>
                         <option value="custom">Custom</option>
@@ -422,7 +422,7 @@ export default function AdminCustomCompetitionsPage() {
                         max={15}
                         value={newCompetition.matches_per_matchday}
                         onChange={(e) => setNewCompetition({ ...newCompetition, matches_per_matchday: parseInt(e.target.value) || 8 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        className="admin-input"
                       />
                     </div>
                   </div>
@@ -437,7 +437,7 @@ export default function AdminCustomCompetitionsPage() {
                       value={newCompetition.season}
                       onChange={(e) => setNewCompetition({ ...newCompetition, season: e.target.value })}
                       placeholder="ex: 2024-2025"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="admin-input"
                     />
                   </div>
                 </div>
@@ -487,7 +487,7 @@ export default function AdminCustomCompetitionsPage() {
                     onChange={(e) => setEditDescription(e.target.value)}
                     placeholder="Ex: Les plus belles affiches de la semaine - Sélection des meilleurs matchs de toutes les compétitions"
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-gray-900"
+                    className="admin-input resize-none"
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     Cette description sera visible par les utilisateurs sur la page de sélection des compétitions.

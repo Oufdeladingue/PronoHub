@@ -767,7 +767,7 @@ export default function AdminDataPage() {
                             type="time"
                             value={smartSettings.dailySyncHour}
                             onChange={(e) => setSmartSettings(prev => ({ ...prev, dailySyncHour: e.target.value }))}
-                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="admin-input"
                           />
                         </div>
                         <div>
@@ -778,7 +778,7 @@ export default function AdminDataPage() {
                             max="30"
                             value={smartSettings.delayBetweenCompetitions}
                             onChange={(e) => setSmartSettings(prev => ({ ...prev, delayBetweenCompetitions: parseInt(e.target.value) || 5 }))}
-                            className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="admin-input"
                           />
                         </div>
                       </div>
@@ -835,7 +835,7 @@ export default function AdminDataPage() {
                                 max="15"
                                 value={smartSettings.realtimeFrequency}
                                 onChange={(e) => setSmartSettings(prev => ({ ...prev, realtimeFrequency: parseInt(e.target.value) || 2 }))}
-                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="admin-input"
                               />
                             </div>
                             <div>
@@ -846,7 +846,7 @@ export default function AdminDataPage() {
                                 max="30"
                                 value={smartSettings.marginBeforeKickoff}
                                 onChange={(e) => setSmartSettings(prev => ({ ...prev, marginBeforeKickoff: parseInt(e.target.value) || 5 }))}
-                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="admin-input"
                               />
                             </div>
                             <div>
@@ -857,7 +857,7 @@ export default function AdminDataPage() {
                                 max="60"
                                 value={smartSettings.marginAfterMatch}
                                 onChange={(e) => setSmartSettings(prev => ({ ...prev, marginAfterMatch: parseInt(e.target.value) || 30 }))}
-                                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                className="admin-input"
                               />
                             </div>
                           </div>
@@ -878,7 +878,7 @@ export default function AdminDataPage() {
                                   max="60"
                                   value={smartSettings.fallbackInterval}
                                   onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackInterval: parseInt(e.target.value) || 15 }))}
-                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                  className="admin-input"
                                 />
                               </div>
                               <div>
@@ -887,7 +887,7 @@ export default function AdminDataPage() {
                                   type="time"
                                   value={smartSettings.fallbackTimeStart}
                                   onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackTimeStart: e.target.value }))}
-                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                  className="admin-input"
                                 />
                               </div>
                               <div>
@@ -896,7 +896,7 @@ export default function AdminDataPage() {
                                   type="time"
                                   value={smartSettings.fallbackTimeEnd}
                                   onChange={(e) => setSmartSettings(prev => ({ ...prev, fallbackTimeEnd: e.target.value }))}
-                                  className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                  className="admin-input"
                                 />
                               </div>
                             </div>
@@ -918,7 +918,7 @@ export default function AdminDataPage() {
                           max="30"
                           value={smartSettings.minDelayBetweenCalls}
                           onChange={(e) => setSmartSettings(prev => ({ ...prev, minDelayBetweenCalls: parseInt(e.target.value) || 6 }))}
-                          className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                          className="admin-input"
                         />
                         <p className="text-xs text-gray-600 mt-1">Football-Data API: max 10 appels/minute</p>
                       </div>
