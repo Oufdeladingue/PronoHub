@@ -76,15 +76,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
             // sessionStorage indisponible — on continue quand même
           }
           activityTracked.current = true
-        } else if (response.status === 403) {
-          // Pays non autorisé → déconnexion côté client + redirection
-          const data = await response.json().catch(() => ({}))
-          if (data.error === 'country_blocked') {
-            const supabase = createClient()
-            await supabase.auth.signOut()
-            window.location.href = `/auth/signup?error=${encodeURIComponent("PronoHub n'est pas encore disponible dans votre pays.")}`
-            return
-          }
         }
         // Si !response.ok (401, 500...), on ne set pas le ref
         // pour permettre un retry au prochain mount
