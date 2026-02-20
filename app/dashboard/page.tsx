@@ -260,12 +260,9 @@ export default async function DashboardPage() {
 
   if (userTournaments && userTournaments.length > 0) {
     // Séparer les tournois standards et custom
-    const standardTournaments = userTournaments.filter(t =>
-      !t.custom_competition_id || (t.starting_matchday && t.ending_matchday)
-    )
-    const customTournaments = userTournaments.filter(t =>
-      t.custom_competition_id && (!t.starting_matchday || !t.ending_matchday)
-    )
+    // Un tournoi custom utilise toujours custom_competition_matchdays/matches, même s'il a starting/ending_matchday
+    const standardTournaments = userTournaments.filter(t => !t.custom_competition_id)
+    const customTournaments = userTournaments.filter(t => !!t.custom_competition_id)
 
     // BATCH UNIQUE: Récupérer toutes les données matchdays en parallèle
     const uniqueCompetitionIds = [...new Set(standardTournaments.map(t => t.competition_id).filter(Boolean))]
@@ -371,7 +368,14 @@ export default async function DashboardPage() {
 
     // Calculer journeyInfo pour les tournois custom (sans requête supplémentaire)
     for (const tournament of customTournaments) {
-      const matchdays = customMatchdaysByCompetition.get(tournament.custom_competition_id) || []
+      let matchdays = customMatchdaysByCompetition.get(tournament.custom_competition_id) || []
+
+      // Si le tournoi a des bornes starting/ending_matchday, filtrer les matchdays
+      if (tournament.starting_matchday && tournament.ending_matchday) {
+        matchdays = matchdays.filter(md =>
+          md.matchday_number >= tournament.starting_matchday && md.matchday_number <= tournament.ending_matchday
+        )
+      }
 
       if (matchdays.length === 0) {
         journeyInfo[tournament.id] = { total: 0, completed: 0, currentNumber: 1 }
@@ -421,7 +425,7 @@ export default async function DashboardPage() {
   const now = new Date()
 
   for (const t of pendingWarmupTournaments) {
-    if (t.custom_competition_id && (!t.starting_matchday || !t.ending_matchday)) {
+    if (t.custom_competition_id) {
       // Tournoi custom - utiliser customMatchesByMatchdayId
       const matchdays = customMatchdaysByCompetition.get(t.custom_competition_id) || []
       let nextMatchDate: string | null = null
@@ -507,7 +511,7 @@ export default async function DashboardPage() {
       tournamentRankings[t.id] = ranking
 
       // Réutiliser les données déjà fetchées pour lastMatchDates
-      if (t.custom_competition_id && (!t.starting_matchday || !t.ending_matchday)) {
+      if (t.custom_competition_id) {
         // Tournoi custom - utiliser customMatchesByMatchdayId
         const matchdays = customMatchdaysByCompetition.get(t.custom_competition_id) || []
         let lastMatchDate: string | null = null
