@@ -3091,6 +3091,7 @@ export default function OppositionClient({
               allMatches={allMatches}
               teamsEnabled={tournament.teams_enabled}
               tournamentType={tournament.tournament_type}
+              isCustomCompetition={!!tournament.custom_competition_id}
             />
           )}
 

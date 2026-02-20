@@ -54,9 +54,10 @@ interface TournamentRankingsProps {
   teamsEnabled?: boolean
   tournamentType?: string
   currentUserId?: string // OPTIMISATION: Recevoir l'ID utilisateur depuis le parent
+  isCustomCompetition?: boolean
 }
 
-export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId }: TournamentRankingsProps) {
+export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
@@ -129,18 +130,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     }
   }, [])
 
-  // Extraire les stages des matchs
+  // Extraire les stages des matchs (sauf pour les compétitions custom qui gardent un nommage simple J1, J2...)
   useEffect(() => {
-    if (allMatches && allMatches.length > 0) {
-      const stagesByMatchday: Record<number, StageType | null> = {}
-      allMatches.forEach((match: any) => {
-        if (match.matchday && !stagesByMatchday[match.matchday]) {
-          stagesByMatchday[match.matchday] = match.stage || null
-        }
-      })
-      setMatchdayStages(stagesByMatchday)
-    }
-  }, [allMatches])
+    if (isCustomCompetition || !allMatches || allMatches.length === 0) return
+    const stagesByMatchday: Record<number, StageType | null> = {}
+    allMatches.forEach((match: any) => {
+      const md = match.virtual_matchday || match.matchday
+      if (md && !stagesByMatchday[md]) {
+        stagesByMatchday[md] = match.stage || null
+      }
+    })
+    setMatchdayStages(stagesByMatchday)
+  }, [allMatches, isCustomCompetition])
 
   // Vérifier les boutons de scroll au chargement et au resize
   useEffect(() => {
