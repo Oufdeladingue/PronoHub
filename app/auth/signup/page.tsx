@@ -113,19 +113,6 @@ function SignUpForm() {
     setGoogleLoading(true)
 
     try {
-      // Vérifier la restriction par pays avant OAuth
-      try {
-        const countryCheck = await fetch('/api/auth/check-country')
-        const countryData = await countryCheck.json()
-        if (!countryData.allowed) {
-          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
-          setGoogleLoading(false)
-          return
-        }
-      } catch {
-        // Fail-open
-      }
-
       // CAS 1: Google Sign-In natif Android (popup native)
       if (provider === 'google' && isNativeGoogleAuthAvailable()) {
         try {
@@ -214,19 +201,6 @@ function SignUpForm() {
     }
 
     try {
-      // Vérifier la restriction par pays avant inscription
-      try {
-        const countryCheck = await fetch('/api/auth/check-country')
-        const countryData = await countryCheck.json()
-        if (!countryData.allowed) {
-          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
-          setLoading(false)
-          return
-        }
-      } catch {
-        // Fail-open : si la vérification échoue, on laisse passer
-      }
-
       // Vérifier Turnstile (si configuré)
       if (turnstileToken) {
         try {

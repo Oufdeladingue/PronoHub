@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { checkCountryAllowed } from '@/lib/geo'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
@@ -11,17 +10,6 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient()
     await supabase.auth.exchangeCodeForSession(code)
-
-    // Vérifier la restriction par pays (fail-closed via geoip-lite)
-    const countryCheck = await checkCountryAllowed(request)
-    if (!countryCheck.allowed) {
-      // Pays non autorisé ou indétectable : déconnecter et rediriger
-      await supabase.auth.signOut()
-      const msg = countryCheck.message || "PronoHub n'est pas encore disponible dans votre pays."
-      return NextResponse.redirect(
-        `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
-      )
-    }
   }
 
   // Rediriger vers le dashboard (la modale de choix de pseudo s'affichera si nécessaire)
