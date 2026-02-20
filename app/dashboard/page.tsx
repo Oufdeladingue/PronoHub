@@ -279,7 +279,7 @@ export default async function DashboardPage() {
     const customMatchdaysPromise = uniqueCustomCompIds.length > 0
       ? supabase
           .from('custom_competition_matchdays')
-          .select('id, custom_competition_id, matchday_number, start_date, end_date')
+          .select('id, custom_competition_id, matchday_number, status')
           .in('custom_competition_id', uniqueCustomCompIds)
           .order('matchday_number', { ascending: true })
       : Promise.resolve({ data: [] })
@@ -287,7 +287,7 @@ export default async function DashboardPage() {
     const customMatchesPromise = uniqueCustomCompIds.length > 0
       ? supabase
           .from('custom_competition_matches')
-          .select('custom_matchday_id, status, utc_date')
+          .select('custom_matchday_id, cached_utc_date')
       : Promise.resolve({ data: [] })
 
     // Exécuter toutes les requêtes en parallèle
@@ -349,24 +349,18 @@ export default async function DashboardPage() {
         matchdayMap.get(match.matchday)!.push(match)
       }
 
-      let pendingJourneys = 0, completedJourneys = 0
+      let completedJourneys = 0
       for (const [, matches] of matchdayMap) {
         const allFinished = matches.every((m: any) => m.status === 'FINISHED' || m.finished === true)
-        const allPending = matches.every((m: any) => {
-          const matchDate = new Date(m.utc_date)
-          return (m.status === 'SCHEDULED' || m.status === 'TIMED') && matchDate > now
-        })
         if (allFinished) completedJourneys++
-        else if (allPending) pendingJourneys++
       }
 
-      const notYetImportedJourneys = totalJourneys - matchdayMap.size
-      const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
+      const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
 
       journeyInfo[tournament.id] = { total: totalJourneys, completed: completedJourneys, currentNumber }
     }
 
-    // Calculer journeyInfo pour les tournois custom (sans requête supplémentaire)
+    // Calculer journeyInfo pour les tournois custom (via status des matchdays)
     for (const tournament of customTournaments) {
       let matchdays = customMatchdaysByCompetition.get(tournament.custom_competition_id) || []
 
@@ -383,36 +377,12 @@ export default async function DashboardPage() {
       }
 
       const totalJourneys = matchdays.length
-      const matchdayNumberMap: Record<string, number> = {}
+      let completedJourneys = 0
       for (const md of matchdays) {
-        matchdayNumberMap[md.id] = md.matchday_number
+        if (md.status === 'completed') completedJourneys++
       }
 
-      const matchdayMap = new Map<number, any[]>()
-      for (const md of matchdays) {
-        const matches = customMatchesByMatchdayId.get(md.id) || []
-        for (const match of matches) {
-          const mdNumber = matchdayNumberMap[md.id]
-          if (mdNumber !== undefined) {
-            if (!matchdayMap.has(mdNumber)) matchdayMap.set(mdNumber, [])
-            matchdayMap.get(mdNumber)!.push(match)
-          }
-        }
-      }
-
-      let pendingJourneys = 0, completedJourneys = 0
-      for (const [, matches] of matchdayMap) {
-        const allFinished = matches.every((m: any) => m.status === 'FINISHED')
-        const allPending = matches.every((m: any) => {
-          const matchDate = new Date(m.utc_date)
-          return (m.status === 'SCHEDULED' || m.status === 'TIMED') && matchDate > now
-        })
-        if (allFinished) completedJourneys++
-        else if (allPending) pendingJourneys++
-      }
-
-      const notYetImportedJourneys = totalJourneys - matchdayMap.size
-      const currentNumber = Math.max(1, totalJourneys - pendingJourneys - notYetImportedJourneys)
+      const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
 
       journeyInfo[tournament.id] = { total: totalJourneys, completed: completedJourneys, currentNumber }
     }
@@ -433,9 +403,10 @@ export default async function DashboardPage() {
       for (const md of matchdays) {
         const matches = customMatchesByMatchdayId.get(md.id) || []
         for (const match of matches) {
-          const matchDate = new Date(match.utc_date)
+          if (!match.cached_utc_date) continue
+          const matchDate = new Date(match.cached_utc_date)
           if (matchDate > now && (!nextMatchDate || matchDate < new Date(nextMatchDate))) {
-            nextMatchDate = match.utc_date
+            nextMatchDate = match.cached_utc_date
           }
         }
       }
@@ -518,8 +489,9 @@ export default async function DashboardPage() {
         for (const md of matchdays) {
           const matches = customMatchesByMatchdayId.get(md.id) || []
           for (const match of matches) {
-            if (!lastMatchDate || new Date(match.utc_date) > new Date(lastMatchDate)) {
-              lastMatchDate = match.utc_date
+            if (!match.cached_utc_date) continue
+            if (!lastMatchDate || new Date(match.cached_utc_date) > new Date(lastMatchDate)) {
+              lastMatchDate = match.cached_utc_date
             }
           }
         }
