@@ -8,6 +8,7 @@ import {
   configureStatusBar,
   setupAppStateListener,
 } from '@/lib/capacitor'
+import { createClient } from '@/lib/supabase/client'
 
 interface CapacitorSessionProviderProps {
   children: React.ReactNode
@@ -40,8 +41,13 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
         setIsReady(true)
 
         // Configurer le listener pour restaurer la session quand l'app revient au premier plan
-        await setupAppStateListener(() => {
-          restoreCapacitorSession()
+        await setupAppStateListener(async () => {
+          await restoreCapacitorSession()
+          // Forcer un refresh du token (getUser() déclenche le refresh si expiré)
+          try {
+            const supabase = createClient()
+            await supabase.auth.getUser()
+          } catch {}
         })
       }
     }

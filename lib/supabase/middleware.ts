@@ -33,10 +33,19 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Helper: créer une redirection en conservant les cookies de session rafraîchis
+  function redirectWithCookies(url: URL) {
+    const response = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value)
+    })
+    return response
+  }
+
   // Si connecté et sur la page d'accueil, rediriger vers le dashboard côté serveur
   // (évite le flash de la landing page)
   if (user && request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return redirectWithCookies(new URL('/dashboard', request.url))
   }
 
   // URL sécurisée du panel admin (définie dans .env.local)
@@ -54,7 +63,7 @@ export async function updateSession(request: NextRequest) {
 
     // Si super admin, rediriger vers le panel admin sécurisé
     if (profile?.role === 'super_admin') {
-      return NextResponse.redirect(new URL(`/${adminPath}`, request.url))
+      return redirectWithCookies(new URL(`/${adminPath}`, request.url))
     }
   }
 
@@ -68,7 +77,7 @@ export async function updateSession(request: NextRequest) {
 
     // Si pas super admin, rediriger vers dashboard
     if (profile?.role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return redirectWithCookies(new URL('/dashboard', request.url))
     }
   }
 
