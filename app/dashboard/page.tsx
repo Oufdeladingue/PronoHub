@@ -304,16 +304,19 @@ export default async function DashboardPage() {
     const allCustomMatches = ((customMatchesRes.data || []) as any[]).filter(m => relevantMatchdayIds.has(m.custom_matchday_id))
 
     // Mapping stage → virtual matchday pour compétitions avec phases knockout (CL, EL, etc.)
-    const STAGE_ORDER: Record<string, number> = {
-      'LEAGUE_STAGE': 0, 'PLAYOFFS': 8, 'LAST_16': 10,
-      'QUARTER_FINALS': 12, 'SEMI_FINALS': 14, 'FINAL': 16
+    // Phases knockout avec leur offset (pour CL, EL, etc.)
+    const KNOCKOUT_STAGE_OFFSET: Record<string, number> = {
+      'PLAYOFFS': 8, 'LAST_16': 10, 'QUARTER_FINALS': 12,
+      'SEMI_FINALS': 14, 'FINAL': 16
     }
 
     // Calculer virtual_matchday pour chaque match (gère les phases knockout)
+    // Seules les phases knockout reconnues sont transformées, les autres gardent leur matchday
     for (const match of allImportedMatches) {
       const m = match as any
-      if (m.stage && m.stage !== 'LEAGUE_STAGE') {
-        m.virtual_matchday = (STAGE_ORDER[m.stage] || 8) + (m.matchday || 1)
+      const knockoutOffset = m.stage ? KNOCKOUT_STAGE_OFFSET[m.stage] : undefined
+      if (knockoutOffset !== undefined) {
+        m.virtual_matchday = knockoutOffset + (m.matchday || 1)
       } else {
         m.virtual_matchday = m.matchday
       }
