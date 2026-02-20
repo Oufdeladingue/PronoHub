@@ -287,7 +287,7 @@ export default async function DashboardPage() {
     const customMatchesPromise = uniqueCustomCompIds.length > 0
       ? supabase
           .from('custom_competition_matches')
-          .select('custom_matchday_id, cached_utc_date')
+          .select('custom_matchday_id, cached_utc_date, football_data_match_id')
       : Promise.resolve({ data: [] })
 
     // Exécuter toutes les requêtes en parallèle
@@ -325,6 +325,19 @@ export default async function DashboardPage() {
       customMatchesByMatchdayId.get(match.custom_matchday_id)!.push(match)
     }
 
+    // Récupérer le statut réel des matchs custom depuis imported_matches (via football_data_match_id)
+    let customMatchStatusMap = new Map<number, { status: string, finished: boolean }>()
+    const customFootballDataIds = [...new Set(allCustomMatches.map(m => m.football_data_match_id).filter(Boolean))]
+    if (customFootballDataIds.length > 0) {
+      const { data: customImportedMatches } = await supabase
+        .from('imported_matches')
+        .select('football_data_match_id, status, finished')
+        .in('football_data_match_id', customFootballDataIds)
+      for (const m of customImportedMatches || []) {
+        customMatchStatusMap.set(m.football_data_match_id, { status: m.status, finished: m.finished })
+      }
+    }
+
     const now = new Date()
 
     // Calculer journeyInfo pour les tournois standards (sans requête supplémentaire)
@@ -351,7 +364,7 @@ export default async function DashboardPage() {
 
       let completedJourneys = 0
       for (const [, matches] of matchdayMap) {
-        const allFinished = matches.every((m: any) => m.status === 'FINISHED' || m.finished === true)
+        const allFinished = matches.every((m: any) => m.status === 'FINISHED' || m.status === 'AWARDED' || m.finished === true)
         if (allFinished) completedJourneys++
       }
 
@@ -360,7 +373,7 @@ export default async function DashboardPage() {
       journeyInfo[tournament.id] = { total: totalJourneys, completed: completedJourneys, currentNumber }
     }
 
-    // Calculer journeyInfo pour les tournois custom (via status des matchdays)
+    // Calculer journeyInfo pour les tournois custom (via statut réel des matchs imported)
     for (const tournament of customTournaments) {
       let matchdays = customMatchdaysByCompetition.get(tournament.custom_competition_id) || []
 
@@ -379,7 +392,14 @@ export default async function DashboardPage() {
       const totalJourneys = matchdays.length
       let completedJourneys = 0
       for (const md of matchdays) {
-        if (md.status === 'completed') completedJourneys++
+        const matches = customMatchesByMatchdayId.get(md.id) || []
+        if (matches.length === 0) continue
+        const allFinished = matches.every((m: any) => {
+          if (!m.football_data_match_id) return false
+          const imported = customMatchStatusMap.get(m.football_data_match_id)
+          return imported && (imported.status === 'FINISHED' || imported.finished === true)
+        })
+        if (allFinished) completedJourneys++
       }
 
       const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
