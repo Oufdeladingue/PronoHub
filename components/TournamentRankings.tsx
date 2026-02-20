@@ -371,7 +371,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       {/* Contenu du classement */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+          <div className="loading-spinner-inline"></div>
           <p className="mt-4 theme-text-secondary">Chargement du classement...</p>
         </div>
       ) : error ? (

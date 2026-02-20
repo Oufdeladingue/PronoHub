@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+                className="auth-input"
                 style={{ background: '#1a1a1a' }}
                 placeholder="••••••••"
               />
@@ -144,7 +144,7 @@ export default function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+                className="auth-input"
                 style={{ background: '#1a1a1a' }}
                 placeholder="••••••••"
               />
@@ -156,7 +156,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !validation.isValid || password !== confirmPassword}
-              className="w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed"
+              className="auth-btn-primary"
             >
               {loading ? 'Mise à jour...' : 'Réinitialiser le mot de passe'}
             </button>

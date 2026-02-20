@@ -202,7 +202,7 @@ function VerifyCodeForm() {
             <button
               type="submit"
               disabled={loading || code.some(d => !d)}
-              className="w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed disabled:shadow-none"
+              className="auth-btn-primary disabled:shadow-none"
             >
               {loading ? 'Vérification...' : 'Valider'}
             </button>
@@ -244,7 +244,7 @@ export default function VerifyCodePage() {
   return (
     <Suspense fallback={
       <div className="fixed inset-0 flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+        <div className="loading-spinner"></div>
       </div>
     }>
       <VerifyCodeForm />

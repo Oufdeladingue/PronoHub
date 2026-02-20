@@ -380,6 +380,143 @@ input:-moz-autofill:focus {
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* =====================================================
+   SHARED UTILITY CLASSES
+   Classes réutilisables pour réduire la taille des pages
+   ===================================================== */
+
+/* --- Modals --- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.modal-card {
+  @apply rounded-lg shadow-2xl max-w-md w-full p-6;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+.modal-btn-cancel {
+  @apply flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold;
+}
+
+.modal-btn-confirm {
+  @apply flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold;
+}
+
+.modal-btn-danger {
+  @apply flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold;
+}
+
+/* --- Auth Forms --- */
+.auth-input {
+  @apply w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none;
+}
+
+.auth-btn-primary {
+  @apply w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed;
+}
+
+.auth-btn-google {
+  @apply w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg bg-[#1a1a1a] hover:bg-[#222] transition-all duration-[250ms] disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* --- Loading Spinners --- */
+.loading-spinner {
+  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900];
+}
+
+.loading-spinner-inline {
+  @apply inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900];
+}
+
+.loading-spinner-lg {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff9900];
+}
+
+.loading-spinner-sm {
+  @apply animate-spin rounded-full h-5 w-5 border-2 border-current border-t-transparent;
+}
+
+/* --- Alerts --- */
+.alert-warning {
+  @apply bg-yellow-500/10 border-l-4 border-yellow-500 p-4 mb-6 rounded;
+}
+
+.alert-danger {
+  @apply bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded;
+}
+
+.alert-success {
+  @apply bg-green-500/10 border-l-4 border-green-500 p-4 mb-6 rounded;
+}
+
+/* --- Badges --- */
+.badge-success {
+  @apply px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800;
+}
+
+.badge-info {
+  @apply px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+}
+
+.badge-warning {
+  @apply px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800;
+}
+
+.badge-error {
+  @apply px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800;
+}
+
+.badge-neutral {
+  @apply px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800;
+}
+
+/* --- Admin --- */
+.admin-card {
+  @apply bg-white rounded-lg shadow-sm p-4 sm:p-6;
+}
+
+.admin-input {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900;
+}
+
+.admin-th {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.admin-td {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+}
+
+.admin-td-secondary {
+  @apply px-6 py-4 whitespace-nowrap text-sm text-gray-500;
+}
+
+.btn-admin-primary {
+  @apply px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.btn-admin-secondary {
+  @apply px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition;
+}
+
+.btn-admin-success {
+  @apply px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition;
+}
+
+.btn-admin-danger {
+  @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition;
+}
+
 /* Glossy card hover effect */
 .glossy-card {
   transition: border-color 0.3s ease;

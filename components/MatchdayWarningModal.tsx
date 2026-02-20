@@ -28,7 +28,7 @@ export default function MatchdayWarningModal({
   const canAdjust = remainingMatchdays > 0
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="modal-backdrop">
       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-6 rounded-t-xl">

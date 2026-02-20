@@ -544,7 +544,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
       {/* Modal Erreur Stripe */}
       {stripeError && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="bg-(--card-bg) rounded-2xl max-w-md w-full overflow-hidden">
             <div className="p-6 border-b theme-border bg-red-500/10">
               <div className="flex items-center gap-3">
@@ -575,7 +575,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
       {/* Modal Platinium */}
       {showPlatiniumModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="bg-(--card-bg) rounded-2xl max-w-4xl w-full">
             {/* Header */}
             <div className="p-4 border-b theme-border">

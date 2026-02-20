@@ -907,7 +907,7 @@ export default function TeamsManager({
 
       {/* Modal Suggérer une équipe */}
       {showSuggestModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold theme-text mb-2">Suggérer une équipe</h3>
@@ -963,7 +963,7 @@ export default function TeamsManager({
                   setShowSuggestModal(false)
                   setSuggestTeamName('')
                 }}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
+                className="modal-btn-cancel"
               >
                 Annuler
               </button>
@@ -981,7 +981,7 @@ export default function TeamsManager({
 
       {/* Modal Gérer les demandes (capitaine) */}
       {showRequestsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in border-2 border-[#ff9900] max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold theme-text">Demandes d'équipe</h3>

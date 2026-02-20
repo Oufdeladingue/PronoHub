@@ -364,7 +364,7 @@ function SignUpForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full border border-[#2f2f2f] rounded-lg text-white px-3 py-2 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+              className="auth-input"
               placeholder="vous@example.com"
             />
           </div>
@@ -380,7 +380,7 @@ function SignUpForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 pr-10 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+                className="auth-input pr-10"
                 placeholder="••••••••"
               />
               <button
@@ -452,7 +452,7 @@ function SignUpForm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 pr-10 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+                className="auth-input pr-10"
                 placeholder="••••••••"
               />
               <button
@@ -505,7 +505,7 @@ function SignUpForm() {
           <button
             type="submit"
             disabled={loading || !acceptCGU}
-            className="w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed"
+            className="auth-btn-primary"
           >
             {loading ? 'Inscription...' : 'S\'inscrire'}
           </button>
@@ -530,7 +530,7 @@ function SignUpForm() {
             }
             handleOAuthSignIn('google')
           }}
-          className={`w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg transition-all duration-[250ms] ${acceptCGU ? 'bg-[#1a1a1a] hover:bg-[#222]' : 'bg-[#1a1a1a] opacity-60 cursor-not-allowed'}`}
+          className={`auth-btn-google ${!acceptCGU ? 'opacity-60 cursor-not-allowed' : ''}`}
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -568,7 +568,7 @@ export default function SignUpPage() {
     <AgeGate>
       <Suspense fallback={
         <div className="fixed inset-0 flex items-center justify-center bg-black">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+          <div className="loading-spinner"></div>
         </div>
       }>
         <SignUpForm />

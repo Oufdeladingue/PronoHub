@@ -1392,7 +1392,7 @@ export default function AdminUsagePage() {
 
               {/* Modal de suppression */}
               {deleteModal.tournament && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="modal-backdrop">
                   <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
                     <div className="p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -1809,7 +1809,7 @@ export default function AdminUsagePage() {
               </div>
               {/* Modale de suppression utilisateur */}
               {userDeleteModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !userDeleteLoading && setUserDeleteModal(null)}>
+                <div className="modal-backdrop" onClick={() => !userDeleteLoading && setUserDeleteModal(null)}>
                   <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -2069,7 +2069,7 @@ export default function AdminUsagePage() {
 
       {/* Modal de détail tournoi (global, accessible depuis tous les onglets) */}
       {detailModal.tournament && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={closeDetailModal}>
+        <div className="modal-backdrop" onClick={closeDetailModal}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -2389,7 +2389,7 @@ export default function AdminUsagePage() {
 
       {/* Modal tournois actifs (onglet Users) */}
       {activeTournamentsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setActiveTournamentsModal(null)}>
+        <div className="modal-backdrop" onClick={() => setActiveTournamentsModal(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-center justify-between">
@@ -2458,7 +2458,7 @@ export default function AdminUsagePage() {
 
       {/* Modal de sélection de tournoi pour Stats */}
       {statsTournamentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setStatsTournamentModal(null)}>
+        <div className="modal-backdrop" onClick={() => setStatsTournamentModal(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[70vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-center justify-between">

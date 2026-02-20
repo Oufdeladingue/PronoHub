@@ -404,7 +404,7 @@ function LoginForm() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required
-              className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 mb-4 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+              className="auth-input mb-4"
               placeholder="adresse email ou pseudo"
             />
           </div>
@@ -419,7 +419,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full border border-[#2f2f2f] rounded-lg text-white px-3.5 py-3 mb-4 text-[15px] transition-all duration-[250ms] placeholder-[#888] focus:border-[#ff9900] focus:shadow-[0_0_8px_rgba(255,153,0,0.3)] focus:outline-none"
+              className="auth-input mb-4"
               placeholder="••••••••"
             />
             <a
@@ -433,7 +433,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#ff9900] text-[#111] border-none rounded-lg py-3 font-semibold text-base cursor-pointer transition-all duration-[250ms] shadow-[0_0_14px_rgba(255,153,0,0.25)] hover:bg-[#e68a00] hover:shadow-[0_0_18px_rgba(255,153,0,0.4)] hover:-translate-y-px disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="auth-btn-primary flex items-center justify-center gap-2"
           >
             {loading && (
               <svg className="animate-spin h-5 w-5 text-[#111]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -459,7 +459,7 @@ function LoginForm() {
         <button
           onClick={handleGoogleSignIn}
           disabled={googleLoading}
-          className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-[#2f2f2f] rounded-lg bg-[#1a1a1a] hover:bg-[#222] transition-all duration-[250ms] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="auth-btn-google"
         >
           {googleLoading ? (
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -506,7 +506,7 @@ export default function LoginPage() {
     <AgeGate>
       <Suspense fallback={
         <div className="fixed inset-0 flex items-center justify-center bg-black">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+          <div className="loading-spinner"></div>
         </div>
       }>
         <LoginForm />

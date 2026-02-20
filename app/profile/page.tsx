@@ -1819,7 +1819,7 @@ function ProfileContent() {
 
       {/* Modale de succès changement de mot de passe */}
       {showPasswordSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card max-w-sm w-full p-6 rounded-2xl shadow-2xl text-center animate-fadeIn">
             {/* Icône de succès */}
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">

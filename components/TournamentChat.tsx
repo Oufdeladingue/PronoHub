@@ -426,7 +426,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   if (loading) {
     return (
       <div className="theme-card p-8 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900] mx-auto"></div>
+        <div className="loading-spinner mx-auto"></div>
         <p className="theme-text-secondary mt-4">Chargement de la causerie...</p>
       </div>
     )
@@ -690,7 +690,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
       {/* Modale lecteurs (mobile) */}
       {showReadersModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="modal-backdrop"
           onClick={() => setShowReadersModal(false)}
         >
           <div

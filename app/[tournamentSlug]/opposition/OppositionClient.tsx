@@ -1981,7 +1981,7 @@ export default function OppositionClient({
               <div>
                 {loadingMatches ? (
                   <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+                    <div className="loading-spinner-inline"></div>
                     <p className="mt-4 theme-text-secondary">Chargement des matchs...</p>
                   </div>
                 ) : matches.length === 0 ? (
@@ -3101,7 +3101,7 @@ export default function OppositionClient({
 
               {loadingTeams ? (
                 <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+                  <div className="loading-spinner-inline"></div>
                   <p className="mt-4 theme-text-secondary">Chargement des équipes...</p>
                 </div>
               ) : teams.length === 0 ? (

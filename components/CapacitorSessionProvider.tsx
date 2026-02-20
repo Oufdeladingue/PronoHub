@@ -60,7 +60,7 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
   if (!isReady) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+        <div className="loading-spinner"></div>
       </div>
     )
   }

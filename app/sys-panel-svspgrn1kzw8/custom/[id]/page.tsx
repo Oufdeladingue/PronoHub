@@ -533,7 +533,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
 
           {/* Modal de création de journée */}
           {showCreateModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="modal-backdrop">
               <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
                 <div className="p-6 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900">Nouvelle journée</h2>
@@ -601,7 +601,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
 
           {/* Modal de sélection des matchs */}
           {showMatchesModal && selectedMatchday && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="modal-backdrop">
               <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                   <div>
@@ -796,7 +796,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
 
           {/* Modal de prévisualisation des matchs */}
           {showPreviewModal && previewMatchday && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="modal-backdrop">
               <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
                 <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-purple-100">
                   <div>

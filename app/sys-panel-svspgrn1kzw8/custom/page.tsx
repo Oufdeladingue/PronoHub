@@ -345,7 +345,7 @@ export default function AdminCustomCompetitionsPage() {
 
           {/* Modal de création */}
           {showCreateModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="modal-backdrop">
               <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
                 <div className="p-6 border-b border-gray-200">
                   <h2 className="text-xl font-bold text-gray-900">Nouvelle compétition</h2>
@@ -463,7 +463,7 @@ export default function AdminCustomCompetitionsPage() {
 
           {/* Modal d'édition de description */}
           {showEditModal && editingCompetition && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="modal-backdrop">
               <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                   <div>

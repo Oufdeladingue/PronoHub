@@ -963,7 +963,7 @@ export default function EditCommunicationPage() {
 
       {/* Modale de confirmation d'envoi */}
       {showSendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
             {/* En-tête */}
             <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
@@ -1163,7 +1163,7 @@ export default function EditCommunicationPage() {
 
       {/* Modale de résultat d'envoi */}
       {sendResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
             {/* En-tête */}
             <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white text-center">

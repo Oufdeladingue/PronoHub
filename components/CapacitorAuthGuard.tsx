@@ -48,7 +48,7 @@ export default function CapacitorAuthGuard({ children, fallback }: CapacitorAuth
   if (isChecking) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff9900]"></div>
+        <div className="loading-spinner"></div>
       </div>
     )
   }

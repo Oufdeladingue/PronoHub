@@ -1061,7 +1061,7 @@ function EchauffementPageContent() {
         const emptyTeams = teamsData.teamsEnabled ? teamsData.teams.filter(t => t.members.length === 0) : []
 
         return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
             <div className="text-center mb-6">
               <img src="/images/icons/start-tour.svg" alt="Démarrer" className="w-16 h-16 mx-auto mb-3" />
@@ -1081,7 +1081,7 @@ function EchauffementPageContent() {
 
             {/* Avertissement équipes vides */}
             {emptyTeams.length > 0 && (
-              <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+              <div className="alert-warning">
                 <p className="text-sm text-yellow-400">
                   <strong>Note :</strong> {emptyTeams.length} équipe{emptyTeams.length > 1 ? 's' : ''} vide{emptyTeams.length > 1 ? 's' : ''} ({emptyTeams.map(t => t.name).join(', ')}) sera{emptyTeams.length > 1 ? 'ont' : ''} automatiquement supprimée{emptyTeams.length > 1 ? 's' : ''} au démarrage.
                 </p>
@@ -1091,13 +1091,13 @@ function EchauffementPageContent() {
             <div className="flex gap-3">
               <button
                 onClick={hideStartConfirmation}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
+                className="modal-btn-cancel"
               >
                 Annuler
               </button>
               <button
                 onClick={handleStartTournament}
-                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                className="modal-btn-confirm"
               >
                 Démarrer le tournoi
               </button>
@@ -1109,7 +1109,7 @@ function EchauffementPageContent() {
 
       {/* Popup de confirmation d'annulation */}
       {cancelConfirmation && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
@@ -1121,7 +1121,7 @@ function EchauffementPageContent() {
               </p>
             </div>
 
-            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+            <div className="alert-danger">
               <p className="text-sm text-red-500">
                 <strong>Attention :</strong> Cette action est irréversible. Le tournoi sera supprimé pour vous et tous les autres participants. Il n'apparaîtra plus dans "Mes tournois".
               </p>
@@ -1136,7 +1136,7 @@ function EchauffementPageContent() {
               </button>
               <button
                 onClick={handleCancelTournament}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+                className="modal-btn-danger"
               >
                 Supprimer le tournoi
               </button>
@@ -1147,7 +1147,7 @@ function EchauffementPageContent() {
 
       {/* Popup de confirmation de transfert */}
       {transferConfirmation.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
@@ -1160,7 +1160,7 @@ function EchauffementPageContent() {
               </p>
             </div>
 
-            <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+            <div className="alert-warning">
               <p className="text-sm text-yellow-500">
                 <strong>Important :</strong> Vous perdrez tous les privilèges de capitaine. Cette action est irréversible.
               </p>
@@ -1186,7 +1186,7 @@ function EchauffementPageContent() {
 
       {/* Popup de succès après transfert de capitanat */}
       {transferSuccess.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
             <div className="text-center">
               <div className="text-5xl mb-3">✅</div>
@@ -1209,7 +1209,7 @@ function EchauffementPageContent() {
 
       {/* Popup d'avertissement pour quitter le tournoi en tant que capitaine */}
       {leaveWarning && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">🔒</div>
@@ -1241,7 +1241,7 @@ function EchauffementPageContent() {
 
       {/* Popup de confirmation pour quitter le tournoi (non-capitaines) */}
       {leaveConfirmation && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">🚪</div>
@@ -1253,7 +1253,7 @@ function EchauffementPageContent() {
               </p>
             </div>
 
-            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+            <div className="alert-danger">
               <p className="text-sm text-red-400">
                 <strong>Attention :</strong> Cette action est irréversible. Vous ne pourrez plus rejoindre ce tournoi et tous vos pronostics seront supprimés.
               </p>
@@ -1268,7 +1268,7 @@ function EchauffementPageContent() {
               </button>
               <button
                 onClick={confirmLeaveTournament}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+                className="modal-btn-danger"
               >
                 Confirmer le départ
               </button>
@@ -1279,7 +1279,7 @@ function EchauffementPageContent() {
 
       {/* Popup d'avertissement: joueurs sans équipe */}
       {unassignedPlayersWarning.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-red-500">
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
@@ -1291,7 +1291,7 @@ function EchauffementPageContent() {
               </p>
             </div>
 
-            <div className="bg-red-500/10 border-l-4 border-red-500 p-4 mb-6 rounded">
+            <div className="alert-danger">
               <p className="text-sm text-red-400">
                 <strong>Impossible de démarrer :</strong> En mode équipe, tous les joueurs doivent être assignés à une équipe avant de pouvoir lancer le tournoi.
               </p>
@@ -1311,7 +1311,7 @@ function EchauffementPageContent() {
 
       {/* Modal d'extension de joueurs Free-Kick */}
       {showExtensionModal && playerExtensionInfo && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-purple-500">
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -1344,7 +1344,7 @@ function EchauffementPageContent() {
             </div>
 
             {playerExtensionInfo.hasCredit && (
-              <div className="bg-green-500/10 border-l-4 border-green-500 p-4 mb-6 rounded">
+              <div className="alert-success">
                 <p className="text-sm text-green-400">
                   <strong>Crédit disponible !</strong> Vous avez un crédit d'extension non utilisé.
                 </p>
@@ -1354,7 +1354,7 @@ function EchauffementPageContent() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExtensionModal(false)}
-                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
+                className="modal-btn-cancel"
                 disabled={extensionLoading}
               >
                 Annuler
@@ -1385,7 +1385,7 @@ function EchauffementPageContent() {
 
       {/* Modal de partage */}
       {shareModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="modal-backdrop">
           <div className="theme-card rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in">
             {/* Header */}
             <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-4">
