@@ -272,7 +272,7 @@ export default async function DashboardPage() {
     const importedMatchesPromise = uniqueCompetitionIds.length > 0
       ? supabase
           .from('imported_matches')
-          .select('competition_id, matchday, status, finished, utc_date')
+          .select('competition_id, matchday, stage, status, finished, utc_date')
           .in('competition_id', uniqueCompetitionIds)
       : Promise.resolve({ data: [] })
 
@@ -302,6 +302,22 @@ export default async function DashboardPage() {
     // Filtrer les matchs pour ne garder que ceux des matchdays concernés
     const relevantMatchdayIds = new Set(allCustomMatchdays.map(md => md.id))
     const allCustomMatches = ((customMatchesRes.data || []) as any[]).filter(m => relevantMatchdayIds.has(m.custom_matchday_id))
+
+    // Mapping stage → virtual matchday pour compétitions avec phases knockout (CL, EL, etc.)
+    const STAGE_ORDER: Record<string, number> = {
+      'LEAGUE_STAGE': 0, 'PLAYOFFS': 8, 'LAST_16': 10,
+      'QUARTER_FINALS': 12, 'SEMI_FINALS': 14, 'FINAL': 16
+    }
+
+    // Calculer virtual_matchday pour chaque match (gère les phases knockout)
+    for (const match of allImportedMatches) {
+      const m = match as any
+      if (m.stage && m.stage !== 'LEAGUE_STAGE') {
+        m.virtual_matchday = (STAGE_ORDER[m.stage] || 8) + (m.matchday || 1)
+      } else {
+        m.virtual_matchday = m.matchday
+      }
+    }
 
     // Indexer les données pour un accès rapide (réutilisé dans nextMatchDates)
     for (const match of allImportedMatches) {
@@ -354,13 +370,13 @@ export default async function DashboardPage() {
       const totalJourneys = endMatchday - startMatchday + 1
       const competitionMatches = importedMatchesByCompetition.get(tournament.competition_id) || []
       const relevantMatches = competitionMatches.filter(
-        m => m.matchday >= startMatchday && m.matchday <= endMatchday
+        m => m.virtual_matchday >= startMatchday && m.virtual_matchday <= endMatchday
       )
 
       const matchdayMap = new Map<number, any[]>()
       for (const match of relevantMatches) {
-        if (!matchdayMap.has(match.matchday)) matchdayMap.set(match.matchday, [])
-        matchdayMap.get(match.matchday)!.push(match)
+        if (!matchdayMap.has(match.virtual_matchday)) matchdayMap.set(match.virtual_matchday, [])
+        matchdayMap.get(match.virtual_matchday)!.push(match)
       }
 
       let completedJourneys = 0
@@ -527,7 +543,7 @@ export default async function DashboardPage() {
         const endMatchday = t.ending_matchday || 38
         const competitionMatches = importedMatchesByCompetition.get(t.competition_id) || []
         const relevantMatches = competitionMatches.filter(
-          m => m.matchday >= startMatchday && m.matchday <= endMatchday
+          m => m.virtual_matchday >= startMatchday && m.virtual_matchday <= endMatchday
         )
         const lastMatch = relevantMatches.sort(
           (a, b) => new Date(b.utc_date).getTime() - new Date(a.utc_date).getTime()
