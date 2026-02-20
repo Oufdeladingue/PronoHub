@@ -56,6 +56,9 @@ export async function GET(request: NextRequest) {
     supabase.from('pricing_config').select('config_value').eq('config_key', 'free_max_tournaments').eq('is_active', true).maybeSingle()
   ])
 
+  // Mettre à jour la plateforme (Capacitor = android)
+  supabase.from('profiles').update({ last_platform: 'android' }).eq('id', userId).then(() => {})
+
   const isSuper = isSuperAdmin(profile?.role as UserRole)
   const hasSubscription = subscription?.status === 'active'
   const tournamentIds = participations?.map(p => p.tournament_id) || []

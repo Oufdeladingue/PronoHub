@@ -188,6 +188,7 @@ interface AdminUser {
   country: string | null
   created_at: string
   last_seen_at: string | null
+  last_platform: string
   active_tournaments_count: number
   active_tournaments: Array<{ id: string; name: string; slug: string; status: string }>
   suspect_reasons: string[]
@@ -1562,6 +1563,9 @@ export default function AdminUsagePage() {
                         >
                           Pays <SortArrow column="country" />
                         </th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Plateforme
+                        </th>
                         <th
                           onClick={() => handleUsersSort('active_tournaments_count')}
                           className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
@@ -1575,13 +1579,13 @@ export default function AdminUsagePage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
                       ) : adminUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
@@ -1615,6 +1619,19 @@ export default function AdminUsagePage() {
                                 <span>{countryFlag(u.country)} {u.country}</span>
                               ) : (
                                 <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm whitespace-nowrap">
+                              {u.last_platform === 'android' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341a.667.667 0 01-.662-.667c0-.367.296-.666.662-.666.367 0 .663.299.663.666a.666.666 0 01-.663.667m-11.046 0a.667.667 0 01-.663-.667c0-.367.297-.666.663-.666s.662.299.662.666a.666.666 0 01-.662.667m11.4-6.018l2.006-3.459a.418.418 0 00-.153-.571.42.42 0 00-.572.15l-2.03 3.503A12.243 12.243 0 0012 7.876c-1.878 0-3.642.456-5.128 1.07L4.842 5.443a.42.42 0 00-.572-.15.418.418 0 00-.153.571l2.006 3.459C2.688 11.19.343 14.456.001 18.262h23.998c-.342-3.806-2.687-7.072-6.122-8.939"/></svg>
+                                  Android
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                                  Web
+                                </span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-center">
@@ -1726,6 +1743,9 @@ export default function AdminUsagePage() {
                           {u.country && (
                             <span>{countryFlag(u.country)} {u.country}</span>
                           )}
+                          <span className={u.last_platform === 'android' ? 'text-green-600' : 'text-blue-600'}>
+                            {u.last_platform === 'android' ? '📱 Android' : '🌐 Web'}
+                          </span>
                         </div>
                         <button
                           onClick={() => { setUserDeleteModal({ userId: u.id, username: u.username }); setUserDeleteError(null); setUserDeleteBlockers([]) }}

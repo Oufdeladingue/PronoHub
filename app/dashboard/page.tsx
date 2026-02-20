@@ -92,6 +92,9 @@ export default async function DashboardPage() {
 
   const hasChosenUsername = profile?.has_chosen_username !== false
 
+  // Mettre à jour la plateforme (fire-and-forget, pas de await)
+  supabase.from('profiles').update({ last_platform: 'web' }).eq('id', user.id).then(() => {})
+
   const isSuper = isSuperAdmin(profile?.role as UserRole)
   const hasSubscription = subscription?.status === 'active'
   const tournamentIds = participations?.map(p => p.tournament_id) || []
