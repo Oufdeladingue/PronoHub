@@ -339,6 +339,7 @@ export default async function DashboardPage() {
     }
 
     const now = new Date()
+    const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000)
 
     // Calculer journeyInfo pour les tournois standards (sans requête supplémentaire)
     for (const tournament of standardTournaments) {
@@ -365,7 +366,9 @@ export default async function DashboardPage() {
       let completedJourneys = 0
       for (const [, matches] of matchdayMap) {
         const allFinished = matches.every((m: any) => m.status === 'FINISHED' || m.status === 'AWARDED' || m.finished === true)
-        if (allFinished) completedJourneys++
+        // Fallback: si tous les matchs ont une date > 4h dans le passé, journée terminée
+        const allPast = !allFinished && matches.every((m: any) => m.utc_date && new Date(m.utc_date) < fourHoursAgo)
+        if (allFinished || allPast) completedJourneys++
       }
 
       const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
@@ -399,7 +402,9 @@ export default async function DashboardPage() {
           const imported = customMatchStatusMap.get(m.football_data_match_id)
           return imported && (imported.status === 'FINISHED' || imported.finished === true)
         })
-        if (allFinished) completedJourneys++
+        // Fallback: si tous les matchs ont une date > 4h dans le passé, journée terminée
+        const allPast = !allFinished && matches.every((m: any) => m.cached_utc_date && new Date(m.cached_utc_date) < fourHoursAgo)
+        if (allFinished || allPast) completedJourneys++
       }
 
       const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
