@@ -218,7 +218,7 @@ export function useTrophyNotifications() {
 
     setNewTrophies([fakeTrophy])
     setCurrentTrophyIndex(0)
-    console.log(`[TrophyNotifications] Simulation du trophée "${info.name}" (${type})`)
+    if (process.env.NODE_ENV === 'development') console.log(`[TrophyNotifications] Simulation: ${type}`)
   }
 
   // Exposer la fonction de simulation sur window (dev uniquement)
@@ -233,14 +233,14 @@ export function useTrophyNotifications() {
 
       ;(window as any).testTrophyModal = (type?: string) => {
         if (type && !trophyTypes.includes(type)) {
-          console.log('Types disponibles:', trophyTypes.join(', '))
+          if (process.env.NODE_ENV === 'development') console.log('Types disponibles:', trophyTypes.join(', '))
           return
         }
         // Utiliser la ref pour éviter stale closure
         simulateTrophyRef.current?.(type)
       }
 
-      console.log('[TrophyNotifications] window.testTrophyModal() disponible')
+      if (process.env.NODE_ENV === 'development') console.log('[TrophyNotifications] window.testTrophyModal() disponible')
 
       // Permettre le test via URL: ?testTrophy=1 ou ?testTrophy=exact_score
       const urlParams = new URLSearchParams(window.location.search)

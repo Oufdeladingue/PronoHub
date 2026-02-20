@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
           if (pushResult) {
             pushSent++
             success = true
-            console.log(`[INACTIVE-REMINDER] Push envoyé à user ${user.id}`)
+            // Push sent
           } else {
             pushFailed++
           }
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
           if (result.success) {
             emailsSent++
             success = true
-            console.log(`[INACTIVE-REMINDER] Email envoyé à ${user.email}`)
+            // Email sent
           } else {
             emailsFailed++
             errors.push(`Email ${user.email}: ${result.error}`)

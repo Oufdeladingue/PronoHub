@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
 
               if (emailResult.success) {
                 results.emailsSent++
-                console.log(`[TOURNAMENT-END-NOTIF] ✅ Email sent to ${username}`)
+                // Email sent
               }
             } catch (e: any) {
               console.error(`[TOURNAMENT-END-NOTIF] Email error for ${username}:`, e)

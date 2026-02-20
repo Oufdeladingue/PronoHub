@@ -98,7 +98,7 @@ export async function DELETE(request: Request) {
             refundSummary.creatorRefunded = true
             refundSummary.creatorPurchaseId = creatorPurchase.id
             refundSummary.creatorUserId = creatorPurchase.user_id
-            console.log('[DELETE] Creator credit restored:', creatorPurchase.id, 'for user:', creatorPurchase.user_id)
+            console.log('[DELETE] Creator credit restored:', creatorPurchase.id)
           } else {
             console.error('[DELETE] Error restoring creator credit:', restoreError)
           }
@@ -127,7 +127,7 @@ export async function DELETE(request: Request) {
 
           if (!restoreError) {
             refundSummary.participantsRefunded++
-            console.log('[DELETE] Participant credit restored:', purchase.id, 'for user:', purchase.user_id)
+            console.log('[DELETE] Participant credit restored:', purchase.id)
           }
         }
       }
@@ -164,7 +164,7 @@ export async function DELETE(request: Request) {
 
             if (!restoreError) {
               refundSummary.eventSlotsRefunded++
-              console.log('[DELETE] Event slot restored:', slot.id, 'for user:', slot.user_id)
+              console.log('[DELETE] Event slot restored:', slot.id)
             }
           }
         }

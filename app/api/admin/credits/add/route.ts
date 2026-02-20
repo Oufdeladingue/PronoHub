@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log(`[ADMIN] Crédit "${config.label}" ajouté pour ${targetUser.username} par admin ${user.id}`)
+    console.log(`[ADMIN] Credit "${config.label}" added for ${targetUser.username}`)
 
     return NextResponse.json({
       success: true,

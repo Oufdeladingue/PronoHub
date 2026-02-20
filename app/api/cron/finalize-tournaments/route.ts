@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
     const now = new Date().toISOString()
 
-    console.log('[FINALIZE-TOURNAMENTS] Starting finalization check at:', now)
+    console.log('[FINALIZE-TOURNAMENTS] Start')
 
     // Récupérer tous les tournois actifs avec une ending_date passée
     const { data: tournamentsToCheck, error: fetchError } = await supabase
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!tournamentsToCheck || tournamentsToCheck.length === 0) {
-      console.log('[FINALIZE-TOURNAMENTS] No tournaments to finalize')
+      console.log('[FINALIZE-TOURNAMENTS] No tournaments')
       return NextResponse.json({
         success: true,
         message: 'No tournaments to finalize',
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log(`[FINALIZE-TOURNAMENTS] Found ${tournamentsToCheck.length} tournament(s) to check`)
+    console.log(`[FINALIZE-TOURNAMENTS] ${tournamentsToCheck.length} to check`)
 
     const results = {
       processed: 0,
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       results.processed++
 
       try {
-        console.log(`[FINALIZE-TOURNAMENTS] Checking tournament: ${tournament.name} (${tournament.id})`)
+        // Check tournament
 
         // Vérifier si tous les matchs du tournoi sont terminés
         const allMatchesFinished = await checkAllMatchesFinished(
@@ -100,12 +100,12 @@ export async function GET(request: NextRequest) {
             results.errors.push(`${tournament.name}: ${updateError.message}`)
           } else {
             results.finalized++
-            console.log(`[FINALIZE-TOURNAMENTS] ✅ Tournament finalized: ${tournament.name}`)
+            // Tournament finalized
             // Les notifications push + email de fin sont envoyées par le cron send-tournament-end-notifications (8h matin)
           }
         } else {
           // Certains matchs ne sont pas terminés : recalculer la ending_date
-          console.log(`[FINALIZE-TOURNAMENTS] Not all matches finished for: ${tournament.name}. Recalculating ending_date...`)
+          // Matches not finished, recalculating ending_date
 
           try {
             const durationResult = await recalculateTournamentEndingDate(tournament.id, {
@@ -114,12 +114,7 @@ export async function GET(request: NextRequest) {
               previous_ending_date: tournament.ending_date
             })
 
-            console.log(`[FINALIZE-TOURNAMENTS] ✅ Ending date recalculated for ${tournament.name}:`, durationResult.ending_date)
             results.recalculated++
-
-            if (durationResult.estimation_used) {
-              console.log(`[FINALIZE-TOURNAMENTS] Estimation used: ${durationResult.estimation_details}`)
-            }
           } catch (recalcError: any) {
             console.error(`[FINALIZE-TOURNAMENTS] Error recalculating ending_date for ${tournament.id}:`, recalcError)
             results.errors.push(`${tournament.name}: ${recalcError.message}`)
@@ -131,7 +126,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('[FINALIZE-TOURNAMENTS] Finalization check completed:', results)
+    console.log(`[FINALIZE-TOURNAMENTS] Done: ${results.finalized} finalized, ${results.recalculated} recalculated, ${results.errors.length} errors`)
 
     return NextResponse.json({
       success: true,

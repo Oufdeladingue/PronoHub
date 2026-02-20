@@ -336,7 +336,7 @@ export async function GET(request: NextRequest) {
 
               if (result.success) {
                 totalEmailsSent++
-                console.log(`[DAY-RECAP] ✅ Email sent to ${username} for "${tournament.name}" J${matchday}`)
+                // Email sent
               } else {
                 totalErrors++
                 errors.push(`Failed to send to ${username}: ${result.error}`)

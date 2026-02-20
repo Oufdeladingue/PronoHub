@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!queue?.has_pending_custom_changes) {
-      console.log('[CUSTOM-CHANGES] Aucun changement en attente, skip')
+      // No pending changes, skip
       // Mettre à jour le timestamp de check
       await supabase
         .from('notification_queue')
@@ -82,8 +82,7 @@ export async function GET(request: NextRequest) {
     const windowDate = new Date(now)
     windowDate.setDate(windowDate.getDate() + WINDOW_DAYS)
 
-    console.log(`[CUSTOM-CHANGES] Recherche des changements avant ${delayDate.toISOString()}`)
-    console.log(`[CUSTOM-CHANGES] Fenêtre de matchs: jusqu'au ${windowDate.toISOString()}`)
+    console.log('[CUSTOM-CHANGES] Start')
 
     // 1. Récupérer les changements non notifiés datant de plus d'1 heure
     //    dont le match est dans les 14 prochains jours
@@ -114,7 +113,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!changes || changes.length === 0) {
-      console.log('[CUSTOM-CHANGES] Aucun changement à notifier')
+      // No changes to notify
       return NextResponse.json({
         success: true,
         message: 'Aucun changement à notifier',
@@ -122,7 +121,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log(`[CUSTOM-CHANGES] ${changes.length} changements trouvés`)
+    console.log(`[CUSTOM-CHANGES] ${changes.length} changes found`)
 
     // 2. Regrouper les changements par matchday_id
     const changesByMatchday: Record<string, typeof changes> = {}
@@ -134,7 +133,7 @@ export async function GET(request: NextRequest) {
     }
 
     const matchdayIds = Object.keys(changesByMatchday)
-    console.log(`[CUSTOM-CHANGES] ${matchdayIds.length} journées concernées`)
+    // matchdayIds.length matchdays to process
 
     // 3. Récupérer les infos des journées
     const { data: matchdays, error: matchdaysError } = await supabase
@@ -236,7 +235,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!tournaments || tournaments.length === 0) {
-      console.log('[CUSTOM-CHANGES] Aucun tournoi actif concerné')
+      // No active tournaments
       // Marquer les changements comme notifiés quand même
       await supabase
         .from('custom_matchday_changes')
@@ -336,7 +335,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`[CUSTOM-CHANGES] ${notificationsToSend.length} notifications à envoyer`)
+    console.log(`[CUSTOM-CHANGES] ${notificationsToSend.length} notifications to send`)
 
     // Envoyer les notifications (avec vérification des préférences)
     for (const notification of notificationsToSend) {
@@ -410,7 +409,7 @@ export async function GET(request: NextRequest) {
       const notifEnabled = prefs.email_new_matches !== false // Par défaut activé
 
       if (!notifEnabled) {
-        console.log(`[CUSTOM-CHANGES] Notification skipped pour user ${user.id} (préférence désactivée)`)
+        // User notification preference disabled, skip
         continue
       }
 
@@ -435,10 +434,8 @@ export async function GET(request: NextRequest) {
 
           if (result) {
             pushSent++
-            console.log(`[CUSTOM-CHANGES] Push envoyé à user ${user.id} pour J${matchdayNumber}`)
           } else {
             pushFailed++
-            console.log(`[CUSTOM-CHANGES] Push failed pour user ${user.id}`)
           }
         } catch (err) {
           pushFailed++
@@ -460,10 +457,9 @@ export async function GET(request: NextRequest) {
 
           if (result.success) {
             emailsSent++
-            console.log(`[CUSTOM-CHANGES] Email envoyé à ${user.email} pour J${matchdayNumber}`)
           } else {
             emailsFailed++
-            errors.push(`Email ${user.email}: ${result.error}`)
+            errors.push(`Email failed: ${result.error}`)
           }
         } catch (err) {
           emailsFailed++

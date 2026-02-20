@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
     const now = new Date()
 
-    console.log('[CHECK-TROPHIES] Starting trophy check at:', now.toISOString())
+    console.log('[CHECK-TROPHIES] Start')
 
     // 1. Récupérer les tournois actifs + récemment terminés (48h)
     //    Les tournois terminés sont nécessaires pour tournament_winner, legend, abyssal
@@ -67,11 +67,11 @@ export async function GET(request: NextRequest) {
     ]
 
     if (tournaments.length === 0) {
-      console.log('[CHECK-TROPHIES] No tournaments to process')
+      console.log('[CHECK-TROPHIES] No tournaments')
       return NextResponse.json({ success: true, message: 'No tournaments to process', trophiesUnlocked: 0 })
     }
 
-    console.log(`[CHECK-TROPHIES] Processing ${tournaments.length} tournaments (${activeTournaments?.length || 0} active, ${recentlyFinishedTournaments?.length || 0} recently finished)`)
+    console.log(`[CHECK-TROPHIES] ${tournaments.length} tournaments`)
 
     let totalTrophiesUnlocked = 0
     let totalPushSent = 0
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     for (const tournament of tournaments) {
       try {
         if (!tournament.starting_matchday || !tournament.ending_matchday) {
-          console.log(`[CHECK-TROPHIES] Tournament "${tournament.name}": no matchdays defined, skipping`)
+          // No matchdays defined, skip
           continue
         }
 
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 
         const participantIds = participants.map((p: any) => p.user_id)
 
-        console.log(`[CHECK-TROPHIES] Tournament "${tournament.name}": ${participantIds.length} participants`)
+        // Process tournament participants
 
         // Calculer les trophées
         const trophyResults = await calculateTrophiesForTournament(
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
           }
 
           totalTrophiesUnlocked += result.newTrophies.length
-          console.log(`[CHECK-TROPHIES] 🏆 ${profile?.username || userId}: ${result.newTrophies.length} new trophies: ${result.newTrophies.join(', ')}`)
+          // New trophies unlocked
 
           // Vérifier les préférences de notification
           const prefs = profile?.notification_preferences || {}
@@ -194,10 +194,9 @@ export async function GET(request: NextRequest) {
 
                   if (pushResult) {
                     totalPushSent++
-                    console.log(`[CHECK-TROPHIES] ✅ Push sent to ${profile?.username} for "${trophyInfo.name}"`)
                   }
                 } catch (pushError: any) {
-                  console.error(`[CHECK-TROPHIES] ❌ Push error for ${profile?.username}:`, pushError.message)
+                  console.error('[CHECK-TROPHIES] Push error:', pushError.message)
                   totalErrors++
                 }
               }
@@ -258,10 +257,9 @@ export async function GET(request: NextRequest) {
 
                     if (emailResult.success) {
                       totalEmailsSent++
-                      console.log(`[CHECK-TROPHIES] ✅ Email sent to ${profile?.username} for "${trophyInfo.name}"`)
                     } else {
                       totalErrors++
-                      errors.push(`Email failed for ${profile?.username}: ${emailResult.error}`)
+                      errors.push(`Email failed: ${emailResult.error}`)
                     }
                   } catch (emailError: any) {
                     totalErrors++

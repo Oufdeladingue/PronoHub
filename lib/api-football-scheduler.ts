@@ -133,26 +133,17 @@ export class ApiFootballScheduler {
     let quotaExhausted = false
     let totalRequests = 0
 
-    console.log('\n========================================')
-    console.log('🔄 Scheduled Update - API-Football')
-    console.log('========================================')
-    console.log(`📊 Quota: ${quotaStats.used}/100 utilisées, ${quotaStats.remaining} disponibles`)
-    console.log(`📋 ${priorities.length} compétition(s) à traiter`)
-    console.log('========================================\n')
+    console.log(`[Scheduler] Start: ${priorities.length} competition(s), quota ${quotaStats.remaining}/${100}`)
 
     for (const item of priorities) {
       // Vérifier le quota avant chaque update
       const canProceed = await ApiFootballQuotaManager.canMakeRequest(item.estimatedRequests)
 
       if (!canProceed) {
-        console.log(`⏸️  Quota insuffisant - Skip "${item.competitionName}" (priorité ${item.priority})`)
         skipped.push(item.competitionId)
         quotaExhausted = true
         continue
       }
-
-      console.log(`🔄 [P${item.priority}] Update "${item.competitionName}"`)
-      console.log(`   ↳ ${item.reason}`)
 
       try {
         // Appeler la route de sync pour cette compétition
@@ -166,18 +157,14 @@ export class ApiFootballScheduler {
         })
 
         if (response.ok) {
-          const data = await response.json()
+          await response.json()
           updated.push(item.competitionId)
           totalRequests += item.estimatedRequests
-
-          console.log(`   ✅ Succès: ${data.updatedCount || 0} match(s) mis à jour`)
         } else {
-          const errorData = await response.json()
-          console.log(`   ❌ Échec: ${errorData.error || 'Unknown error'}`)
           skipped.push(item.competitionId)
         }
       } catch (error) {
-        console.error(`   ❌ Erreur update "${item.competitionName}":`, error)
+        console.error(`[Scheduler] Error updating ${item.competitionId}:`, error)
         skipped.push(item.competitionId)
       }
     }
@@ -185,21 +172,7 @@ export class ApiFootballScheduler {
     const executionTime = Date.now() - startTime
     const finalQuotaStats = await ApiFootballQuotaManager.getUsageStats()
 
-    console.log('\n========================================')
-    console.log('✅ Scheduled Update Terminé')
-    console.log('========================================')
-    console.log(`📊 Résultats:`)
-    console.log(`   • ${updated.length} compétition(s) mise(s) à jour`)
-    console.log(`   • ${skipped.length} compétition(s) ignorée(s)`)
-    console.log(`   • ${totalRequests} requête(s) API effectuée(s)`)
-    console.log(`   • ${finalQuotaStats.remaining} requête(s) restante(s)`)
-    console.log(`   • Exécution: ${(executionTime / 1000).toFixed(2)}s`)
-
-    if (quotaExhausted) {
-      console.log(`\n⚠️  ATTENTION: Quota épuisé, certaines compétitions n'ont pas été mises à jour`)
-    }
-
-    console.log('========================================\n')
+    console.log(`[Scheduler] Done: ${updated.length} updated, ${skipped.length} skipped, ${totalRequests} API calls, ${finalQuotaStats.remaining} quota left, ${(executionTime / 1000).toFixed(2)}s${quotaExhausted ? ' (QUOTA EXHAUSTED)' : ''}`)
 
     return {
       updated,

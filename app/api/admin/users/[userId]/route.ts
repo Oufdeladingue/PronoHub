@@ -122,7 +122,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
     }
 
-    console.log(`[Admin] User deleted: ${targetUser.username} (${targetUser.email}) by ${user.id}`)
+    console.log(`[Admin] User deleted: ${targetUser.username} by admin`)
 
     return NextResponse.json({
       success: true,

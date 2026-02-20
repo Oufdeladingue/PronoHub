@@ -130,7 +130,7 @@ export async function sendNotificationToUser(
     try {
       pushResult = await sendPushNotification(profile.fcm_token, title, body, data, options?.imageUrl)
     } catch (error) {
-      console.error('[NOTIFICATION DEBUG] Push notification failed:', error)
+      console.error('[NOTIFICATION] Push failed:', error)
     }
   }
 
@@ -149,7 +149,7 @@ export async function sendNotificationToUser(
       const emailSendResult = await sendMentionEmail(profile.email, emailProps)
       emailResult = emailSendResult.success
     } catch (error) {
-      console.error('[NOTIFICATION DEBUG] Email send failed:', error)
+      console.error('[NOTIFICATION] Email failed:', error)
     }
   }
 

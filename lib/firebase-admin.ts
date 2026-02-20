@@ -24,8 +24,7 @@ if (!admin.apps.length) {
       // Parser le JSON
       serviceAccount = JSON.parse(keyValue)
     } catch (e) {
-      console.error('[Firebase Admin] Erreur parsing FIREBASE_SERVICE_ACCOUNT_KEY:', e)
-      console.error('[Firebase Admin] Valeur (premiers 100 chars):', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100))
+      console.error('[Firebase Admin] Erreur parsing FIREBASE_SERVICE_ACCOUNT_KEY (vérifier le format JSON)')
     }
   } else {
     console.warn('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY non défini')
