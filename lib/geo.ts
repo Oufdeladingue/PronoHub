@@ -67,14 +67,13 @@ export async function checkCountryAllowed(request: Request): Promise<CountryChec
 
   const countryCode = detectCountry(request)
 
-  // Fail-closed : pays indétectable → bloqué
+  // Fail-open : pays indétectable → autorisé (évite de bloquer des users légitimes)
   if (!countryCode) {
     return {
-      allowed: false,
+      allowed: true,
       countryCode: null,
       countryName: null,
       countryFlag: null,
-      message: "Impossible de vérifier votre localisation. Veuillez réessayer.",
     }
   }
 
