@@ -484,13 +484,35 @@ export default function OppositionClient({
       // Activer le loader lors du changement de journée
       setLoadingMatches(true)
 
-      // Charger les données en parallèle pour un chargement plus rapide
+      // OPTIMISÉ: Filtrage en mémoire (instantané) puis requêtes DB en parallèle
       const loadData = async () => {
         try {
+          // Étape 1: Filtrer les matchs en mémoire (0ms, pas de requête DB)
+          const filteredMatches = filterMatchesForMatchday(selectedMatchday)
+          setMatches(filteredMatches)
+
+          // Initialiser les prédictions à 0-0 pour les matchs sans prédiction
+          if (filteredMatches.length > 0) {
+            setPredictions(prev => {
+              const newPredictions = { ...prev }
+              filteredMatches.forEach(match => {
+                if (!newPredictions[match.id]) {
+                  newPredictions[match.id] = {
+                    match_id: match.id,
+                    predicted_home_score: 0,
+                    predicted_away_score: 0
+                  }
+                }
+              })
+              return newPredictions
+            })
+          }
+
+          // Étape 2: Requêtes DB en parallèle avec les match IDs déjà connus
+          const matchIds = filteredMatches.map(m => m.id)
           await Promise.all([
-            fetchUserPredictions(),
-            fetchMatches(),
-            fetchMatchPoints()
+            fetchUserPredictions(matchIds),
+            fetchMatchPoints(filteredMatches)
           ])
         } finally {
           setLoadingMatches(false)
@@ -498,7 +520,7 @@ export default function OppositionClient({
       }
       loadData()
     }
-  }, [selectedMatchday, tournament])
+  }, [selectedMatchday, tournament?.id])
 
   // Précharger les pronostics de tous les adversaires quand la journée est clôturée
   useEffect(() => {
@@ -743,208 +765,25 @@ export default function OppositionClient({
     }
   }
 
-  const fetchMatches = async () => {
-    try {
-      if (!tournament || selectedMatchday === null) return
-
-      const supabase = createClient()
-      let matchesData: any[] = []
-
-      if (tournament.custom_competition_id) {
-        // Compétition custom - récupérer les matchs depuis custom_competition_matches
-        const { data: matchdayData } = await supabase
-          .from('custom_competition_matchdays')
-          .select('id')
-          .eq('custom_competition_id', tournament.custom_competition_id)
-          .eq('matchday_number', selectedMatchday)
-          .single()
-
-        if (matchdayData) {
-          const { data: customMatches, error } = await supabase
-            .from('custom_competition_matches')
-            .select('id, football_data_match_id, cached_utc_date, cached_home_team, cached_away_team, cached_home_logo, cached_away_logo, display_order')
-            .eq('custom_matchday_id', matchdayData.id)
-            .order('display_order', { ascending: true })
-
-          if (error) throw error
-
-          // Récupérer les IDs football_data pour faire la jointure
-          const footballDataIds = (customMatches || [])
-            .map((m: any) => m.football_data_match_id)
-            .filter((id: any) => id !== null)
-
-          // Récupérer les matchs importés via football_data_match_id (ID stable)
-          // Inclure la relation competitions pour récupérer le logo de la compétition source
-          // IMPORTANT: On récupère l'id de imported_matches pour les prédictions (clé étrangère)
-          let importedMatchesMap: Record<number, any> = {}
-          if (footballDataIds.length > 0) {
-            const { data: importedMatches } = await supabase
-              .from('imported_matches')
-              .select(`
-                id, football_data_match_id, home_team_id, away_team_id, home_team_name, away_team_name, home_team_crest, away_team_crest,
-                utc_date, status, home_score, away_score, finished, stage, competition_id,
-                competitions (id, name, emblem, custom_emblem_white, custom_emblem_color)
-              `)
-              .in('football_data_match_id', footballDataIds)
-
-            if (importedMatches) {
-              importedMatchesMap = importedMatches.reduce((acc: any, im: any) => {
-                acc[im.football_data_match_id] = im
-                return acc
-              }, {})
-            }
-          }
-
-          // Transformer les matchs custom au format attendu
-          // IMPORTANT: Utiliser l'ID de imported_matches (im.id) comme id du match pour les prédictions
-          // car la table predictions a une contrainte FK vers imported_matches.id
-          matchesData = (customMatches || []).map((match: any) => {
-            const im = importedMatchesMap[match.football_data_match_id]
-            const comp = im?.competitions
-            return {
-              // Utiliser l'ID de imported_matches pour les prédictions (FK constraint)
-              id: im?.id || match.id,
-              // Garder l'ID custom pour référence si besoin
-              custom_match_id: match.id,
-              matchday: selectedMatchday,
-              utc_date: im?.utc_date || match.cached_utc_date,
-              // IDs des équipes depuis imported_matches (nécessaire pour les stats)
-              home_team_id: im?.home_team_id || null,
-              away_team_id: im?.away_team_id || null,
-              home_team_name: im?.home_team_name || match.cached_home_team,
-              away_team_name: im?.away_team_name || match.cached_away_team,
-              home_team_crest: im?.home_team_crest || match.cached_home_logo,
-              away_team_crest: im?.away_team_crest || match.cached_away_logo,
-              status: im?.status || 'SCHEDULED',
-              finished: im?.finished || false,
-              home_score: im?.home_score ?? null,
-              away_score: im?.away_score ?? null,
-              stage: im?.stage || null,
-              // Infos de la compétition source pour les tournois custom (nécessaire pour les stats)
-              competition_id: im?.competition_id || null,
-              competition_name: comp?.name || null,
-              competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
-              competition_emblem_white: comp?.custom_emblem_white || comp?.emblem || null
-            }
-          }).sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
-        }
-      } else if (tournament.competition_id) {
-        // Compétition importée
-        // Pour les compétitions avec phases knockout, utiliser les matchs préchargés
-        // car ils ont une journée virtuelle (virtual_matchday) calculée côté serveur
-        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
-
-        if (hasKnockoutMatches) {
-          // Filtrer depuis les matchs préchargés par virtual_matchday
-          matchesData = allMatches.filter((m: any) => {
-            const md = m.virtual_matchday || m.matchday
-            return md === selectedMatchday
-          })
-        } else {
-          // Compétition classique (ligue): requête directe par matchday
-          const { data, error } = await supabase
-            .from('imported_matches')
-            .select('*')
-            .eq('competition_id', tournament.competition_id)
-            .eq('matchday', selectedMatchday)
-            .order('utc_date', { ascending: true })
-
-          if (error) throw error
-          matchesData = data || []
-        }
-      }
-
-      setMatches(matchesData)
-
-      // Initialiser les prédictions à 0-0 pour tous les matchs qui n'ont pas encore de prédiction
-      if (matchesData.length > 0) {
-        setPredictions(prev => {
-          const newPredictions = { ...prev }
-          matchesData.forEach(match => {
-            if (!newPredictions[match.id]) {
-              newPredictions[match.id] = {
-                match_id: match.id,
-                predicted_home_score: 0,
-                predicted_away_score: 0
-              }
-            }
-          })
-          return newPredictions
-        })
-      }
-    } catch (err) {
-      console.error('Erreur lors du chargement des matchs:', err)
-    }
+  // OPTIMISÉ: Filtrage en mémoire au lieu de requêtes DB (allMatches déjà chargé depuis le server)
+  const filterMatchesForMatchday = (matchday: number): Match[] => {
+    return allMatches.filter((m: any) => {
+      const md = m.virtual_matchday || m.matchday
+      return md === matchday
+    })
   }
 
-  const fetchUserPredictions = async () => {
+  // OPTIMISÉ: Accepte les matchIds directement au lieu de faire des requêtes waterfall
+  const fetchUserPredictions = async (matchIds: string[]) => {
     try {
-      if (!tournament || selectedMatchday === null) return
+      if (!tournament || matchIds.length === 0) return
 
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) return
 
-      // Récupérer les IDs des matchs de la journée sélectionnée
-      let matchIds: string[] = []
-
-      if (tournament.custom_competition_id) {
-        // Compétition custom - récupérer les IDs de imported_matches via football_data_match_id
-        const { data: matchdayData } = await supabase
-          .from('custom_competition_matchdays')
-          .select('id')
-          .eq('custom_competition_id', tournament.custom_competition_id)
-          .eq('matchday_number', selectedMatchday)
-          .single()
-
-        if (matchdayData) {
-          // Récupérer les football_data_match_id des matchs custom
-          const { data: customMatchesData } = await supabase
-            .from('custom_competition_matches')
-            .select('football_data_match_id')
-            .eq('custom_matchday_id', matchdayData.id)
-
-          const footballDataIds = customMatchesData
-            ?.map(m => m.football_data_match_id)
-            .filter(id => id !== null) || []
-
-          // Récupérer les IDs de imported_matches correspondants
-          if (footballDataIds.length > 0) {
-            const { data: importedMatchesData } = await supabase
-              .from('imported_matches')
-              .select('id')
-              .in('football_data_match_id', footballDataIds)
-
-            matchIds = importedMatchesData?.map(m => m.id) || []
-          }
-        }
-      } else if (tournament.competition_id) {
-        // Compétition importée
-        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
-
-        if (hasKnockoutMatches) {
-          // Filtrer depuis les matchs préchargés par virtual_matchday
-          const filteredMatches = allMatches.filter((m: any) => {
-            const md = m.virtual_matchday || m.matchday
-            return md === selectedMatchday
-          })
-          matchIds = filteredMatches.map((m: any) => m.id)
-        } else {
-          // Compétition classique
-          const { data: matchesData } = await supabase
-            .from('imported_matches')
-            .select('id')
-            .eq('competition_id', tournament.competition_id)
-            .eq('matchday', selectedMatchday)
-
-          matchIds = matchesData?.map(m => m.id) || []
-        }
-      }
-
-      if (matchIds.length === 0) return
-
-      // Ensuite, récupérer les prédictions pour ces matchs
+      // Une seule requête au lieu de 3-4 requêtes séquentielles
       const { data: predictionsData, error } = await supabase
         .from('predictions')
         .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
@@ -972,8 +811,6 @@ export default function OppositionClient({
       setLockedPredictions(lockedMap)
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics:', err)
-      console.error('Type d\'erreur:', typeof err)
-      console.error('Erreur stringifiée:', JSON.stringify(err, null, 2))
     }
   }
 
@@ -1016,7 +853,8 @@ export default function OppositionClient({
     }
   }
 
-  const fetchMatchPoints = async () => {
+  // OPTIMISÉ: Accepte les matchs filtrés directement au lieu de refaire des requêtes
+  const fetchMatchPoints = async (filteredMatches: Match[]) => {
     try {
       if (!tournament || selectedMatchday === null) return
 
@@ -1025,70 +863,17 @@ export default function OppositionClient({
 
       if (!user) return
 
-      // Récupérer les matchs avec scores de cette journée (terminés ou en cours)
-      let matchesData: any[] = []
-      const isCustomCompetition = !!tournament.custom_competition_id
-
-      if (isCustomCompetition) {
-        // Compétition custom - récupérer les matchs via custom_competition_matches
-        const { data: matchdayData } = await supabase
-          .from('custom_competition_matchdays')
-          .select('id')
-          .eq('custom_competition_id', tournament.custom_competition_id)
-          .eq('matchday_number', selectedMatchday)
-          .single()
-
-        if (matchdayData) {
-          const { data: customMatches } = await supabase
-            .from('custom_competition_matches')
-            .select('id, football_data_match_id, cached_utc_date')
-            .eq('custom_matchday_id', matchdayData.id)
-
-          if (customMatches && customMatches.length > 0) {
-            const footballDataIds = customMatches
-              .map(m => m.football_data_match_id)
-              .filter(id => id !== null)
-
-            if (footballDataIds.length > 0) {
-              const { data: importedMatches } = await supabase
-                .from('imported_matches')
-                .select('id, football_data_match_id, home_score, away_score, finished, status, utc_date')
-                .in('football_data_match_id', footballDataIds)
-                .not('home_score', 'is', null)
-
-              matchesData = importedMatches || []
-            }
-          }
-        }
-      } else {
-        // Compétition standard
-        const hasKnockoutMatches = allMatches.some((m: any) => m.virtual_matchday !== undefined)
-
-        if (hasKnockoutMatches) {
-          // Filtrer depuis les matchs préchargés par virtual_matchday
-          const filteredMatches = allMatches.filter((m: any) => {
-            const md = m.virtual_matchday || m.matchday
-            return md === selectedMatchday && m.home_score !== null
-          })
-          matchesData = filteredMatches.map((m: any) => ({
-            id: m.id,
-            home_score: m.home_score,
-            away_score: m.away_score,
-            finished: m.finished,
-            status: m.status,
-            utc_date: m.utc_date
-          }))
-        } else {
-          const { data } = await supabase
-            .from('imported_matches')
-            .select('id, home_score, away_score, finished, status, utc_date')
-            .eq('competition_id', tournament.competition_id)
-            .eq('matchday', selectedMatchday)
-            .not('home_score', 'is', null)
-
-          matchesData = data || []
-        }
-      }
+      // Filtrer les matchs avec scores (terminés ou en cours) directement depuis les données en mémoire
+      const matchesData = filteredMatches
+        .filter((m: any) => m.home_score !== null)
+        .map((m: any) => ({
+          id: m.id,
+          home_score: m.home_score,
+          away_score: m.away_score,
+          finished: m.finished,
+          status: m.status,
+          utc_date: m.utc_date
+        }))
 
       if (!matchesData || matchesData.length === 0) return
 

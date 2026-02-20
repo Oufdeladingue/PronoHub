@@ -62,12 +62,23 @@ ON custom_competition_matchdays(custom_competition_id, matchday_number);
 CREATE INDEX IF NOT EXISTS idx_custom_matches_matchday
 ON custom_competition_matches(custom_matchday_id);
 
--- 8. Index pour les abonnements
+-- 8. Index pour les matchs importés - football_data_match_id
+-- Utilisé dans: opposition, rankings, bonus-matches (jointure custom_competition_matches → imported_matches)
+-- Critique pour les tournois custom (6+ requêtes utilisent ce champ)
+CREATE INDEX IF NOT EXISTS idx_imported_matches_football_data_match_id
+ON imported_matches(football_data_match_id);
+
+-- 9. Index pour les matchs importés - filtre par status + date
+-- Utilisé dans: send-reminders (cron), notifications
+CREATE INDEX IF NOT EXISTS idx_imported_matches_competition_matchday_finished
+ON imported_matches(competition_id, matchday, finished);
+
+-- 10. Index pour les abonnements
 -- Utilisé dans: dashboard
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_status
 ON user_subscriptions(user_id, status);
 
--- 9. Index pour les profils (utile pour les jointures)
+-- 11. Index pour les profils (utile pour les jointures)
 CREATE INDEX IF NOT EXISTS idx_profiles_username
 ON profiles(username);
 
