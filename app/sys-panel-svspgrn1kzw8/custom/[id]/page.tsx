@@ -409,7 +409,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
               </div>
               <button
                 onClick={openCreateModal}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                className="btn-admin-primary flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Nouvelle journée
@@ -590,7 +590,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                   <button
                     onClick={createMatchday}
                     disabled={creating || currentWeekStatus.used}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="btn-admin-primary"
                   >
                     {creating ? 'Création...' : currentWeekStatus.used ? 'Semaine indisponible' : 'Créer la journée'}
                   </button>
@@ -785,7 +785,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                       setShowMatchesModal(false)
                       fetchMatchdays()
                     }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                    className="btn-admin-primary"
                   >
                     Terminé
                   </button>
@@ -883,7 +883,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                   </span>
                   <button
                     onClick={() => setShowPreviewModal(false)}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                    className="btn-admin-primary"
                   >
                     Fermer
                   </button>

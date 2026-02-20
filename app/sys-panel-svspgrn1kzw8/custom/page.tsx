@@ -197,7 +197,7 @@ export default function AdminCustomCompetitionsPage() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              className="btn-admin-primary flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Nouvelle compétition
@@ -452,7 +452,7 @@ export default function AdminCustomCompetitionsPage() {
                   <button
                     onClick={createCompetition}
                     disabled={creating || !newCompetition.name || !newCompetition.code}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="btn-admin-primary"
                   >
                     {creating ? 'Création...' : 'Créer la compétition'}
                   </button>
@@ -504,7 +504,7 @@ export default function AdminCustomCompetitionsPage() {
                   <button
                     onClick={saveDescription}
                     disabled={saving}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="btn-admin-primary"
                   >
                     {saving ? 'Enregistrement...' : 'Enregistrer'}
                   </button>

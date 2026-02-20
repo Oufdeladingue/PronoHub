@@ -505,7 +505,7 @@ export default function AdminDataPage() {
                   <p className="mb-4">Aucune compétition importée</p>
                   <button
                     onClick={() => setActiveTab('available')}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                    className="btn-admin-primary"
                   >
                     Importer des compétitions
                   </button>
@@ -612,7 +612,7 @@ export default function AdminDataPage() {
                 <button
                   onClick={fetchAvailableCompetitions}
                   disabled={loadingAvailable}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="btn-admin-primary"
                 >
                   {loadingAvailable ? 'Actualisation...' : 'Actualiser depuis Football-Data'}
                 </button>

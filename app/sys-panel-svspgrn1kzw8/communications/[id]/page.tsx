@@ -431,7 +431,7 @@ export default function EditCommunicationPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+        <div className="admin-card mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-3xl font-bold text-gray-900">
@@ -482,7 +482,7 @@ export default function EditCommunicationPage() {
         <div className="space-y-6">
           {/* Statistiques d'envoi (visible quand communication envoyée) */}
           {communication.status === 'sent' && (showStats || communication.stats_total_recipients > 0) && (
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <div className="admin-card">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Statistiques d'envoi</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-blue-50 rounded-lg p-3 sm:p-4 text-center">
@@ -581,7 +581,7 @@ export default function EditCommunicationPage() {
           )}
 
           {/* Informations générales - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="admin-card">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Informations générales</h2>
 
             <div className="space-y-4">
@@ -602,7 +602,7 @@ export default function EditCommunicationPage() {
           </div>
 
           {/* Ciblage - Pleine largeur */}
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          <div className="admin-card">
             <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Ciblage des destinataires</h2>
 
             <TargetingSelector
@@ -673,7 +673,7 @@ export default function EditCommunicationPage() {
             <div className="space-y-6">
               {/* Template (seulement pour new-style) */}
               {!isLegacy && (
-                <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                <div className="admin-card">
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Template Email</h2>
                   <select
                     value={communication.email_template_id || ''}
@@ -697,7 +697,7 @@ export default function EditCommunicationPage() {
                 </div>
               )}
 
-              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+              <div className="admin-card">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Email</h2>
 
                 <div className="space-y-4">
@@ -789,7 +789,7 @@ export default function EditCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Email */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+            <div className="admin-card lg:sticky lg:top-6 h-fit">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
@@ -845,7 +845,7 @@ export default function EditCommunicationPage() {
           {/* Notification + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Notification Push */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <div className="admin-card">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
 
               <div className="space-y-4">
@@ -915,7 +915,7 @@ export default function EditCommunicationPage() {
             </div>
 
             {/* Colonne droite: Aperçu Notification */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-6 h-fit">
+            <div className="admin-card lg:sticky lg:top-6 h-fit">
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
