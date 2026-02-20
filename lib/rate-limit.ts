@@ -94,8 +94,14 @@ export const RATE_LIMITS = {
 
 /**
  * Extrait l'IP du client depuis les headers
+ * Priorité : Cloudflare > x-forwarded-for > x-real-ip > fallback
  */
 export function getClientIP(request: Request): string {
+  // Cloudflare fournit la vraie IP du client
+  const cfIP = request.headers.get('cf-connecting-ip')
+  if (cfIP) {
+    return cfIP
+  }
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {
     return forwarded.split(',')[0].trim()

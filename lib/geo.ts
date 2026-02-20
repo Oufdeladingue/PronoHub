@@ -3,16 +3,23 @@ import { DEFAULT_ALLOWED_COUNTRIES, getCountryByCode } from '@/lib/countries'
 import { getClientIP } from '@/lib/rate-limit'
 
 /**
- * Détecte le pays d'une requête via geoip-lite (base locale, 0 appel réseau).
+ * Détecte le pays d'une requête.
+ * Priorité : header Cloudflare cf-ipcountry > geoip-lite (base locale).
  * Retourne le code ISO 3166-1 alpha-2 ou null si indétectable.
  */
 export function detectCountry(request: Request): string | null {
   try {
+    // Cloudflare fournit le pays directement (fiable, pas besoin de geoip-lite)
+    const cfCountry = request.headers.get('cf-ipcountry')
+    if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
+      return cfCountry.toUpperCase()
+    }
+
+    // Fallback : geoip-lite (base locale, 0 appel réseau)
     const ip = getClientIP(request)
     if (!ip || ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') {
       return null // IP locale → indétectable
     }
-    // Dynamic import pour éviter les problèmes de bundling edge
     const geoip = require('geoip-lite')
     const geo = geoip.lookup(ip)
     return geo?.country || null
