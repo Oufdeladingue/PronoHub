@@ -318,6 +318,7 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
           home_score: im?.home_score ?? null,
           away_score: im?.away_score ?? null,
           stage: im?.stage || null,
+          competition_id: im?.competition_id || null,
           competition_name: comp?.name || match.cached_competition_name || null,
           competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
           competition_emblem_white: comp?.custom_emblem_white || comp?.emblem || null
