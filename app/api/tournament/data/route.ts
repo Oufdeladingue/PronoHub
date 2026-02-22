@@ -224,6 +224,8 @@ async function fetchAllMatches(supabase: any, tournament: any) {
           .select(`
             id,
             football_data_match_id,
+            home_team_id,
+            away_team_id,
             home_team_name,
             away_team_name,
             home_team_crest,
@@ -261,6 +263,8 @@ async function fetchAllMatches(supabase: any, tournament: any) {
           custom_match_id: match.id,
           matchday: matchdayNumberMap[match.custom_matchday_id],
           utc_date: im?.utc_date || match.cached_utc_date,
+          home_team_id: im?.home_team_id || null,
+          away_team_id: im?.away_team_id || null,
           home_team_name: im?.home_team_name || match.cached_home_team,
           away_team_name: im?.away_team_name || match.cached_away_team,
           home_team_crest: im?.home_team_crest || match.cached_home_logo,
@@ -270,6 +274,7 @@ async function fetchAllMatches(supabase: any, tournament: any) {
           home_score: im?.home_score ?? null,
           away_score: im?.away_score ?? null,
           stage: im?.stage || null,
+          competition_id: im?.competition_id || null,
           competition_name: comp?.name || match.cached_competition_name || null,
           competition_emblem: comp?.custom_emblem_color || comp?.emblem || null,
           competition_emblem_white: comp?.custom_emblem_white || comp?.emblem || null
