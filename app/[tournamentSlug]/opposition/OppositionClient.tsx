@@ -2256,9 +2256,9 @@ export default function OppositionClient({
 
                                 {/* Affichage MOBILE uniquement */}
                                 <div className={`md:hidden relative ${isClosed ? 'opacity-75' : ''}`}>
-                                  {/* Logo de la compétition source en position absolue coin inférieur droit (uniquement pour tournois custom) */}
+                                  {/* Logo de la compétition source en position absolue coin supérieur droit (uniquement pour tournois custom) */}
                                   {tournament?.custom_competition_id && match.competition_emblem && (
-                                    <div className="absolute bottom-1 right-1 z-10" title={match.competition_name || ''}>
+                                    <div className="absolute top-1 right-1 z-10" title={match.competition_name || ''}>
                                       {/* Logo couleur pour thème clair */}
                                       <img
                                         src={match.competition_emblem}
