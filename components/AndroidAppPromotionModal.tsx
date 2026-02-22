@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 
 interface AndroidAppPromotionModalProps {
   onClose: () => void
@@ -46,15 +47,13 @@ export default function AndroidAppPromotionModal({ onClose }: AndroidAppPromotio
       >
         {/* Icône */}
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-[#ff9900]/20 flex items-center justify-center">
-            <svg
-              className="w-9 h-9 text-[#ff9900]"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M17.523 2.223a.5.5 0 0 0-.736.076l-1.82 2.349A8.252 8.252 0 0 0 12 4C9.65 4 7.547 5.015 6.036 6.648L4.213 4.299a.5.5 0 0 0-.812.584l1.77 2.282A9.627 9.627 0 0 0 3 13h18a9.627 9.627 0 0 0-2.171-5.835l1.77-2.282a.5.5 0 0 0-.076-.66ZM8.5 10.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm7 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM3 14v5a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3v-5H3Z" />
-            </svg>
-          </div>
+          <Image
+            src="/images/GP-logo.png"
+            alt="PronoHub Android"
+            width={80}
+            height={80}
+            className="w-20 h-20 object-contain"
+          />
         </div>
 
         {/* Titre */}
