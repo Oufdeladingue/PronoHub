@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 
 interface AndroidAppPromotionModalProps {
   onClose: () => void
@@ -47,11 +46,9 @@ export default function AndroidAppPromotionModal({ onClose }: AndroidAppPromotio
       >
         {/* Icône */}
         <div className="flex justify-center mb-4">
-          <Image
+          <img
             src="/images/GP-logo.png"
             alt="PronoHub Android"
-            width={80}
-            height={80}
             className="w-20 h-20 object-contain"
           />
         </div>
