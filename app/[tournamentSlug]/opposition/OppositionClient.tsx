@@ -522,6 +522,13 @@ export default function OppositionClient({
     }
   }, [selectedMatchday, tournament?.id])
 
+  // Recalculer les points quand les bonus match IDs sont chargés (race condition fix)
+  useEffect(() => {
+    if (bonusMatchIds.size > 0 && matches.length > 0 && selectedMatchday !== null) {
+      fetchMatchPoints(matches)
+    }
+  }, [bonusMatchIds])
+
   // Précharger les pronostics de tous les adversaires quand la journée est clôturée
   useEffect(() => {
     // Ne précharger que si :
