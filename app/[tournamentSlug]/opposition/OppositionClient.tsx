@@ -522,10 +522,21 @@ export default function OppositionClient({
     }
   }, [selectedMatchday, tournament?.id])
 
-  // Recalculer les points quand les bonus match IDs sont chargés (race condition fix)
+  // Recalculer les points (user + adversaires) quand les bonus match IDs sont chargés (race condition fix)
+  // fetchMatchPoints et preloadMatchdayPredictions peuvent s'exécuter AVANT que fetchBonusMatches termine,
+  // donc bonusMatchIds est vide et les points ne sont pas doublés. Ce useEffect recalcule tout quand les IDs arrivent.
   useEffect(() => {
     if (bonusMatchIds.size > 0 && matches.length > 0 && selectedMatchday !== null) {
       fetchMatchPoints(matches)
+
+      // Aussi recalculer les pronostics adversaires si déjà préchargés
+      if (userId && tournament) {
+        const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+        const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000)
+        if (new Date() >= closingTime) {
+          preloadMatchdayPredictions(matches)
+        }
+      }
     }
   }, [bonusMatchIds])
 
