@@ -227,6 +227,7 @@ export default function OppositionClient({
   // Ref et états pour la navigation des journées avec flèches
   const matchdaysContainerRef = useRef<HTMLDivElement>(null)
   const matchdayButtonRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+  const fetchMatchPointsCallId = useRef(0)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
@@ -873,6 +874,7 @@ export default function OppositionClient({
 
   // OPTIMISÉ: Accepte les matchs filtrés directement au lieu de refaire des requêtes
   const fetchMatchPoints = async (filteredMatches: Match[]) => {
+    const callId = ++fetchMatchPointsCallId.current
     try {
       if (!tournament || selectedMatchday === null) return
 
@@ -987,6 +989,9 @@ export default function OppositionClient({
 
         pointsMap[match.id] = points
       }
+
+      // Ignorer le résultat si un appel plus récent a été lancé (race condition)
+      if (callId !== fetchMatchPointsCallId.current) return
 
       setMatchPoints(pointsMap)
       setDefaultPredictions(defaultMap)
