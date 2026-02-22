@@ -7,9 +7,10 @@ import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
 import { fetchWithAuth, createClient } from '@/lib/supabase/client'
-import { openExternalUrl } from '@/lib/capacitor'
+import { openExternalUrl, isAndroid, isCapacitor } from '@/lib/capacitor'
 import { useTrophyNotifications } from '@/hooks/useTrophyNotifications'
 import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
+import AndroidAppPromotionModal from '@/components/AndroidAppPromotionModal'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -146,6 +147,17 @@ function DashboardContent({
 
   // Hook pour détecter les nouveaux trophées
   const { currentTrophy, hasNewTrophies, closeCurrentTrophy } = useTrophyNotifications()
+
+  // Modale promotion app Android (web mobile uniquement)
+  const [showAndroidAppModal, setShowAndroidAppModal] = useState(false)
+  useEffect(() => {
+    if (isAndroid() && !isCapacitor()) {
+      const dismissed = localStorage.getItem('android_app_modal_dismissed')
+      if (dismissed !== new Date().toDateString()) {
+        setShowAndroidAppModal(true)
+      }
+    }
+  }, [])
 
   // Vérification de disponibilité du pseudo (debounce 500ms)
   useEffect(() => {
@@ -1673,6 +1685,11 @@ function DashboardContent({
           trophy={currentTrophy}
           onClose={closeCurrentTrophy}
         />
+      )}
+
+      {/* Modale promotion app Android */}
+      {showAndroidAppModal && (
+        <AndroidAppPromotionModal onClose={() => setShowAndroidAppModal(false)} />
       )}
     </div>
   )
