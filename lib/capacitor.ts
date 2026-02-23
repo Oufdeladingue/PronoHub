@@ -23,10 +23,11 @@ interface CapacitorGlobal {
       keys: () => Promise<{ keys: string[] }>
     }
     App?: {
-      addListener: (event: string, callback: (state: { isActive: boolean }) => void) => Promise<{ remove: () => void }>
+      addListener: (event: string, callback: (data: any) => void) => Promise<{ remove: () => void }>
     }
     Browser?: {
       open: (options: { url: string }) => Promise<void>
+      close: () => Promise<void>
     }
     Filesystem?: {
       writeFile: (options: { path: string; data: string; directory: string; recursive?: boolean }) => Promise<{ uri: string }>
@@ -377,5 +378,39 @@ export async function saveImageToDevice(blob: Blob, filename: string): Promise<b
   } catch (error) {
     console.error('[Capacitor] Erreur sauvegarde image:', error)
     return false
+  }
+}
+
+/**
+ * Configure un listener pour les deep links (appUrlOpen)
+ * Utilisé pour le retour OAuth depuis le navigateur externe
+ */
+export async function setupDeepLinkListener(callback: (url: string) => void): Promise<void> {
+  const cap = getCapacitor()
+  const appPlugin = cap?.Plugins?.App
+
+  if (!appPlugin) return
+
+  try {
+    await appPlugin.addListener('appUrlOpen', (data: { url: string }) => {
+      callback(data.url)
+    })
+  } catch (e) {
+    console.warn('[Capacitor] Erreur configuration deep link listener:', e)
+  }
+}
+
+/**
+ * Ferme le navigateur ouvert via le plugin Browser
+ * Utilisé après le retour OAuth pour nettoyer
+ */
+export async function closeBrowser(): Promise<void> {
+  const cap = getCapacitor()
+  if (cap?.Plugins?.Browser?.close) {
+    try {
+      await cap.Plugins.Browser.close()
+    } catch {
+      // Ignorer si le navigateur est déjà fermé
+    }
   }
 }

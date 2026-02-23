@@ -131,7 +131,8 @@ function LoginForm() {
             .single()
 
           // Si pas de pseudo choisi (OAuth), rediriger vers choose-username
-          if (profile && profile.has_chosen_username === false) {
+          // Note: les nouveaux users OAuth ont has_chosen_username = null (pas false)
+          if (profile && profile.has_chosen_username !== true) {
             router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
             return
           }
@@ -160,15 +161,18 @@ function LoginForm() {
       // CAS 2: OAuth classique (web ou fallback Capacitor)
       // Utiliser la route API proxy pour masquer l'URL Supabase
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const apiUrl = redirectTo
-        ? `${baseUrl}/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`
-        : `${baseUrl}/api/auth/google`
+      const params = new URLSearchParams()
+      if (redirectTo) params.set('redirectTo', redirectTo)
 
       if (isCapacitor()) {
-        // Sur Capacitor, ouvrir l'URL du proxy dans le navigateur externe
+        // Sur Capacitor, ajouter source=capacitor pour le retour via deep link
+        params.set('source', 'capacitor')
+        const apiUrl = `${baseUrl}/api/auth/google?${params.toString()}`
         await openExternalUrl(apiUrl)
       } else {
-        // Sur le web, redirection classique vers le proxy
+        const apiUrl = params.toString()
+          ? `${baseUrl}/api/auth/google?${params.toString()}`
+          : `${baseUrl}/api/auth/google`
         window.location.href = apiUrl
       }
     } catch (err: unknown) {

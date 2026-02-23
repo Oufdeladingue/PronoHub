@@ -151,8 +151,8 @@ function SignUpForm() {
               .eq('id', data.user.id)
               .single()
 
-            if (profile && profile.has_chosen_username === false) {
-              // Compte OAuth sans pseudo choisi → choisir un pseudo
+            if (profile && profile.has_chosen_username !== true) {
+              // Compte OAuth sans pseudo choisi (null ou false) → choisir un pseudo
               router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
               return
             }
@@ -177,13 +177,18 @@ function SignUpForm() {
 
       // CAS 2: OAuth classique (web ou fallback)
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const apiUrl = redirectTo
-        ? `${baseUrl}/api/auth/${provider}?redirectTo=${encodeURIComponent(redirectTo)}`
-        : `${baseUrl}/api/auth/${provider}`
+      const params = new URLSearchParams()
+      if (redirectTo) params.set('redirectTo', redirectTo)
 
       if (isCapacitor()) {
+        // Sur Capacitor, ajouter source=capacitor pour le retour via deep link
+        params.set('source', 'capacitor')
+        const apiUrl = `${baseUrl}/api/auth/${provider}?${params.toString()}`
         await openExternalUrl(apiUrl)
       } else {
+        const apiUrl = params.toString()
+          ? `${baseUrl}/api/auth/${provider}?${params.toString()}`
+          : `${baseUrl}/api/auth/${provider}`
         window.location.href = apiUrl
       }
     } catch (err: unknown) {

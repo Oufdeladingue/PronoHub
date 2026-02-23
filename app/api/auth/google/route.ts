@@ -14,15 +14,18 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const redirectTo = requestUrl.searchParams.get('redirectTo')
+  const source = requestUrl.searchParams.get('source')
 
   try {
     const supabase = await createClient()
 
     // Générer l'URL OAuth côté serveur
     const origin = requestUrl.origin
-    const callbackUrl = redirectTo
-      ? `${origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`
-      : `${origin}/auth/callback`
+    const callbackParams = new URLSearchParams()
+    if (redirectTo) callbackParams.set('redirectTo', redirectTo)
+    if (source) callbackParams.set('source', source)
+    const callbackQuery = callbackParams.toString()
+    const callbackUrl = `${origin}/auth/callback${callbackQuery ? `?${callbackQuery}` : ''}`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
