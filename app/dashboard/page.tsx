@@ -382,15 +382,26 @@ export default async function DashboardPage() {
         matchdayMap.get(match.virtual_matchday)!.push(match)
       }
 
+      // Trouver la journée courante basée sur le calendrier (pas sur la complétion)
+      // Une journée est "démarrée" si au moins un de ses matchs a une date dans le passé
+      let highestStartedMatchday = startMatchday - 1
       let completedJourneys = 0
-      for (const [, matches] of matchdayMap) {
+      for (const [matchday, matches] of matchdayMap) {
+        // Vérifier si au moins un match de cette journée a démarré
+        const hasStarted = matches.some((m: any) => m.utc_date && new Date(m.utc_date) <= now)
+        if (hasStarted && matchday > highestStartedMatchday) {
+          highestStartedMatchday = matchday
+        }
+        // Compter les journées complètement terminées
         const allFinished = matches.every((m: any) => m.status === 'FINISHED' || m.status === 'AWARDED' || m.finished === true)
-        // Fallback: si tous les matchs ont une date > 4h dans le passé, journée terminée
         const allPast = !allFinished && matches.every((m: any) => m.utc_date && new Date(m.utc_date) < fourHoursAgo)
         if (allFinished || allPast) completedJourneys++
       }
 
-      const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
+      // currentNumber = position relative de la journée courante dans le tournoi
+      const currentNumber = highestStartedMatchday >= startMatchday
+        ? Math.min(highestStartedMatchday - startMatchday + 1, totalJourneys)
+        : 1
 
       journeyInfo[tournament.id] = { total: totalJourneys, completed: completedJourneys, currentNumber }
     }
@@ -412,21 +423,32 @@ export default async function DashboardPage() {
       }
 
       const totalJourneys = matchdays.length
+      let highestStartedIndex = -1
       let completedJourneys = 0
-      for (const md of matchdays) {
+      for (let i = 0; i < matchdays.length; i++) {
+        const md = matchdays[i]
         const matches = customMatchesByMatchdayId.get(md.id) || []
         if (matches.length === 0) continue
+
+        // Vérifier si au moins un match de cette journée a démarré
+        const hasStarted = matches.some((m: any) => m.cached_utc_date && new Date(m.cached_utc_date) <= now)
+        if (hasStarted && i > highestStartedIndex) {
+          highestStartedIndex = i
+        }
+
         const allFinished = matches.every((m: any) => {
           if (!m.football_data_match_id) return false
           const imported = customMatchStatusMap.get(m.football_data_match_id)
           return imported && (imported.status === 'FINISHED' || imported.finished === true)
         })
-        // Fallback: si tous les matchs ont une date > 4h dans le passé, journée terminée
         const allPast = !allFinished && matches.every((m: any) => m.cached_utc_date && new Date(m.cached_utc_date) < fourHoursAgo)
         if (allFinished || allPast) completedJourneys++
       }
 
-      const currentNumber = Math.min(completedJourneys + 1, totalJourneys)
+      // currentNumber = position 1-indexée de la journée courante
+      const currentNumber = highestStartedIndex >= 0
+        ? Math.min(highestStartedIndex + 1, totalJourneys)
+        : 1
 
       journeyInfo[tournament.id] = { total: totalJourneys, completed: completedJourneys, currentNumber }
     }
