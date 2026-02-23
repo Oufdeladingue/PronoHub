@@ -27,8 +27,11 @@ interface TeamStats {
   memberCount: number
   avgPoints: number
   totalPoints: number
+  totalExactScores: number
+  totalCorrectResults: number
   avgExactScores: number
   avgCorrectResults: number
+  memberUserIds: string[]
   rank: number
 }
 
@@ -402,7 +405,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             {/* Info classement équipes */}
             <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg info-bg-container">
               <p className="text-xs md:text-sm theme-text-secondary">
-                Classement basé sur la moyenne des points de chaque équipe
+                Classement basé sur la moyenne des points de chaque équipe. En cas d&apos;égalité, la moyenne de bons résultats départage.
               </p>
             </div>
 
@@ -452,7 +455,11 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                               (e.target as HTMLImageElement).src = '/images/team-avatars/team1.svg'
                             }}
                           />
-                          <span className="text-xs md:text-base truncate max-w-[100px] md:max-w-none theme-text">
+                          <span className={`text-xs md:text-base truncate max-w-[100px] md:max-w-none ${
+                            currentUserId && team.memberUserIds?.includes(currentUserId)
+                              ? 'text-[#ff9900] dark:text-[#ff9900] font-bold'
+                              : 'theme-text'
+                          }`}>
                             {team.teamName}
                           </span>
                         </div>
@@ -477,14 +484,14 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                         )}
                       </td>
 
-                      {/* Bons résultats (moyenne) */}
+                      {/* Bons résultats (total) */}
                       <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text text-xs md:text-base">
-                        {team.avgCorrectResults.toFixed(1)}
+                        {team.totalCorrectResults ?? 0}
                       </td>
 
-                      {/* Scores exacts (moyenne) */}
+                      {/* Scores exacts (total) */}
                       <td className="py-2 md:py-4 px-1 md:px-2 text-center theme-text text-xs md:text-base">
-                        {team.avgExactScores.toFixed(1)}
+                        {team.totalExactScores ?? 0}
                       </td>
 
                       {/* Nombre de membres */}
@@ -502,12 +509,12 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               <div className="space-y-1">
                 <p className="text-xs theme-text-secondary flex items-center gap-1">
                   <span>* ✓ =</span>
-                  <span>moyenne bons résultats</span>
+                  <span>total bons résultats</span>
                 </p>
                 <p className="text-xs theme-text-secondary flex items-center gap-1">
                   <span>*</span>
                   <img src="/images/icons/target.svg" alt="Target" className="w-3 h-3 inline-block icon-filter-theme" />
-                  <span>= moyenne scores exacts</span>
+                  <span>= total scores exacts</span>
                 </p>
               </div>
             </div>

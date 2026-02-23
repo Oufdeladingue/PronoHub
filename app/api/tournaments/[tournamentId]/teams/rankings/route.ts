@@ -9,8 +9,11 @@ interface TeamRanking {
   memberCount: number
   avgPoints: number
   totalPoints: number
+  totalExactScores: number
+  totalCorrectResults: number
   avgExactScores: number
   avgCorrectResults: number
+  memberUserIds: string[]
   rank: number
 }
 
@@ -262,8 +265,11 @@ export async function GET(
           memberCount: 0,
           avgPoints: 0,
           totalPoints: 0,
+          totalExactScores: 0,
+          totalCorrectResults: 0,
           avgExactScores: 0,
           avgCorrectResults: 0,
+          memberUserIds: [],
           rank: 0
         }
       }
@@ -288,17 +294,21 @@ export async function GET(
         memberCount,
         avgPoints: totalPoints / memberCount,
         totalPoints,
+        totalExactScores,
+        totalCorrectResults,
         avgExactScores: totalExactScores / memberCount,
         avgCorrectResults: totalCorrectResults / memberCount,
+        memberUserIds: members,
         rank: 0
       }
     })
 
     // 7. Trier et assigner les rangs
+    // Tri : moy. points → moy. bons résultats (départage) → moy. scores exacts
     teamStats.sort((a, b) => {
       if (b.avgPoints !== a.avgPoints) return b.avgPoints - a.avgPoints
-      if (b.avgExactScores !== a.avgExactScores) return b.avgExactScores - a.avgExactScores
-      return b.avgCorrectResults - a.avgCorrectResults
+      if (b.avgCorrectResults !== a.avgCorrectResults) return b.avgCorrectResults - a.avgCorrectResults
+      return b.avgExactScores - a.avgExactScores
     })
 
     let currentRank = 1
@@ -306,8 +316,8 @@ export async function GET(
       if (index > 0) {
         const prev = teamStats[index - 1]
         const isTied = team.avgPoints === prev.avgPoints &&
-                       team.avgExactScores === prev.avgExactScores &&
-                       team.avgCorrectResults === prev.avgCorrectResults
+                       team.avgCorrectResults === prev.avgCorrectResults &&
+                       team.avgExactScores === prev.avgExactScores
         if (!isTied) {
           currentRank = index + 1
         }
