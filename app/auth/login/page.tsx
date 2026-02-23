@@ -9,6 +9,7 @@ import { Suspense } from 'react'
 import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionToPreferences } from '@/lib/capacitor'
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import AgeGate from '@/components/AgeGate'
+import { trackLogin } from '@/lib/analytics'
 
 function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -145,6 +146,7 @@ function LoginForm() {
             : (profile?.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
 
           // Passer au loader progressif (comme le login email)
+          trackLogin('google')
           setGoogleLoading(false)
           setRedirecting(true)
           setPendingRedirect(redirectPath)
@@ -268,6 +270,7 @@ function LoginForm() {
         await supabase.auth.refreshSession()
 
         // Afficher le loader de redirection
+        trackLogin('email')
         setLoading(false)
         setRedirecting(true)
 

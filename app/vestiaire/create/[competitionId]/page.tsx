@@ -9,6 +9,7 @@ import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { trackTournamentCreated } from '@/lib/analytics'
 
 interface Competition {
   id: number | string
@@ -334,6 +335,7 @@ export default function TableauNoirPage() {
       }
 
       // Rediriger vers la page d'echauffement
+      trackTournamentCreated({ type: selectedTournamentType, competition: competition?.name || '' })
       const slug = `${tournamentName.toLowerCase().replace(/\s+/g, '_')}_${tournamentSlug}`
       router.push(`/vestiaire/${slug}/echauffement`)
     } catch (error) {

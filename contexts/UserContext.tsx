@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { identifyUser, resetUser, trackPlatform } from '@/lib/analytics'
+import { isCapacitor } from '@/lib/capacitor'
 
 // Intervalle minimum entre deux mises à jour d'activité (5 minutes en ms)
 const ACTIVITY_THROTTLE_INTERVAL = 5 * 60 * 1000
@@ -43,6 +45,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error('Error fetching user data:', err)
     }
   }
+
+  // Identifier l'utilisateur dans PostHog quand il est connecté
+  useEffect(() => {
+    if (userId && username) {
+      identifyUser(userId, { username, platform: isCapacitor() ? 'capacitor' : 'web' })
+      trackPlatform(isCapacitor() ? 'capacitor' : 'web')
+    }
+  }, [userId, username])
 
   // Tracker l'activité de l'utilisateur (throttled)
   useEffect(() => {

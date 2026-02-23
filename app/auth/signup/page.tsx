@@ -9,6 +9,7 @@ import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionT
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import TurnstileWidget from '@/components/TurnstileWidget'
 import AgeGate from '@/components/AgeGate'
+import { trackSignup } from '@/lib/analytics'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -276,6 +277,7 @@ function SignUpForm() {
       }
 
       // Rediriger vers la page de vérification (avec redirectTo si présent)
+      trackSignup('email')
       router.push(redirectTo ? `/auth/verify-code?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/verify-code')
     } catch (err: any) {
       setError(err.message)

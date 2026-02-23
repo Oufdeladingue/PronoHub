@@ -8,6 +8,7 @@ import NavigationLoader from "@/components/NavigationLoader";
 import CapacitorSessionProvider from "@/components/CapacitorSessionProvider";
 import PushNotificationsProvider from "@/components/PushNotificationsProvider";
 import DebugModalContainer from "@/components/modals/DebugModalContainer";
+import PostHogProvider from "@/components/PostHogProvider";
 // Importer le logger dès le début pour capturer tous les logs
 import "@/lib/logger";
 
@@ -177,6 +178,7 @@ export default function RootLayout({
           Aller au contenu principal
         </a>
         <CapacitorSessionProvider>
+          <PostHogProvider>
           <ThemeProvider>
             <UserProvider>
               <PushNotificationsProvider>
@@ -188,6 +190,7 @@ export default function RootLayout({
               </PushNotificationsProvider>
             </UserProvider>
           </ThemeProvider>
+          </PostHogProvider>
         </CapacitorSessionProvider>
       </body>
     </html>

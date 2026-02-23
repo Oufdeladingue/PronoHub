@@ -13,6 +13,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, getLegNumber, isKnockoutStage, type StageType } from '@/lib/stage-formatter'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
+import { trackPredictionSubmitted } from '@/lib/analytics'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
 import MaxScoreModal from '@/components/MaxScoreModal'
 import StatsButton from '@/components/StatsButton'
@@ -1392,6 +1393,9 @@ export default function OppositionClient({
 
       // Mettre à jour également allPredictions pour que les avertissements se mettent à jour
       setAllPredictions(prev => ({ ...prev, [matchId]: prediction }))
+
+      // Track prediction
+      trackPredictionSubmitted({ tournamentId: tournament.id, matchday: selectedMatchday || 0 })
 
       // Show success feedback with vivid border for 500ms
       setSuccessPrediction(matchId)

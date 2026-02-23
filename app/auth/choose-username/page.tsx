@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
+import { trackUsernameChosen } from '@/lib/analytics'
 
 function ChooseUsernameForm() {
   const [newUsername, setNewUsername] = useState('')
@@ -111,6 +112,7 @@ function ChooseUsernameForm() {
       // Envoyer l'email de bienvenue en arrière-plan
       fetch('/api/email/welcome', { method: 'POST' }).catch(console.error)
 
+      trackUsernameChosen()
       router.replace(redirectTo || '/dashboard')
     } catch (err: any) {
       setUsernameError(err.message)

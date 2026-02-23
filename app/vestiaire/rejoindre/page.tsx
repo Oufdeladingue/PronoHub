@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
+import { trackTournamentJoined } from '@/lib/analytics'
 
 interface TournamentPreview {
   tournament: {
@@ -140,6 +141,7 @@ function RejoindreContent() {
 
       // Rediriger vers la page d'échauffement du tournoi
       if (data.tournament?.slug) {
+        trackTournamentJoined({ method: 'code' })
         // Le slug complet est déjà construit côté serveur
         router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
       }
