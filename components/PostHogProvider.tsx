@@ -10,7 +10,7 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react'
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
     api_host: '/ingest',
-    ui_host: 'https://us.posthog.com',
+    ui_host: 'https://eu.posthog.com',
     person_profiles: 'identified_only',
     capture_pageview: false, // On capture manuellement via le routeur Next.js
     capture_pageleave: true,
