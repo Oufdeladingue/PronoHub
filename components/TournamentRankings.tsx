@@ -208,6 +208,11 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           // Mettre en cache
           rankingsCache.current.set(cacheKey, { data: rankings, timestamp: now })
         } else {
+          console.error('[TeamRankings] API error:', response.status, response.statusText)
+          try {
+            const errorData = await response.json()
+            console.error('[TeamRankings] Error body:', errorData)
+          } catch {}
           setTeamRankings([])
         }
         setLoading(false)
