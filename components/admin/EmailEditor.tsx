@@ -227,7 +227,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
           placeholder="<p>Votre contenu HTML...</p>"
         />
       ) : (
-        <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+        <div className="border border-gray-300 rounded-lg bg-white">
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
             {/* Formatting */}
@@ -367,7 +367,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
                 <span className="text-base leading-none">😀</span>
               </button>
               {showEmojis && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-20 w-[280px]">
+                <div className="absolute top-full left-0 mt-1 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 w-[280px] max-h-[250px] overflow-y-auto">
                   {EMOJI_CATEGORIES.map(({ label, emojis }) => (
                     <div key={label} className="mb-2">
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{label}</span>
@@ -498,7 +498,7 @@ export default function EmailEditor({ value, onChange }: EmailEditorProps) {
           </div>
 
           {/* Editor content */}
-          <div onClick={closeAllDropdowns}>
+          <div className="overflow-hidden rounded-b-lg" onClick={closeAllDropdowns}>
             <EditorContent editor={editor} />
           </div>
         </div>
