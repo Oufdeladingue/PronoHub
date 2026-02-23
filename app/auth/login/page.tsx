@@ -133,7 +133,10 @@ function LoginForm() {
           // Si pas de pseudo choisi (OAuth), rediriger vers choose-username
           // Note: les nouveaux users OAuth ont has_chosen_username = null (pas false)
           if (profile && profile.has_chosen_username !== true) {
-            router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
+            const target = redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username'
+            setGoogleLoading(false)
+            setRedirecting(true)
+            setPendingRedirect(target)
             return
           }
 
@@ -141,7 +144,10 @@ function LoginForm() {
             ? decodeURIComponent(redirectTo)
             : (profile?.role === 'super_admin' ? '/sys-panel-svspgrn1kzw8' : '/dashboard')
 
-          router.push(redirectPath)
+          // Passer au loader progressif (comme le login email)
+          setGoogleLoading(false)
+          setRedirecting(true)
+          setPendingRedirect(redirectPath)
           return
 
         } catch (nativeError: unknown) {
