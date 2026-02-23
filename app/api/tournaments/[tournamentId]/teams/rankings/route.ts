@@ -24,16 +24,15 @@ export async function GET(
 ) {
   try {
     const { tournamentId } = await params
-    // Même pattern que rankings/route.ts (qui fonctionne)
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 1. Récupérer le tournoi
+    // 1. Récupérer le tournoi (select * pour avoir tous les champs comme la route individuelle)
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('id, teams_enabled, tournament_type, competition_id, custom_competition_id, starting_matchday, ending_matchday, start_date')
+      .select('*')
       .eq('id', tournamentId)
       .single()
 
@@ -45,7 +44,7 @@ export async function GET(
       return NextResponse.json({ rankings: [], message: 'Les equipes ne sont pas activees' })
     }
 
-    // 2. Récupérer les équipes (sans join pour éviter les problèmes de relation)
+    // 2. Récupérer les équipes
     const { data: teams, error: teamsError } = await supabase
       .from('tournament_teams')
       .select('id, name, avatar')
@@ -60,7 +59,7 @@ export async function GET(
       return NextResponse.json({ rankings: [] })
     }
 
-    // 3. Récupérer les membres séparément (plus robuste qu'un join)
+    // 3. Récupérer les membres séparément
     const teamIds = teams.map(t => t.id)
     const { data: allMembers, error: membersError } = await supabase
       .from('tournament_team_members')
@@ -95,7 +94,7 @@ export async function GET(
     const { data: participants } = participantsResult
     const { data: pointsSettingsData } = pointsSettingsResult
 
-    // 5. Calculer les points par joueur
+    // 5. Calculer les points par joueur (même logique que la route individuelle)
     const playerPointsMap = new Map<string, { points: number, exactScores: number, correctResults: number }>()
 
     try {
@@ -125,6 +124,7 @@ export async function GET(
           const tournamentStartDate = tournament.start_date ? new Date(tournament.start_date) : null
 
           let finishedMatches: any[] = []
+          let allMatches: any[] = []
 
           if (isCustom) {
             const { data: matchdaysData } = await supabase
@@ -135,6 +135,8 @@ export async function GET(
 
             if (matchdaysData && matchdaysData.length > 0) {
               const matchdayIds = matchdaysData.map((md: any) => md.id)
+              const matchdayNumberMap: Record<string, number> = {}
+              matchdaysData.forEach((md: any) => { matchdayNumberMap[md.id] = md.matchday_number })
 
               const { data: customMatches } = await supabase
                 .from('custom_competition_matches')
@@ -156,43 +158,68 @@ export async function GET(
                   importedMatchesMap[im.football_data_match_id] = im
                 })
 
-                finishedMatches = customMatches
-                  .map((cm: any) => {
-                    const im = importedMatchesMap[cm.football_data_match_id]
-                    return {
-                      id: im?.id || cm.id,
-                      utc_date: im?.utc_date || cm.cached_utc_date,
-                      home_score: im?.home_score ?? null,
-                      away_score: im?.away_score ?? null,
-                    }
-                  })
-                  .filter((m: any) => m.home_score !== null && m.away_score !== null)
+                const allMapped = customMatches.map((cm: any) => {
+                  const im = importedMatchesMap[cm.football_data_match_id]
+                  return {
+                    id: im?.id || cm.id,
+                    matchday: matchdayNumberMap[cm.custom_matchday_id],
+                    utc_date: im?.utc_date || cm.cached_utc_date,
+                    home_score: im?.home_score ?? null,
+                    away_score: im?.away_score ?? null,
+                  }
+                })
+
+                finishedMatches = allMapped.filter((m: any) => m.home_score !== null && m.away_score !== null)
+                allMatches = allMapped
               }
             }
           } else {
-            const { data: matchesData } = await supabase
-              .from('imported_matches')
-              .select('id, home_score, away_score, utc_date')
-              .eq('competition_id', tournament.competition_id)
-              .in('matchday', matchdaysToCalculate)
-              .not('home_score', 'is', null)
-              .not('away_score', 'is', null)
+            // Tournoi standard : récupérer matchs terminés et tous les matchs
+            const [finishedResult, allResult] = await Promise.all([
+              supabase
+                .from('imported_matches')
+                .select('id, home_score, away_score, utc_date, matchday')
+                .eq('competition_id', tournament.competition_id)
+                .in('matchday', matchdaysToCalculate)
+                .not('home_score', 'is', null)
+                .not('away_score', 'is', null),
+              supabase
+                .from('imported_matches')
+                .select('id, utc_date, matchday')
+                .eq('competition_id', tournament.competition_id)
+                .in('matchday', matchdaysToCalculate)
+            ])
 
-            finishedMatches = matchesData || []
+            finishedMatches = finishedResult.data || []
+            allMatches = allResult.data || []
           }
 
+          // Filtrer par date de démarrage du tournoi
           if (tournamentStartDate) {
             finishedMatches = finishedMatches.filter((m: any) => new Date(m.utc_date) >= tournamentStartDate)
+            allMatches = allMatches.filter((m: any) => new Date(m.utc_date) >= tournamentStartDate)
           }
 
           if (finishedMatches.length > 0) {
+            const finishedMatchesMap = new Map(finishedMatches.map((m: any) => [m.id, m]))
             const matchIds = finishedMatches.map((m: any) => m.id)
 
-            const { data: allPredictions } = await supabase
-              .from('predictions')
-              .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction')
-              .eq('tournament_id', tournamentId)
-              .in('match_id', matchIds)
+            // Récupérer toutes les prédictions ET les matchs bonus en parallèle
+            const [predictionsResult, bonusResult] = await Promise.all([
+              supabase
+                .from('predictions')
+                .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, created_at')
+                .eq('tournament_id', tournamentId)
+                .in('match_id', matchIds),
+              supabase
+                .from('tournament_bonus_matches')
+                .select('match_id, matchday')
+                .eq('tournament_id', tournamentId)
+                .in('matchday', matchdaysToCalculate)
+            ])
+
+            const { data: allPredictions } = predictionsResult
+            const bonusMatchIds = new Set(bonusResult.data?.map((bm: any) => bm.match_id) || [])
 
             const exactScoreSetting = pointsSettingsData?.find((s: any) => s.setting_key === 'points_exact_score')
             const correctResultSetting = pointsSettingsData?.find((s: any) => s.setting_key === 'points_correct_result')
@@ -202,11 +229,10 @@ export async function GET(
               exactScore: parseInt(exactScoreSetting?.setting_value || '3'),
               correctResult: parseInt(correctResultSetting?.setting_value || '1'),
               incorrectResult: parseInt(incorrectResultSetting?.setting_value || '0'),
-              drawWithDefaultPrediction: (tournament as any).scoring_draw_with_default_prediction ?? 0
+              drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
             }
 
-            const matchMap = new Map(finishedMatches.map((m: any) => [m.id, m]))
-
+            // Grouper les prédictions par utilisateur
             const predsByUser = new Map<string, any[]>()
             for (const pred of (allPredictions || [])) {
               if (!predsByUser.has(pred.user_id)) {
@@ -215,28 +241,104 @@ export async function GET(
               predsByUser.get(pred.user_id)!.push(pred)
             }
 
+            // Préparer les données pour le bonus "Prime d'avant-match"
+            const firstMatchByMatchday: Record<number, Date> = {}
+            const matchIdsByMatchday: Record<number, string[]> = {}
+
+            if (tournament.early_prediction_bonus && allMatches) {
+              for (const match of allMatches) {
+                const md = match.matchday
+                if (!matchIdsByMatchday[md]) {
+                  matchIdsByMatchday[md] = []
+                }
+                matchIdsByMatchday[md].push(match.id)
+
+                const matchDate = new Date(match.utc_date)
+                if (!firstMatchByMatchday[md] || matchDate < firstMatchByMatchday[md]) {
+                  firstMatchByMatchday[md] = matchDate
+                }
+              }
+            }
+
+            // Calculer les points pour chaque participant
             for (const participant of participants) {
               const userId = participant.user_id
               const userPreds = predsByUser.get(userId) || []
+              const predictionsMap = new Map(userPreds.map((p: any) => [p.match_id, p]))
+
+              // Créer des pronostics par défaut 0-0 pour les matchs non pronostiqués
+              // (même logique que la route individuelle)
+              const allUserPredictions = finishedMatches.map((match: any) => {
+                const existingPred = predictionsMap.get(match.id)
+                if (existingPred) return existingPred
+                return {
+                  match_id: match.id,
+                  predicted_home_score: 0,
+                  predicted_away_score: 0,
+                  is_default_prediction: true,
+                  user_id: userId,
+                  tournament_id: tournamentId
+                }
+              })
+
               let totalPts = 0
               let exactScores = 0
               let correctResults = 0
 
-              for (const pred of userPreds) {
-                const match = matchMap.get(pred.match_id)
-                if (!match) continue
+              for (const pred of allUserPredictions) {
+                const match = finishedMatchesMap.get(pred.match_id)
+                if (!match || match.home_score === null || match.away_score === null) continue
+
+                const isValidPrediction = pred.predicted_home_score !== null &&
+                                         pred.predicted_away_score !== null
+                if (!isValidPrediction) continue
+
+                const isBonusMatch = bonusMatchIds.has(match.id)
+                const isDefaultPrediction = pred.is_default_prediction || false
 
                 const result = calculatePoints(
                   { predictedHomeScore: pred.predicted_home_score, predictedAwayScore: pred.predicted_away_score },
                   { homeScore: match.home_score, awayScore: match.away_score },
                   pointsSettings,
-                  false,
-                  pred.is_default_prediction || false
+                  isBonusMatch,
+                  isDefaultPrediction
                 )
 
                 totalPts += result.points
-                if (result.isExactScore) exactScores++
-                else if (result.isCorrectResult) correctResults++
+
+                // Compter exactScores et correctResults seulement pour les pronos non par défaut
+                // (même logique que la route individuelle)
+                if (!isDefaultPrediction) {
+                  if (result.isExactScore) exactScores++
+                  if (result.isCorrectResult) correctResults++
+                }
+              }
+
+              // Calculer le bonus "Prime d'avant-match" si activé
+              let earlyPredictionBonusPoints = 0
+              if (tournament.early_prediction_bonus && userPreds.length > 0) {
+                for (const md of matchdaysToCalculate) {
+                  const matchIdsForDay = matchIdsByMatchday[md] || []
+                  if (matchIdsForDay.length === 0) continue
+
+                  const allMatchesFinished = matchIdsForDay.every((mId: string) => finishedMatchesMap.has(mId))
+                  if (!allMatchesFinished) continue
+
+                  let hasDefaultPrediction = false
+                  for (const matchId of matchIdsForDay) {
+                    const pred = userPreds.find((p: any) => p.match_id === matchId)
+                    if (!pred || pred.is_default_prediction) {
+                      hasDefaultPrediction = true
+                      break
+                    }
+                  }
+
+                  if (!hasDefaultPrediction) {
+                    earlyPredictionBonusPoints += 1
+                  }
+                }
+
+                totalPts += earlyPredictionBonusPoints
               }
 
               playerPointsMap.set(userId, {
@@ -292,19 +394,18 @@ export async function GET(
         teamName: team.name,
         teamAvatar: team.avatar || 'team1',
         memberCount,
-        avgPoints: totalPoints / memberCount,
+        avgPoints: Math.round((totalPoints / memberCount) * 10) / 10,
         totalPoints,
         totalExactScores,
         totalCorrectResults,
-        avgExactScores: totalExactScores / memberCount,
-        avgCorrectResults: totalCorrectResults / memberCount,
+        avgExactScores: Math.round((totalExactScores / memberCount) * 10) / 10,
+        avgCorrectResults: Math.round((totalCorrectResults / memberCount) * 10) / 10,
         memberUserIds: members,
         rank: 0
       }
     })
 
     // 7. Trier et assigner les rangs
-    // Tri : moy. points → moy. bons résultats (départage) → moy. scores exacts
     teamStats.sort((a, b) => {
       if (b.avgPoints !== a.avgPoints) return b.avgPoints - a.avgPoints
       if (b.avgCorrectResults !== a.avgCorrectResults) return b.avgCorrectResults - a.avgCorrectResults
