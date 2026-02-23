@@ -104,13 +104,10 @@ function LoginForm() {
 
     try {
       // CAS 1: Google Sign-In natif Android (popup native)
-      console.log('[Auth] isNativeGoogleAuthAvailable:', isNativeGoogleAuthAvailable())
       if (isNativeGoogleAuthAvailable()) {
         try {
-          console.log('[Auth] Tentative Google Sign-In natif...')
           // Obtenir l'idToken via le SDK natif Google
           const googleUser = await signInWithGoogleNative()
-          console.log('[Auth] Google natif OK, idToken reçu')
 
           // Authentifier avec Supabase via idToken
           const { data, error } = await supabase.auth.signInWithIdToken({
@@ -157,9 +154,7 @@ function LoginForm() {
           }
 
           console.error('[Auth] Erreur Google natif:', errorMessage, nativeError)
-          // DEBUG TEMPORAIRE: afficher l'erreur à l'écran
-          alert('[DEBUG] Erreur Google natif: ' + errorMessage)
-          console.log('[Auth] Fallback vers OAuth browser...')
+          // Fallback vers OAuth browser si erreur native
         }
       }
 
