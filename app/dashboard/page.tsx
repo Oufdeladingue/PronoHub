@@ -274,6 +274,7 @@ export default async function DashboardPage() {
           .from('imported_matches')
           .select('competition_id, matchday, stage, status, finished, utc_date')
           .in('competition_id', uniqueCompetitionIds)
+          .limit(10000)
       : Promise.resolve({ data: [] })
 
     const customMatchdaysPromise = uniqueCustomCompIds.length > 0
@@ -288,6 +289,7 @@ export default async function DashboardPage() {
       ? supabase
           .from('custom_competition_matches')
           .select('custom_matchday_id, cached_utc_date, football_data_match_id')
+          .limit(10000)
       : Promise.resolve({ data: [] })
 
     // Exécuter toutes les requêtes en parallèle
@@ -352,6 +354,7 @@ export default async function DashboardPage() {
         .from('imported_matches')
         .select('football_data_match_id, status, finished')
         .in('football_data_match_id', customFootballDataIds)
+        .limit(10000)
       for (const m of customImportedMatches || []) {
         customMatchStatusMap.set(m.football_data_match_id, { status: m.status, finished: m.finished })
       }
