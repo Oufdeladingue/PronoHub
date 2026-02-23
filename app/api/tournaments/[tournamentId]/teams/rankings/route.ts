@@ -82,6 +82,7 @@ export async function GET(
     // 2. Calculer les points par joueur directement (sans appel HTTP interne)
     const playerPointsMap = new Map<string, { points: number, exactScores: number, correctResults: number }>()
 
+    try {
     if (participants && participants.length > 0) {
       // Déterminer les matchdays
       let startMatchday = tournament.starting_matchday
@@ -237,6 +238,10 @@ export async function GET(
           }
         }
       }
+    }
+    } catch (pointsError) {
+      console.error('[Team Rankings] Erreur calcul points (équipes affichées avec 0 pts):', pointsError)
+      // On continue avec playerPointsMap vide - les équipes s'afficheront avec 0 pts
     }
 
     // 3. Calculer les stats pour chaque equipe
