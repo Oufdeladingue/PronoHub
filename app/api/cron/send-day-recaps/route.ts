@@ -244,6 +244,14 @@ export async function GET(request: NextRequest) {
               supabase, tournament, [matchday], tournamentStartDate, isCustom
             )
 
+            // Récupérer les matchs bonus pour ce tournoi
+            const { data: bonusMatchesForDay } = await supabase
+              .from('tournament_bonus_matches')
+              .select('match_id')
+              .eq('tournament_id', tournament.id)
+              .eq('matchday', matchday)
+            const bonusMatchIdsForDay = new Set(bonusMatchesForDay?.map((bm: any) => bm.match_id) || [])
+
             let bestMatch: any = null
             let worstMatch: any = null
             let maxPoints = -1
@@ -257,7 +265,7 @@ export async function GET(request: NextRequest) {
                 { predictedHomeScore: userPred.predicted_home_score, predictedAwayScore: userPred.predicted_away_score },
                 { homeScore: match.home_score, awayScore: match.away_score },
                 pointsSettings,
-                false,
+                bonusMatchIdsForDay.has(match.id),
                 userPred.is_default_prediction || false
               )
 

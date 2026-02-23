@@ -90,7 +90,7 @@ export default async function DashboardPage() {
       .maybeSingle()
   ])
 
-  const hasChosenUsername = profile?.has_chosen_username !== false
+  const hasChosenUsername = profile?.has_chosen_username === true
 
   // Mettre à jour la plateforme (fire-and-forget, pas de await)
   supabase.from('profiles').update({ last_platform: 'web' }).eq('id', user.id).then(() => {})

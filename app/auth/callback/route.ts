@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
 
     // Vérifier la restriction par pays (via Cloudflare cf-ipcountry)
     const countryCheck = await checkCountryAllowed(request)
@@ -21,9 +21,24 @@ export async function GET(request: Request) {
         `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
       )
     }
+
+    // Vérifier si l'utilisateur a déjà choisi son pseudo (OAuth)
+    if (sessionData?.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('has_chosen_username')
+        .eq('id', sessionData.user.id)
+        .single()
+
+      if (profile && profile.has_chosen_username !== true) {
+        const chooseUsernameUrl = redirectTo
+          ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+          : '/auth/choose-username'
+        return NextResponse.redirect(`${origin}${chooseUsernameUrl}`)
+      }
+    }
   }
 
-  // Rediriger vers le dashboard (la modale de choix de pseudo s'affichera si nécessaire)
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
   return NextResponse.redirect(`${origin}${finalRedirect}`)
 }
