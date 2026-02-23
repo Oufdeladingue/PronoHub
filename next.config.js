@@ -3,6 +3,19 @@ const nextConfig = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
   serverExternalPackages: ['geoip-lite'],
+  // Proxy PostHog à travers notre propre domaine pour éviter les ad blockers et problèmes CORS/CSP
+  async rewrites() {
+    return [
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://eu-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://eu.i.posthog.com/:path*',
+      },
+    ]
+  },
   async headers() {
     // Skip security headers in development/test mode (no HTTPS)
     const isProduction = process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_APP_URL?.startsWith('https://pronohub')
@@ -31,11 +44,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://eu-assets.i.posthog.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com data:",
-              "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.football-data.org wss://*.supabase.co",
+              "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.football-data.org wss://*.supabase.co https://eu.i.posthog.com https://eu-assets.i.posthog.com",
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
               "object-src 'none'",
               "base-uri 'self'",
