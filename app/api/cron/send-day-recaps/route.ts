@@ -261,25 +261,19 @@ export async function GET(request: NextRequest) {
                 userPred.is_default_prediction || false
               )
 
-              // Récupérer les noms des équipes
-              const { data: matchDetails } = isCustom
-                ? await supabase
-                    .from('custom_competition_matches')
-                    .select('home_team, away_team')
-                    .eq('id', match.id)
-                    .single()
-                : await supabase
-                    .from('imported_matches')
-                    .select('home_team_name, away_team_name, home_team_crest, away_team_crest')
-                    .eq('id', match.id)
-                    .single()
+              // Récupérer les noms et logos des équipes (toujours depuis imported_matches, même pour les custom)
+              const { data: matchDetails } = await supabase
+                .from('imported_matches')
+                .select('home_team_name, away_team_name, home_team_crest, away_team_crest')
+                .eq('id', match.id)
+                .single()
 
               const details = matchDetails as any
               const matchData = {
-                homeTeam: (isCustom ? details?.home_team : details?.home_team_name) || 'Équipe 1',
-                awayTeam: (isCustom ? details?.away_team : details?.away_team_name) || 'Équipe 2',
-                homeCrest: isCustom ? undefined : details?.home_team_crest,
-                awayCrest: isCustom ? undefined : details?.away_team_crest,
+                homeTeam: details?.home_team_name || 'Équipe 1',
+                awayTeam: details?.away_team_name || 'Équipe 2',
+                homeCrest: details?.home_team_crest,
+                awayCrest: details?.away_team_crest,
                 homeScore: match.home_score,
                 awayScore: match.away_score,
                 userPredictionHome: userPred.predicted_home_score,
