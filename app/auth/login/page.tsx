@@ -157,6 +157,8 @@ function LoginForm() {
           }
 
           console.error('[Auth] Erreur Google natif:', errorMessage, nativeError)
+          // DEBUG TEMPORAIRE: afficher l'erreur à l'écran
+          alert('[DEBUG] Erreur Google natif: ' + errorMessage)
           console.log('[Auth] Fallback vers OAuth browser...')
         }
       }
