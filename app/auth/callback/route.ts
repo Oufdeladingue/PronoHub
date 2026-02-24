@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
 
@@ -44,38 +43,6 @@ function capacitorRedirectPage(deepLinkUrl: string): Response {
   })
 }
 
-/**
- * Crée une page HTML qui redirige le navigateur après avoir posé les cookies de session.
- * Contrairement à NextResponse.redirect() (HTTP 307), cette approche garantit que
- * le navigateur traite les Set-Cookie AVANT de naviguer vers la page destination.
- */
-function webRedirectWithCookies(
-  targetUrl: string,
-  sessionCookies: { name: string; value: string; options: any }[]
-): NextResponse {
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0;url=${targetUrl}">
-</head>
-<body style="background:#000;">
-<script>window.location.replace("${targetUrl}")</script>
-</body>
-</html>`
-
-  const response = new NextResponse(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
-  })
-
-  // Poser explicitement les cookies de session sur la réponse HTML
-  for (const { name, value, options } of sessionCookies) {
-    response.cookies.set(name, value, options)
-  }
-
-  return response
-}
-
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -85,32 +52,9 @@ export async function GET(request: Request) {
   const isCapacitor = source === 'capacitor'
 
   if (code) {
-    const cookieStore = await cookies()
-    const collectedCookies: { name: string; value: string; options: any }[] = []
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(newCookies) {
-            // Collecter les cookies pour les appliquer explicitement à la réponse
-            collectedCookies.push(...newCookies)
-            try {
-              newCookies.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Ignoré si appelé depuis un Server Component
-            }
-          },
-        },
-      }
-    )
-
+    // createClient() utilise cookieStore.set() en interne, que Next.js
+    // fusionne automatiquement dans la réponse HTTP (y compris les redirects)
+    const supabase = await createClient()
     const { data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
 
     // Vérifier la restriction par pays (via Cloudflare cf-ipcountry)
@@ -155,11 +99,12 @@ export async function GET(request: Request) {
       return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
     }
 
-    // Pour le web : rediriger vers la page login avec le flag oauthDone
-    // La page login détectera la session (cookies posés) et fera une navigation
-    // client-side vers le dashboard, évitant tout flash de la landing page.
-    const loginRedirectUrl = `${origin}/auth/login?oauthDone=1&continue=${encodeURIComponent(finalPath)}`
-    return webRedirectWithCookies(loginRedirectUrl, collectedCookies)
+    // Pour le web : rediriger vers la page login avec oauthDone=1
+    // La page login affichera le loader immédiatement, vérifiera la session
+    // (cookies posés par createClient/cookieStore.set), puis naviguera en client-side
+    // vers le dashboard → pas de flash de la landing page.
+    const loginUrl = `${origin}/auth/login?oauthDone=1&continue=${encodeURIComponent(finalPath)}`
+    return NextResponse.redirect(loginUrl)
   }
 
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
