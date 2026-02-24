@@ -336,6 +336,28 @@ function EchauffementPageContent() {
 
       if (tournamentError) throw new Error('Tournoi non trouvé')
 
+      // Si le tournoi n'est plus en attente (déjà lancé ou terminé), rediriger
+      if (tournamentData.status !== 'pending') {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: participant } = await supabase
+            .from('tournament_participants')
+            .select('id')
+            .eq('tournament_id', tournamentData.id)
+            .eq('user_id', user.id)
+            .single()
+
+          if (participant) {
+            window.location.href = `/${tournamentSlug}/opposition`
+          } else {
+            window.location.href = '/dashboard'
+          }
+        } else {
+          window.location.href = '/dashboard'
+        }
+        return
+      }
+
       setTournament(tournamentData)
     } catch (err: any) {
       setError(err.message)
