@@ -42,10 +42,38 @@ export async function updateSession(request: NextRequest) {
     return response
   }
 
+  const pathname = request.nextUrl.pathname
+
   // Si connecté et sur la page d'accueil, rediriger vers le dashboard côté serveur
   // (évite le flash de la landing page)
-  if (user && request.nextUrl.pathname === '/') {
+  if (user && pathname === '/') {
     return redirectWithCookies(new URL('/dashboard', request.url))
+  }
+
+  // Routes publiques accessibles sans connexion
+  const publicPaths = [
+    '/',
+    '/auth',
+    '/about',
+    '/pricing',
+    '/contact',
+    '/cgv',
+    '/privacy',
+    '/facebook-data-deletion',
+    '/delete-account',
+    '/payment',
+    '/api',
+    '/ingest',
+  ]
+  const isPublic = publicPaths.some(p =>
+    pathname === p || pathname.startsWith(p + '/')
+  )
+
+  // Rediriger les non-connectés vers la page de connexion pour les pages protégées
+  if (!user && !isPublic) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('redirectTo', pathname)
+    return redirectWithCookies(loginUrl)
   }
 
   // URL sécurisée du panel admin (définie dans .env.local)
