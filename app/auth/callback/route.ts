@@ -44,6 +44,38 @@ function capacitorRedirectPage(deepLinkUrl: string): Response {
   })
 }
 
+/**
+ * Crée une page HTML qui redirige le navigateur après avoir posé les cookies de session.
+ * Contrairement à NextResponse.redirect() (HTTP 307), cette approche garantit que
+ * le navigateur traite les Set-Cookie AVANT de naviguer vers la page destination.
+ */
+function webRedirectWithCookies(
+  targetUrl: string,
+  sessionCookies: { name: string; value: string; options: any }[]
+): NextResponse {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0;url=${targetUrl}">
+</head>
+<body style="background:#000;">
+<script>window.location.replace("${targetUrl}")</script>
+</body>
+</html>`
+
+  const response = new NextResponse(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  })
+
+  // Poser explicitement les cookies de session sur la réponse HTML
+  for (const { name, value, options } of sessionCookies) {
+    response.cookies.set(name, value, options)
+  }
+
+  return response
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -54,7 +86,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = await cookies()
-    const cookiesToSet: { name: string; value: string; options: any }[] = []
+    const collectedCookies: { name: string; value: string; options: any }[] = []
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,8 +97,8 @@ export async function GET(request: Request) {
             return cookieStore.getAll()
           },
           setAll(newCookies) {
-            // Collecter les cookies pour les appliquer à la réponse redirect
-            cookiesToSet.push(...newCookies)
+            // Collecter les cookies pour les appliquer explicitement à la réponse
+            collectedCookies.push(...newCookies)
             try {
               newCookies.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
@@ -91,13 +123,9 @@ export async function GET(request: Request) {
           `pronohub://auth/callback?error=${encodeURIComponent(msg)}`
         )
       }
-      const countryResponse = NextResponse.redirect(
+      return NextResponse.redirect(
         `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
       )
-      for (const { name, value, options } of cookiesToSet) {
-        countryResponse.cookies.set(name, value, options)
-      }
-      return countryResponse
     }
 
     // Déterminer la page de redirection
@@ -127,14 +155,9 @@ export async function GET(request: Request) {
       return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
     }
 
-    // Pour le web : redirection avec cookies de session explicites
-    // (sans ça, NextResponse.redirect() crée une nouvelle réponse sans les cookies
-    // définis par exchangeCodeForSession, causant un flash vers la landing page)
-    const response = NextResponse.redirect(`${origin}${finalPath}`)
-    for (const { name, value, options } of cookiesToSet) {
-      response.cookies.set(name, value, options)
-    }
-    return response
+    // Pour le web : page HTML qui pose les cookies de session puis redirige
+    // (NextResponse.redirect() = HTTP 307 ne transmet pas les cookies de manière fiable)
+    return webRedirectWithCookies(`${origin}${finalPath}`, collectedCookies)
   }
 
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
