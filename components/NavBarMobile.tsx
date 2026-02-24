@@ -25,10 +25,10 @@ export default function NavBarMobile({
     return (
       <div className="theme-nav md:hidden pt-safe">
         <div className="max-w-7xl mx-auto px-2 py-3">
-          {/* Navigation layout - 3 colonnes sur mobile */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-            {/* COLONNE GAUCHE - Logo (bouton home) */}
-            <div className="flex items-start">
+          {/* Navigation layout - 3 colonnes 25/50/25 sur mobile */}
+          <div className="grid grid-cols-[1fr_2fr_1fr] items-center">
+            {/* COLONNE GAUCHE (25%) - Logo (bouton home) */}
+            <div className="flex items-center justify-start">
               <Link href="/dashboard">
                 <img
                   src="/images/logo.svg"
@@ -38,7 +38,7 @@ export default function NavBarMobile({
               </Link>
             </div>
 
-            {/* COLONNE CENTRALE - Infos compétition */}
+            {/* COLONNE CENTRALE (50%) - Infos compétition */}
             <div className="flex flex-col items-center justify-center gap-2">
               {(creationContext.competitionLogo || creationContext.competitionLogoWhite) && (
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
@@ -76,8 +76,8 @@ export default function NavBarMobile({
               </div>
             </div>
 
-            {/* COLONNE DROITE - Avatar et menu sandwich en colonne */}
-            <div className="flex flex-col items-center gap-2">
+            {/* COLONNE DROITE (25%) - Avatar et menu sandwich */}
+            <div className="flex flex-col items-center gap-2 justify-self-end">
               {/* Avatar */}
               <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 mobile-avatar-border flex-shrink-0">
                 <Image
@@ -186,10 +186,10 @@ export default function NavBarMobile({
     return (
       <div className="theme-nav md:hidden pt-safe">
         <div className="max-w-7xl mx-auto px-2 py-3">
-          {/* Navigation layout - 3 colonnes sur mobile */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-            {/* COLONNE GAUCHE - Logo (bouton home) */}
-            <div className="flex items-start">
+          {/* Navigation layout - 3 colonnes 25/50/25 sur mobile */}
+          <div className="grid grid-cols-[1fr_2fr_1fr] items-center">
+            {/* COLONNE GAUCHE (25%) - Logo (bouton home) */}
+            <div className="flex items-center justify-start">
               <Link href="/dashboard">
                 <img
                   src="/images/logo.svg"
@@ -199,7 +199,7 @@ export default function NavBarMobile({
               </Link>
             </div>
 
-            {/* COLONNE CENTRALE - Infos compétition et tournoi */}
+            {/* COLONNE CENTRALE (50%) - Infos compétition et tournoi */}
             <div className="flex flex-col items-center justify-center gap-2">
               {(tournamentContext.competitionLogo || tournamentContext.competitionLogoWhite) && (
                 <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
@@ -229,8 +229,8 @@ export default function NavBarMobile({
               </div>
             </div>
 
-            {/* COLONNE DROITE - Avatar et menu sandwich en colonne */}
-            <div className="flex flex-col items-center gap-2">
+            {/* COLONNE DROITE (25%) - Avatar et menu sandwich */}
+            <div className="flex flex-col items-center gap-2 justify-self-end">
               {/* Avatar */}
               <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 mobile-avatar-border flex-shrink-0">
                 <Image
