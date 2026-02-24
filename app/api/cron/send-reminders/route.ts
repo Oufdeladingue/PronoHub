@@ -78,10 +78,22 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(now)
     endOfDay.setHours(23, 59, 59, 999)
 
+    // Mapping des phases knockout vers des matchdays virtuels séquentiels
+    // Même logique que la page opposition (app/[tournamentSlug]/opposition/page.tsx)
+    const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
+    const STAGE_ORDER: Record<string, number> = {
+      'LEAGUE_STAGE': 0,      // matchday reste tel quel (1-8)
+      'PLAYOFFS': 8,          // matchday 1->9, matchday 2->10
+      'LAST_16': 10,          // matchday 1->11, matchday 2->12
+      'QUARTER_FINALS': 12,   // matchday 1->13, matchday 2->14
+      'SEMI_FINALS': 14,      // matchday 1->15, matchday 2->16
+      'FINAL': 16             // matchday 1->17
+    }
+
     // 1a. Récupérer les matchs IMPORTÉS du jour qui n'ont pas encore commencé
     const { data: importedMatches, error: importedMatchesError } = await supabase
       .from('imported_matches')
-      .select('id, competition_id, matchday, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date, football_data_match_id')
+      .select('id, competition_id, matchday, stage, home_team_name, away_team_name, home_team_crest, away_team_crest, utc_date, football_data_match_id')
       .gte('utc_date', now.toISOString())
       .lte('utc_date', endOfDay.toISOString())
       .in('status', ['SCHEDULED', 'TIMED'])
@@ -127,18 +139,27 @@ export async function GET(request: NextRequest) {
       customMatches = customMatchesData || []
     }
 
-    // Normaliser les matchs importés
-    const normalizedImportedMatches: NormalizedMatch[] = (importedMatches || []).map(m => ({
-      id: m.id,
-      matchday: m.matchday,
-      home_team: m.home_team_name,
-      away_team: m.away_team_name,
-      home_team_crest: m.home_team_crest || null,
-      away_team_crest: m.away_team_crest || null,
-      utc_date: m.utc_date,
-      competition_id: m.competition_id,
-      custom_competition_id: null
-    }))
+    // Normaliser les matchs importés (avec virtual matchday pour les phases knockout)
+    const normalizedImportedMatches: NormalizedMatch[] = (importedMatches || []).map(m => {
+      // Pour les phases knockout, calculer un matchday virtuel séquentiel
+      // Ex: PLAYOFFS matchday 2 → virtual matchday 10 (8 + 2)
+      const isKnockout = m.stage && KNOCKOUT_STAGES.includes(m.stage)
+      const virtualMatchday = isKnockout
+        ? (STAGE_ORDER[m.stage!] || 8) + (m.matchday || 1)
+        : m.matchday
+
+      return {
+        id: m.id,
+        matchday: virtualMatchday,
+        home_team: m.home_team_name,
+        away_team: m.away_team_name,
+        home_team_crest: m.home_team_crest || null,
+        away_team_crest: m.away_team_crest || null,
+        utc_date: m.utc_date,
+        competition_id: m.competition_id,
+        custom_competition_id: null
+      }
+    })
 
     // Normaliser les matchs custom en utilisant les données imported_matches (source de vérité)
     const normalizedCustomMatches: NormalizedMatch[] = customMatches
@@ -171,6 +192,18 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Log des matchs avec virtual matchday pour debug
+    const knockoutMatches = normalizedImportedMatches.filter(m => {
+      const original = (importedMatches || []).find(im => im.id === m.id)
+      return original?.stage && KNOCKOUT_STAGES.includes(original.stage)
+    })
+    if (knockoutMatches.length > 0) {
+      console.log(`[REMINDERS] ${knockoutMatches.length} matchs knockout détectés (virtual matchday appliqué)`)
+      for (const m of knockoutMatches) {
+        const original = (importedMatches || []).find(im => im.id === m.id)
+        console.log(`  ${m.home_team} vs ${m.away_team} | stage=${original?.stage} | raw_md=${original?.matchday} → virtual_md=${m.matchday}`)
+      }
+    }
     console.log(`[REMINDERS] ${normalizedImportedMatches.length} matchs importés, ${normalizedCustomMatches.length} matchs custom`)
 
     // 2a. Récupérer les tournois actifs avec competition_id
