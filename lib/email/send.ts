@@ -1,4 +1,5 @@
 import resend, { EMAIL_CONFIG } from './resend'
+import { getUnsubscribeUrl } from './unsubscribe'
 import {
   ADMIN_EMAIL,
   getTournamentStartedAlertTemplate,
@@ -63,6 +64,8 @@ export async function sendEmail(
   }
 
   try {
+    const unsubscribeUrl = getUnsubscribeUrl(to)
+
     const { data, error } = await resend.emails.send({
       from: EMAIL_CONFIG.from,
       to,
@@ -70,6 +73,10 @@ export async function sendEmail(
       html,
       text,
       replyTo: EMAIL_CONFIG.replyTo,
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     })
 
     if (error) {
