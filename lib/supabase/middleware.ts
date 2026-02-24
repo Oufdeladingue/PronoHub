@@ -70,7 +70,10 @@ export async function updateSession(request: NextRequest) {
   )
 
   // Rediriger les non-connectés vers la page de connexion pour les pages protégées
-  if (!user && !isPublic) {
+  // On vérifie l'absence TOTALE de cookies Supabase (pas juste getUser() qui peut échouer
+  // temporairement pendant les transitions OAuth/login)
+  const hasAuthCookies = request.cookies.getAll().some(c => c.name.startsWith('sb-'))
+  if (!user && !isPublic && !hasAuthCookies) {
     const loginUrl = new URL('/auth/login', request.url)
     loginUrl.searchParams.set('redirectTo', pathname)
     return redirectWithCookies(loginUrl)
