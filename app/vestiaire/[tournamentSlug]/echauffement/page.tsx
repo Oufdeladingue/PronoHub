@@ -353,7 +353,7 @@ function EchauffementPageContent() {
             window.location.href = '/dashboard'
           }
         } else {
-          window.location.href = '/dashboard'
+          window.location.href = '/auth/login'
         }
         return
       }
