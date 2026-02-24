@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
 
@@ -42,21 +43,48 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get('code')
   const redirectTo = requestUrl.searchParams.get('redirectTo')
   const source = requestUrl.searchParams.get('source')
-  const origin = requestUrl.origin
   const isCapacitor = source === 'capacitor'
 
-  console.log('[OAuth Callback] START', { code: !!code, origin, isCapacitor, redirectTo })
+  // Origin publique (important derrière un reverse proxy Coolify/Traefik)
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : (process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin)
+
+  console.log('[OAuth Callback] START', { code: !!code, origin, rawOrigin: requestUrl.origin, isCapacitor, redirectTo })
 
   if (code) {
     try {
-      const supabase = await createClient()
+      const cookieStore = await cookies()
+      // Collecter les cookies que Supabase veut poser (session tokens)
+      const pendingCookies: Array<{ name: string; value: string; options: any }> = []
+
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll()
+            },
+            setAll(cookiesToSet) {
+              pendingCookies.push(...cookiesToSet)
+              cookiesToSet.forEach(({ name, value, options }) => {
+                try { cookieStore.set(name, value, options) } catch {}
+              })
+            },
+          },
+        }
+      )
 
       const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
       console.log('[OAuth Callback] exchangeCodeForSession', {
         success: !!sessionData?.session,
         userId: sessionData?.user?.id || null,
-        error: exchangeError?.message || null
+        error: exchangeError?.message || null,
+        cookiesCount: pendingCookies.length,
       })
 
       if (exchangeError) {
@@ -108,9 +136,15 @@ export async function GET(request: Request) {
         return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
       }
 
-      // Pour le web : redirection directe
-      console.log('[OAuth Callback] Redirecting to:', `${origin}${finalPath}`)
-      return NextResponse.redirect(`${origin}${finalPath}`)
+      // Pour le web : redirect avec cookies EXPLICITEMENT ajoutés à la réponse
+      // (cookieStore.set() seul ne suffit pas avec NextResponse.redirect() en self-hosted)
+      const response = NextResponse.redirect(`${origin}${finalPath}`)
+      pendingCookies.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options)
+      })
+
+      console.log('[OAuth Callback] Redirecting to:', `${origin}${finalPath}`, 'with', pendingCookies.length, 'cookies')
+      return response
 
     } catch (error: any) {
       // Attraper TOUT crash pour ne pas perdre l'utilisateur
