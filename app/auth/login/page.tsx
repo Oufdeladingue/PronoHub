@@ -17,13 +17,15 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [redirecting, setRedirecting] = useState(false)
-  const [loadingPercent, setLoadingPercent] = useState(0)
-  const [loadingMessage, setLoadingMessage] = useState('')
-  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo')
+  const oauthDone = searchParams.get('oauthDone') === '1'
+  const continueUrl = searchParams.get('continue')
+  const [redirecting, setRedirecting] = useState(oauthDone)
+  const [loadingPercent, setLoadingPercent] = useState(0)
+  const [loadingMessage, setLoadingMessage] = useState('')
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
   const supabase = createClient()
 
   // Phrases de chargement aléatoires
@@ -44,8 +46,30 @@ function LoginForm() {
     'On fait circuler les données… tiki-taka de chargement.'
   ]
 
+  // Retour OAuth web : vérifier la session et naviguer en client-side
+  // (évite le flash de la landing page causé par un chargement complet de /dashboard)
+  useEffect(() => {
+    if (!oauthDone) return
+
+    const checkOAuthSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const target = continueUrl ? decodeURIComponent(continueUrl) : '/dashboard'
+        trackLogin('google')
+        setPendingRedirect(target)
+      } else {
+        // Session pas trouvée (cookies manquants ?) - revenir au formulaire
+        setRedirecting(false)
+      }
+    }
+
+    checkOAuthSession()
+  }, [oauthDone, supabase, continueUrl])
+
   // Vérifier si l'utilisateur est déjà connecté (redirection auto)
   useEffect(() => {
+    if (oauthDone) return // Géré par l'effet ci-dessus
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -54,7 +78,7 @@ function LoginForm() {
     }
 
     checkAuth()
-  }, [router, redirectTo, supabase])
+  }, [router, redirectTo, supabase, oauthDone])
 
   // Initialiser Google Auth natif au montage (Capacitor Android)
   // Status bar configurée en noir nativement dans MainActivity.java

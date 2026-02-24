@@ -155,9 +155,11 @@ export async function GET(request: Request) {
       return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
     }
 
-    // Pour le web : page HTML qui pose les cookies de session puis redirige
-    // (NextResponse.redirect() = HTTP 307 ne transmet pas les cookies de manière fiable)
-    return webRedirectWithCookies(`${origin}${finalPath}`, collectedCookies)
+    // Pour le web : rediriger vers la page login avec le flag oauthDone
+    // La page login détectera la session (cookies posés) et fera une navigation
+    // client-side vers le dashboard, évitant tout flash de la landing page.
+    const loginRedirectUrl = `${origin}/auth/login?oauthDone=1&continue=${encodeURIComponent(finalPath)}`
+    return webRedirectWithCookies(loginRedirectUrl, collectedCookies)
   }
 
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
