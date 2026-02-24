@@ -17,6 +17,15 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     loaded: (posthog) => {
       if (process.env.NODE_ENV === 'development') posthog.debug()
     },
+    // Bloquer TOUS les events sur les pages admin (pageleave, web vitals, autocapture, etc.)
+    before_send: (event) => {
+      if (!event) return event
+      const url = event.properties?.$current_url || event.properties?.$pathname || window.location.pathname
+      if (typeof url === 'string' && url.includes('/sys-panel')) {
+        return null
+      }
+      return event
+    },
   })
 }
 
