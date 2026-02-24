@@ -43,6 +43,7 @@ export default async function VestiairePage() {
         username={profile?.username || 'utilisateur'}
         userAvatar={profile?.avatar || 'avatar1'}
         context="app"
+        hideThemeToggle
       />
       <VestiaireClient />
     </div>

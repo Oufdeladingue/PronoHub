@@ -13,6 +13,7 @@ export default function NavBarMobile({
   username,
   userAvatar,
   context = 'app',
+  hideThemeToggle,
   tournamentContext,
   creationContext,
 }: NavBarProps) {
@@ -26,16 +27,15 @@ export default function NavBarMobile({
         <div className="max-w-7xl mx-auto px-2 py-3">
           {/* Navigation layout - 3 colonnes sur mobile */}
           <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-            {/* COLONNE GAUCHE - Logo + Theme Toggle */}
-            <div className="flex flex-col items-start gap-2">
+            {/* COLONNE GAUCHE - Logo (bouton home) */}
+            <div className="flex items-start">
               <Link href="/dashboard">
                 <img
                   src="/images/logo.svg"
                   alt="PronoHub"
-                  className="w-10 h-10 cursor-pointer hover:opacity-80 transition"
+                  className="w-14 h-14 cursor-pointer hover:opacity-80 transition"
                 />
               </Link>
-              <ThemeToggle />
             </div>
 
             {/* COLONNE CENTRALE - Infos compétition */}
@@ -188,16 +188,15 @@ export default function NavBarMobile({
         <div className="max-w-7xl mx-auto px-2 py-3">
           {/* Navigation layout - 3 colonnes sur mobile */}
           <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-            {/* COLONNE GAUCHE - Logo + Theme Toggle */}
-            <div className="flex flex-col items-start gap-2">
+            {/* COLONNE GAUCHE - Logo (bouton home) */}
+            <div className="flex items-start">
               <Link href="/dashboard">
                 <img
                   src="/images/logo.svg"
                   alt="PronoHub"
-                  className="w-10 h-10 cursor-pointer hover:opacity-80 transition"
+                  className="w-14 h-14 cursor-pointer hover:opacity-80 transition"
                 />
               </Link>
-              <ThemeToggle />
             </div>
 
             {/* COLONNE CENTRALE - Infos compétition et tournoi */}
@@ -316,9 +315,9 @@ export default function NavBarMobile({
       <div className="max-w-7xl mx-auto px-2">
         {/* Navigation layout avec logo centré absolument */}
         <div className="relative flex items-center justify-between min-h-[64px]">
-          {/* GAUCHE - Theme Toggle */}
+          {/* GAUCHE - Theme Toggle (uniquement dashboard/profile) */}
           <div className="flex items-center z-10">
-            <ThemeToggle />
+            {!hideThemeToggle && <ThemeToggle />}
           </div>
 
           {/* CENTRE - Logo centré absolument sur l'écran */}

@@ -6,6 +6,7 @@ export interface BaseNavProps {
   username: string
   userAvatar: string
   context?: NavContext
+  hideThemeToggle?: boolean
 }
 
 // Props spécifiques au contexte "app"

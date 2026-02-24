@@ -351,6 +351,7 @@ export default function TableauNoirPage() {
           context="app"
           username={username || 'Utilisateur'}
           userAvatar={userAvatar || 'avatar1'}
+          hideThemeToggle
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
@@ -369,6 +370,7 @@ export default function TableauNoirPage() {
           context="app"
           username={username || 'Utilisateur'}
           userAvatar={userAvatar || 'avatar1'}
+          hideThemeToggle
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="theme-secondary-bg border theme-border rounded-lg p-4 theme-text mb-6">
