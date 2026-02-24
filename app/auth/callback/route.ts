@@ -4,11 +4,8 @@ import { checkCountryAllowed } from '@/lib/geo'
 
 /**
  * Génère une page HTML qui redirige vers le custom URL scheme pronohub://
- * Chrome Android bloque les HTTP redirects (302) vers des schémas custom,
- * mais autorise les navigations via JavaScript ou intent://
  */
 function capacitorRedirectPage(deepLinkUrl: string): Response {
-  // Intent URL Android (plus fiable que le custom scheme direct)
   const url = new URL(deepLinkUrl)
   const intentUrl = `intent://${url.host}${url.pathname}?${url.searchParams.toString()}#Intent;scheme=pronohub;package=club.pronohub.app;end`
 
@@ -28,11 +25,8 @@ function capacitorRedirectPage(deepLinkUrl: string): Response {
     </p>
   </div>
   <script>
-    // Tenter via intent Android (plus fiable)
     window.location.href = "${intentUrl}";
-    // Fallback: tenter le custom scheme direct après 500ms
     setTimeout(function() { window.location.href = "${deepLinkUrl}"; }, 500);
-    // Afficher le lien manuel après 2s si rien n'a fonctionné
     setTimeout(function() { document.getElementById('fallback').style.display = 'block'; }, 2000);
   </script>
 </body>
@@ -51,61 +45,83 @@ export async function GET(request: Request) {
   const origin = requestUrl.origin
   const isCapacitor = source === 'capacitor'
 
-  if (code) {
-    // createClient() utilise cookieStore.set() en interne, que Next.js
-    // fusionne automatiquement dans la réponse HTTP (y compris les redirects)
-    const supabase = await createClient()
-    const { data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
+  console.log('[OAuth Callback] START', { code: !!code, origin, isCapacitor, redirectTo })
 
-    // Vérifier la restriction par pays (via Cloudflare cf-ipcountry)
-    const countryCheck = await checkCountryAllowed(request)
-    if (!countryCheck.allowed) {
-      await supabase.auth.signOut()
-      const msg = countryCheck.message || "PronoHub n'est pas encore disponible dans votre pays."
-      if (isCapacitor) {
-        return capacitorRedirectPage(
-          `pronohub://auth/callback?error=${encodeURIComponent(msg)}`
+  if (code) {
+    try {
+      const supabase = await createClient()
+
+      const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+      console.log('[OAuth Callback] exchangeCodeForSession', {
+        success: !!sessionData?.session,
+        userId: sessionData?.user?.id || null,
+        error: exchangeError?.message || null
+      })
+
+      if (exchangeError) {
+        console.error('[OAuth Callback] Exchange FAILED:', exchangeError.message)
+        return NextResponse.redirect(
+          `${origin}/auth/login?error=${encodeURIComponent(exchangeError.message)}`
         )
       }
+
+      // Vérifier la restriction par pays
+      const countryCheck = await checkCountryAllowed(request)
+      if (!countryCheck.allowed) {
+        await supabase.auth.signOut()
+        const msg = countryCheck.message || "PronoHub n'est pas encore disponible dans votre pays."
+        if (isCapacitor) {
+          return capacitorRedirectPage(
+            `pronohub://auth/callback?error=${encodeURIComponent(msg)}`
+          )
+        }
+        return NextResponse.redirect(
+          `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
+        )
+      }
+
+      // Déterminer la page de redirection
+      let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+
+      if (sessionData?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('has_chosen_username')
+          .eq('id', sessionData.user.id)
+          .single()
+
+        if (profile && profile.has_chosen_username !== true) {
+          finalPath = redirectTo
+            ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+            : '/auth/choose-username'
+        }
+      }
+
+      // Pour Capacitor
+      if (isCapacitor && sessionData?.session) {
+        const params = new URLSearchParams({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+          redirectTo: finalPath,
+        })
+        return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
+      }
+
+      // Pour le web : redirection directe
+      console.log('[OAuth Callback] Redirecting to:', `${origin}${finalPath}`)
+      return NextResponse.redirect(`${origin}${finalPath}`)
+
+    } catch (error: any) {
+      // Attraper TOUT crash pour ne pas perdre l'utilisateur
+      console.error('[OAuth Callback] CRASH:', error?.message || error)
       return NextResponse.redirect(
-        `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
+        `${origin}/auth/login?error=${encodeURIComponent(error?.message || 'callback_error')}`
       )
     }
-
-    // Déterminer la page de redirection
-    let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
-
-    if (sessionData?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('has_chosen_username')
-        .eq('id', sessionData.user.id)
-        .single()
-
-      if (profile && profile.has_chosen_username !== true) {
-        finalPath = redirectTo
-          ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
-          : '/auth/choose-username'
-      }
-    }
-
-    // Pour Capacitor : page HTML qui redirige via JavaScript/intent vers l'app
-    if (isCapacitor && sessionData?.session) {
-      const params = new URLSearchParams({
-        access_token: sessionData.session.access_token,
-        refresh_token: sessionData.session.refresh_token,
-        redirectTo: finalPath,
-      })
-      return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
-    }
-
-    // Pour le web : rediriger vers la page login avec oauthDone=1
-    // La page login affichera le loader immédiatement, vérifiera la session
-    // (cookies posés par createClient/cookieStore.set), puis naviguera en client-side
-    // vers le dashboard → pas de flash de la landing page.
-    const loginUrl = `${origin}/auth/login?oauthDone=1&continue=${encodeURIComponent(finalPath)}`
-    return NextResponse.redirect(loginUrl)
   }
+
+  console.log('[OAuth Callback] No code, redirecting to:', redirectTo || '/dashboard')
 
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
   if (isCapacitor) {
