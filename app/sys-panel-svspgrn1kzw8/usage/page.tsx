@@ -2186,55 +2186,55 @@ export default function AdminUsagePage() {
             <>
               {/* Cartes stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 shadow-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{notifStats?.totalSent || 0}</p>
-                      <p className="text-xs text-gray-500">Envoyées</p>
+                      <p className="text-2xl font-bold text-white">{notifStats?.totalSent || 0}</p>
+                      <p className="text-xs text-slate-400">Envoyees</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 shadow-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{notifStats?.byChannel?.email || 0}</p>
-                      <p className="text-xs text-gray-500">Emails</p>
+                      <p className="text-2xl font-bold text-white">{notifStats?.byChannel?.email || 0}</p>
+                      <p className="text-xs text-slate-400">Emails</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 shadow-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{notifStats?.byChannel?.push || 0}</p>
-                      <p className="text-xs text-gray-500">Push</p>
+                      <p className="text-2xl font-bold text-white">{notifStats?.byChannel?.push || 0}</p>
+                      <p className="text-xs text-slate-400">Push</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 shadow-md">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{notifStats?.totalFailed || 0}</p>
-                      <p className="text-xs text-gray-500">Échecs</p>
+                      <p className="text-2xl font-bold text-white">{notifStats?.totalFailed || 0}</p>
+                      <p className="text-xs text-slate-400">Echecs</p>
                     </div>
                   </div>
                 </div>
@@ -2242,15 +2242,15 @@ export default function AdminUsagePage() {
 
               {/* Répartition par type */}
               {notifStats && Object.keys(notifStats.byType).length > 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Répartition par type</h3>
+                <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 mb-6 shadow-md">
+                  <h3 className="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wide">Repartition par type</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(notifStats.byType)
                       .sort(([, a], [, b]) => b - a)
                       .map(([type, count]) => (
                         <span
                           key={type}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${NOTIF_TYPE_COLORS[type] || 'bg-gray-100 text-gray-800'}`}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full ${NOTIF_TYPE_COLORS[type] || 'bg-gray-100 text-gray-800'}`}
                         >
                           {NOTIF_TYPE_LABELS[type] || type}
                           <span className="font-bold">{count}</span>
@@ -2265,13 +2265,13 @@ export default function AdminUsagePage() {
                 <select
                   value={notifFilterType}
                   onChange={(e) => setNotifFilterType(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="all">Tous les types</option>
                   <option value="reminder">Rappel</option>
-                  <option value="matchday_recap">Récap journée</option>
+                  <option value="matchday_recap">Recap journee</option>
                   <option value="tournament_end">Fin tournoi</option>
-                  <option value="tournament_started">Début tournoi</option>
+                  <option value="tournament_started">Debut tournoi</option>
                   <option value="badge_unlocked">Badge</option>
                   <option value="new_matches">Nouveaux matchs</option>
                   <option value="invite">Invitation</option>
@@ -2281,7 +2281,7 @@ export default function AdminUsagePage() {
                 <select
                   value={notifFilterChannel}
                   onChange={(e) => setNotifFilterChannel(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="all">Tous les canaux</option>
                   <option value="email">Email</option>
@@ -2290,39 +2290,39 @@ export default function AdminUsagePage() {
                 <select
                   value={notifFilterStatus}
                   onChange={(e) => setNotifFilterStatus(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   <option value="all">Tous les statuts</option>
-                  <option value="sent">Envoyé</option>
-                  <option value="failed">Échoué</option>
+                  <option value="sent">Envoye</option>
+                  <option value="failed">Echoue</option>
                   <option value="pending">En attente</option>
                 </select>
               </div>
 
               {/* Tableau */}
               {notifLoading ? (
-                <div className="text-center py-12 text-gray-500">Chargement...</div>
+                <div className="text-center py-12 text-slate-400">Chargement...</div>
               ) : notifLogs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">Aucune notification trouvée</div>
+                <div className="text-center py-12 text-slate-400">Aucune notification trouvee</div>
               ) : (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden shadow-md">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-slate-700">
+                      <thead className="bg-slate-900">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tournoi</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erreur</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Utilisateur</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">Canal</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-slate-300 uppercase tracking-wider">Statut</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Tournoi</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">Erreur</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {notifLogs.map((log) => (
-                          <tr key={log.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <tbody className="divide-y divide-slate-700/50">
+                        {notifLogs.map((log, idx) => (
+                          <tr key={log.id} className={`${idx % 2 === 0 ? 'bg-slate-800' : 'bg-slate-800/60'} hover:bg-slate-700/50 transition-colors`}>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300 font-mono">
                               {new Date(log.created_at).toLocaleDateString('fr-FR', {
                                 day: '2-digit',
                                 month: '2-digit',
@@ -2332,27 +2332,27 @@ export default function AdminUsagePage() {
                               })}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{log.username || '-'}</div>
+                              <div className="text-sm font-semibold text-white">{log.username || '-'}</div>
                               {log.email && (
-                                <div className="text-xs text-gray-400">{log.email}</div>
+                                <div className="text-xs text-slate-500">{log.email}</div>
                               )}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${NOTIF_TYPE_COLORS[log.notification_type] || 'bg-gray-100 text-gray-800'}`}>
+                              <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${NOTIF_TYPE_COLORS[log.notification_type] || 'bg-gray-100 text-gray-800'}`}>
                                 {NOTIF_TYPE_LABELS[log.notification_type] || log.notification_type}
                               </span>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-center">
                               {log.channel === 'push' ? (
-                                <span className="inline-flex items-center gap-1 text-xs text-orange-600" title="Push notification">
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                   </svg>
                                   Push
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-xs text-blue-600" title="Email">
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                   </svg>
                                   Email
@@ -2361,24 +2361,24 @@ export default function AdminUsagePage() {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-center">
                               {log.status === 'sent' ? (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                  Envoyé
+                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-300 border border-green-500/30">
+                                  Envoye
                                 </span>
                               ) : log.status === 'failed' ? (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                                  Échoué
+                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                                  Echoue
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                <span className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-600 text-slate-300 border border-slate-500">
                                   {log.status}
                                 </span>
                               )}
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                              {log.tournament_name || '-'}
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
+                              {log.tournament_name || <span className="text-slate-600">-</span>}
                             </td>
-                            <td className="px-4 py-3 text-sm text-red-500 max-w-[200px] truncate" title={log.error_message || ''}>
-                              {log.error_message || '-'}
+                            <td className="px-4 py-3 text-sm text-red-400 max-w-[200px] truncate" title={log.error_message || ''}>
+                              {log.error_message || <span className="text-slate-600">-</span>}
                             </td>
                           </tr>
                         ))}
@@ -2390,13 +2390,13 @@ export default function AdminUsagePage() {
                   {(() => {
                     const notifTotalPages = Math.ceil(notifTotalCount / notifPageSize)
                     return (
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-800 rounded-b-lg">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-900 border-t border-slate-700">
                         <div className="flex items-center gap-4">
                           <div className="text-sm text-white">
                             <span className="font-semibold text-purple-400">{notifTotalCount}</span> notification{notifTotalCount > 1 ? 's' : ''}
                           </div>
                           <div className="flex items-center gap-2">
-                            <label className="text-sm text-slate-300">Afficher :</label>
+                            <label className="text-sm text-slate-400">Afficher :</label>
                             <select
                               value={notifPageSize}
                               onChange={(e) => { setNotifPageSize(Number(e.target.value)); setNotifPage(1) }}
@@ -2410,7 +2410,7 @@ export default function AdminUsagePage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-slate-300">
+                          <span className="text-sm text-slate-400">
                             Page <span className="font-semibold text-white">{notifPage}</span> / {notifTotalPages || 1}
                           </span>
                           <button
