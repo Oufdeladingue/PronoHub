@@ -31,12 +31,19 @@ export async function GET(request: NextRequest) {
     const typeFilter = searchParams.get('type') || 'all'
     const channelFilter = searchParams.get('channel') || 'all'
     const statusFilter = searchParams.get('status') || 'all'
+    const dateFrom = searchParams.get('dateFrom') || null
+    const dateTo = searchParams.get('dateTo') || null
     const offset = (page - 1) * pageSize
 
-    // 1. Stats agrégées (tous les logs, sans pagination)
-    const { data: allLogs } = await adminClient
+    // 1. Stats agrégées (avec filtre date si présent)
+    let statsQuery = adminClient
       .from('notification_logs')
       .select('notification_type, channel, status')
+
+    if (dateFrom) statsQuery = statsQuery.gte('created_at', `${dateFrom}T00:00:00`)
+    if (dateTo) statsQuery = statsQuery.lte('created_at', `${dateTo}T23:59:59`)
+
+    const { data: allLogs } = await statsQuery
 
     const stats = {
       totalSent: 0,
@@ -81,6 +88,14 @@ export async function GET(request: NextRequest) {
     if (statusFilter !== 'all') {
       countQuery = countQuery.eq('status', statusFilter)
       logsQuery = logsQuery.eq('status', statusFilter)
+    }
+    if (dateFrom) {
+      countQuery = countQuery.gte('created_at', `${dateFrom}T00:00:00`)
+      logsQuery = logsQuery.gte('created_at', `${dateFrom}T00:00:00`)
+    }
+    if (dateTo) {
+      countQuery = countQuery.lte('created_at', `${dateTo}T23:59:59`)
+      logsQuery = logsQuery.lte('created_at', `${dateTo}T23:59:59`)
     }
 
     const [{ count: totalCount }, { data: logs, error: logsError }] = await Promise.all([

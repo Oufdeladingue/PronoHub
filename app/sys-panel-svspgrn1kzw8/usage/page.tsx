@@ -525,6 +525,8 @@ export default function AdminUsagePage() {
   const [notifFilterType, setNotifFilterType] = useState('all')
   const [notifFilterChannel, setNotifFilterChannel] = useState('all')
   const [notifFilterStatus, setNotifFilterStatus] = useState('all')
+  const [notifDateFrom, setNotifDateFrom] = useState('')
+  const [notifDateTo, setNotifDateTo] = useState('')
 
   // ===== FONCTIONS USERS =====
 
@@ -994,6 +996,8 @@ export default function AdminUsagePage() {
         channel: notifFilterChannel,
         status: notifFilterStatus,
       })
+      if (notifDateFrom) params.set('dateFrom', notifDateFrom)
+      if (notifDateTo) params.set('dateTo', notifDateTo)
       const res = await fetch(`/api/admin/notifications?${params}`)
       const data = await res.json()
       if (data.success) {
@@ -1005,7 +1009,7 @@ export default function AdminUsagePage() {
       console.error('Error fetching notifications:', error)
     }
     setNotifLoading(false)
-  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus])
+  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus, notifDateFrom, notifDateTo])
 
   // ===== EFFETS =====
 
@@ -1047,12 +1051,12 @@ export default function AdminUsagePage() {
     if (activeTab === 'notifications') {
       fetchNotifications()
     }
-  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus, fetchNotifications, activeTab])
+  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus, notifDateFrom, notifDateTo, fetchNotifications, activeTab])
 
   // Reset page quand filtre change
   useEffect(() => {
     setNotifPage(1)
-  }, [notifFilterType, notifFilterChannel, notifFilterStatus])
+  }, [notifFilterType, notifFilterChannel, notifFilterStatus, notifDateFrom, notifDateTo])
 
   // ===== RENDU =====
 
@@ -2184,6 +2188,32 @@ export default function AdminUsagePage() {
           {/* ===== ONGLET NOTIFICATIONS ===== */}
           {activeTab === 'notifications' && (
             <>
+              {/* Filtre par date */}
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="text-sm font-medium text-slate-300">Periode :</span>
+                <input
+                  type="date"
+                  value={notifDateFrom}
+                  onChange={(e) => setNotifDateFrom(e.target.value)}
+                  className="px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <span className="text-sm text-slate-500">a</span>
+                <input
+                  type="date"
+                  value={notifDateTo}
+                  onChange={(e) => setNotifDateTo(e.target.value)}
+                  className="px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-700 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                {(notifDateFrom || notifDateTo) && (
+                  <button
+                    onClick={() => { setNotifDateFrom(''); setNotifDateTo('') }}
+                    className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-700 border border-slate-600 rounded-lg hover:bg-slate-600 transition-colors"
+                  >
+                    Effacer
+                  </button>
+                )}
+              </div>
+
               {/* Cartes stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="bg-slate-800 rounded-lg border border-slate-700 p-4 shadow-md">
