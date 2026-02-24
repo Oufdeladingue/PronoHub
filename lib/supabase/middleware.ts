@@ -50,35 +50,6 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(new URL('/dashboard', request.url))
   }
 
-  // Routes publiques accessibles sans connexion
-  const publicPaths = [
-    '/',
-    '/auth',
-    '/about',
-    '/pricing',
-    '/contact',
-    '/cgv',
-    '/privacy',
-    '/facebook-data-deletion',
-    '/delete-account',
-    '/payment',
-    '/api',
-    '/ingest',
-  ]
-  const isPublic = publicPaths.some(p =>
-    pathname === p || pathname.startsWith(p + '/')
-  )
-
-  // Rediriger les non-connectés vers la page de connexion pour les pages protégées
-  // On vérifie l'absence TOTALE de cookies Supabase (pas juste getUser() qui peut échouer
-  // temporairement pendant les transitions OAuth/login)
-  const hasAuthCookies = request.cookies.getAll().some(c => c.name.startsWith('sb-'))
-  if (!user && !isPublic && !hasAuthCookies) {
-    const loginUrl = new URL('/auth/login', request.url)
-    loginUrl.searchParams.set('redirectTo', pathname)
-    return redirectWithCookies(loginUrl)
-  }
-
   // URL sécurisée du panel admin (définie dans .env.local)
   const adminPath = process.env.ADMIN_PANEL_PATH || 'sys-panel-svspgrn1kzw8'
 
