@@ -130,6 +130,7 @@ export default function OppositionClient({
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(serverCompetitionLogo)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(serverCompetitionLogoWhite)
   const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>(initialTab)
+  const activeTabRef = useRef(activeTab)
   const [username, setUsername] = useState<string>(serverUser.username)
   const [userAvatar, setUserAvatar] = useState<string>(serverUser.avatar)
   const [userId, setUserId] = useState<string>(serverUser.id)
@@ -369,6 +370,9 @@ export default function OppositionClient({
     }
   }, [tournament?.custom_competition_id, tournament?.status])
 
+  // Sync activeTabRef pour les listeners document (pull-to-refresh)
+  useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
+
   // Pull-to-refresh sur mobile (natif et web)
   useEffect(() => {
     if (!isMobileDevice) return
@@ -380,6 +384,9 @@ export default function OppositionClient({
     let lastRefreshTime = 0
 
     const handleTouchStart = (e: TouchEvent) => {
+      // Pas de pull-to-refresh sur le tchat (scroll interne du chat)
+      if (activeTabRef.current === 'tchat') return
+
       // Vérifier si on est en haut de la page
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       isAtTop = scrollTop === 0

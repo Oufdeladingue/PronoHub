@@ -63,7 +63,6 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   // Nouveaux états pour réactions et réponses
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null)
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null)
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -290,21 +289,6 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
     inputRef.current?.focus()
   }
 
-  // Gestion du long press pour mobile (réactions)
-  const handleTouchStart = (messageId: string) => {
-    const timer = setTimeout(() => {
-      setReactionPickerMessageId(messageId)
-    }, 500)
-    setLongPressTimer(timer)
-  }
-
-  const handleTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer)
-      setLongPressTimer(null)
-    }
-  }
-
   // Envoyer un message
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -435,7 +419,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
   return (
     <div className="theme-card flex flex-col max-h-[60vh] md:h-[600px]">
       {/* Zone des messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ overscrollBehaviorY: 'contain' }}>
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <p className="theme-text-secondary">Aucun message pour le moment.</p>
@@ -452,9 +436,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                 className="flex gap-3 transition-colors duration-500 rounded-lg group"
                 onMouseEnter={() => setHoveredMessageId(msg.id)}
                 onMouseLeave={() => setHoveredMessageId(null)}
-                onTouchStart={() => handleTouchStart(msg.id)}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchEnd}
+                onClick={() => setHoveredMessageId(prev => prev === msg.id ? null : msg.id)}
               >
                 {/* Avatar toujours à gauche */}
                 <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#ff9900] flex-shrink-0">
