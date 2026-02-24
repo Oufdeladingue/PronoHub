@@ -417,25 +417,38 @@ export default function StatsModal({
     document.body.style.top = `-${scrollY}px`
     document.body.style.touchAction = 'none'
 
+    // Tracker la position du doigt pour détecter la direction du scroll
+    let startY = 0
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+    }
+
     // Bloquer touchmove sur le document entier (Android WebView)
     const preventScroll = (e: TouchEvent) => {
-      // Autoriser le scroll dans la zone de contenu de la modale
       const target = e.target as HTMLElement
-      const scrollableParent = target.closest('[data-modal-scroll]')
+      const scrollableParent = target.closest('[data-modal-scroll]') as HTMLElement | null
       if (scrollableParent) {
         const { scrollHeight, clientHeight, scrollTop } = scrollableParent
+        const deltaY = e.touches[0].clientY - startY
+        const isScrollingUp = deltaY > 0
+        const isScrollingDown = deltaY < 0
         const isAtTop = scrollTop <= 0
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
-        const deltaY = e.touches[0].clientY
 
-        // Laisser le scroll si on n'est pas aux bords
-        if (scrollHeight > clientHeight && !isAtTop && !isAtBottom) return
+        // Bloquer seulement si on essaie de dépasser les bords
+        if (scrollHeight > clientHeight) {
+          if (isAtTop && isScrollingUp) { e.preventDefault(); return }
+          if (isAtBottom && isScrollingDown) { e.preventDefault(); return }
+          return // Laisser le scroll libre dans la zone
+        }
       }
       e.preventDefault()
     }
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
     document.addEventListener('touchmove', preventScroll, { passive: false })
 
     return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', preventScroll)
       document.documentElement.style.overflow = ''
       document.body.style.overflow = ''
@@ -515,7 +528,7 @@ export default function StatsModal({
   // Pendant le chargement initial, afficher un loader
   if (loading || (showOnlyStandings && !showStandings)) {
     return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div className="theme-card p-8 rounded-lg bg-white dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900] mx-auto"></div>
         </div>
@@ -525,7 +538,7 @@ export default function StatsModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div
           className="theme-card max-w-md w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden bg-white dark:bg-slate-900"
           onClick={(e) => e.stopPropagation()}
@@ -559,7 +572,7 @@ export default function StatsModal({
           </div>
 
           {/* Content */}
-          <div className="p-4 overflow-y-auto flex-1 space-y-5" data-modal-scroll>
+          <div className="p-4 overflow-y-auto flex-1 space-y-5" data-modal-scroll style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>

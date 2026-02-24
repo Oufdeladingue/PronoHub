@@ -52,18 +52,36 @@ export default function StandingsModal({
     document.body.style.top = `-${scrollY}px`
     document.body.style.touchAction = 'none'
 
+    // Tracker la position du doigt pour détecter la direction du scroll
+    let startY = 0
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY
+    }
+
     const preventScroll = (e: TouchEvent) => {
       const target = e.target as HTMLElement
-      const scrollableParent = target.closest('[data-modal-scroll]')
+      const scrollableParent = target.closest('[data-modal-scroll]') as HTMLElement | null
       if (scrollableParent) {
         const { scrollHeight, clientHeight, scrollTop } = scrollableParent
-        if (scrollHeight > clientHeight && scrollTop > 0 && scrollTop + clientHeight < scrollHeight - 1) return
+        const deltaY = e.touches[0].clientY - startY
+        const isScrollingUp = deltaY > 0
+        const isScrollingDown = deltaY < 0
+        const isAtTop = scrollTop <= 0
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+
+        if (scrollHeight > clientHeight) {
+          if (isAtTop && isScrollingUp) { e.preventDefault(); return }
+          if (isAtBottom && isScrollingDown) { e.preventDefault(); return }
+          return
+        }
       }
       e.preventDefault()
     }
+    document.addEventListener('touchstart', handleTouchStart, { passive: true })
     document.addEventListener('touchmove', preventScroll, { passive: false })
 
     return () => {
+      document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchmove', preventScroll)
       document.documentElement.style.overflow = ''
       document.body.style.overflow = ''
@@ -108,7 +126,7 @@ export default function StandingsModal({
   const logoDark = competitionCustomEmblemWhite || competitionEmblem
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[10000] p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[10000] p-4" onClick={onClose}>
       <div
         className="theme-card max-w-lg w-full max-h-[85vh] flex flex-col !p-0 overflow-hidden bg-white dark:bg-slate-900"
         onClick={(e) => e.stopPropagation()}
@@ -152,7 +170,7 @@ export default function StandingsModal({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1" data-modal-scroll>
+        <div className="overflow-y-auto flex-1" data-modal-scroll style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900]"></div>
