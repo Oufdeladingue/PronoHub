@@ -37,19 +37,24 @@ export async function GET(request: NextRequest) {
     // 2. Check standard tournaments - une seule requête pour tous les matchs LIVE
     if (standardTournaments.length > 0) {
       const competitionIds = [...new Set(standardTournaments.map(t => t.competition_id).filter(Boolean))]
+      const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
 
       const { data: liveMatches } = await supabase
         .from('imported_matches')
-        .select('competition_id, matchday')
+        .select('competition_id, matchday, stage')
         .in('competition_id', competitionIds)
         .in('status', ['IN_PLAY', 'PAUSED'])
 
       if (liveMatches && liveMatches.length > 0) {
         for (const t of standardTournaments) {
           const hasLive = liveMatches.some(
-            m => m.competition_id === t.competition_id &&
-                 m.matchday >= (t.starting_matchday || 1) &&
-                 m.matchday <= (t.ending_matchday || 99)
+            m => m.competition_id === t.competition_id && (
+              // Phase éliminatoire : toujours inclure (matchday 1-2 se répète par stage)
+              (m.stage && KNOCKOUT_STAGES.includes(m.stage)) ||
+              // Phase de ligue/groupe : filtrer par range de matchday
+              (m.matchday >= (t.starting_matchday || 1) &&
+               m.matchday <= (t.ending_matchday || 99))
+            )
           )
           if (hasLive) liveMap[t.id] = true
         }

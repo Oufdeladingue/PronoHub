@@ -59,17 +59,24 @@ export async function GET(
     }
     // Compétition standard
     else if (tournament.competition_id) {
-      // Vérifier directement les matchs de la compétition
+      const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
+
+      // Récupérer les matchs LIVE de cette compétition
       const { data: liveMatches } = await supabase
         .from('imported_matches')
-        .select('id')
+        .select('id, matchday, stage')
         .eq('competition_id', tournament.competition_id)
-        .gte('matchday', tournament.starting_matchday)
-        .lte('matchday', tournament.ending_matchday)
         .in('status', ['IN_PLAY', 'PAUSED'])
-        .limit(1)
 
-      hasLiveMatch = !!(liveMatches && liveMatches.length > 0)
+      if (liveMatches && liveMatches.length > 0) {
+        hasLiveMatch = liveMatches.some(m =>
+          // Phase éliminatoire : toujours inclure
+          (m.stage && KNOCKOUT_STAGES.includes(m.stage)) ||
+          // Phase de ligue/groupe : filtrer par range de matchday
+          (m.matchday >= (tournament.starting_matchday || 1) &&
+           m.matchday <= (tournament.ending_matchday || 99))
+        )
+      }
     }
 
     return NextResponse.json({ hasLiveMatch })
