@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
 
@@ -52,7 +53,32 @@ export async function GET(request: Request) {
   const isCapacitor = source === 'capacitor'
 
   if (code) {
-    const supabase = await createClient()
+    const cookieStore = await cookies()
+    const cookiesToSet: { name: string; value: string; options: any }[] = []
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(newCookies) {
+            // Collecter les cookies pour les appliquer à la réponse redirect
+            cookiesToSet.push(...newCookies)
+            try {
+              newCookies.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Ignoré si appelé depuis un Server Component
+            }
+          },
+        },
+      }
+    )
+
     const { data: sessionData } = await supabase.auth.exchangeCodeForSession(code)
 
     // Vérifier la restriction par pays (via Cloudflare cf-ipcountry)
@@ -65,9 +91,13 @@ export async function GET(request: Request) {
           `pronohub://auth/callback?error=${encodeURIComponent(msg)}`
         )
       }
-      return NextResponse.redirect(
+      const countryResponse = NextResponse.redirect(
         `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
       )
+      for (const { name, value, options } of cookiesToSet) {
+        countryResponse.cookies.set(name, value, options)
+      }
+      return countryResponse
     }
 
     // Déterminer la page de redirection
@@ -97,8 +127,14 @@ export async function GET(request: Request) {
       return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
     }
 
-    // Pour le web : redirection classique
-    return NextResponse.redirect(`${origin}${finalPath}`)
+    // Pour le web : redirection avec cookies de session explicites
+    // (sans ça, NextResponse.redirect() crée une nouvelle réponse sans les cookies
+    // définis par exchangeCodeForSession, causant un flash vers la landing page)
+    const response = NextResponse.redirect(`${origin}${finalPath}`)
+    for (const { name, value, options } of cookiesToSet) {
+      response.cookies.set(name, value, options)
+    }
+    return response
   }
 
   const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'

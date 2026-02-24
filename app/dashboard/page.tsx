@@ -269,14 +269,15 @@ export default async function DashboardPage() {
     const uniqueCustomCompIds = [...new Set(customTournaments.map(t => t.custom_competition_id).filter(Boolean))]
 
     // Préparer les requêtes
-    // IMPORTANT: Requête par compétition individuelle pour éviter la limite de 1000 lignes
-    // de PostgREST (Supabase). Chaque compétition a ~300-400 matchs, bien sous la limite.
-    const importedMatchesPromises = uniqueCompetitionIds.map(compId =>
-      supabase
-        .from('imported_matches')
-        .select('competition_id, matchday, stage, status, finished, utc_date')
-        .eq('competition_id', compId)
-    )
+    // OPTIMISATION: 1 seule requête batch avec .in() au lieu de N requêtes individuelles
+    // .limit(10000) pour couvrir toutes les compétitions (chaque compétition ~300-400 matchs)
+    const importedMatchesPromise = uniqueCompetitionIds.length > 0
+      ? supabase
+          .from('imported_matches')
+          .select('competition_id, matchday, stage, status, finished, utc_date')
+          .in('competition_id', uniqueCompetitionIds)
+          .limit(10000)
+      : Promise.resolve({ data: [] })
 
     const customMatchdaysPromise = uniqueCustomCompIds.length > 0
       ? supabase
@@ -294,13 +295,13 @@ export default async function DashboardPage() {
       : Promise.resolve({ data: [] })
 
     // Exécuter toutes les requêtes en parallèle
-    const [importedMatchesResults, customMatchdaysRes, customMatchesRes] = await Promise.all([
-      Promise.all(importedMatchesPromises),
+    const [importedMatchesRes, customMatchdaysRes, customMatchesRes] = await Promise.all([
+      importedMatchesPromise,
       customMatchdaysPromise,
       customMatchesPromise
     ])
 
-    const allImportedMatches = importedMatchesResults.flatMap(r => r.data || [])
+    const allImportedMatches = importedMatchesRes.data || []
     const allCustomMatchdays = customMatchdaysRes.data || []
     // Filtrer les matchs pour ne garder que ceux des matchdays concernés
     const relevantMatchdayIds = new Set(allCustomMatchdays.map(md => md.id))
