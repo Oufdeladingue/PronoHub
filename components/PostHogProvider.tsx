@@ -27,6 +27,9 @@ function PostHogPageview() {
 
   useEffect(() => {
     if (pathname && posthog) {
+      // Ignorer les pages admin
+      if (pathname.startsWith('/sys-panel')) return
+
       let url = window.origin + pathname
       if (searchParams?.toString()) {
         url += '?' + searchParams.toString()
