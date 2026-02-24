@@ -24,7 +24,7 @@ export default function ReactionPicker({ onSelect, onClose, position = 'top' }: 
           bg-white dark:bg-gray-800 rounded-full shadow-lg
           border border-gray-200 dark:border-gray-600
           ${position === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}
-          left-0
+          right-0
         `}
       >
         {REACTION_EMOJIS.map((emoji) => (
