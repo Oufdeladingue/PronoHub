@@ -14,6 +14,8 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
     person_profiles: 'identified_only',
     capture_pageview: false, // On capture manuellement via le routeur Next.js
     capture_pageleave: true,
+    autocapture: false, // Désactivé pour économiser le quota (clicked button, clicked image, etc.)
+    capture_performance: false, // Désactivé pour économiser le quota (Web vitals)
     loaded: (posthog) => {
       if (process.env.NODE_ENV === 'development') posthog.debug()
     },
