@@ -495,13 +495,14 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                       </div>
                     )}
 
-                    {/* Boutons d'action (inline, visibles au hover) */}
+                    {/* Boutons d'action (inline, visibles au hover/tap) */}
                     <div
                       className={`
                         flex items-center gap-1 ml-2
                         transition-opacity duration-200
                         ${hoveredMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
                       `}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {/* Bouton répondre */}
                       <button

@@ -401,6 +401,9 @@ export default function OppositionClient({
     }
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Pas de pull-to-refresh sur le tchat
+      if (activeTabRef.current === 'tchat') return
+
       // Re-vérifier qu'on est toujours en haut de page
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       if (scrollTop !== 0) {
