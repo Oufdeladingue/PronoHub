@@ -201,7 +201,55 @@ interface ActiveTournamentsModalState {
 
 type UsersSortBy = 'username' | 'email' | 'country' | 'created_at' | 'last_seen_at' | 'active_tournaments_count'
 
-type TabType = 'tournaments' | 'users' | 'credits'
+type TabType = 'tournaments' | 'users' | 'credits' | 'notifications'
+
+interface NotificationLog {
+  id: string
+  created_at: string
+  notification_type: string
+  channel: 'email' | 'push'
+  status: string
+  sent_at: string | null
+  error_message: string | null
+  matchday: number | null
+  username: string | null
+  email: string | null
+  tournament_name: string | null
+}
+
+interface NotifStats {
+  totalSent: number
+  totalFailed: number
+  totalPending: number
+  byChannel: Record<string, number>
+  byType: Record<string, number>
+}
+
+const NOTIF_TYPE_LABELS: Record<string, string> = {
+  reminder: 'Rappel',
+  matchday_recap: 'Récap journée',
+  day_recap: 'Récap journée',
+  tournament_end: 'Fin tournoi',
+  tournament_started: 'Début tournoi',
+  badge_unlocked: 'Badge',
+  new_matches: 'Nouveaux matchs',
+  invite: 'Invitation',
+  player_joined: 'Joueur rejoint',
+  mention: 'Mention',
+}
+
+const NOTIF_TYPE_COLORS: Record<string, string> = {
+  reminder: 'bg-blue-100 text-blue-800',
+  matchday_recap: 'bg-indigo-100 text-indigo-800',
+  day_recap: 'bg-indigo-100 text-indigo-800',
+  tournament_end: 'bg-gray-100 text-gray-800',
+  tournament_started: 'bg-green-100 text-green-800',
+  badge_unlocked: 'bg-yellow-100 text-yellow-800',
+  new_matches: 'bg-purple-100 text-purple-800',
+  invite: 'bg-orange-100 text-orange-800',
+  player_joined: 'bg-teal-100 text-teal-800',
+  mention: 'bg-pink-100 text-pink-800',
+}
 
 // ============= COMPOSANTS AUXILIAIRES =============
 
@@ -466,6 +514,17 @@ export default function AdminUsagePage() {
   const [userTournamentsLoading, setUserTournamentsLoading] = useState(false)
   const [userHasLifetimeAccess, setUserHasLifetimeAccess] = useState(false)
   const [creditsPageSize, setCreditsPageSize] = useState(20)
+
+  // Notifications tab state
+  const [notifLogs, setNotifLogs] = useState<NotificationLog[]>([])
+  const [notifStats, setNotifStats] = useState<NotifStats | null>(null)
+  const [notifLoading, setNotifLoading] = useState(false)
+  const [notifPage, setNotifPage] = useState(1)
+  const [notifPageSize, setNotifPageSize] = useState(20)
+  const [notifTotalCount, setNotifTotalCount] = useState(0)
+  const [notifFilterType, setNotifFilterType] = useState('all')
+  const [notifFilterChannel, setNotifFilterChannel] = useState('all')
+  const [notifFilterStatus, setNotifFilterStatus] = useState('all')
 
   // ===== FONCTIONS USERS =====
 
@@ -923,6 +982,31 @@ export default function AdminUsagePage() {
     setUserTournamentsLoading(false)
   }
 
+  // ===== FONCTIONS NOTIFICATIONS =====
+
+  const fetchNotifications = useCallback(async () => {
+    setNotifLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: String(notifPage),
+        pageSize: String(notifPageSize),
+        type: notifFilterType,
+        channel: notifFilterChannel,
+        status: notifFilterStatus,
+      })
+      const res = await fetch(`/api/admin/notifications?${params}`)
+      const data = await res.json()
+      if (data.success) {
+        setNotifLogs(data.logs)
+        setNotifStats(data.stats)
+        setNotifTotalCount(data.totalCount)
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+    setNotifLoading(false)
+  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus])
+
   // ===== EFFETS =====
 
   useEffect(() => {
@@ -930,6 +1014,8 @@ export default function AdminUsagePage() {
       fetchTournaments()
     } else if (activeTab === 'users') {
       fetchAdminUsers()
+    } else if (activeTab === 'notifications') {
+      fetchNotifications()
     } else {
       fetchUsers()
     }
@@ -955,6 +1041,18 @@ export default function AdminUsagePage() {
       fetchAdminUsers()
     }
   }, [usersPage, fetchAdminUsers, activeTab])
+
+  // Fetch notifications quand filtres/page changent
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      fetchNotifications()
+    }
+  }, [notifPage, notifPageSize, notifFilterType, notifFilterChannel, notifFilterStatus, fetchNotifications, activeTab])
+
+  // Reset page quand filtre change
+  useEffect(() => {
+    setNotifPage(1)
+  }, [notifFilterType, notifFilterChannel, notifFilterStatus])
 
   // ===== RENDU =====
 
@@ -1028,6 +1126,24 @@ export default function AdminUsagePage() {
             >
               Crédits
               {activeTab === 'credits' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'notifications'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Notifications
+              {notifStats && notifStats.totalSent > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full">
+                  {notifStats.totalSent + notifStats.totalFailed}
+                </span>
+              )}
+              {activeTab === 'notifications' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
               )}
             </button>
@@ -2062,6 +2178,261 @@ export default function AdminUsagePage() {
               <div className="mt-6 p-4 bg-slate-100 rounded-lg text-sm text-slate-700">
                 <strong>Légende :</strong> Le nombre entre parenthèses indique les participations payantes.
               </div>
+            </>
+          )}
+
+          {/* ===== ONGLET NOTIFICATIONS ===== */}
+          {activeTab === 'notifications' && (
+            <>
+              {/* Cartes stats */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{notifStats?.totalSent || 0}</p>
+                      <p className="text-xs text-gray-500">Envoyées</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{notifStats?.byChannel?.email || 0}</p>
+                      <p className="text-xs text-gray-500">Emails</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{notifStats?.byChannel?.push || 0}</p>
+                      <p className="text-xs text-gray-500">Push</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{notifStats?.totalFailed || 0}</p>
+                      <p className="text-xs text-gray-500">Échecs</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Répartition par type */}
+              {notifStats && Object.keys(notifStats.byType).length > 0 && (
+                <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Répartition par type</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(notifStats.byType)
+                      .sort(([, a], [, b]) => b - a)
+                      .map(([type, count]) => (
+                        <span
+                          key={type}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${NOTIF_TYPE_COLORS[type] || 'bg-gray-100 text-gray-800'}`}
+                        >
+                          {NOTIF_TYPE_LABELS[type] || type}
+                          <span className="font-bold">{count}</span>
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Filtres */}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <select
+                  value={notifFilterType}
+                  onChange={(e) => setNotifFilterType(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les types</option>
+                  <option value="reminder">Rappel</option>
+                  <option value="matchday_recap">Récap journée</option>
+                  <option value="tournament_end">Fin tournoi</option>
+                  <option value="tournament_started">Début tournoi</option>
+                  <option value="badge_unlocked">Badge</option>
+                  <option value="new_matches">Nouveaux matchs</option>
+                  <option value="invite">Invitation</option>
+                  <option value="player_joined">Joueur rejoint</option>
+                  <option value="mention">Mention</option>
+                </select>
+                <select
+                  value={notifFilterChannel}
+                  onChange={(e) => setNotifFilterChannel(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les canaux</option>
+                  <option value="email">Email</option>
+                  <option value="push">Push</option>
+                </select>
+                <select
+                  value={notifFilterStatus}
+                  onChange={(e) => setNotifFilterStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="sent">Envoyé</option>
+                  <option value="failed">Échoué</option>
+                  <option value="pending">En attente</option>
+                </select>
+              </div>
+
+              {/* Tableau */}
+              {notifLoading ? (
+                <div className="text-center py-12 text-gray-500">Chargement...</div>
+              ) : notifLogs.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">Aucune notification trouvée</div>
+              ) : (
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tournoi</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erreur</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {notifLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {new Date(log.created_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{log.username || '-'}</div>
+                              {log.email && (
+                                <div className="text-xs text-gray-400">{log.email}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${NOTIF_TYPE_COLORS[log.notification_type] || 'bg-gray-100 text-gray-800'}`}>
+                                {NOTIF_TYPE_LABELS[log.notification_type] || log.notification_type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              {log.channel === 'push' ? (
+                                <span className="inline-flex items-center gap-1 text-xs text-orange-600" title="Push notification">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                  </svg>
+                                  Push
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-xs text-blue-600" title="Email">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                  </svg>
+                                  Email
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              {log.status === 'sent' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                  Envoyé
+                                </span>
+                              ) : log.status === 'failed' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                  Échoué
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                  {log.status}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {log.tournament_name || '-'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-red-500 max-w-[200px] truncate" title={log.error_message || ''}>
+                              {log.error_message || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {(() => {
+                    const notifTotalPages = Math.ceil(notifTotalCount / notifPageSize)
+                    return (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-slate-800 rounded-b-lg">
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm text-white">
+                            <span className="font-semibold text-purple-400">{notifTotalCount}</span> notification{notifTotalCount > 1 ? 's' : ''}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm text-slate-300">Afficher :</label>
+                            <select
+                              value={notifPageSize}
+                              onChange={(e) => { setNotifPageSize(Number(e.target.value)); setNotifPage(1) }}
+                              className="px-2 py-1 border border-slate-600 rounded bg-slate-700 text-white text-sm"
+                            >
+                              <option value={10}>10</option>
+                              <option value={20}>20</option>
+                              <option value={50}>50</option>
+                              <option value={100}>100</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-300">
+                            Page <span className="font-semibold text-white">{notifPage}</span> / {notifTotalPages || 1}
+                          </span>
+                          <button
+                            onClick={() => setNotifPage(Math.max(1, notifPage - 1))}
+                            disabled={notifPage === 1}
+                            className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                          >
+                            &larr;
+                          </button>
+                          <button
+                            onClick={() => setNotifPage(Math.min(notifTotalPages || 1, notifPage + 1))}
+                            disabled={notifPage >= notifTotalPages}
+                            className="px-3 py-1.5 border border-slate-600 rounded-lg bg-slate-700 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-600 text-sm font-medium"
+                          >
+                            &rarr;
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </>
           )}
         </main>
