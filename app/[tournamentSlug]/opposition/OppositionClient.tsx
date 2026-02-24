@@ -24,7 +24,6 @@ import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer
 import DurationExtensionModal from '@/components/modals/DurationExtensionModal'
 import StatsExplanationModal from '@/components/StatsExplanationModal'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
-import { Capacitor } from '@capacitor/core'
 
 interface Tournament {
   id: string
@@ -130,7 +129,6 @@ export default function OppositionClient({
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(serverCompetitionLogo)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(serverCompetitionLogoWhite)
   const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>(initialTab)
-  const activeTabRef = useRef(activeTab)
   const [username, setUsername] = useState<string>(serverUser.username)
   const [userAvatar, setUserAvatar] = useState<string>(serverUser.avatar)
   const [userId, setUserId] = useState<string>(serverUser.id)
@@ -186,22 +184,7 @@ export default function OppositionClient({
   // États pour les accordéons de pronostics des autres
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
 
-  // États pour le pull-to-refresh
-  const [pullDistance, setPullDistance] = useState<number>(0)
-  const [isPullingDown, setIsPullingDown] = useState<boolean>(false)
   const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<string, any[]>>({})
-
-  // Constantes pour le pull-to-refresh
-  const HINT_THRESHOLD = 100 // Seuil pour afficher "Tire encore..."
-  const READY_THRESHOLD = 180 // Seuil pour afficher "Relâche..." et armer le refresh
-  const MIN_PULL_DISTANCE = 40 // Distance minimale avant de commencer à considérer le geste
-  const COOLDOWN_MS = 2000 // Cooldown de 2s entre les refresh
-
-  // Détecter si on est sur mobile (natif ou web)
-  const isMobileDevice = typeof window !== 'undefined' && (
-    Capacitor.isNativePlatform() ||
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  )
 
   // État pour le compteur de messages non lus
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0)
@@ -370,115 +353,6 @@ export default function OppositionClient({
     }
   }, [tournament?.custom_competition_id, tournament?.status])
 
-  // Sync activeTabRef pour les listeners document (pull-to-refresh)
-  useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
-
-  // Pull-to-refresh sur mobile (natif et web)
-  useEffect(() => {
-    if (!isMobileDevice) return
-
-    let startY = 0
-    let currentY = 0
-    let isAtTop = false
-    let isPulling = false
-    let lastRefreshTime = 0
-
-    const handleTouchStart = (e: TouchEvent) => {
-      // Pas de pull-to-refresh sur le tchat (scroll interne du chat)
-      if (activeTabRef.current === 'tchat') return
-
-      // Vérifier si on est en haut de la page
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      isAtTop = scrollTop === 0
-
-      if (isAtTop) {
-        startY = e.touches[0].clientY
-        currentY = startY
-        isPulling = false
-        setPullDistance(0)
-        setIsPullingDown(false)
-      }
-    }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      // Pas de pull-to-refresh sur le tchat
-      if (activeTabRef.current === 'tchat') return
-
-      // Re-vérifier qu'on est toujours en haut de page
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      if (scrollTop !== 0) {
-        // Si on a scrollé, annuler le pull
-        if (isPulling) {
-          isPulling = false
-          setIsPullingDown(false)
-          setPullDistance(0)
-        }
-        return
-      }
-
-      if (!isAtTop) return
-
-      currentY = e.touches[0].clientY
-      const distance = Math.max(0, currentY - startY)
-
-      // Démarrer le pull seulement si on dépasse la distance minimale
-      if (distance > MIN_PULL_DISTANCE) {
-        isPulling = true
-        setIsPullingDown(true)
-        // Appliquer une résistance progressive (effet élastique)
-        const resistanceFactor = distance > READY_THRESHOLD ? 0.5 : 0.7
-        const adjustedDistance = distance * resistanceFactor
-        setPullDistance(adjustedDistance)
-        // Empêcher le scroll par défaut uniquement quand on pull
-        e.preventDefault()
-      }
-    }
-
-    const handleTouchEnd = () => {
-      // Re-vérifier qu'on est toujours en haut de page
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const isStillAtTop = scrollTop === 0
-
-      const distance = currentY - startY
-
-      if (!isStillAtTop || !isAtTop || !isPulling) {
-        isPulling = false
-        setIsPullingDown(false)
-        setPullDistance(0)
-        return
-      }
-
-      const now = Date.now()
-
-      // Déclencher le refresh seulement si :
-      // 1. On est toujours au scroll 0
-      // 2. On a dépassé le seuil READY
-      // 3. On a relâché le doigt
-      // 4. Le cooldown est passé
-      if (distance >= READY_THRESHOLD && now - lastRefreshTime > COOLDOWN_MS) {
-        lastRefreshTime = now
-        window.location.reload()
-      } else {
-        // Réinitialiser l'indicateur avec animation
-        setIsPullingDown(false)
-        setPullDistance(0)
-      }
-
-      isPulling = false
-    }
-
-    // Ajouter les écouteurs d'événements avec passive: false pour pouvoir preventDefault
-    document.addEventListener('touchstart', handleTouchStart, { passive: true })
-    document.addEventListener('touchmove', handleTouchMove, { passive: false })
-    document.addEventListener('touchend', handleTouchEnd, { passive: true })
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('touchstart', handleTouchStart)
-      document.removeEventListener('touchmove', handleTouchMove)
-      document.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [])
 
   // Recalculer les journées disponibles et charger les prédictions (allMatches déjà chargé depuis le server)
   useEffect(() => {
@@ -574,6 +448,43 @@ export default function OppositionClient({
 
   // REMOVED: fetchCurrentUser, fetchTournamentData, fetchPointsSettings
   // Ces fonctions ne sont plus nécessaires car les données sont pré-chargées côté serveur
+
+  // Rafraîchissement léger des scores (appelé par polling + RT)
+  const refreshMatchScores = useCallback(async () => {
+    if (!tournament) return
+
+    const matchIds = allMatches.map(m => m.id).filter(Boolean)
+    if (matchIds.length === 0) return
+
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('imported_matches')
+      .select('id, status, home_score, away_score, finished')
+      .in('id', matchIds)
+
+    if (data) {
+      const scoreMap = new Map(data.map(d => [d.id, d]))
+      setAllMatches(prev => {
+        // Vérifier si quelque chose a changé pour éviter un re-render inutile
+        let hasChanges = false
+        const updated = prev.map(m => {
+          const fresh = scoreMap.get(m.id)
+          if (!fresh) return m
+          if (
+            m.status !== fresh.status ||
+            m.home_score !== fresh.home_score ||
+            m.away_score !== fresh.away_score ||
+            m.finished !== fresh.finished
+          ) {
+            hasChanges = true
+            return { ...m, status: fresh.status, home_score: fresh.home_score, away_score: fresh.away_score, finished: fresh.finished }
+          }
+          return m
+        })
+        return hasChanges ? updated : prev
+      })
+    }
+  }, [tournament, allMatches])
 
   const fetchUnreadMessagesCount = async () => {
     if (!tournament?.id) return
@@ -1685,6 +1596,95 @@ export default function OppositionClient({
     }
   }, [tournament?.id, userId, activeTab])
 
+  // Real-time : écouter les mises à jour de scores sur imported_matches
+  useEffect(() => {
+    if (!tournament?.competition_id && !tournament?.custom_competition_id) return
+
+    const supabase = createClient()
+    const competitionId = tournament.competition_id
+
+    const channel = supabase
+      .channel(`tournament-${tournament.id}-match-scores`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'imported_matches',
+          ...(competitionId ? { filter: `competition_id=eq.${competitionId}` } : {})
+        },
+        (payload) => {
+          const updated = payload.new as any
+          setAllMatches(prev => {
+            const idx = prev.findIndex(m => m.id === updated.id)
+            if (idx === -1) return prev
+            const current = prev[idx]
+            // Ne mettre à jour que si quelque chose a changé
+            if (
+              current.status === updated.status &&
+              current.home_score === updated.home_score &&
+              current.away_score === updated.away_score &&
+              current.finished === updated.finished
+            ) return prev
+            const newMatches = [...prev]
+            newMatches[idx] = {
+              ...current,
+              status: updated.status,
+              home_score: updated.home_score,
+              away_score: updated.away_score,
+              finished: updated.finished
+            }
+            return newMatches
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tournament?.id, tournament?.competition_id])
+
+  // Polling 30s : rafraîchir les scores quand la page est visible
+  useEffect(() => {
+    if (!tournament) return
+
+    let intervalId: NodeJS.Timeout | null = null
+
+    const startPolling = () => {
+      intervalId = setInterval(() => {
+        if (!document.hidden) {
+          refreshMatchScores()
+        }
+      }, 30000)
+    }
+
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        // Page redevient visible → refresh immédiat + redémarrer polling
+        refreshMatchScores()
+        if (intervalId) clearInterval(intervalId)
+        startPolling()
+      }
+    }
+
+    startPolling()
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [tournament, refreshMatchScores])
+
+  // Propager les changements de scores aux matchs affichés
+  useEffect(() => {
+    if (selectedMatchday !== null) {
+      const filteredMatches = filterMatchesForMatchday(selectedMatchday)
+      setMatches(filteredMatches)
+    }
+  }, [allMatches])
+
   // Pas de loader séparé - le NavigationLoader global gère l'affichage pendant la navigation
   // On retourne null pendant le chargement pour éviter le double loader
   if (loading) {
@@ -1726,47 +1726,6 @@ export default function OppositionClient({
             status: "active"
           }}
         />
-
-        {/* Indicateur Pull-to-Refresh (sous le header, mobile natif et web) */}
-        {isMobileDevice && isPullingDown && (
-          <div
-            className="w-full flex items-center justify-center bg-gradient-to-b from-black/20 to-transparent pointer-events-none transition-all duration-200"
-            style={{
-              height: `${Math.min(pullDistance, 120)}px`,
-              opacity: Math.min(pullDistance / 100, 1)
-            }}
-          >
-            <div className="flex flex-col items-center gap-2 text-white">
-              {pullDistance < HINT_THRESHOLD ? (
-                <>
-                  {/* Phase 1: Hint - Tire encore */}
-                  <svg
-                    className="w-6 h-6 animate-bounce"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                  <span className="text-sm font-medium">Tire encore vers le bas pour actualiser</span>
-                </>
-              ) : (
-                <>
-                  {/* Phase 2: Ready - Relâche pour actualiser */}
-                  <svg
-                    className="w-8 h-8 animate-spin"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span className="text-sm font-medium">Relâche pour actualiser</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Banner d'extension de durée pour les tournois Free-Kick actifs */}
         {tournament.tournament_type === 'free' && tournament.status === 'active' && (
