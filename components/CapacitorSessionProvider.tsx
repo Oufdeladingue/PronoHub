@@ -45,8 +45,15 @@ export default function CapacitorSessionProvider({ children }: CapacitorSessionP
           // Forcer un refresh du token (getUser() déclenche le refresh si expiré)
           try {
             const supabase = createClient()
-            await supabase.auth.getUser()
-          } catch {}
+            const { data } = await supabase.auth.getUser()
+            if (!data.user) {
+              // Token expiré ou session perdue — tenter un refreshSession
+              console.warn('[Capacitor] getUser retourne null, tentative refreshSession')
+              await supabase.auth.refreshSession()
+            }
+          } catch (error) {
+            console.error('[Capacitor] Erreur refresh session au resume:', error)
+          }
         })
 
         // Configurer le listener deep link pour le retour OAuth depuis le navigateur

@@ -215,11 +215,18 @@ export async function setStatusBarColor(color: string): Promise<void> {
  * IMPORTANT: Cette fonction restaure TOUJOURS depuis Preferences,
  * même si localStorage a déjà une valeur (car localStorage peut être vidé par Android)
  */
-export async function restoreCapacitorSession(): Promise<void> {
+export async function restoreCapacitorSession(retries = 3): Promise<void> {
   const cap = getCapacitor()
   const prefs = cap?.Plugins?.Preferences
 
   if (!prefs) {
+    // Bridge pas encore prêt — retry avec délai
+    if (retries > 0) {
+      console.warn(`[Capacitor] Preferences bridge pas prêt, retry dans 500ms (${retries} restants)`)
+      await new Promise(resolve => setTimeout(resolve, 500))
+      return restoreCapacitorSession(retries - 1)
+    }
+    console.error('[Capacitor] Preferences bridge indisponible après retries')
     return
   }
 
@@ -246,6 +253,7 @@ export async function restoreCapacitorSession(): Promise<void> {
         }
       }
     }
+    console.log(`[Capacitor] Session restaurée: ${restored} clés depuis Preferences`)
   } catch (error) {
     console.error('[Capacitor] Erreur restauration session:', error)
   }
