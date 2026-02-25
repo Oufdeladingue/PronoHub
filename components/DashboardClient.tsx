@@ -554,7 +554,12 @@ function DashboardContent({
                   Créer un tournoi
                 </a>
                 <button
-                  onClick={() => setShowJoinInput(true)}
+                  onClick={() => {
+                    setShowJoinInput(true)
+                    setTimeout(() => {
+                      document.getElementById('join-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }, 100)
+                  }}
                   className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
                 >
                   Rejoindre avec un code
@@ -1523,7 +1528,7 @@ function DashboardContent({
             </div>
           </div>
 
-          <div className="theme-card">
+          <div id="join-section" className="theme-card">
             <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Rejoindre un tournoi</h2>
             <p className="theme-text-secondary mb-4">
               Vous avez recu un code d'invitation ? Rejoignez un tournoi existant.
