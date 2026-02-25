@@ -1120,6 +1120,7 @@ export default function OppositionClient({
             predictedHome: prediction.predicted_home_score,
             predictedAway: prediction.predicted_away_score,
             isDefaultPrediction: prediction.is_default_prediction || false,
+            predictedQualifier: prediction.predicted_qualifier || null,
             hasPronostic: true,
             points,
             isExact,
@@ -1244,6 +1245,7 @@ export default function OppositionClient({
               predictedHome: prediction.predicted_home_score,
               predictedAway: prediction.predicted_away_score,
               isDefaultPrediction: prediction.is_default_prediction || false,
+              predictedQualifier: prediction.predicted_qualifier || null,
               hasPronostic: true,
               points,
               isExact,
@@ -2482,7 +2484,7 @@ export default function OppositionClient({
                                             {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
                                           </div>
                                           {qualifierBonusPoints[match.id] > 0 && (
-                                            <div className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-[9px] font-semibold text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                                            <div className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-[#ff9900]/10 border border-orange-300 dark:border-[#ff9900]/50 text-[9px] font-semibold text-orange-700 dark:text-[#ff9900] whitespace-nowrap">
                                               +1 Qualifié
                                             </div>
                                           )}
@@ -2715,8 +2717,8 @@ export default function OppositionClient({
                                           disabled={isClosed}
                                           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition ${
                                             isClosed
-                                              ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 cursor-default'
-                                              : 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer'
+                                              ? 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-200 dark:border-[#ff9900]/30 cursor-default'
+                                              : 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-300 dark:border-[#ff9900]/40 hover:border-orange-400 dark:hover:border-[#ff9900] cursor-pointer'
                                           }`}
                                         >
                                           {(() => {
@@ -2726,11 +2728,11 @@ export default function OppositionClient({
                                             return (
                                               <>
                                                 {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
-                                                <span className="text-purple-700 dark:text-purple-400">
+                                                <span className="text-orange-700 dark:text-[#ff9900]">
                                                   {translateTeamName(name)} qualifié
                                                 </span>
                                                 {!isClosed && (
-                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
                                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                   </svg>
                                                 )}
@@ -2741,7 +2743,7 @@ export default function OppositionClient({
                                       ) : !isClosed ? (
                                         <button
                                           onClick={() => setShowQualifierModal(match.id)}
-                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-purple-300 dark:border-purple-700 text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-orange-300 dark:border-[#ff9900]/40 text-[11px] font-semibold text-orange-600 dark:text-[#ff9900] hover:bg-orange-50 dark:hover:bg-[#ff9900]/10 transition"
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
@@ -3005,7 +3007,7 @@ export default function OppositionClient({
                                             {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
                                           </div>
                                           {qualifierBonusPoints[match.id] > 0 && (
-                                            <div className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-[9px] font-semibold text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                                            <div className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-[#ff9900]/10 border border-orange-300 dark:border-[#ff9900]/50 text-[9px] font-semibold text-orange-700 dark:text-[#ff9900] whitespace-nowrap">
                                               +1 Qualifié
                                             </div>
                                           )}
@@ -3086,8 +3088,8 @@ export default function OppositionClient({
                                           disabled={isClosed}
                                           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition ${
                                             isClosed
-                                              ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 cursor-default'
-                                              : 'bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-700 hover:border-purple-400 dark:hover:border-purple-500 cursor-pointer'
+                                              ? 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-200 dark:border-[#ff9900]/30 cursor-default'
+                                              : 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-300 dark:border-[#ff9900]/40 hover:border-orange-400 dark:hover:border-[#ff9900] cursor-pointer'
                                           }`}
                                         >
                                           {(() => {
@@ -3097,11 +3099,11 @@ export default function OppositionClient({
                                             return (
                                               <>
                                                 {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
-                                                <span className="text-purple-700 dark:text-purple-400">
+                                                <span className="text-orange-700 dark:text-[#ff9900]">
                                                   {translateTeamName(name)} qualifié
                                                 </span>
                                                 {!isClosed && (
-                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
                                                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                   </svg>
                                                 )}
@@ -3112,7 +3114,7 @@ export default function OppositionClient({
                                       ) : !isClosed ? (
                                         <button
                                           onClick={() => setShowQualifierModal(match.id)}
-                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-purple-300 dark:border-purple-700 text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition"
+                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-orange-300 dark:border-[#ff9900]/40 text-[11px] font-semibold text-orange-600 dark:text-[#ff9900] hover:bg-orange-50 dark:hover:bg-[#ff9900]/10 transition"
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
@@ -3209,6 +3211,14 @@ export default function OppositionClient({
                                                             <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
                                                           </div>
                                                         )}
+                                                        {tournament.bonus_qualified && playerPred.predictedQualifier && (
+                                                          <span className="text-[9px] text-orange-600 dark:text-[#ff9900]">
+                                                            <span className="font-bold">
+                                                              {translateTeamName(playerPred.predictedQualifier === 'home' ? match.home_team_name : match.away_team_name)}
+                                                            </span>
+                                                            {' '}*
+                                                          </span>
+                                                        )}
                                                       </>
                                                     ) : (
                                                       <span className="text-xs theme-text-secondary italic">Pas de prono</span>
@@ -3262,6 +3272,14 @@ export default function OppositionClient({
                                                             </svg>
                                                             <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
                                                           </div>
+                                                        )}
+                                                        {tournament.bonus_qualified && playerPred.predictedQualifier && (
+                                                          <span className="text-[10px] text-orange-600 dark:text-[#ff9900]">
+                                                            <span className="font-bold">
+                                                              {translateTeamName(playerPred.predictedQualifier === 'home' ? match.home_team_name : match.away_team_name)}
+                                                            </span>
+                                                            {' '}*
+                                                          </span>
                                                         )}
                                                       </>
                                                     ) : (
