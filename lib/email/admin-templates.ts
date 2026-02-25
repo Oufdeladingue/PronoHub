@@ -130,6 +130,7 @@ export interface NewTournamentAlertProps {
   allMatchdays: boolean
   bonusMatch: boolean
   earlyPredictionBonus: boolean
+  bonusQualified: boolean
   isEvent: boolean
   createdAt: string
 }

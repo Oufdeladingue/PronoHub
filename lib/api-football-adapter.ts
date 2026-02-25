@@ -188,6 +188,10 @@ export interface InternalMatch {
   away_team_crest: string
   home_score: number | null
   away_score: number | null
+  // Scores détaillés pour phases éliminatoires
+  home_score_90: number | null
+  away_score_90: number | null
+  winner_team_id: number | null
 }
 
 // ============================================
@@ -364,6 +368,18 @@ export function transformFixtureToMatch(
   apiFixture: ApiFootballFixture,
   competitionId: number
 ): InternalMatch {
+  // api-football.com: score.fulltime = score à 90min, goals = score final
+  const home90 = apiFixture.score.fulltime.home
+  const away90 = apiFixture.score.fulltime.away
+
+  // Déterminer le qualifié via le champ winner des équipes
+  let winnerTeamId: number | null = null
+  if (apiFixture.teams.home.winner === true) {
+    winnerTeamId = apiFixture.teams.home.id
+  } else if (apiFixture.teams.away.winner === true) {
+    winnerTeamId = apiFixture.teams.away.id
+  }
+
   return {
     football_data_match_id: apiFixture.fixture.id,
     competition_id: competitionId,
@@ -378,7 +394,10 @@ export function transformFixtureToMatch(
     away_team_name: apiFixture.teams.away.name,
     away_team_crest: apiFixture.teams.away.logo,
     home_score: apiFixture.goals.home,
-    away_score: apiFixture.goals.away
+    away_score: apiFixture.goals.away,
+    home_score_90: home90,
+    away_score_90: away90,
+    winner_team_id: winnerTeamId,
   }
 }
 
@@ -430,7 +449,14 @@ export function transformFixturesToMatches(
         away_team_name: hasAwayTeam ? fixture.teams.away.name : 'À déterminer',
         away_team_crest: hasAwayTeam ? fixture.teams.away.logo : '',
         home_score: fixture.goals.home,
-        away_score: fixture.goals.away
+        away_score: fixture.goals.away,
+        home_score_90: fixture.score.fulltime.home,
+        away_score_90: fixture.score.fulltime.away,
+        winner_team_id: fixture.teams.home?.winner === true
+          ? fixture.teams.home.id
+          : fixture.teams.away?.winner === true
+            ? fixture.teams.away.id
+            : null,
       }
     })
 }

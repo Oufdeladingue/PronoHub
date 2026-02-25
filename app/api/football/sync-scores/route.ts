@@ -196,6 +196,36 @@ export async function GET(request: Request) {
             finished: match.status === 'FINISHED'
           }
 
+          // Scores détaillés pour les matchs terminés (support knockout)
+          if (match.status === 'FINISHED') {
+            if (match.score?.duration && match.score.duration !== 'REGULAR') {
+              // Match allé en prolongation ou TAB : score 90min = regularTime
+              updateData.home_score_90 = match.score?.regularTime?.home ?? match.score?.fullTime?.home
+              updateData.away_score_90 = match.score?.regularTime?.away ?? match.score?.fullTime?.away
+              // Buts en prolongation
+              if (match.score?.extraTime) {
+                updateData.home_score_extra = match.score.extraTime.home
+                updateData.away_score_extra = match.score.extraTime.away
+              }
+              // Tirs au but
+              if (match.score?.penalties) {
+                updateData.home_score_penalty = match.score.penalties.home
+                updateData.away_score_penalty = match.score.penalties.away
+              }
+            } else {
+              // Match terminé en 90min : score 90min = score final
+              updateData.home_score_90 = match.score?.fullTime?.home
+              updateData.away_score_90 = match.score?.fullTime?.away
+            }
+
+            // Équipe qualifiée (football-data.org renvoie "HOME_TEAM" ou "AWAY_TEAM")
+            if (match.score?.winner && match.score.winner !== 'DRAW') {
+              updateData.winner_team_id = match.score.winner === 'HOME_TEAM'
+                ? match.homeTeam?.id
+                : match.awayTeam?.id
+            }
+          }
+
           const { error } = await supabase
             .from('imported_matches')
             .update(updateData)
@@ -210,7 +240,7 @@ export async function GET(request: Request) {
             })
           } else {
             totalUpdated++
-            console.log(`[SYNC] Updated match ${match.id}: ${match.homeTeam.name} ${match.score?.fullTime?.home ?? '-'} - ${match.score?.fullTime?.away ?? '-'} ${match.awayTeam.name}`)
+            console.log(`[SYNC] Updated match ${match.id}: ${match.homeTeam.name} ${match.score?.fullTime?.home ?? '-'} - ${match.score?.fullTime?.away ?? '-'} ${match.awayTeam.name}${match.score?.duration && match.score.duration !== 'REGULAR' ? ` (${match.score.duration})` : ''}`)
           }
         }
 

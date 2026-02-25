@@ -178,12 +178,19 @@ export async function GET(
       }
     ).length
 
+    // Détecter si la compétition a des phases éliminatoires
+    const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'THIRD_PLACE', 'LAST_32']
+    const hasKnockoutStages = allMatches.some(
+      (m: any) => m.stage && KNOCKOUT_STAGES.includes(m.stage)
+    )
+
     return NextResponse.json({
       success: true,
       competition: {
         ...comp,
         remaining_matchdays: remainingMatchdays,
-        remaining_matches: remainingMatches
+        remaining_matches: remainingMatches,
+        has_knockout_stages: hasKnockoutStages,
       }
     })
   } catch (error: any) {

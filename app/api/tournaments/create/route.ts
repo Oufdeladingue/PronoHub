@@ -168,6 +168,7 @@ export async function POST(request: Request) {
       bonusMatchEnabled,
       earlyPredictionBonus, // Prime d'avant-match
       drawWithDefaultPredictionPoints,
+      bonusQualifiedEnabled, // Bonus du qualifié (phases éliminatoires)
       tournamentType: requestedType // Type demandé par l'utilisateur (free, oneshot, elite, platinium)
     } = body
 
@@ -424,6 +425,7 @@ export async function POST(request: Request) {
       all_matchdays: allMatchdays,
       bonus_match: bonusMatchEnabled || false, // Match bonus (points x2)
       early_prediction_bonus: earlyPredictionBonus || false, // Prime d'avant-match
+      bonus_qualified: bonusQualifiedEnabled || false, // Bonus du qualifié (phases élim)
       creator_id: user.id,
       original_creator_id: user.id,
       status: 'pending',
@@ -607,6 +609,7 @@ export async function POST(request: Request) {
         allMatchdays: allMatchdays || false,
         bonusMatch: bonusMatchEnabled || false,
         earlyPredictionBonus: earlyPredictionBonus || false,
+        bonusQualified: bonusQualifiedEnabled || false,
         isEvent: isEventCompetition,
         createdAt: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })
       })

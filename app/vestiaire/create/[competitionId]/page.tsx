@@ -28,6 +28,7 @@ interface Competition {
   matches_per_matchday?: number
   season?: string
   description?: string
+  has_knockout_stages?: boolean
 }
 
 // Interface pour les limites de pricing
@@ -90,6 +91,7 @@ export default function TableauNoirPage() {
   const [earlyPredictionBonus, setEarlyPredictionBonus] = useState(false)
   const [tournamentSlug, setTournamentSlug] = useState('')
   const [drawWithDefaultPredictionPoints, setDrawWithDefaultPredictionPoints] = useState(1)
+  const [bonusQualifiedEnabled, setBonusQualifiedEnabled] = useState(false)
 
   // Modal d'erreur/alerte
   const [alertModal, setAlertModal] = useState<{ show: boolean; title: string; message: string; type: 'error' | 'warning' | 'info' }>({
@@ -302,6 +304,7 @@ export default function TableauNoirPage() {
         bonusMatchEnabled,
         earlyPredictionBonus,
         drawWithDefaultPredictionPoints,
+        bonusQualifiedEnabled,
         tournamentType: selectedTournamentType,
         use_credit: selectedTournamentType !== 'free',
         // Pour Platinium: nombre de places prépayées
@@ -761,7 +764,7 @@ export default function TableauNoirPage() {
             </div>
           </div>
 
-          {/* Match bonus, Prime d'avant-match et Points pour match nul - Sur la même ligne */}
+          {/* Match bonus, Prime d'avant-match et Points pour match nul */}
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Match bonus */}
             <div className="p-4 theme-dark-bg rounded-lg flex flex-col">
@@ -853,6 +856,33 @@ export default function TableauNoirPage() {
               </p>
             </div>
           </div>
+
+          {/* Bonus du qualifié - uniquement pour les compétitions avec phases éliminatoires */}
+          {competition.has_knockout_stages && (
+            <div className="mb-8">
+              <div className="p-4 theme-dark-bg rounded-lg flex flex-col items-center max-w-md mx-auto">
+                <label className="block text-lg font-semibold theme-text mb-3 text-center">
+                  Bonus du qualifié
+                </label>
+                <p className="text-sm theme-text-secondary mb-4 text-center">
+                  Pour chaque match éliminatoire, les joueurs peuvent choisir l'équipe qui se qualifie.
+                  +1 point bonus par bonne prédiction.
+                </p>
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    aria-pressed={bonusQualifiedEnabled}
+                    aria-label="Activer le bonus du qualifié"
+                    onClick={() => setBonusQualifiedEnabled(!bonusQualifiedEnabled)}
+                    className={`toggle-switch-lg ${bonusQualifiedEnabled ? 'active' : ''}`}
+                    role="switch"
+                  >
+                    <span className="toggle-switch-knob-lg" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Bouton inviter des amis */}
           <div className="mb-8 p-6 theme-secondary-bg theme-border border rounded-lg">

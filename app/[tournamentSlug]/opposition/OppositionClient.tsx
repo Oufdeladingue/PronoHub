@@ -41,6 +41,7 @@ interface Tournament {
   scoring_default_prediction_max?: number
   start_date?: string // Date de lancement du tournoi (passage en status 'active')
   bonus_match?: boolean
+  bonus_qualified?: boolean
   tournament_type?: string
   teams_enabled?: boolean
   early_prediction_bonus?: boolean
@@ -61,6 +62,9 @@ interface Match {
   finished?: boolean
   home_score?: number | null
   away_score?: number | null
+  home_score_90?: number | null
+  away_score_90?: number | null
+  winner_team_id?: number | null
   // Champs pour les tournois custom (compétition source du match)
   competition_id?: number | null
   competition_name?: string | null
@@ -73,6 +77,7 @@ interface Prediction {
   predicted_home_score: number | null
   predicted_away_score: number | null
   is_default_prediction?: boolean
+  predicted_qualifier?: 'home' | 'away' | null
 }
 
 // Props passées depuis le server component
@@ -94,6 +99,22 @@ interface OppositionClientProps {
   serverAllMatches: Match[]
   serverMatchdayStages: Record<number, string | null>
   tournamentSlug: string
+}
+
+// Helper function pour déterminer si un match éliminatoire doit proposer le choix du qualifié
+// - Match sec en phase knockout (pas de leg ou leg unique)
+// - Match retour (leg 2) en phase knockout
+// - Finale, petite finale
+const shouldShowQualifierChoice = (match: Match, matchdayStages: Record<number, StageType | null>): boolean => {
+  if (!match.stage || !isKnockoutStage(match.stage as StageType)) return false
+  const md = (match as any).virtual_matchday || match.matchday
+  const leg = getLegNumber(md, matchdayStages)
+  // Match retour → oui
+  if (leg === 2) return true
+  // Match sec (pas de leg) → oui (finale, petite finale, ou knockout en match unique)
+  if (!leg || leg === undefined) return true
+  // Match aller → non (on ne sait pas encore le qualifié)
+  return false
 }
 
 // Helper function pour déterminer si un match est terminé
@@ -180,6 +201,11 @@ export default function OppositionClient({
 
   // État pour savoir si le bonus d'avant-match a été obtenu pour cette journée
   const [hasEarlyBonus, setHasEarlyBonus] = useState<boolean>(false)
+
+  // États pour le bonus du qualifié (phases éliminatoires)
+  const [showQualifierModal, setShowQualifierModal] = useState<string | null>(null) // match_id affiché
+  const [qualifierPredictions, setQualifierPredictions] = useState<Record<string, 'home' | 'away'>>({})
+  const [qualifierBonusPoints, setQualifierBonusPoints] = useState<Record<string, number>>({})
 
   // États pour les accordéons de pronostics des autres
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
@@ -727,7 +753,7 @@ export default function OppositionClient({
       // Une seule requête au lieu de 3-4 requêtes séquentielles
       const { data: predictionsData, error } = await supabase
         .from('predictions')
-        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
+        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
@@ -741,15 +767,22 @@ export default function OppositionClient({
       const predictionsMap: Record<string, Prediction> = {}
       const savedMap: Record<string, boolean> = {}
       const lockedMap: Record<string, boolean> = {}
+      const qualifierMap: Record<string, 'home' | 'away'> = {}
       predictionsData?.forEach(pred => {
         predictionsMap[pred.match_id] = pred
         savedMap[pred.match_id] = true // Marquer comme sauvegardé
         lockedMap[pred.match_id] = true // Marquer comme verrouillé
+        if (pred.predicted_qualifier) {
+          qualifierMap[pred.match_id] = pred.predicted_qualifier as 'home' | 'away'
+        }
       })
 
       setPredictions(predictionsMap)
       setSavedPredictions(savedMap)
       setLockedPredictions(lockedMap)
+      if (Object.keys(qualifierMap).length > 0) {
+        setQualifierPredictions(prev => ({ ...prev, ...qualifierMap }))
+      }
     } catch (err) {
       console.error('Erreur lors du chargement des pronostics:', err)
     }
@@ -772,7 +805,7 @@ export default function OppositionClient({
       // Récupérer toutes les prédictions de l'utilisateur pour ces matchs
       const { data: predictionsData, error } = await supabase
         .from('predictions')
-        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction')
+        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
@@ -824,7 +857,7 @@ export default function OppositionClient({
       // Récupérer les pronostics de l'utilisateur pour ces matchs (avec created_at pour le bonus)
       const { data: predictionsData } = await supabase
         .from('predictions')
-        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction, created_at')
+        .select('match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier, created_at')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .in('match_id', matchIds)
@@ -1322,6 +1355,15 @@ export default function OppositionClient({
       setSuccessPrediction(matchId)
       setTimeout(() => setSuccessPrediction(null), 500)
 
+      // Après un save réussi sur un match éliminatoire, proposer le choix du qualifié
+      if (tournament.bonus_qualified) {
+        const match = matches.find(m => m.id === matchId)
+        if (match && shouldShowQualifierChoice(match, matchdayStages)) {
+          // Petit délai pour que le feedback vert apparaisse avant la modale
+          setTimeout(() => setShowQualifierModal(matchId), 600)
+        }
+      }
+
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement du pronostic:', err)
       alert('Erreur lors de l\'enregistrement')
@@ -1331,6 +1373,34 @@ export default function OppositionClient({
       setTimeout(() => setErrorPrediction(null), 500)
     } finally {
       setSavingPrediction(null)
+    }
+  }
+
+  // Sauvegarder le choix du qualifié pour un match éliminatoire
+  const saveQualifierChoice = async (matchId: string, choice: 'home' | 'away') => {
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !tournament) return
+
+      // Mettre à jour la prédiction existante avec le qualifié
+      const { error } = await supabase
+        .from('predictions')
+        .update({ predicted_qualifier: choice })
+        .eq('tournament_id', tournament.id)
+        .eq('user_id', user.id)
+        .eq('match_id', matchId)
+
+      if (error) {
+        console.error('[Qualifier] Erreur sauvegarde:', error)
+        return
+      }
+
+      // Mettre à jour l'état local
+      setQualifierPredictions(prev => ({ ...prev, [matchId]: choice }))
+      setShowQualifierModal(null)
+    } catch (err) {
+      console.error('[Qualifier] Erreur:', err)
     }
   }
 
@@ -3378,6 +3448,92 @@ export default function OppositionClient({
           isOpen={showMaxScoreModal}
           onClose={() => setShowMaxScoreModal(false)}
         />
+
+        {/* Modale choix du qualifié (phases éliminatoires) */}
+        {showQualifierModal && (() => {
+          const match = matches.find(m => m.id === showQualifierModal)
+          if (!match) return null
+
+          // Chercher le match aller pour les matchs retour
+          const md = (match as any).virtual_matchday || match.matchday
+          const leg = getLegNumber(md, matchdayStages)
+          let firstLegScore: { home: number | null, away: number | null } | null = null
+          if (leg === 2) {
+            // Trouver le match aller : même stage, équipes inversées
+            const firstLeg = allMatches.find(m =>
+              m.stage === match.stage &&
+              m.home_team_id === match.away_team_id &&
+              m.away_team_id === match.home_team_id
+            )
+            if (firstLeg) {
+              firstLegScore = { home: firstLeg.home_score ?? null, away: firstLeg.away_score ?? null }
+            }
+          }
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQualifierModal(null)}>
+              <div className="theme-dark-bg rounded-xl p-5 mx-4 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold theme-text text-center mb-2">Qui se qualifie ?</h3>
+                <p className="text-sm theme-text-secondary text-center mb-4">
+                  +1 point bonus si vous trouvez le qualifié
+                </p>
+
+                {/* Score du match aller pour les retours */}
+                {firstLegScore && firstLegScore.home !== null && (
+                  <div className="text-center mb-4 p-2 theme-secondary-bg rounded-lg">
+                    <span className="text-xs theme-text-secondary">Score aller : </span>
+                    <span className="text-sm font-bold theme-text">
+                      {match.away_team_name} {firstLegScore.home} - {firstLegScore.away} {match.home_team_name}
+                    </span>
+                  </div>
+                )}
+
+                {/* Boutons de choix */}
+                <div className="flex gap-3 mb-4">
+                  <button
+                    onClick={() => saveQualifierChoice(showQualifierModal, 'home')}
+                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      qualifierPredictions[showQualifierModal] === 'home'
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'theme-border hover:border-orange-400'
+                    }`}
+                  >
+                    {match.home_team_crest && (
+                      <img src={match.home_team_crest} alt="" className="w-8 h-8 object-contain" />
+                    )}
+                    <span className="text-xs font-semibold theme-text text-center leading-tight">
+                      {translateTeamName(match.home_team_name)}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => saveQualifierChoice(showQualifierModal, 'away')}
+                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                      qualifierPredictions[showQualifierModal] === 'away'
+                        ? 'border-orange-500 bg-orange-500/10'
+                        : 'theme-border hover:border-orange-400'
+                    }`}
+                  >
+                    {match.away_team_crest && (
+                      <img src={match.away_team_crest} alt="" className="w-8 h-8 object-contain" />
+                    )}
+                    <span className="text-xs font-semibold theme-text text-center leading-tight">
+                      {translateTeamName(match.away_team_name)}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Bouton Passer */}
+                <button
+                  onClick={() => setShowQualifierModal(null)}
+                  className="w-full py-2 text-sm theme-text-secondary hover:theme-text transition text-center"
+                >
+                  Passer
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Modales incitatives */}
         <IncentiveModalContainer

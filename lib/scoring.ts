@@ -108,6 +108,57 @@ export function calculatePoints(
   }
 }
 
+export interface KnockoutScoringResult extends ScoringResult {
+  qualifierBonus: number
+}
+
+/**
+ * Calcule les points pour un match éliminatoire (knockout)
+ * - Points classiques calculés sur le score 90 minutes
+ * - +1 bonus si le qualifié est correctement prédit
+ */
+export function calculateKnockoutPoints(
+  prediction: Prediction,
+  result90: MatchResult,
+  predictedQualifier: 'home' | 'away' | null,
+  actualWinnerSide: 'home' | 'away' | null,
+  settings: PointsSettings,
+  isBonusMatch: boolean = false,
+  isDefaultPrediction: boolean = false,
+  bonusQualifiedEnabled: boolean = false,
+): KnockoutScoringResult {
+  // Points classiques calculés sur le score 90 minutes
+  const baseResult = calculatePoints(prediction, result90, settings, isBonusMatch, isDefaultPrediction)
+
+  // Bonus qualifié : +1 si activé et prédiction correcte
+  let qualifierBonus = 0
+  if (bonusQualifiedEnabled && predictedQualifier && actualWinnerSide) {
+    if (predictedQualifier === actualWinnerSide) {
+      qualifierBonus = 1
+    }
+  }
+
+  return {
+    ...baseResult,
+    points: baseResult.points + qualifierBonus,
+    qualifierBonus,
+  }
+}
+
+/**
+ * Détermine le côté (home/away) du qualifié à partir du winner_team_id
+ */
+export function getWinnerSide(
+  winnerTeamId: number | null,
+  homeTeamId: number,
+  awayTeamId: number
+): 'home' | 'away' | null {
+  if (!winnerTeamId) return null
+  if (winnerTeamId === homeTeamId) return 'home'
+  if (winnerTeamId === awayTeamId) return 'away'
+  return null
+}
+
 /**
  * Génère un match bonus de manière reproductible
  * Utilise un hash du tournamentId + matchday comme seed pour avoir toujours le même résultat
