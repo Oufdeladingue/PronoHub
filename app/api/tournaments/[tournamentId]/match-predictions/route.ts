@@ -72,7 +72,8 @@ export async function GET(
         predicted_home_score: shouldApplyDefault ? 0 : (pred?.predicted_home_score ?? null),
         predicted_away_score: shouldApplyDefault ? 0 : (pred?.predicted_away_score ?? null),
         is_default_prediction: shouldApplyDefault ? true : (pred?.is_default_prediction ?? false),
-        has_prediction: hasPrediction || shouldApplyDefault
+        has_prediction: hasPrediction || shouldApplyDefault,
+        predicted_qualifier: pred?.predicted_qualifier ?? null
       }
     })
 
