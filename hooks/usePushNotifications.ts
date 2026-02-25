@@ -31,6 +31,15 @@ export function usePushNotifications() {
     // Récupérer l'URL de redirection
     const clickAction = data.clickAction || data.click_action || '/dashboard'
 
+    // Tracker le clic sur PostHog
+    import('posthog-js').then(({ default: posthog }) => {
+      posthog.capture('notification_clicked', {
+        type: data.type || 'unknown',
+        click_action: clickAction,
+        platform: isCapacitor() ? 'android' : 'web',
+      })
+    }).catch(() => {})
+
     // Naviguer vers la page appropriée
     if (clickAction.startsWith('/')) {
       router.push(clickAction)
