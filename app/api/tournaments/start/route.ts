@@ -177,38 +177,86 @@ export async function POST(request: NextRequest) {
       const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
       const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
 
-      // Récupérer tous les matchs futurs groupés par journée
+      // Récupérer tous les matchs avec le stage (nécessaire pour les compétitions knockout)
       const { data: allFutureMatches } = await supabase
         .from('imported_matches')
-        .select('matchday, utc_date')
+        .select('matchday, utc_date, stage')
         .eq('competition_id', tournament.competition_id)
-        .order('matchday', { ascending: true })
+        .order('utc_date', { ascending: true })
 
-      // Trouver la première journée où TOUS les matchs sont encore jouables
       let firstPlayableMatchday: number | null = null
+      let computedTotalMatchdays: number | null = null
 
       if (allFutureMatches && allFutureMatches.length > 0) {
-        // Grouper les matchs par journée
-        const matchesByMatchday: Record<number, string[]> = {}
-        allFutureMatches.forEach(match => {
-          if (!matchesByMatchday[match.matchday]) {
-            matchesByMatchday[match.matchday] = []
+        // Détecter si la compétition a des phases knockout
+        const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
+        const hasKnockout = allFutureMatches.some(m => m.stage && KNOCKOUT_STAGES.includes(m.stage))
+
+        if (hasKnockout) {
+          // Compétition avec knockout : utiliser les journées virtuelles
+          // Même mapping que dans opposition/page.tsx pour la cohérence
+          const STAGE_ORDER: Record<string, number> = {
+            'LEAGUE_STAGE': 0,
+            'PLAYOFFS': 8,
+            'LAST_16': 10,
+            'QUARTER_FINALS': 12,
+            'SEMI_FINALS': 14,
+            'FINAL': 16
           }
-          matchesByMatchday[match.matchday].push(match.utc_date)
-        })
 
-        // Trouver la première journée où le premier match n'est pas encore clôturé
-        const sortedMatchdays = Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b)
+          // Grouper par journée virtuelle
+          const matchesByVirtualMatchday: Record<number, string[]> = {}
+          allFutureMatches.forEach(match => {
+            let vmd: number
+            if (match.stage && KNOCKOUT_STAGES.includes(match.stage)) {
+              const base = STAGE_ORDER[match.stage] || 8
+              vmd = base + (match.matchday || 1)
+            } else {
+              // League/group stage: virtual matchday = matchday réel
+              vmd = match.matchday
+            }
+            if (!matchesByVirtualMatchday[vmd]) {
+              matchesByVirtualMatchday[vmd] = []
+            }
+            matchesByVirtualMatchday[vmd].push(match.utc_date)
+          })
 
-        for (const matchday of sortedMatchdays) {
-          const matchDates = matchesByMatchday[matchday]
-          // Trier les dates pour trouver le premier match de la journée
-          const firstMatchDate = matchDates.sort()[0]
+          // Trouver la première journée virtuelle jouable
+          const sortedVMDs = Object.keys(matchesByVirtualMatchday).map(Number).sort((a, b) => a - b)
+          for (const vmd of sortedVMDs) {
+            const dates = matchesByVirtualMatchday[vmd]
+            const firstDate = dates.sort()[0]
+            if (firstDate > closingTime) {
+              firstPlayableMatchday = vmd
+              break
+            }
+          }
 
-          // Si le premier match de cette journée n'est pas encore clôturé, c'est la journée de départ
-          if (firstMatchDate > closingTime) {
-            firstPlayableMatchday = matchday
-            break
+          // Calculer le total des journées virtuelles pour cette compétition
+          if (sortedVMDs.length > 0) {
+            computedTotalMatchdays = Math.max(...sortedVMDs)
+          }
+
+          console.log('[START] Knockout competition detected. Virtual matchdays:', sortedVMDs,
+            'First playable:', firstPlayableMatchday, 'Total virtual:', computedTotalMatchdays)
+        } else {
+          // Compétition standard (ligue): grouper par matchday numérique
+          const matchesByMatchday: Record<number, string[]> = {}
+          allFutureMatches.forEach(match => {
+            if (!matchesByMatchday[match.matchday]) {
+              matchesByMatchday[match.matchday] = []
+            }
+            matchesByMatchday[match.matchday].push(match.utc_date)
+          })
+
+          const sortedMatchdays = Object.keys(matchesByMatchday).map(Number).sort((a, b) => a - b)
+          for (const matchday of sortedMatchdays) {
+            const matchDates = matchesByMatchday[matchday]
+            const firstMatchDate = matchDates.sort()[0]
+            if (firstMatchDate > closingTime) {
+              firstPlayableMatchday = matchday
+              break
+            }
           }
         }
       }
@@ -226,9 +274,11 @@ export async function POST(request: NextRequest) {
         'First fully playable matchday:', safeFirstPlayableMatchday)
 
       // On stocke firstPlayableMatchday - 1 pour que le calcul startingMatchday = current + 1 donne le bon résultat
+      // Pour les knockout, utiliser le total des journées virtuelles si calculé
       competition = {
         ...importedCompetition,
-        current_matchday: safeFirstPlayableMatchday - 1
+        current_matchday: safeFirstPlayableMatchday - 1,
+        total_matchdays: computedTotalMatchdays || importedCompetition.total_matchdays
       }
     } else {
       return NextResponse.json(
@@ -428,12 +478,13 @@ async function sendTournamentLaunchNotifications(
 
     if (tournament.competition_id) {
       // Compétition importée
+      // Pour les knockout, les virtual matchdays ne correspondent pas aux matchday DB
+      // On récupère tous les matchs non terminés pour cette compétition
       const { data: matches } = await supabase
         .from('imported_matches')
         .select('utc_date')
         .eq('competition_id', tournament.competition_id)
-        .gte('matchday', startingMatchday)
-        .lte('matchday', endingMatchday)
+        .neq('status', 'FINISHED')
         .order('utc_date', { ascending: true })
 
       if (matches && matches.length > 0) {

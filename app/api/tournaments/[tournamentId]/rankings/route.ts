@@ -171,26 +171,79 @@ export async function GET(
       }
     } else {
       // 4b. TOURNOI STANDARD - Récupérer les matchs depuis imported_matches
-      const { data: matchesData, error: mError } = await supabase
+      // Pour les compétitions knockout, les matchdays dans imported_matches sont 1-2 par stage
+      // mais le tournoi utilise des virtual matchdays (ex: PLAYOFFS=9-10, LAST_16=11-12, etc.)
+      const KNOCKOUT_STAGES_RANK = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
+      const { data: knockoutCheck } = await supabase
         .from('imported_matches')
-        .select('*')
+        .select('id')
         .eq('competition_id', tournament.competition_id)
-        .in('matchday', matchdaysToCalculate)
-        .not('home_score', 'is', null)
-        .not('away_score', 'is', null)
+        .in('stage', KNOCKOUT_STAGES_RANK)
+        .limit(1)
 
-      matchesError = mError
-      finishedMatchesRaw = matchesData || []
+      const hasKnockoutRank = knockoutCheck && knockoutCheck.length > 0
 
-      // 5b. Récupérer tous les matchs disponibles
-      const { data: allData, error: aError } = await supabase
-        .from('imported_matches')
-        .select('id, matchday, utc_date')
-        .eq('competition_id', tournament.competition_id)
-        .in('matchday', matchdaysToCalculate)
+      if (hasKnockoutRank) {
+        // Compétition avec knockout : charger tous les matchs et assigner les virtual matchdays
+        const STAGE_ORDER: Record<string, number> = {
+          'LEAGUE_STAGE': 0,
+          'PLAYOFFS': 8,
+          'LAST_16': 10,
+          'QUARTER_FINALS': 12,
+          'SEMI_FINALS': 14,
+          'FINAL': 16
+        }
 
-      allMatchesError = aError
-      allMatchesRaw = allData || []
+        const [leagueResult, knockoutResult] = await Promise.all([
+          supabase
+            .from('imported_matches')
+            .select('*')
+            .eq('competition_id', tournament.competition_id)
+            .not('stage', 'in', `(${KNOCKOUT_STAGES_RANK.map(s => `"${s}"`).join(',')})`)
+            .gte('matchday', startMatchday)
+            .lte('matchday', endMatchday),
+          supabase
+            .from('imported_matches')
+            .select('*')
+            .eq('competition_id', tournament.competition_id)
+            .in('stage', KNOCKOUT_STAGES_RANK)
+        ])
+
+        const allCompMatches = [
+          ...(leagueResult.data || []).map((m: any) => ({ ...m, matchday: m.matchday })),
+          ...(knockoutResult.data || []).map((m: any) => ({
+            ...m,
+            matchday: (STAGE_ORDER[m.stage] || 8) + (m.matchday || 1)
+          }))
+        ]
+
+        // Filtrer par virtual matchday range du tournoi
+        const matchesInRange = allCompMatches.filter((m: any) => matchdaysToCalculate.includes(m.matchday))
+        finishedMatchesRaw = matchesInRange.filter((m: any) => m.home_score !== null && m.away_score !== null)
+        allMatchesRaw = matchesInRange.map((m: any) => ({ id: m.id, matchday: m.matchday, utc_date: m.utc_date }))
+      } else {
+        // Compétition classique (ligue): filtre par matchday standard
+        const { data: matchesData, error: mError } = await supabase
+          .from('imported_matches')
+          .select('*')
+          .eq('competition_id', tournament.competition_id)
+          .in('matchday', matchdaysToCalculate)
+          .not('home_score', 'is', null)
+          .not('away_score', 'is', null)
+
+        matchesError = mError
+        finishedMatchesRaw = matchesData || []
+
+        // 5b. Récupérer tous les matchs disponibles
+        const { data: allData, error: aError } = await supabase
+          .from('imported_matches')
+          .select('id, matchday, utc_date')
+          .eq('competition_id', tournament.competition_id)
+          .in('matchday', matchdaysToCalculate)
+
+        allMatchesError = aError
+        allMatchesRaw = allData || []
+      }
     }
 
     if (matchesError) {
