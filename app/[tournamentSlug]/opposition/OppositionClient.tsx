@@ -1433,13 +1433,25 @@ export default function OppositionClient({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !tournament) return
 
-      // Mettre à jour la prédiction existante avec le qualifié
-      const { error } = await supabase
+      // Récupérer l'ID de la prédiction existante (même pattern que savePrediction)
+      const { data: existing } = await supabase
         .from('predictions')
-        .update({ predicted_qualifier: choice })
+        .select('id')
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .eq('match_id', matchId)
+        .single()
+
+      if (!existing) {
+        console.error('[Qualifier] Aucune prédiction trouvée pour ce match')
+        return
+      }
+
+      // Mettre à jour par ID (fonctionne avec RLS)
+      const { error } = await supabase
+        .from('predictions')
+        .update({ predicted_qualifier: choice })
+        .eq('id', existing.id)
 
       if (error) {
         console.error('[Qualifier] Erreur sauvegarde:', error)
@@ -3067,8 +3079,54 @@ export default function OppositionClient({
                                   </div>
                                 </div>
 
-                                {/* Ligne bas de card desktop : badge bonus à gauche, qualifié au centre, stats à droite */}
-                                {(isBonusMatch || (!isMatchFinished(match) && !!match.home_team_id && !!match.away_team_id && !!(match.competition_id || tournament?.competition_id)) || (tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id])) && (
+                                {/* Badge choix du qualifié (Desktop) - centré sur toute la largeur */}
+                                {tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id] && (
+                                  <div className="hidden md:flex justify-center mt-2">
+                                    {qualifierPredictions[match.id] ? (
+                                      <button
+                                        onClick={() => !isClosed && setShowQualifierModal(match.id)}
+                                        disabled={isClosed}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition ${
+                                          isClosed
+                                            ? 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-200 dark:border-[#ff9900]/30 cursor-default'
+                                            : 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-300 dark:border-[#ff9900]/40 hover:border-orange-400 dark:hover:border-[#ff9900] cursor-pointer'
+                                        }`}
+                                      >
+                                        {(() => {
+                                          const chosenSide = qualifierPredictions[match.id]
+                                          const crest = chosenSide === 'home' ? match.home_team_crest : match.away_team_crest
+                                          const name = chosenSide === 'home' ? match.home_team_name : match.away_team_name
+                                          return (
+                                            <>
+                                              {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
+                                              <span className="text-orange-700 dark:text-[#ff9900]">
+                                                {translateTeamName(name)} qualifié
+                                              </span>
+                                              {!isClosed && (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
+                                                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                                </svg>
+                                              )}
+                                            </>
+                                          )
+                                        })()}
+                                      </button>
+                                    ) : !isClosed ? (
+                                      <button
+                                        onClick={() => setShowQualifierModal(match.id)}
+                                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-orange-300 dark:border-[#ff9900]/40 text-[11px] font-semibold text-orange-600 dark:text-[#ff9900] hover:bg-orange-50 dark:hover:bg-[#ff9900]/10 transition"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                        </svg>
+                                        Choisir le qualifié (+1 pt)
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                )}
+
+                                {/* Ligne bas de card desktop : badge bonus à gauche, stats à droite */}
+                                {(isBonusMatch || (!isMatchFinished(match) && !!match.home_team_id && !!match.away_team_id && !!(match.competition_id || tournament?.competition_id))) && (
                                   <div className="hidden md:flex items-center justify-between mt-2">
                                     {/* Badge bonus en bas à gauche */}
                                     {isBonusMatch ? (
@@ -3078,50 +3136,6 @@ export default function OppositionClient({
                                         </svg>
                                         <span>BONUS</span>
                                       </div>
-                                    ) : <div />}
-
-                                    {/* Badge choix du qualifié (Desktop) */}
-                                    {tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id] ? (
-                                      qualifierPredictions[match.id] ? (
-                                        <button
-                                          onClick={() => !isClosed && setShowQualifierModal(match.id)}
-                                          disabled={isClosed}
-                                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition ${
-                                            isClosed
-                                              ? 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-200 dark:border-[#ff9900]/30 cursor-default'
-                                              : 'bg-orange-50 dark:bg-[#ff9900]/10 border-orange-300 dark:border-[#ff9900]/40 hover:border-orange-400 dark:hover:border-[#ff9900] cursor-pointer'
-                                          }`}
-                                        >
-                                          {(() => {
-                                            const chosenSide = qualifierPredictions[match.id]
-                                            const crest = chosenSide === 'home' ? match.home_team_crest : match.away_team_crest
-                                            const name = chosenSide === 'home' ? match.home_team_name : match.away_team_name
-                                            return (
-                                              <>
-                                                {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
-                                                <span className="text-orange-700 dark:text-[#ff9900]">
-                                                  {translateTeamName(name)} qualifié
-                                                </span>
-                                                {!isClosed && (
-                                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                                  </svg>
-                                                )}
-                                              </>
-                                            )
-                                          })()}
-                                        </button>
-                                      ) : !isClosed ? (
-                                        <button
-                                          onClick={() => setShowQualifierModal(match.id)}
-                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-orange-300 dark:border-[#ff9900]/40 text-[11px] font-semibold text-orange-600 dark:text-[#ff9900] hover:bg-orange-50 dark:hover:bg-[#ff9900]/10 transition"
-                                        >
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                                          </svg>
-                                          Choisir le qualifié (+1 pt)
-                                        </button>
-                                      ) : <div />
                                     ) : <div />}
 
                                     {/* Bouton Stats à droite */}
@@ -3667,10 +3681,10 @@ export default function OppositionClient({
                   {/* Score retour saisi par l'utilisateur */}
                   {userPrediction && userPrediction.predicted_home_score !== null && (
                     <div className="text-center p-2 theme-secondary-bg rounded-lg">
-                      <span className="text-xs theme-text-secondary">Votre score retour : </span>
-                      <span className="text-sm font-bold theme-text">
+                      <div className="text-xs theme-text-secondary">Votre score retour :</div>
+                      <div className="text-sm font-bold theme-text">
                         {translateTeamName(match.home_team_name)} {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score} {translateTeamName(match.away_team_name)}
-                      </span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -3682,7 +3696,7 @@ export default function OppositionClient({
                     className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                       qualifierPredictions[showQualifierModal] === 'home'
                         ? 'border-[#ff9900] bg-[#ff9900]/10'
-                        : 'theme-border hover:border-[#ff9900]'
+                        : 'border-gray-300 dark:border-gray-600 hover:!border-[#ff9900]'
                     }`}
                   >
                     {match.home_team_crest && (
@@ -3698,7 +3712,7 @@ export default function OppositionClient({
                     className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                       qualifierPredictions[showQualifierModal] === 'away'
                         ? 'border-[#ff9900] bg-[#ff9900]/10'
-                        : 'theme-border hover:border-[#ff9900]'
+                        : 'border-gray-300 dark:border-gray-600 hover:!border-[#ff9900]'
                     }`}
                   >
                     {match.away_team_crest && (
