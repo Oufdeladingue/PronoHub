@@ -515,13 +515,31 @@ function EchauffementPageContent() {
         const data = await response.json()
 
         if (data.matches && data.matches.length > 0) {
-          // Trouver le prochain match (premier match non encore joué)
-          const upcomingMatches = data.matches
-            .filter((match: any) => new Date(match.utc_date) > now)
-            .sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
+          // Grouper les matchs par journée (stage + matchday pour les knockout)
+          const matchdayGroups: Record<string, Date[]> = {}
+          data.matches.forEach((match: any) => {
+            const key = `${match.stage || 'REGULAR_SEASON'}_${match.matchday ?? 'KO'}`
+            if (!matchdayGroups[key]) {
+              matchdayGroups[key] = []
+            }
+            matchdayGroups[key].push(new Date(match.utc_date))
+          })
 
-          if (upcomingMatches.length > 0) {
-            setNextMatchDate(new Date(upcomingMatches[0].utc_date))
+          // Trouver la première journée dont AUCUN match n'a encore commencé
+          // (= premier match de la journée est dans le futur)
+          let nextMatchdayFirstMatch: Date | null = null
+          for (const dates of Object.values(matchdayGroups)) {
+            dates.sort((a, b) => a.getTime() - b.getTime())
+            const firstMatchOfDay = dates[0]
+            if (firstMatchOfDay > now) {
+              if (!nextMatchdayFirstMatch || firstMatchOfDay < nextMatchdayFirstMatch) {
+                nextMatchdayFirstMatch = firstMatchOfDay
+              }
+            }
+          }
+
+          if (nextMatchdayFirstMatch) {
+            setNextMatchDate(nextMatchdayFirstMatch)
           }
         }
       }
@@ -556,16 +574,14 @@ function EchauffementPageContent() {
         }
       }
       // Compétition importée classique
+      // Utiliser l'API competitions qui calcule correctement les remaining_matchdays
+      // (gère les knockout avec les paires stage+matchday)
       else if (tournament.competition_id) {
-        const { data: competition } = await supabase
-          .from('competitions')
-          .select('current_matchday, total_matchdays')
-          .eq('id', tournament.competition_id)
-          .single()
+        const response = await fetchWithAuth(`/api/competitions/${tournament.competition_id}`)
+        const data = await response.json()
 
-        if (competition?.total_matchdays) {
-          const currentMatchday = competition.current_matchday || 0
-          const remaining = competition.total_matchdays - currentMatchday
+        if (data.success && data.competition?.remaining_matchdays) {
+          const remaining = data.competition.remaining_matchdays
 
           // Si le tournoi est configuré pour "toutes les journées", on affiche le nombre restant
           // Sinon, on prend le minimum entre le nombre configuré et le nombre restant
