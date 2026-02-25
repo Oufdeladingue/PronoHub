@@ -1,6 +1,7 @@
 import { createClient as createServerClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { calculatePoints, calculateRankings, type PlayerStats } from '@/lib/scoring'
+import { calculatePoints, calculateKnockoutPoints, getWinnerSide, calculateRankings, type PlayerStats } from '@/lib/scoring'
+import { isKnockoutStage, type StageType } from '@/lib/stage-formatter'
 
 export async function GET(
   request: Request,
@@ -124,7 +125,7 @@ export async function GET(
           // dans la table predictions (contrainte FK)
           const { data: importedMatches } = await supabase
             .from('imported_matches')
-            .select('id, football_data_match_id, home_score, away_score, status, utc_date')
+            .select('id, football_data_match_id, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id, stage, status, utc_date')
             .in('football_data_match_id', footballDataIds)
 
           const importedMatchesMap: Record<number, any> = {}
@@ -145,6 +146,12 @@ export async function GET(
                 utc_date: im?.utc_date || cm.cached_utc_date,
                 home_score: im?.home_score ?? null,
                 away_score: im?.away_score ?? null,
+                home_score_90: im?.home_score_90 ?? null,
+                away_score_90: im?.away_score_90 ?? null,
+                winner_team_id: im?.winner_team_id ?? null,
+                home_team_id: im?.home_team_id ?? null,
+                away_team_id: im?.away_team_id ?? null,
+                stage: im?.stage ?? null,
                 status: im?.status || 'SCHEDULED'
               }
             })
@@ -274,7 +281,7 @@ export async function GET(
 
     const { data: allPredictionsData } = await supabase
       .from('predictions')
-      .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, created_at')
+      .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier, created_at')
       .eq('tournament_id', tournamentId)
       .in('match_id', matchIdsToQuery.length > 0 ? matchIdsToQuery : ['00000000-0000-0000-0000-000000000000'])
 
@@ -338,25 +345,68 @@ export async function GET(
 
           const isBonusMatch = bonusMatchIds.has(match.id)
           const isDefaultPrediction = prediction.is_default_prediction || false
+          const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
 
-          // Calculer les points avec la fonction dédiée
-          const result = calculatePoints(
-            {
-              predictedHomeScore: prediction.predicted_home_score,
-              predictedAwayScore: prediction.predicted_away_score
-            },
-            {
-              homeScore: match.home_score,
-              awayScore: match.away_score
-            },
-            pointsSettings,
-            isBonusMatch,
-            isDefaultPrediction
-          )
+          let points: number
+          let isExactScore: boolean
+          let isCorrectResult: boolean
 
-          const points = result.points
-          const isExactScore = result.isExactScore
-          const isCorrectResult = result.isCorrectResult
+          if (isKnockout && tournament.bonus_qualified) {
+            // Match éliminatoire avec bonus qualifié activé
+            const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
+            const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
+            const actualWinnerSide = getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
+
+            const result = calculateKnockoutPoints(
+              {
+                predictedHomeScore: prediction.predicted_home_score,
+                predictedAwayScore: prediction.predicted_away_score
+              },
+              { homeScore: score90Home, awayScore: score90Away },
+              prediction.predicted_qualifier || null,
+              actualWinnerSide,
+              pointsSettings,
+              isBonusMatch,
+              isDefaultPrediction,
+              true // bonusQualifiedEnabled
+            )
+            points = result.points
+            isExactScore = result.isExactScore
+            isCorrectResult = result.isCorrectResult
+          } else if (isKnockout) {
+            // Match éliminatoire sans bonus qualifié — utiliser le score 90min quand même
+            const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
+            const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
+
+            const result = calculatePoints(
+              {
+                predictedHomeScore: prediction.predicted_home_score,
+                predictedAwayScore: prediction.predicted_away_score
+              },
+              { homeScore: score90Home, awayScore: score90Away },
+              pointsSettings,
+              isBonusMatch,
+              isDefaultPrediction
+            )
+            points = result.points
+            isExactScore = result.isExactScore
+            isCorrectResult = result.isCorrectResult
+          } else {
+            // Match classique (ligue) — calcul standard
+            const result = calculatePoints(
+              {
+                predictedHomeScore: prediction.predicted_home_score,
+                predictedAwayScore: prediction.predicted_away_score
+              },
+              { homeScore: match.home_score, awayScore: match.away_score },
+              pointsSettings,
+              isBonusMatch,
+              isDefaultPrediction
+            )
+            points = result.points
+            isExactScore = result.isExactScore
+            isCorrectResult = result.isCorrectResult
+          }
 
           // Incrémenter les stats uniquement pour les pronostics non par défaut
           if (!isDefaultPrediction) {

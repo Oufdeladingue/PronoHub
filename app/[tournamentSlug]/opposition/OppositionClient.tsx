@@ -845,6 +845,12 @@ export default function OppositionClient({
           id: m.id,
           home_score: m.home_score,
           away_score: m.away_score,
+          home_score_90: m.home_score_90,
+          away_score_90: m.away_score_90,
+          winner_team_id: m.winner_team_id,
+          home_team_id: m.home_team_id,
+          away_team_id: m.away_team_id,
+          stage: m.stage,
           finished: m.finished,
           status: m.status,
           utc_date: m.utc_date
@@ -871,6 +877,7 @@ export default function OppositionClient({
       // Calculer les points pour chaque match (y compris les pronostics par défaut)
       const pointsMap: Record<string, number> = {}
       const defaultMap: Record<string, boolean> = {}
+      const qualifierBonusMap: Record<string, number> = {}
 
       for (const match of matchesData) {
         if (match.home_score === null || match.away_score === null) continue
@@ -906,10 +913,15 @@ export default function OppositionClient({
 
         if (pred_home === null || pred_away === null) continue
 
-        // Calculer les points
-        const isExact = pred_home === match.home_score && pred_away === match.away_score
+        // Déterminer si c'est un match éliminatoire et utiliser le score 90min si disponible
+        const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
+        const scoreHome = isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score
+        const scoreAway = isKnockout && match.away_score_90 != null ? match.away_score_90 : match.away_score
+
+        // Calculer les points (sur score 90min pour les matchs éliminatoires)
+        const isExact = pred_home === scoreHome && pred_away === scoreAway
         const predOutcome = pred_home > pred_away ? 'H' : (pred_home < pred_away ? 'A' : 'D')
-        const realOutcome = match.home_score > match.away_score ? 'H' : (match.home_score < match.away_score ? 'A' : 'D')
+        const realOutcome = scoreHome > scoreAway ? 'H' : (scoreHome < scoreAway ? 'A' : 'D')
         const isCorrect = predOutcome === realOutcome
 
         let points = 0
@@ -942,6 +954,17 @@ export default function OppositionClient({
           }
         }
 
+        // Bonus qualifié (+1 si la prédiction du qualifié est correcte)
+        if (tournament.bonus_qualified && isKnockout && match.winner_team_id && existingPrediction?.predicted_qualifier) {
+          const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
+            : match.winner_team_id === match.away_team_id ? 'away'
+            : null
+          if (actualWinnerSide && existingPrediction.predicted_qualifier === actualWinnerSide) {
+            qualifierBonusMap[match.id] = 1
+            points += 1
+          }
+        }
+
         pointsMap[match.id] = points
       }
 
@@ -950,6 +973,7 @@ export default function OppositionClient({
 
       setMatchPoints(pointsMap)
       setDefaultPredictions(defaultMap)
+      setQualifierBonusPoints(qualifierBonusMap)
 
       // Calculer le total des points pour cette journée
       let totalPoints = Object.values(pointsMap).reduce((sum, pts) => sum + pts, 0)
@@ -1046,8 +1070,10 @@ export default function OppositionClient({
           let isCorrect = false
 
           if (match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined) {
-            const homeScore = match.home_score
-            const awayScore = match.away_score
+            // Utiliser le score 90min pour les matchs éliminatoires si disponible
+            const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
+            const homeScore = isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score
+            const awayScore = isKnockout && match.away_score_90 != null ? match.away_score_90 : match.away_score
             // Gérer les pronostics par défaut
             if (prediction.is_default_prediction) {
               // Pronostic par défaut : seulement 1 point si match nul
@@ -1074,6 +1100,16 @@ export default function OppositionClient({
               // Doubler si match bonus (seulement pour les vrais pronostics)
               if (bonusMatchIds.has(matchId)) {
                 points *= 2
+              }
+            }
+
+            // Bonus qualifié pour les autres joueurs aussi
+            if (tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
+              const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
+                : match.winner_team_id === match.away_team_id ? 'away'
+                : null
+              if (actualWinnerSide && prediction.predicted_qualifier === actualWinnerSide) {
+                points += 1
               }
             }
           }
@@ -1159,8 +1195,10 @@ export default function OppositionClient({
 
             if (match && match.home_score !== null && match.home_score !== undefined &&
                 match.away_score !== null && match.away_score !== undefined) {
-              const homeScore = match.home_score
-              const awayScore = match.away_score
+              // Utiliser le score 90min pour les matchs éliminatoires si disponible
+              const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
+              const homeScore = isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score
+              const awayScore = isKnockout && match.away_score_90 != null ? match.away_score_90 : match.away_score
 
               if (prediction.is_default_prediction) {
                 const realOutcome = homeScore > awayScore ? 'H' : (homeScore < awayScore ? 'A' : 'D')
@@ -1186,6 +1224,16 @@ export default function OppositionClient({
                 // Doubler si match bonus
                 if (bonusMatchIds.has(matchId)) {
                   points *= 2
+                }
+              }
+
+              // Bonus qualifié pour les autres joueurs aussi
+              if (tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
+                const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
+                  : match.winner_team_id === match.away_team_id ? 'away'
+                  : null
+                if (actualWinnerSide && prediction.predicted_qualifier === actualWinnerSide) {
+                  points += 1
                 }
               }
             }
@@ -2426,11 +2474,18 @@ export default function OppositionClient({
 
                                       {/* Points gagnés */}
                                       {!isGuessMode && hasFirstMatchStarted() && matchPoints[match.id] !== undefined ? (
-                                        <div
-                                          className="px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap"
-                                          style={getPointsColorStyle(matchPoints[match.id])}
-                                        >
-                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                        <div className="flex flex-col items-center gap-0.5">
+                                          <div
+                                            className="px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap"
+                                            style={getPointsColorStyle(matchPoints[match.id])}
+                                          >
+                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                          </div>
+                                          {qualifierBonusPoints[match.id] > 0 && (
+                                            <div className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-[9px] font-semibold text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                                              +1 Qualifié
+                                            </div>
+                                          )}
                                         </div>
                                       ) : (
                                         <div className="h-4"></div>
@@ -2896,12 +2951,19 @@ export default function OppositionClient({
 
                                       {/* Points gagnés - masqués en mode guess */}
                                       {!isGuessMode && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
-                                        <div
-                                          className="px-2 py-1 rounded-lg font-bold text-xs"
-                                          style={getPointsColorStyle(matchPoints[match.id])}
-                                        >
-                                          {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
-                                        </div>
+                                        <>
+                                          <div
+                                            className="px-2 py-1 rounded-lg font-bold text-xs"
+                                            style={getPointsColorStyle(matchPoints[match.id])}
+                                          >
+                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                          </div>
+                                          {qualifierBonusPoints[match.id] > 0 && (
+                                            <div className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 text-[9px] font-semibold text-purple-700 dark:text-purple-400 whitespace-nowrap">
+                                              +1 Qualifié
+                                            </div>
+                                          )}
+                                        </>
                                       )}
 
                                       {/* Boutons d'action */}
