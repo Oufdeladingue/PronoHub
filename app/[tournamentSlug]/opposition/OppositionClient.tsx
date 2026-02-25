@@ -3623,23 +3623,39 @@ export default function OppositionClient({
             }
           }
 
+          // Récupérer le pronostic de score de l'utilisateur pour ce match
+          const userPrediction = allPredictions[showQualifierModal]
+
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQualifierModal(null)}>
               <div className="theme-dark-bg rounded-xl p-5 mx-4 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold theme-text text-center mb-2">Qui se qualifie ?</h3>
+                <h3 className="text-lg font-bold text-center mb-2 text-blue-600 dark:text-[#ff9900]">Qui va se qualifier ?</h3>
                 <p className="text-sm theme-text-secondary text-center mb-4">
                   +1 point bonus si vous trouvez le qualifié
                 </p>
 
-                {/* Score du match aller pour les retours */}
-                {firstLegScore && firstLegScore.home !== null && (
-                  <div className="text-center mb-4 p-2 theme-secondary-bg rounded-lg">
-                    <span className="text-xs theme-text-secondary">Score aller : </span>
-                    <span className="text-sm font-bold theme-text">
-                      {match.away_team_name} {firstLegScore.home} - {firstLegScore.away} {match.home_team_name}
-                    </span>
-                  </div>
-                )}
+                {/* Scores : aller + votre retour */}
+                <div className="space-y-2 mb-4">
+                  {/* Score du match aller pour les retours */}
+                  {firstLegScore && firstLegScore.home !== null && (
+                    <div className="text-center p-2 theme-secondary-bg rounded-lg">
+                      <span className="text-xs theme-text-secondary">Score aller : </span>
+                      <span className="text-sm font-bold theme-text">
+                        {translateTeamName(match.away_team_name)} {firstLegScore.home} - {firstLegScore.away} {translateTeamName(match.home_team_name)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Score retour saisi par l'utilisateur */}
+                  {userPrediction && userPrediction.predicted_home_score !== null && (
+                    <div className="text-center p-2 theme-secondary-bg rounded-lg">
+                      <span className="text-xs theme-text-secondary">Votre score retour : </span>
+                      <span className="text-sm font-bold theme-text">
+                        {translateTeamName(match.home_team_name)} {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score} {translateTeamName(match.away_team_name)}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Boutons de choix */}
                 <div className="flex gap-3 mb-4">
@@ -3647,8 +3663,8 @@ export default function OppositionClient({
                     onClick={() => saveQualifierChoice(showQualifierModal, 'home')}
                     className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                       qualifierPredictions[showQualifierModal] === 'home'
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'theme-border hover:border-orange-400'
+                        ? 'border-[#ff9900] bg-[#ff9900]/10'
+                        : 'theme-border hover:border-[#ff9900]'
                     }`}
                   >
                     {match.home_team_crest && (
@@ -3663,8 +3679,8 @@ export default function OppositionClient({
                     onClick={() => saveQualifierChoice(showQualifierModal, 'away')}
                     className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
                       qualifierPredictions[showQualifierModal] === 'away'
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'theme-border hover:border-orange-400'
+                        ? 'border-[#ff9900] bg-[#ff9900]/10'
+                        : 'theme-border hover:border-[#ff9900]'
                     }`}
                   >
                     {match.away_team_crest && (
@@ -3676,12 +3692,12 @@ export default function OppositionClient({
                   </button>
                 </div>
 
-                {/* Bouton Passer */}
+                {/* Bouton Ignorer */}
                 <button
                   onClick={() => setShowQualifierModal(null)}
                   className="w-full py-2 text-sm theme-text-secondary hover:theme-text transition text-center"
                 >
-                  Passer
+                  Ignorer
                 </button>
               </div>
             </div>
