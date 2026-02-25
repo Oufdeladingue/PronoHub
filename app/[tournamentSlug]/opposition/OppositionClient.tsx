@@ -1427,34 +1427,25 @@ export default function OppositionClient({
   }
 
   // Sauvegarder le choix du qualifié pour un match éliminatoire
+  // Utilise une route API server-side (admin client) pour bypass le cache PostgREST
   const saveQualifierChoice = async (matchId: string, choice: 'home' | 'away') => {
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !tournament) return
+      if (!tournament) return
 
-      // Récupérer l'ID de la prédiction existante (même pattern que savePrediction)
-      const { data: existing } = await supabase
-        .from('predictions')
-        .select('id')
-        .eq('tournament_id', tournament.id)
-        .eq('user_id', user.id)
-        .eq('match_id', matchId)
-        .single()
+      const response = await fetchWithAuth('/api/predictions/qualifier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchId,
+          tournamentId: tournament.id,
+          choice,
+        }),
+      })
 
-      if (!existing) {
-        console.error('[Qualifier] Aucune prédiction trouvée pour ce match')
-        return
-      }
+      const result = await response.json()
 
-      // Mettre à jour par ID (fonctionne avec RLS)
-      const { error } = await supabase
-        .from('predictions')
-        .update({ predicted_qualifier: choice })
-        .eq('id', existing.id)
-
-      if (error) {
-        console.error('[Qualifier] Erreur sauvegarde:', error)
+      if (!response.ok) {
+        console.error('[Qualifier] Erreur sauvegarde:', result.error)
         return
       }
 
@@ -2722,7 +2713,7 @@ export default function OppositionClient({
 
                                   {/* Badge choix du qualifié (Mobile) */}
                                   {tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id] && (
-                                    <div className="flex justify-center mb-2">
+                                    <div className="flex justify-center mt-3 mb-2">
                                       {qualifierPredictions[match.id] ? (
                                         <button
                                           onClick={() => !isClosed && setShowQualifierModal(match.id)}
