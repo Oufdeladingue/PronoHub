@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { patchStaleScoresWithApiFootball, type FallbackResult } from '@/lib/api-football-fallback'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -12,6 +13,7 @@ export interface AutoUpdateResult {
   successCount?: number
   failureCount?: number
   finishedTournaments?: { id: string; name: string }[]
+  fallback?: FallbackResult
   results?: any[]
   error?: string
 }
@@ -190,8 +192,26 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
 
       // 6. Mettre à jour les matchs (inclure les matchs TBD knockout avec placeholders)
       // Note: matchday peut être null pour les knockouts à match unique (WC)
+      // IMPORTANT: Skip stale matches to prevent overwriting good scores from API-Football fallback
+      // Un match est "stale" si sa date est > 3h dans le passé mais Football Data le montre encore TIMED/SCHEDULED
+      const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000)
       const matchesToUpsert = matchesData.matches
-        .filter((match: any) => match.id != null)
+        .filter((match: any) => {
+          if (match.id == null) return false
+
+          // Ne pas écraser avec des données stale: si le match devrait être terminé
+          // (date > 3h passée) mais l'API retourne encore TIMED/SCHEDULED, on skip
+          const matchDate = new Date(match.utcDate)
+          const isStale = matchDate < threeHoursAgo &&
+                          ['TIMED', 'SCHEDULED'].includes(match.status)
+
+          if (isStale) {
+            console.log(`[AUTO-UPDATE] Skipping stale match ${match.id}: ${match.homeTeam?.name} vs ${match.awayTeam?.name} (${match.status}, date: ${match.utcDate})`)
+            return false
+          }
+
+          return true
+        })
         .map((match: any) => ({
           football_data_match_id: match.id,
           competition_id: competition.id,
@@ -253,6 +273,19 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
   const competitionIds = activeCompetitions.map(c => c.id)
   const finishedTournaments = await checkAndFinishTournaments(supabase, competitionIds)
 
+  // API-Football fallback: patcher les scores stale (avec cooldown automatique)
+  let fallbackResult: FallbackResult | undefined
+  try {
+    fallbackResult = await patchStaleScoresWithApiFootball()
+    if (fallbackResult.patched > 0) {
+      console.log(`[AUTO-UPDATE] API-Football fallback: ${fallbackResult.patched} match(es) patched`)
+    } else if (fallbackResult.skipped) {
+      console.log(`[AUTO-UPDATE] API-Football fallback skipped: ${fallbackResult.skipReason}`)
+    }
+  } catch (fallbackError: any) {
+    console.error('[AUTO-UPDATE] API-Football fallback error:', fallbackError.message)
+  }
+
   return {
     success: true,
     message: `Auto-update completed: ${successCount} successful, ${failureCount} failed`,
@@ -260,6 +293,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     successCount,
     failureCount,
     finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
+    fallback: fallbackResult,
     results
   }
 }
