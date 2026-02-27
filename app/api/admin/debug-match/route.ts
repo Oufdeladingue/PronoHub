@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
+
 /**
  * Debug endpoint pour vérifier l'état d'un match spécifique
  * GET /api/admin/debug-match?home=Parma&away=Cagliari&tournament=elitetimcook
@@ -8,6 +10,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 export async function GET(request: Request) {
   try {
     const supabase = createAdminClient()
+    const apiKey = process.env.FOOTBALL_DATA_API_KEY
 
     const { searchParams } = new URL(request.url)
     const home = searchParams.get('home') || 'Parma'
@@ -23,7 +26,67 @@ export async function GET(request: Request) {
       .order('utc_date', { ascending: false })
       .limit(5)
 
-    // 2. Chercher le tournoi
+    // 2. Appeler l'API Football Data directement pour vérifier
+    let apiResponse: any = null
+    if (importedMatches && importedMatches.length > 0 && apiKey) {
+      const matchId = importedMatches[0].football_data_match_id
+      try {
+        const res = await fetch(`${FOOTBALL_DATA_API}/matches/${matchId}`, {
+          headers: { 'X-Auth-Token': apiKey }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          apiResponse = {
+            id: data.id,
+            status: data.status,
+            utcDate: data.utcDate,
+            matchday: data.matchday,
+            homeTeam: data.homeTeam?.name,
+            awayTeam: data.awayTeam?.name,
+            score: data.score,
+            lastUpdated: data.lastUpdated
+          }
+        } else {
+          apiResponse = { error: `HTTP ${res.status}: ${res.statusText}` }
+        }
+      } catch (err: any) {
+        apiResponse = { error: err.message }
+      }
+
+      // 2b. Aussi vérifier via l'endpoint competition/matches pour Serie A
+      const competitionId = importedMatches[0].competition_id
+      try {
+        const compRes = await fetch(`${FOOTBALL_DATA_API}/competitions/${competitionId}/matches?matchday=${importedMatches[0].matchday}`, {
+          headers: { 'X-Auth-Token': apiKey }
+        })
+        if (compRes.ok) {
+          const compData = await compRes.json()
+          const targetMatch = compData.matches?.find((m: any) => m.id === importedMatches[0].football_data_match_id)
+          apiResponse = {
+            ...apiResponse,
+            fromCompetitionEndpoint: targetMatch ? {
+              id: targetMatch.id,
+              status: targetMatch.status,
+              score: targetMatch.score,
+              homeTeam: targetMatch.homeTeam?.name,
+              awayTeam: targetMatch.awayTeam?.name,
+            } : 'Match NOT FOUND in competition endpoint response',
+            competitionMatchesCount: compData.matches?.length || 0,
+            allMatchStatuses: compData.matches?.map((m: any) => ({
+              id: m.id,
+              home: m.homeTeam?.shortName,
+              away: m.awayTeam?.shortName,
+              status: m.status,
+              score: `${m.score?.fullTime?.home ?? '-'}-${m.score?.fullTime?.away ?? '-'}`
+            }))
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Chercher le tournoi
     let tournamentInfo = null
     let tournamentMatches = null
     if (tournamentName) {
@@ -35,14 +98,11 @@ export async function GET(request: Request) {
 
       tournamentInfo = tournaments
 
-      // Si on a trouvé un tournoi et des matchs importés, vérifier les prédictions
       if (tournaments && tournaments.length > 0 && importedMatches && importedMatches.length > 0) {
         const tournament = tournaments[0]
         const matchIds = importedMatches.map(m => m.id)
 
-        // Vérifier si c'est un tournoi custom
         if (tournament.custom_competition_id) {
-          // Chercher dans custom_competition_matches
           const { data: customMatches } = await supabase
             .from('custom_competition_matches')
             .select('id, football_data_match_id, imported_match_id, custom_matchday_id')
@@ -51,10 +111,8 @@ export async function GET(request: Request) {
           tournamentMatches = {
             type: 'custom',
             customMatches,
-            note: 'Vérifier que football_data_match_id est bien mappé'
           }
         } else {
-          // Vérifier si le matchday du match est dans la plage du tournoi
           const matchesInRange = importedMatches.filter(m =>
             m.competition_id === tournament.competition_id &&
             m.matchday >= tournament.starting_matchday &&
@@ -71,19 +129,9 @@ export async function GET(request: Request) {
               away_score: m.away_score,
               inRange: true
             })),
-            matchesOutOfRange: importedMatches.filter(m =>
-              m.competition_id === tournament.competition_id &&
-              (m.matchday < tournament.starting_matchday || m.matchday > tournament.ending_matchday)
-            ).map(m => ({
-              id: m.id,
-              matchday: m.matchday,
-              tournamentRange: `${tournament.starting_matchday}-${tournament.ending_matchday}`,
-              inRange: false
-            }))
           }
         }
 
-        // Chercher les prédictions pour ces matchs
         const { data: predictions } = await supabase
           .from('predictions')
           .select('id, user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, profiles(username)')
@@ -102,14 +150,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Vérifier les match_windows actives
-    const { data: matchWindows } = await supabase
-      .from('match_windows')
-      .select('*')
-      .gte('window_end', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-      .order('window_start', { ascending: false })
-      .limit(10)
-
     // 4. Derniers logs cron
     const { data: recentLogs } = await supabase
       .from('cron_logs')
@@ -120,12 +160,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       query: { home, away, tournamentName },
       importedMatches: importedMatches || [],
-      importedMatchesError: imError?.message || null,
+      footballDataAPI: apiResponse,
       tournamentInfo,
       tournamentMatches,
-      recentMatchWindows: matchWindows || [],
       recentCronLogs: recentLogs || [],
-      diagnosis: getDiagnosis(importedMatches, tournamentInfo, tournamentMatches)
+      diagnosis: getDiagnosis(importedMatches, tournamentInfo, tournamentMatches, apiResponse)
     })
 
   } catch (error: any) {
@@ -137,53 +176,50 @@ export async function GET(request: Request) {
 function getDiagnosis(
   importedMatches: any[] | null,
   tournamentInfo: any[] | null,
-  tournamentMatches: any
+  tournamentMatches: any,
+  apiResponse: any
 ): string[] {
   const issues: string[] = []
 
   if (!importedMatches || importedMatches.length === 0) {
-    issues.push('CRITIQUE: Match non trouvé dans imported_matches - le match n\'existe pas en base')
+    issues.push('CRITIQUE: Match non trouvé dans imported_matches')
     return issues
   }
 
   const match = importedMatches[0]
 
+  // Comparer DB vs API
+  if (apiResponse && !apiResponse.error) {
+    if (apiResponse.status !== match.status) {
+      issues.push(`BUG CONFIRMÉ: L'API retourne status="${apiResponse.status}" mais la DB a "${match.status}" → L'upsert ne fonctionne pas`)
+    }
+    if (apiResponse.status === 'FINISHED' && (match.home_score === null || match.away_score === null)) {
+      issues.push(`BUG CONFIRMÉ: L'API a le score final (${apiResponse.score?.fullTime?.home}-${apiResponse.score?.fullTime?.away}) mais la DB a des scores null → L'upsert ne met pas à jour`)
+    }
+    if (apiResponse.status === match.status && match.status === 'TIMED') {
+      issues.push(`INFO: L'API retourne aussi TIMED → Le match n'est pas encore terminé selon Football Data`)
+    }
+  }
+
   if (match.home_score === null || match.away_score === null) {
-    issues.push(`CRITIQUE: Score null en base (home_score=${match.home_score}, away_score=${match.away_score}) - L'API n'a pas retourné de score ou le cron n'a pas mis à jour`)
+    issues.push(`Score null en base (home=${match.home_score}, away=${match.away_score})`)
   }
 
   if (match.status !== 'FINISHED') {
-    issues.push(`ATTENTION: Status du match = "${match.status}" (pas FINISHED) - Le match n'est peut-être pas encore terminé côté API`)
-  }
-
-  if (!match.finished) {
-    issues.push(`ATTENTION: Flag finished = false - Le match n'est pas marqué comme terminé`)
+    issues.push(`Status = "${match.status}" (pas FINISHED)`)
   }
 
   if (tournamentInfo && tournamentInfo.length > 0) {
     const tournament = tournamentInfo[0]
-
-    if (tournament.competition_id && match.competition_id !== tournament.competition_id) {
-      issues.push(`CRITIQUE: Le match est dans la compétition ${match.competition_id} mais le tournoi attend ${tournament.competition_id}`)
-    }
-
     if (!tournament.custom_competition_id && tournament.competition_id) {
       if (match.matchday < tournament.starting_matchday || match.matchday > tournament.ending_matchday) {
-        issues.push(`CRITIQUE: Le match est au matchday ${match.matchday} mais le tournoi couvre J${tournament.starting_matchday} à J${tournament.ending_matchday}`)
+        issues.push(`Match J${match.matchday} hors plage tournoi J${tournament.starting_matchday}-J${tournament.ending_matchday}`)
       }
     }
-
-    if (tournament.status !== 'active') {
-      issues.push(`ATTENTION: Le tournoi est en statut "${tournament.status}" (pas active)`)
-    }
-  }
-
-  if (tournamentMatches?.type === 'standard' && tournamentMatches.matchesInRange?.length === 0) {
-    issues.push('CRITIQUE: Le match n\'est pas dans la plage de journées du tournoi')
   }
 
   if (issues.length === 0) {
-    issues.push('OK: Aucun problème détecté - le match devrait s\'afficher correctement')
+    issues.push('OK: Aucun problème détecté')
   }
 
   return issues
