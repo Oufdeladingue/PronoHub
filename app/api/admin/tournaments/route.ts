@@ -166,22 +166,39 @@ export async function GET() {
               return { tournament_id: t.id, utc_date: direct.data.utc_date }
             }
 
-            // 2. Fallback : virtual matchday → (stage, raw matchday) pour les knockout
-            const stageInfo = virtualToStageMatchday(t.ending_matchday)
-            if (!stageInfo) return null
-
-            const knockout = await supabase
+            // 2. Fallback générique : reconstruire les virtual matchdays à partir des données
+            // Charge tous les matchs de la compétition, groupe par (stage, matchday),
+            // trie chronologiquement, et mappe vers des index séquentiels
+            const { data: allMatches } = await supabase
               .from('imported_matches')
-              .select('utc_date')
+              .select('stage, matchday, utc_date')
               .eq('competition_id', t.competition_id)
-              .eq('stage', stageInfo.stage)
-              .eq('matchday', stageInfo.rawMatchday)
               .not('utc_date', 'is', null)
-              .order('utc_date', { ascending: false })
-              .limit(1)
-              .single()
 
-            return knockout.data ? { tournament_id: t.id, utc_date: knockout.data.utc_date } : null
+            if (!allMatches || allMatches.length === 0) return null
+
+            // Grouper par (stage, matchday) avec la date min et max de chaque groupe
+            const groups = new Map<string, { minDate: string; maxDate: string }>()
+            for (const m of allMatches) {
+              const key = `${m.stage}_${m.matchday}`
+              const existing = groups.get(key)
+              if (!existing) {
+                groups.set(key, { minDate: m.utc_date, maxDate: m.utc_date })
+              } else {
+                if (m.utc_date < existing.minDate) existing.minDate = m.utc_date
+                if (m.utc_date > existing.maxDate) existing.maxDate = m.utc_date
+              }
+            }
+
+            // Trier les groupes par date chronologique → virtual matchday 1, 2, 3...
+            const sortedGroups = [...groups.entries()]
+              .sort((a, b) => a[1].minDate.localeCompare(b[1].minDate))
+
+            // Le ending_matchday correspond à l'index (1-based)
+            const targetGroup = sortedGroups[t.ending_matchday - 1]
+            if (!targetGroup) return null
+
+            return { tournament_id: t.id, utc_date: targetGroup[1].maxDate }
           })
       ).then(results => results.filter(Boolean)),
 
