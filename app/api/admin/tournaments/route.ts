@@ -3,6 +3,28 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 
+// Virtual matchday → (stage, raw matchday) pour les compétitions knockout
+const STAGE_ORDER: Record<string, number> = {
+  'LEAGUE_STAGE': 0,
+  'PLAYOFFS': 8,
+  'LAST_16': 10,
+  'QUARTER_FINALS': 12,
+  'SEMI_FINALS': 14,
+  'FINAL': 16
+}
+
+function virtualToStageMatchday(virtualMd: number): { stage: string; rawMatchday: number } | null {
+  // Parcourir les stages du plus grand base au plus petit
+  const entries = Object.entries(STAGE_ORDER).sort((a, b) => b[1] - a[1])
+  for (const [stage, base] of entries) {
+    if (base > 0 && virtualMd > base) {
+      return { stage, rawMatchday: virtualMd - base }
+    }
+  }
+  // League stage (matchday brut)
+  return null
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -124,21 +146,31 @@ export async function GET() {
         .then(r => r.data || []) : Promise.resolve([]),
 
       // Récupérer la date du dernier match du ending_matchday par tournoi standard
+      // Gère les virtual matchdays (knockout) : convertit en (stage, raw matchday)
       Promise.all(
         tournaments
           .filter((t: any) => t.competition_id && !t.custom_competition_id && t.ending_matchday)
-          .map((t: any) =>
-            supabase
+          .map((t: any) => {
+            const stageInfo = virtualToStageMatchday(t.ending_matchday)
+            let query = supabase
               .from('imported_matches')
               .select('utc_date')
               .eq('competition_id', t.competition_id)
-              .eq('matchday', t.ending_matchday)
               .not('utc_date', 'is', null)
               .order('utc_date', { ascending: false })
               .limit(1)
-              .single()
+
+            if (stageInfo) {
+              // Knockout: filtrer par stage + raw matchday
+              query = query.eq('stage', stageInfo.stage).eq('matchday', stageInfo.rawMatchday)
+            } else {
+              // League stage: filtrer par matchday brut
+              query = query.eq('matchday', t.ending_matchday)
+            }
+
+            return query.single()
               .then(r => r.data ? { tournament_id: t.id, utc_date: r.data.utc_date } : null)
-          )
+          })
       ).then(results => results.filter(Boolean)),
 
       // Récupérer la dernière activité prono par tournoi (admin client pour bypasser RLS)
