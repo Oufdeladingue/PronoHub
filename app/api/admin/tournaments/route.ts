@@ -146,30 +146,42 @@ export async function GET() {
         .then(r => r.data || []) : Promise.resolve([]),
 
       // Récupérer la date du dernier match du ending_matchday par tournoi standard
-      // Gère les virtual matchdays (knockout) : convertit en (stage, raw matchday)
+      // D'abord essayer le matchday brut, puis fallback sur la conversion knockout
       Promise.all(
         tournaments
           .filter((t: any) => t.competition_id && !t.custom_competition_id && t.ending_matchday)
-          .map((t: any) => {
-            const stageInfo = virtualToStageMatchday(t.ending_matchday)
-            let query = supabase
+          .map(async (t: any) => {
+            // 1. Essayer le matchday brut (fonctionne pour les ligues classiques)
+            const direct = await supabase
               .from('imported_matches')
               .select('utc_date')
               .eq('competition_id', t.competition_id)
+              .eq('matchday', t.ending_matchday)
               .not('utc_date', 'is', null)
               .order('utc_date', { ascending: false })
               .limit(1)
+              .single()
 
-            if (stageInfo) {
-              // Knockout: filtrer par stage + raw matchday
-              query = query.eq('stage', stageInfo.stage).eq('matchday', stageInfo.rawMatchday)
-            } else {
-              // League stage: filtrer par matchday brut
-              query = query.eq('matchday', t.ending_matchday)
+            if (direct.data) {
+              return { tournament_id: t.id, utc_date: direct.data.utc_date }
             }
 
-            return query.single()
-              .then(r => r.data ? { tournament_id: t.id, utc_date: r.data.utc_date } : null)
+            // 2. Fallback : virtual matchday → (stage, raw matchday) pour les knockout
+            const stageInfo = virtualToStageMatchday(t.ending_matchday)
+            if (!stageInfo) return null
+
+            const knockout = await supabase
+              .from('imported_matches')
+              .select('utc_date')
+              .eq('competition_id', t.competition_id)
+              .eq('stage', stageInfo.stage)
+              .eq('matchday', stageInfo.rawMatchday)
+              .not('utc_date', 'is', null)
+              .order('utc_date', { ascending: false })
+              .limit(1)
+              .single()
+
+            return knockout.data ? { tournament_id: t.id, utc_date: knockout.data.utc_date } : null
           })
       ).then(results => results.filter(Boolean)),
 
