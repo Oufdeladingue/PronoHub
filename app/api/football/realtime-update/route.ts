@@ -58,7 +58,7 @@ interface MatchGroup {
  * Retourne une structure permettant la stratégie hybride
  */
 async function getActiveMatchesGrouped(): Promise<MatchGroup[]> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const now = new Date().toISOString()
 
   // Récupérer les fenêtres actives (now entre window_start et window_end)
@@ -162,7 +162,7 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
   console.log(`  Total: ${totalMatches} matchs à mettre à jour`)
   console.log('[REALTIME-UPDATE] ================================')
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   const results = []
   const MIN_DELAY_BETWEEN_CALLS_MS = 6000
 

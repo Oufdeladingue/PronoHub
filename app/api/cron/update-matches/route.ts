@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // Clés des paramètres dans la table admin_settings
 const SETTINGS_KEYS = {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
 async function handleCronRequest(request: Request, isManual: boolean) {
   try {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // Vérifier si force=true est passé (pour les crons GitHub)
     const { searchParams } = new URL(request.url)

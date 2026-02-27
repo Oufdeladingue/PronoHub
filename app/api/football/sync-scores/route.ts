@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
       )
     }
 
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     // 1. Récupérer les compétitions à synchroniser
     let competitionsToSync: number[] = []

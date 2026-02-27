@@ -52,7 +52,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     }
   }
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Récupérer uniquement les compétitions actives dont la saison n'est pas terminée
   const today = new Date().toISOString().split('T')[0] // Format YYYY-MM-DD
