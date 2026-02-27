@@ -56,6 +56,28 @@ export async function GET(
       return NextResponse.json({ error: 'Erreur lors de la récupération des participants' }, { status: 500 })
     }
 
+    // Tournoi en attente → pas de calcul de points
+    if (tournament.status === 'pending') {
+      const emptyRankings = participants.map((p: any) => ({
+        playerId: p.user_id,
+        playerName: (p.profiles as any)?.username || 'Inconnu',
+        avatar: (p.profiles as any)?.avatar || 'avatar1',
+        totalPoints: 0,
+        exactScores: 0,
+        correctResults: 0,
+        matchesPlayed: 0,
+        matchesAvailable: 0,
+        rank: null,
+        predictionsCount: 0,
+      }))
+      return NextResponse.json({
+        rankings: emptyRankings,
+        matchdays: [],
+        totalMatches: 0,
+        finishedMatches: 0,
+      })
+    }
+
     // 3. Déterminer les journées à prendre en compte
     let startMatchday = tournament.starting_matchday
     let endMatchday = tournament.ending_matchday
