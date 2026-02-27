@@ -4,11 +4,19 @@ import { patchStaleScoresWithApiFootball } from '@/lib/api-football-fallback'
 
 /**
  * Endpoint pour lancer manuellement le fallback API-Football
- * POST /api/football/fallback-scores
+ * GET ou POST /api/football/fallback-scores?force=true
  *
  * Force le fallback même si le cooldown n'est pas passé (bypass via ?force=true)
  */
+export async function GET(request: Request) {
+  return handleFallback(request)
+}
+
 export async function POST(request: Request) {
+  return handleFallback(request)
+}
+
+async function handleFallback(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const force = searchParams.get('force') === 'true'
