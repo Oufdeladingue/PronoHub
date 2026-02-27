@@ -51,6 +51,19 @@ export async function calculateTournamentStats(
     return []
   }
 
+  // Tournoi en attente → pas de calcul de points
+  if (tournament.status === 'pending') {
+    return participants.map(p => ({
+      user_id: p.user_id,
+      username: (p.profiles as any)?.username || 'Inconnu',
+      avatar: (p.profiles as any)?.avatar || 'avatar1',
+      total_points: 0,
+      rank: null,
+      predictions_count: 0,
+      joined_at: p.joined_at
+    }))
+  }
+
   const exactScoreSetting = pointsSettingsData?.find(s => s.setting_key === 'points_exact_score')
   const correctResultSetting = pointsSettingsData?.find(s => s.setting_key === 'points_correct_result')
   const incorrectResultSetting = pointsSettingsData?.find(s => s.setting_key === 'points_incorrect_result')
