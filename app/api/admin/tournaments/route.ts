@@ -238,8 +238,11 @@ export async function GET() {
       const totalRevenue = revenueMap.get(tournament.id) || 0
 
       // Date de fin basée sur le ending_matchday du tournoi (pas de la compétition entière)
-      let endDate: string | null = endDateByTournamentMap.get(tournament.id) || null
-      if (!endDate && tournament.custom_competition_id) {
+      // Ne pas calculer pour les tournois en attente (pas encore de journées définies)
+      let endDate: string | null = tournament.status === 'pending'
+        ? null
+        : (endDateByTournamentMap.get(tournament.id) || null)
+      if (!endDate && tournament.status !== 'pending' && tournament.custom_competition_id) {
         // Pour les custom, chercher le dernier match dans les matchdays de la compétition
         const matchdayIds = customMatchdayMap.get(tournament.custom_competition_id) || []
         const dates: string[] = []
