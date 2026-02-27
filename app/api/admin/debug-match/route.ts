@@ -86,6 +86,63 @@ export async function GET(request: Request) {
       }
     }
 
+    // 2c. Vérifier le statut du compte API + rate limits
+    let apiAccountStatus: any = null
+    if (apiKey) {
+      try {
+        const accountRes = await fetch(`${FOOTBALL_DATA_API}/`, {
+          headers: { 'X-Auth-Token': apiKey }
+        })
+        const rateLimitRemaining = accountRes.headers.get('x-requests-available-minute')
+        const rateLimitUsed = accountRes.headers.get('x-requestcounter-reset')
+        const apiVersion = accountRes.headers.get('x-api-version')
+
+        if (accountRes.ok) {
+          const accountData = await accountRes.json()
+          apiAccountStatus = {
+            plan: accountData.plan,
+            name: accountData.name,
+            permissions: accountData.permissions,
+            rateLimitRemaining,
+            rateLimitUsed,
+            apiVersion,
+            httpStatus: accountRes.status
+          }
+        } else {
+          apiAccountStatus = {
+            error: `HTTP ${accountRes.status}: ${accountRes.statusText}`,
+            rateLimitRemaining,
+            httpStatus: accountRes.status
+          }
+        }
+      } catch (err: any) {
+        apiAccountStatus = { error: err.message }
+      }
+
+      // 2d. Vérifier une autre compétition (Premier League J27) pour comparer
+      try {
+        const plRes = await fetch(`${FOOTBALL_DATA_API}/competitions/2021/matches?matchday=27`, {
+          headers: { 'X-Auth-Token': apiKey }
+        })
+        if (plRes.ok) {
+          const plData = await plRes.json()
+          apiAccountStatus = {
+            ...apiAccountStatus,
+            premierLeagueJ27: plData.matches?.slice(0, 3).map((m: any) => ({
+              home: m.homeTeam?.shortName,
+              away: m.awayTeam?.shortName,
+              status: m.status,
+              score: `${m.score?.fullTime?.home ?? '-'}-${m.score?.fullTime?.away ?? '-'}`,
+              utcDate: m.utcDate
+            })),
+            premierLeagueJ27Note: 'Comparaison avec PL pour vérifier si le problème est global ou spécifique Serie A'
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     // 3. Chercher le tournoi
     let tournamentInfo = null
     let tournamentMatches = null
@@ -161,6 +218,7 @@ export async function GET(request: Request) {
       query: { home, away, tournamentName },
       importedMatches: importedMatches || [],
       footballDataAPI: apiResponse,
+      apiAccountStatus,
       tournamentInfo,
       tournamentMatches,
       recentCronLogs: recentLogs || [],
