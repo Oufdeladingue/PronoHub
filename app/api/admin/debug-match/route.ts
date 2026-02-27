@@ -119,28 +119,56 @@ export async function GET(request: Request) {
         apiAccountStatus = { error: err.message }
       }
 
-      // 2d. Vérifier une autre compétition (Premier League J27) pour comparer
-      try {
-        const plRes = await fetch(`${FOOTBALL_DATA_API}/competitions/2021/matches?matchday=27`, {
-          headers: { 'X-Auth-Token': apiKey }
-        })
-        if (plRes.ok) {
-          const plData = await plRes.json()
-          apiAccountStatus = {
-            ...apiAccountStatus,
-            premierLeagueJ27: plData.matches?.slice(0, 3).map((m: any) => ({
-              home: m.homeTeam?.shortName,
-              away: m.awayTeam?.shortName,
-              status: m.status,
-              score: `${m.score?.fullTime?.home ?? '-'}-${m.score?.fullTime?.away ?? '-'}`,
-              utcDate: m.utcDate
-            })),
-            premierLeagueJ27Note: 'Comparaison avec PL pour vérifier si le problème est global ou spécifique Serie A'
+      // 2d. Vérifier plusieurs compétitions pour comparer
+      const competitionsToCheck = [
+        { id: 2021, name: 'Premier League' },
+        { id: 2015, name: 'Ligue 1' },
+        { id: 2014, name: 'La Liga' },
+        { id: 2002, name: 'Bundesliga' },
+        { id: 2019, name: 'Serie A' },
+      ]
+
+      const competitionStatuses: any[] = []
+      for (const comp of competitionsToCheck) {
+        try {
+          const compRes = await fetch(`${FOOTBALL_DATA_API}/competitions/${comp.id}`, {
+            headers: { 'X-Auth-Token': apiKey }
+          })
+          if (compRes.ok) {
+            const compData = await compRes.json()
+            const currentMd = compData.currentSeason?.currentMatchday
+            // Récupérer les matchs du matchday actuel
+            let recentMatches: any[] = []
+            if (currentMd) {
+              const mdRes = await fetch(`${FOOTBALL_DATA_API}/competitions/${comp.id}/matches?matchday=${currentMd}`, {
+                headers: { 'X-Auth-Token': apiKey }
+              })
+              if (mdRes.ok) {
+                const mdData = await mdRes.json()
+                recentMatches = mdData.matches?.slice(0, 3).map((m: any) => ({
+                  home: m.homeTeam?.shortName,
+                  away: m.awayTeam?.shortName,
+                  status: m.status,
+                  score: `${m.score?.fullTime?.home ?? '-'}-${m.score?.fullTime?.away ?? '-'}`,
+                  utcDate: m.utcDate
+                })) || []
+              }
+            }
+            competitionStatuses.push({
+              name: comp.name,
+              id: comp.id,
+              currentMatchday: currentMd,
+              seasonStart: compData.currentSeason?.startDate,
+              seasonEnd: compData.currentSeason?.endDate,
+              lastUpdated: compData.lastUpdated,
+              recentMatches
+            })
           }
+        } catch {
+          competitionStatuses.push({ name: comp.name, id: comp.id, error: 'fetch failed' })
         }
-      } catch {
-        // ignore
       }
+      apiAccountStatus = { ...apiAccountStatus, competitionStatuses }
     }
 
     // 3. Chercher le tournoi
