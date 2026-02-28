@@ -81,6 +81,11 @@ export interface FallbackResult {
   skipped: boolean
   skipReason?: string
   errors: string[]
+  debug?: {
+    staleMatchesFound: number
+    groups: any[]
+    apiResponses: any[]
+  }
 }
 
 /**
@@ -124,42 +129,51 @@ function getSeasonYear(startDate: string | null): number {
 
 /**
  * Appel direct à l'API API-Football
+ * Supporte les deux modes d'auth : api-sports.io direct (x-apisports-key) et RapidAPI (x-rapidapi-key)
  */
 async function fetchApiFootball(
   apiKey: string,
   leagueId: number,
   season: number,
-  round: string
-): Promise<ApiFootballFixtureResponse[] | null> {
+  round?: string
+): Promise<{ fixtures: ApiFootballFixtureResponse[]; debug: any }> {
   const url = new URL(`${API_FOOTBALL_BASE}/fixtures`)
   url.searchParams.append('league', String(leagueId))
   url.searchParams.append('season', String(season))
-  url.searchParams.append('round', round)
+  if (round) url.searchParams.append('round', round)
+
+  const debugInfo: any = { url: url.toString(), leagueId, season, round }
 
   try {
+    // Utiliser x-apisports-key pour api-sports.io direct
     const response = await fetch(url.toString(), {
       headers: {
-        'x-rapidapi-key': apiKey,
-        'x-rapidapi-host': 'v3.football.api-sports.io',
+        'x-apisports-key': apiKey,
       },
     })
 
+    debugInfo.httpStatus = response.status
+
     if (!response.ok) {
       console.error(`[API-FOOTBALL] Error ${response.status}: ${response.statusText}`)
-      return null
+      debugInfo.error = `HTTP ${response.status}: ${response.statusText}`
+      return { fixtures: [], debug: debugInfo }
     }
 
     const data = await response.json()
+    debugInfo.results = data.results
+    debugInfo.errors = data.errors
 
     if (data.errors && Object.keys(data.errors).length > 0) {
       console.error('[API-FOOTBALL] API errors:', data.errors)
-      return null
+      return { fixtures: [], debug: debugInfo }
     }
 
-    return data.response || []
-  } catch (error) {
+    return { fixtures: data.response || [], debug: debugInfo }
+  } catch (error: any) {
     console.error('[API-FOOTBALL] Fetch error:', error)
-    return null
+    debugInfo.error = error.message
+    return { fixtures: [], debug: debugInfo }
   }
 }
 
@@ -226,6 +240,8 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
   let patched = 0
   let checked = 0
   let apiCalls = 0
+  const debugGroups: any[] = []
+  const debugApiResponses: any[] = []
 
   // 1. Trouver les matchs stale: utc_date > 3h dans le passé ET status toujours TIMED/SCHEDULED
   const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
@@ -247,9 +263,8 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
 
   if (!staleMatches || staleMatches.length === 0) {
     console.log('[API-FOOTBALL FALLBACK] No stale matches found')
-    // Mettre à jour le timestamp même sans matchs stale (pour éviter des checks répétés)
     await updateLastRunTimestamp(supabase)
-    return { patched: 0, checked: 0, apiCalls: 0, skipped: false, errors: [] }
+    return { patched: 0, checked: 0, apiCalls: 0, skipped: false, errors: [], debug: { staleMatchesFound: 0, groups: [], apiResponses: [] } }
   }
 
   console.log(`[API-FOOTBALL FALLBACK] Found ${staleMatches.length} stale match(es) to check`)
@@ -291,11 +306,22 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
 
     if (!apiFootballLeagueId) {
       console.log(`[API-FOOTBALL FALLBACK] No mapping for competition ${compId}, skipping`)
+      debugGroups.push({ compId, matchday, skipped: true, reason: 'no mapping' })
       continue
     }
 
     const season = seasonMap.get(compId) || getSeasonYear(null)
     const round = `Regular Season - ${matchday}`
+
+    debugGroups.push({
+      compId,
+      apiFootballLeagueId,
+      season,
+      matchday,
+      round,
+      staleMatchCount: matches.length,
+      sampleMatches: matches.slice(0, 3).map(m => `${m.home_team_name} vs ${m.away_team_name} (${m.status})`)
+    })
 
     console.log(`[API-FOOTBALL FALLBACK] Fetching league ${apiFootballLeagueId} season ${season} round "${round}" (${matches.length} stale matches)`)
 
@@ -305,9 +331,16 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
     }
 
     const startTime = Date.now()
-    const fixtures = await fetchApiFootball(apiKey, apiFootballLeagueId, season, round)
+    const { fixtures, debug: fetchDebug } = await fetchApiFootball(apiKey, apiFootballLeagueId, season, round)
     const responseTime = Date.now() - startTime
     apiCalls++
+
+    debugApiResponses.push({
+      ...fetchDebug,
+      fixturesReturned: fixtures.length,
+      sampleFixtures: fixtures.slice(0, 3).map(f => `${f.teams.home.name} vs ${f.teams.away.name} (${f.fixture.status.short})`),
+      responseTimeMs: responseTime
+    })
 
     // Logger l'appel API
     try {
@@ -315,12 +348,12 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
         api_name: 'api-football',
         call_type: 'fallback-scores',
         competition_id: compId,
-        success: !!fixtures,
+        success: fixtures.length > 0,
         response_time_ms: responseTime
       })
     } catch { /* ignore logging errors */ }
 
-    if (!fixtures || fixtures.length === 0) {
+    if (fixtures.length === 0) {
       console.log(`[API-FOOTBALL FALLBACK] No fixtures returned for round "${round}"`)
       continue
     }
@@ -409,7 +442,14 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
 
   console.log(`[API-FOOTBALL FALLBACK] Done: ${patched} patched, ${checked} checked, ${apiCalls} API calls`)
 
-  return { patched, checked, apiCalls, skipped: false, errors }
+  return {
+    patched, checked, apiCalls, skipped: false, errors,
+    debug: {
+      staleMatchesFound: staleMatches.length,
+      groups: debugGroups,
+      apiResponses: debugApiResponses
+    }
+  }
 }
 
 async function updateLastRunTimestamp(supabase: any): Promise<void> {
