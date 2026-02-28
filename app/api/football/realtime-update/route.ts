@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -209,39 +208,12 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
 
         // Mettre à jour chaque match
         for (const matchData of relevantMatches) {
-          // Vérifier si football-data est stale pour ce match
-          const matchInfo = group.matches.find(m => m.football_data_match_id === matchData.id)
-          const kickoff = matchInfo ? new Date(matchInfo.utc_date).getTime() : 0
-          const isStale = matchData.status === 'TIMED' && Date.now() > kickoff
-
-          let updateData: any
-          let usedSource = 'football-data'
-
-          if (isStale && matchInfo) {
-            // Football-data stale → fallback native-stats.org
-            console.log(`[REALTIME-UPDATE] Stale data from football-data for match ${matchData.id}, trying native-stats...`)
-            const scraped = await scrapeMatchScore(matchData.id, matchInfo.utc_date)
-
-            if (scraped) {
-              usedSource = 'native-stats'
-              updateData = {
-                status: scraped.isFinished ? 'FINISHED' : 'IN_PLAY',
-                finished: scraped.isFinished,
-                home_score: scraped.homeScore,
-                away_score: scraped.awayScore,
-                last_updated_at: new Date().toISOString(),
-              }
-            }
-          }
-
-          if (!updateData) {
-            updateData = {
-              status: matchData.status,
-              finished: matchData.status === 'FINISHED',
-              home_score: matchData.score?.fullTime?.home ?? null,
-              away_score: matchData.score?.fullTime?.away ?? null,
-              last_updated_at: new Date().toISOString(),
-            }
+          const updateData = {
+            status: matchData.status,
+            finished: matchData.status === 'FINISHED',
+            home_score: matchData.score?.fullTime?.home ?? null,
+            away_score: matchData.score?.fullTime?.away ?? null,
+            last_updated_at: new Date().toISOString(),
           }
 
           const { error: updateError } = await supabase
@@ -253,9 +225,8 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
             matchId: matchData.id,
             success: !updateError,
             error: updateError?.message,
-            status: updateData.status,
-            score: `${updateData.home_score ?? '-'} - ${updateData.away_score ?? '-'}`,
-            source: usedSource
+            status: matchData.status,
+            score: `${matchData.score?.fullTime?.home ?? '-'} - ${matchData.score?.fullTime?.away ?? '-'}`
           })
         }
 
@@ -305,7 +276,7 @@ async function updateMatchesIndividually(
   // Récupérer infos pour cache et filtrage
   const { data: matchesInfo } = await supabase
     .from('imported_matches')
-    .select('football_data_match_id, status, last_updated_at, utc_date')
+    .select('football_data_match_id, status, last_updated_at')
     .in('football_data_match_id', matchIds)
 
   const matchInfoMap = new Map<number, any>(matchesInfo?.map((m: any) => [m.football_data_match_id, m]) || [])
@@ -356,37 +327,12 @@ async function updateMatchesIndividually(
 
       const matchData = await response.json()
 
-      // Vérifier si football-data est stale pour ce match
-      const isStale = matchData.status === 'TIMED' && currentInfo?.utc_date && Date.now() > new Date(currentInfo.utc_date).getTime()
-
-      let updateData: any
-      let usedSource = 'football-data'
-
-      if (isStale) {
-        // Football-data stale → fallback native-stats.org
-        console.log(`[REALTIME-UPDATE] Stale data from football-data for match ${matchId}, trying native-stats...`)
-        const scraped = await scrapeMatchScore(matchId, currentInfo.utc_date)
-
-        if (scraped) {
-          usedSource = 'native-stats'
-          updateData = {
-            status: scraped.isFinished ? 'FINISHED' : 'IN_PLAY',
-            finished: scraped.isFinished,
-            home_score: scraped.homeScore,
-            away_score: scraped.awayScore,
-            last_updated_at: new Date().toISOString(),
-          }
-        }
-      }
-
-      if (!updateData) {
-        updateData = {
-          status: matchData.status,
-          finished: matchData.status === 'FINISHED',
-          home_score: matchData.score?.fullTime?.home ?? null,
-          away_score: matchData.score?.fullTime?.away ?? null,
-          last_updated_at: new Date().toISOString(),
-        }
+      const updateData = {
+        status: matchData.status,
+        finished: matchData.status === 'FINISHED',
+        home_score: matchData.score?.fullTime?.home ?? null,
+        away_score: matchData.score?.fullTime?.away ?? null,
+        last_updated_at: new Date().toISOString(),
       }
 
       const { error: updateError } = await supabase
@@ -398,9 +344,8 @@ async function updateMatchesIndividually(
         matchId,
         success: !updateError,
         error: updateError?.message,
-        status: updateData.status,
-        score: `${updateData.home_score ?? '-'} - ${updateData.away_score ?? '-'}`,
-        source: usedSource
+        status: matchData.status,
+        score: `${matchData.score?.fullTime?.home ?? '-'} - ${matchData.score?.fullTime?.away ?? '-'}`
       })
 
     } catch (error: any) {
