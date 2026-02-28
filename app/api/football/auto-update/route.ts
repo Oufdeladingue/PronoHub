@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { patchStaleScoresWithApiFootball, type FallbackResult } from '@/lib/api-football-fallback'
+import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -14,6 +15,7 @@ export interface AutoUpdateResult {
   failureCount?: number
   finishedTournaments?: { id: string; name: string }[]
   fallback?: FallbackResult
+  nativeStatsPatched?: number
   results?: any[]
   error?: string
 }
@@ -286,6 +288,17 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     console.error('[AUTO-UPDATE] API-Football fallback error:', fallbackError.message)
   }
 
+  // Native-stats fallback: patcher les matchs stale en temps réel (pas de cooldown)
+  let nativeStatsPatched = 0
+  try {
+    nativeStatsPatched = await patchStaleScoresWithNativeStats(supabase)
+    if (nativeStatsPatched > 0) {
+      console.log(`[AUTO-UPDATE] Native-stats fallback: ${nativeStatsPatched} match(es) patched`)
+    }
+  } catch (nativeStatsError: any) {
+    console.error('[AUTO-UPDATE] Native-stats fallback error:', nativeStatsError.message)
+  }
+
   return {
     success: true,
     message: `Auto-update completed: ${successCount} successful, ${failureCount} failed`,
@@ -294,8 +307,68 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     failureCount,
     finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
     fallback: fallbackResult,
+    nativeStatsPatched,
     results
   }
+}
+
+/**
+ * Patcher les matchs stale via native-stats.org (scraping)
+ * Trouve les matchs TIMED dont le kickoff est passé (entre 15min et 4h)
+ * et tente de récupérer le score via native-stats.org
+ * Max 10 matchs par run pour rester raisonnable
+ */
+async function patchStaleScoresWithNativeStats(supabase: SupabaseClient): Promise<number> {
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+
+  // Trouver les matchs stale: TIMED mais kickoff passé depuis 15min à 4h
+  const { data: staleMatches, error } = await supabase
+    .from('imported_matches')
+    .select('football_data_match_id, utc_date, home_team_name, away_team_name')
+    .eq('status', 'TIMED')
+    .lt('utc_date', fifteenMinAgo)
+    .gt('utc_date', fourHoursAgo)
+    .limit(10)
+
+  if (error || !staleMatches || staleMatches.length === 0) {
+    return 0
+  }
+
+  console.log(`[NATIVE-STATS-FALLBACK] Found ${staleMatches.length} stale match(es) to check`)
+
+  let patched = 0
+
+  for (const match of staleMatches) {
+    try {
+      const scraped = await scrapeMatchScore(match.football_data_match_id, match.utc_date)
+
+      if (scraped) {
+        const { error: updateError } = await supabase
+          .from('imported_matches')
+          .update({
+            status: scraped.isFinished ? 'FINISHED' : 'IN_PLAY',
+            finished: scraped.isFinished,
+            home_score: scraped.homeScore,
+            away_score: scraped.awayScore,
+            last_updated_at: new Date().toISOString(),
+          })
+          .eq('football_data_match_id', match.football_data_match_id)
+
+        if (!updateError) {
+          patched++
+          console.log(`[NATIVE-STATS-FALLBACK] Patched ${match.home_team_name} vs ${match.away_team_name}: ${scraped.homeScore}-${scraped.awayScore} (${scraped.isFinished ? 'FINISHED' : 'IN_PLAY'})`)
+        }
+      }
+
+      // Petit délai entre les requêtes pour être respectueux
+      await new Promise(resolve => setTimeout(resolve, 500))
+    } catch (err: any) {
+      console.error(`[NATIVE-STATS-FALLBACK] Error for match ${match.football_data_match_id}:`, err.message)
+    }
+  }
+
+  return patched
 }
 
 /**
