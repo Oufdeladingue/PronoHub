@@ -194,16 +194,27 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
 
       // 6. Mettre à jour les matchs (inclure les matchs TBD knockout avec placeholders)
       // Note: matchday peut être null pour les knockouts à match unique (WC)
-      // IMPORTANT: Skip stale matches to prevent overwriting good scores from API-Football fallback
-      // Un match est "stale" si sa date est > 3h dans le passé mais Football Data le montre encore TIMED/SCHEDULED
+      // IMPORTANT: Skip stale matches to prevent overwriting good scores from fallback sources
       const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000)
+      const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000)
+
+      // Récupérer les matchs déjà FINISHED en DB pour ne pas écraser avec un statut inférieur
+      const matchIdsFromApi = matchesData.matches.map((m: any) => m.id).filter(Boolean)
+      const { data: existingMatches } = await supabase
+        .from('imported_matches')
+        .select('football_data_match_id, status, finished')
+        .in('football_data_match_id', matchIdsFromApi)
+        .eq('finished', true)
+
+      const finishedMatchIds = new Set(existingMatches?.map(m => m.football_data_match_id) || [])
+
       const matchesToUpsert = matchesData.matches
         .filter((match: any) => {
           if (match.id == null) return false
 
-          // Ne pas écraser avec des données stale: si le match devrait être terminé
-          // (date > 3h passée) mais l'API retourne encore TIMED/SCHEDULED, on skip
           const matchDate = new Date(match.utcDate)
+
+          // Skip stale TIMED/SCHEDULED: kickoff > 3h ago but API still says TIMED
           const isStale = matchDate < threeHoursAgo &&
                           ['TIMED', 'SCHEDULED'].includes(match.status)
 
@@ -212,25 +223,53 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             return false
           }
 
+          // Skip stale IN_PLAY: kickoff > 5h ago but API still says IN_PLAY/PAUSED
+          // (aucun match ne dure plus de 5h, même avec prolongations)
+          const isStaleInPlay = matchDate < fiveHoursAgo &&
+                                ['IN_PLAY', 'PAUSED'].includes(match.status)
+
+          if (isStaleInPlay) {
+            console.log(`[AUTO-UPDATE] Skipping stale IN_PLAY match ${match.id}: ${match.homeTeam?.name} vs ${match.awayTeam?.name} (${match.status}, date: ${match.utcDate})`)
+            return false
+          }
+
           return true
         })
-        .map((match: any) => ({
-          football_data_match_id: match.id,
-          competition_id: competition.id,
-          matchday: match.matchday ?? 1, // Default to 1 for single-leg knockout (WC)
-          stage: match.stage || null,
-          utc_date: match.utcDate,
-          status: match.status,
-          finished: match.status === 'FINISHED', // Flag booléen pour marquer les matchs terminés
-          home_team_id: match.homeTeam?.id || 0,
-          home_team_name: match.homeTeam?.name || 'À déterminer',
-          home_team_crest: match.homeTeam?.crest || null,
-          away_team_id: match.awayTeam?.id || 0,
-          away_team_name: match.awayTeam?.name || 'À déterminer',
-          away_team_crest: match.awayTeam?.crest || null,
-          home_score: match.score?.fullTime?.home,
-          away_score: match.score?.fullTime?.away,
-        }))
+        .map((match: any) => {
+          // Si le match est déjà FINISHED en DB, ne pas écraser avec un statut inférieur
+          const alreadyFinished = finishedMatchIds.has(match.id)
+          const apiSaysFinished = match.status === 'FINISHED'
+
+          // Garder FINISHED si déjà marqué, sauf si football-data confirme aussi FINISHED (scores peuvent s'améliorer)
+          const effectiveStatus = alreadyFinished && !apiSaysFinished ? 'FINISHED' : match.status
+          const effectiveFinished = alreadyFinished || apiSaysFinished
+
+          return {
+            football_data_match_id: match.id,
+            competition_id: competition.id,
+            matchday: match.matchday ?? 1,
+            stage: match.stage || null,
+            utc_date: match.utcDate,
+            status: effectiveStatus,
+            finished: effectiveFinished,
+            home_team_id: match.homeTeam?.id || 0,
+            home_team_name: match.homeTeam?.name || 'À déterminer',
+            home_team_crest: match.homeTeam?.crest || null,
+            away_team_id: match.awayTeam?.id || 0,
+            away_team_name: match.awayTeam?.name || 'À déterminer',
+            away_team_crest: match.awayTeam?.crest || null,
+            // Si déjà FINISHED en DB et football-data ne confirme pas, garder les scores existants
+            home_score: alreadyFinished && !apiSaysFinished ? undefined : match.score?.fullTime?.home,
+            away_score: alreadyFinished && !apiSaysFinished ? undefined : match.score?.fullTime?.away,
+          }
+        })
+        // Retirer les champs undefined pour ne pas écraser les scores en DB
+        .map((m: any) => {
+          const clean = { ...m }
+          if (clean.home_score === undefined) delete clean.home_score
+          if (clean.away_score === undefined) delete clean.away_score
+          return clean
+        })
 
       const { error: matchesError } = await supabase
         .from('imported_matches')
@@ -320,26 +359,37 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
  */
 async function patchStaleScoresWithNativeStats(supabase: SupabaseClient): Promise<number> {
   const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-  const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+  const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()
 
-  // Trouver les matchs stale: TIMED mais kickoff passé depuis 15min à 4h
+  // Trouver les matchs stale: TIMED/IN_PLAY mais kickoff passé depuis 15min à 8h
+  // Inclut aussi les IN_PLAY dont le kickoff est > 3h (devraient être FINISHED)
+  const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
   const { data: staleMatches, error } = await supabase
     .from('imported_matches')
-    .select('football_data_match_id, utc_date, home_team_name, away_team_name')
-    .eq('status', 'TIMED')
+    .select('football_data_match_id, utc_date, home_team_name, away_team_name, status')
+    .in('status', ['TIMED', 'IN_PLAY', 'PAUSED'])
     .lt('utc_date', fifteenMinAgo)
-    .gt('utc_date', fourHoursAgo)
-    .limit(10)
+    .gt('utc_date', eightHoursAgo)
+    .limit(15)
 
   if (error || !staleMatches || staleMatches.length === 0) {
     return 0
   }
 
-  console.log(`[NATIVE-STATS-FALLBACK] Found ${staleMatches.length} stale match(es) to check`)
+  // Filtrer: TIMED → toujours patcher, IN_PLAY/PAUSED → seulement si kickoff > 3h (devrait être fini)
+  const matchesToPatch = staleMatches.filter(match => {
+    if (match.status === 'TIMED') return true
+    // IN_PLAY/PAUSED: seulement si kickoff > 3h ago (match devrait être terminé)
+    return match.utc_date < threeHoursAgo
+  })
+
+  if (matchesToPatch.length === 0) return 0
+
+  console.log(`[NATIVE-STATS-FALLBACK] Found ${matchesToPatch.length} stale match(es) to check`)
 
   let patched = 0
 
-  for (const match of staleMatches) {
+  for (const match of matchesToPatch) {
     try {
       const scraped = await scrapeMatchScore(match.football_data_match_id, match.utc_date)
 
