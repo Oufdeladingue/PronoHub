@@ -22,7 +22,7 @@ const COMPETITION_MAPPING: Record<number, number> = {
   2146: 4481,  // UEFA Europa League
 }
 
-const MAX_API_CALLS_PER_RUN = 10
+const MAX_API_CALLS_PER_RUN = 20
 const FALLBACK_COOLDOWN_HOURS = 4
 
 interface StaleMatch {
@@ -106,14 +106,15 @@ function getSeasonString(startDate: string | null): string {
 }
 
 /**
- * Fetch tous les matchs d'une saison depuis TheSportsDB
+ * Fetch les matchs d'un round spécifique depuis TheSportsDB
  */
-async function fetchSeasonEvents(
+async function fetchRoundEvents(
   leagueId: number,
+  round: number,
   season: string
 ): Promise<{ events: TheSportsDBEvent[]; debug: any }> {
-  const url = `${THESPORTSDB_BASE}/eventsseason.php?id=${leagueId}&s=${season}`
-  const debugInfo: any = { url, leagueId, season }
+  const url = `${THESPORTSDB_BASE}/eventsround.php?id=${leagueId}&r=${round}&s=${season}`
+  const debugInfo: any = { url, leagueId, round, season }
 
   try {
     const response = await fetch(url)
@@ -207,17 +208,19 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
 
   console.log(`[FALLBACK] Found ${staleMatches.length} stale match(es) to check`)
 
-  // 2. Grouper par competition_id (1 appel API par compétition)
-  const competitionGroups = new Map<number, StaleMatch[]>()
+  // 2. Grouper par (competition_id, matchday) — 1 appel API par groupe
+  const groupKey = (m: StaleMatch) => `${m.competition_id}_${m.matchday}`
+  const groups = new Map<string, StaleMatch[]>()
   for (const match of staleMatches) {
-    if (!competitionGroups.has(match.competition_id)) {
-      competitionGroups.set(match.competition_id, [])
+    const key = groupKey(match)
+    if (!groups.has(key)) {
+      groups.set(key, [])
     }
-    competitionGroups.get(match.competition_id)!.push(match)
+    groups.get(key)!.push(match)
   }
 
   // 3. Récupérer les saisons des compétitions
-  const competitionIds = [...competitionGroups.keys()]
+  const competitionIds = [...new Set(staleMatches.map(m => m.competition_id))]
   const { data: competitions } = await supabase
     .from('competitions')
     .select('id, current_season_start_date')
@@ -228,20 +231,20 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
     seasonMap.set(c.id, getSeasonString(c.current_season_start_date))
   })
 
-  // 4. Pour chaque compétition, fetch la saison complète et matcher les matchs stale
-  // Cache des événements par compétition pour éviter les appels redondants
-  const eventsCache = new Map<number, TheSportsDBEvent[]>()
-
-  for (const [compId, matches] of competitionGroups) {
+  // 4. Pour chaque groupe (competition, matchday), fetch le round depuis TheSportsDB
+  for (const [, matches] of groups) {
     if (apiCalls >= MAX_API_CALLS_PER_RUN) {
       console.log(`[FALLBACK] Reached max API calls (${MAX_API_CALLS_PER_RUN}), stopping`)
       break
     }
 
+    const compId = matches[0].competition_id
+    const matchday = matches[0].matchday
     const theSportsDbLeagueId = COMPETITION_MAPPING[compId]
+
     if (!theSportsDbLeagueId) {
       console.log(`[FALLBACK] No mapping for competition ${compId}, skipping`)
-      debugGroups.push({ compId, skipped: true, reason: 'no mapping' })
+      debugGroups.push({ compId, matchday, skipped: true, reason: 'no mapping' })
       continue
     }
 
@@ -251,49 +254,45 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
       compId,
       theSportsDbLeagueId,
       season,
+      matchday,
       staleMatchCount: matches.length,
-      sampleMatches: matches.slice(0, 3).map(m => `${m.home_team_name} vs ${m.away_team_name} (md${m.matchday}, ${m.status})`)
+      sampleMatches: matches.slice(0, 3).map(m => `${m.home_team_name} vs ${m.away_team_name} (${m.status})`)
     })
 
-    // Fetch la saison (ou utiliser le cache)
-    let events = eventsCache.get(compId)
-    if (!events) {
-      console.log(`[FALLBACK] Fetching TheSportsDB league ${theSportsDbLeagueId} season ${season} (${matches.length} stale matches)`)
+    console.log(`[FALLBACK] Fetching TheSportsDB league ${theSportsDbLeagueId} round ${matchday} season ${season} (${matches.length} stale matches)`)
 
-      if (apiCalls > 0) {
-        await new Promise(resolve => setTimeout(resolve, 2500))
-      }
-
-      const startTime = Date.now()
-      const { events: fetchedEvents, debug: fetchDebug } = await fetchSeasonEvents(theSportsDbLeagueId, season)
-      const responseTime = Date.now() - startTime
-      apiCalls++
-
-      // Filtrer aux matchs terminés avec scores
-      events = fetchedEvents.filter(e => e.strStatus === 'Match Finished' && e.intHomeScore !== null)
-      eventsCache.set(compId, events)
-
-      debugApiResponses.push({
-        ...fetchDebug,
-        finishedEvents: events.length,
-        sampleEvents: events.slice(-3).map(e => `${e.strHomeTeam} ${e.intHomeScore}-${e.intAwayScore} ${e.strAwayTeam} (R${e.intRound})`),
-        responseTimeMs: responseTime
-      })
-
-      // Logger l'appel API
-      try {
-        await supabase.from('api_calls_log').insert({
-          api_name: 'thesportsdb',
-          call_type: 'fallback-scores',
-          competition_id: compId,
-          success: events.length > 0,
-          response_time_ms: responseTime
-        })
-      } catch { /* ignore logging errors */ }
+    if (apiCalls > 0) {
+      await new Promise(resolve => setTimeout(resolve, 2500))
     }
 
-    if (events.length === 0) {
-      console.log(`[FALLBACK] No finished events found for league ${theSportsDbLeagueId}`)
+    const startTime = Date.now()
+    const { events, debug: fetchDebug } = await fetchRoundEvents(theSportsDbLeagueId, matchday, season)
+    const responseTime = Date.now() - startTime
+    apiCalls++
+
+    // Filtrer aux matchs terminés avec scores
+    const finishedEvents = events.filter(e => e.strStatus === 'Match Finished' && e.intHomeScore !== null)
+
+    debugApiResponses.push({
+      ...fetchDebug,
+      finishedEvents: finishedEvents.length,
+      sampleEvents: finishedEvents.slice(0, 5).map(e => `${e.strHomeTeam} ${e.intHomeScore}-${e.intAwayScore} ${e.strAwayTeam}`),
+      responseTimeMs: responseTime
+    })
+
+    // Logger l'appel API
+    try {
+      await supabase.from('api_calls_log').insert({
+        api_name: 'thesportsdb',
+        call_type: 'fallback-scores',
+        competition_id: compId,
+        success: finishedEvents.length > 0,
+        response_time_ms: responseTime
+      })
+    } catch { /* ignore logging errors */ }
+
+    if (finishedEvents.length === 0) {
+      console.log(`[FALLBACK] No finished events for league ${theSportsDbLeagueId} round ${matchday}`)
       continue
     }
 
@@ -301,19 +300,11 @@ export async function patchStaleScoresWithApiFootball(): Promise<FallbackResult>
     for (const staleMatch of matches) {
       checked++
 
-      // Filtrer les événements du même round
-      const roundEvents = events.filter(e => String(e.intRound) === String(staleMatch.matchday))
-
-      if (roundEvents.length === 0) {
-        continue
-      }
-
       // Trouver l'événement correspondant via fuzzy matching des noms d'équipe
-      const matchedEvent = roundEvents.find(e =>
+      const matchedEvent = finishedEvents.find(e =>
         teamsMatch(e.strHomeTeam, staleMatch.home_team_name) &&
         teamsMatch(e.strAwayTeam, staleMatch.away_team_name)
-      ) || roundEvents.find(e =>
-        // Essayer en inversant (cas rare)
+      ) || finishedEvents.find(e =>
         teamsMatch(e.strHomeTeam, staleMatch.away_team_name) &&
         teamsMatch(e.strAwayTeam, staleMatch.home_team_name)
       )
