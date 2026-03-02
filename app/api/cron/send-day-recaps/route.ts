@@ -571,6 +571,15 @@ async function calculateMatchdayAndGeneralRankings(
       }
     }
 
+    // Bonus early prediction pour la journée en cours
+    if (tournament.early_prediction_bonus && matchdayMatches.length > 0) {
+      const allPredicted = matchdayMatches.every(match => {
+        const pred = predictionsMap.get(match.id)
+        return pred && !pred.is_default_prediction
+      })
+      if (allPredicted) mdPoints += 1
+    }
+
     matchdayRankingData.push({
       userId, username, rank: 0, points: mdPoints, totalPoints: 0,
       exactScores: mdExact, correctResults: mdCorrect, rankChange: 0
@@ -590,6 +599,19 @@ async function calculateMatchdayAndGeneralRankings(
         pred.is_default_prediction || false
       )
       genPoints += result.points
+    }
+
+    // Bonus early prediction pour chaque journée terminée du classement général
+    if (tournament.early_prediction_bonus) {
+      for (const md of generalMatchdays) {
+        const mdMatches = allFinishedMatches.filter(m => m.matchday === md)
+        if (mdMatches.length === 0) continue
+        const allPredicted = mdMatches.every(match => {
+          const pred = predictionsMap.get(match.id)
+          return pred && !pred.is_default_prediction
+        })
+        if (allPredicted) genPoints += 1
+      }
     }
 
     generalRankingData.push({
@@ -613,6 +635,19 @@ async function calculateMatchdayAndGeneralRankings(
           pred.is_default_prediction || false
         )
         prevPoints += result.points
+      }
+
+      // Bonus early prediction pour les journées précédentes
+      if (tournament.early_prediction_bonus) {
+        for (const md of previousMatchdays) {
+          const mdMatches = previousMatches.filter(m => m.matchday === md)
+          if (mdMatches.length === 0) continue
+          const allPredicted = mdMatches.every(match => {
+            const pred = predictionsMap.get(match.id)
+            return pred && !pred.is_default_prediction
+          })
+          if (allPredicted) prevPoints += 1
+        }
       }
 
       previousRankingData.push({
