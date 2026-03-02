@@ -40,7 +40,24 @@ export async function calculateTrophiesForTournament(
     results.set(userId, { newTrophies: [], trophyDates: {}, trophyTriggerMatches: {} })
   }
 
-  if (!tournament.starting_matchday || !tournament.ending_matchday) {
+  // Résoudre les matchdays pour les custom competitions (peuvent être null)
+  let startMatchday = tournament.starting_matchday
+  let endMatchday = tournament.ending_matchday
+
+  if (tournament.custom_competition_id && (!startMatchday || !endMatchday)) {
+    const { data: customMds } = await supabase
+      .from('custom_competition_matchdays')
+      .select('matchday_number')
+      .eq('custom_competition_id', tournament.custom_competition_id)
+      .order('matchday_number', { ascending: true })
+
+    if (customMds && customMds.length > 0) {
+      startMatchday = startMatchday || customMds[0].matchday_number
+      endMatchday = endMatchday || customMds[customMds.length - 1].matchday_number
+    }
+  }
+
+  if (!startMatchday || !endMatchday) {
     return results
   }
 
@@ -60,7 +77,7 @@ export async function calculateTrophiesForTournament(
         user_id, tournament_id, match_id,
         predicted_home_score, predicted_away_score, is_default_prediction,
         imported_matches!inner(
-          id, matchday, status, finished, home_score, away_score, utc_date, competition_id,
+          id, football_data_match_id, matchday, status, finished, home_score, away_score, utc_date, competition_id,
           home_team_name, away_team_name, home_team_crest, away_team_crest
         )
       `)
@@ -83,6 +100,54 @@ export async function calculateTrophiesForTournament(
   const allExistingTrophies = existingTrophiesResult.data || []
   const bonusMatches = bonusMatchesResult.data || []
 
+  // Helper pour extraire les données de jointure Supabase (déclaré tôt car utilisé dans l'étape 1b)
+  const getMatch = (data: any) => Array.isArray(data) ? data[0] : data
+
+  // ============================================
+  // ÉTAPE 1b : Mapping custom competition matchdays (si applicable)
+  // ============================================
+
+  // Pour les tournois custom, les imported_matches.matchday ne correspondent pas aux
+  // numéros de journées custom. On construit un mapping imported_match_id → custom_matchday_number
+  let matchIdToCustomMatchday: Map<string, number> | null = null
+
+  if (tournament.custom_competition_id) {
+    const { data: customMatchdays } = await supabase
+      .from('custom_competition_matchdays')
+      .select('id, matchday_number')
+      .eq('custom_competition_id', tournament.custom_competition_id)
+
+    if (customMatchdays && customMatchdays.length > 0) {
+      const mdNumberMap: Record<string, number> = {}
+      customMatchdays.forEach((md: any) => { mdNumberMap[md.id] = md.matchday_number })
+      const matchdayIds = customMatchdays.map((md: any) => md.id)
+
+      const { data: customMatches } = await supabase
+        .from('custom_competition_matches')
+        .select('football_data_match_id, custom_matchday_id')
+        .in('custom_matchday_id', matchdayIds)
+
+      if (customMatches) {
+        // football_data_match_id → custom matchday number
+        const fdIdToCustomMd: Record<number, number> = {}
+        customMatches.forEach((cm: any) => {
+          if (cm.football_data_match_id != null) {
+            fdIdToCustomMd[cm.football_data_match_id] = mdNumberMap[cm.custom_matchday_id]
+          }
+        })
+
+        // imported_match.id → custom matchday number (via football_data_match_id)
+        matchIdToCustomMatchday = new Map()
+        for (const pred of allPredictions) {
+          const match = getMatch(pred.imported_matches)
+          if (match?.football_data_match_id && fdIdToCustomMd[match.football_data_match_id] !== undefined) {
+            matchIdToCustomMatchday.set(match.id, fdIdToCustomMd[match.football_data_match_id])
+          }
+        }
+      }
+    }
+  }
+
   // ============================================
   // ÉTAPE 2 : Préparer les structures de données
   // ============================================
@@ -101,9 +166,6 @@ export async function calculateTrophiesForTournament(
   // Matchs bonus
   const bonusMatchIds = new Set(bonusMatches.map((bm: any) => bm.match_id))
 
-  // Helper pour extraire les données de jointure Supabase
-  const getMatch = (data: any) => Array.isArray(data) ? data[0] : data
-
   // Scoring settings du tournoi
   const tournamentSettings: PointsSettings = {
     exactScore: tournament.scoring_exact_score || 3,
@@ -120,7 +182,9 @@ export async function calculateTrophiesForTournament(
     const match = getMatch(pred.imported_matches)
     if (!match) continue
 
-    const key = `${match.matchday}`
+    // Pour les custom competitions, utiliser le numéro de journée custom au lieu du matchday brut
+    const matchday = matchIdToCustomMatchday?.get(match.id) ?? match.matchday
+    const key = `${matchday}`
 
     if (!predictionsByJourney[key]) {
       predictionsByJourney[key] = []
@@ -230,7 +294,7 @@ export async function calculateTrophiesForTournament(
   const journeyRankings: Record<string, Record<string, number>> = {}
   const journeyMeta: Record<string, { maxPoints: number, minPoints: number, usersWithMax: number, usersWithMin: number, latestDate: string }> = {}
 
-  for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
+  for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
     const key = `${matchday}`
     const journeyMatches = matchesByJourney[key] || []
 
@@ -254,7 +318,7 @@ export async function calculateTrophiesForTournament(
   }
 
   const isTournamentFinished = tournament.status === 'finished' || tournament.status === 'completed'
-  const totalJourneys = tournament.ending_matchday - tournament.starting_matchday + 1
+  const totalJourneys = endMatchday - startMatchday + 1
 
   // Pour chaque participant, évaluer les trophées
   for (const userId of allParticipantIds) {
@@ -313,7 +377,7 @@ export async function calculateTrophiesForTournament(
     let totalCompletedJourneys = 0
     let firstPlaceCount = 0
 
-    for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
+    for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
       const key = `${matchday}`
       const ranking = journeyRankings[key]
       const meta = journeyMeta[key]
@@ -440,7 +504,7 @@ export async function calculateTrophiesForTournament(
 
     // --- TROPHÉES TOURNOI COMPLET ---
     if (isTournamentFinished && totalCompletedJourneys === totalJourneys && totalJourneys >= 2) {
-      const lastKey = `${tournament.ending_matchday}`
+      const lastKey = `${endMatchday}`
       const lastDate = journeyMeta[lastKey]?.latestDate || new Date().toISOString()
 
       // Ultra-dominator
@@ -467,7 +531,7 @@ export async function calculateTrophiesForTournament(
       if (!hasTournamentWinner || !hasLegend || !hasAbyssal) {
         // Vérifier que toutes les journées sont terminées
         let allMatchesComplete = true
-        for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
+        for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
           if (!journeyRankings[`${matchday}`]) {
             allMatchesComplete = false
             break
@@ -481,7 +545,7 @@ export async function calculateTrophiesForTournament(
             totalPointsByUser[uid] = 0
           }
 
-          for (let matchday = tournament.starting_matchday; matchday <= tournament.ending_matchday; matchday++) {
+          for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
             const ranking = journeyRankings[`${matchday}`]
             if (!ranking) continue
             for (const [uid, pts] of Object.entries(ranking)) {
@@ -497,7 +561,7 @@ export async function calculateTrophiesForTournament(
           const [lastUserId, lastPoints] = sortedByPoints[sortedByPoints.length - 1] || []
           const [, secondLastPoints] = sortedByPoints[sortedByPoints.length - 2] || [null, Infinity]
 
-          const lastKey = `${tournament.ending_matchday}`
+          const lastKey = `${endMatchday}`
           const latestDate = journeyMeta[lastKey]?.latestDate || new Date().toISOString()
           const lastTrigger = getLastMatchTrigger(lastKey, userId)
 
