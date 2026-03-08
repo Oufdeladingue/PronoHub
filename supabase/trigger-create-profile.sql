@@ -11,8 +11,8 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1)),
     NEW.email,
     '{"email_reminder": true, "email_tournament_started": true, "email_day_recap": true, "email_tournament_end": true, "email_invite": true, "email_player_joined": true, "email_mention": true, "email_badge_unlocked": true, "email_new_matches": true}'::jsonb,
-    -- Si username vient des metadata (signup normal) = true, sinon OAuth = false
-    (NEW.raw_user_meta_data->>'username') IS NOT NULL
+    -- Toujours false : forcer le passage par l'écran de choix de pseudo pour tous
+    false
   );
   RETURN NEW;
 END;
