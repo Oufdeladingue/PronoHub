@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
               reason: 'Recalcul automatique - matchs non terminés à la date prévue',
               previous_ending_matchday: tournament.ending_matchday,
               previous_ending_date: tournament.ending_date
-            })
+            }, supabase)
 
             results.recalculated++
           } catch (recalcError: any) {

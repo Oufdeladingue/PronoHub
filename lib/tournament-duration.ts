@@ -55,9 +55,10 @@ export interface RecalculateOptions {
  */
 export async function recalculateTournamentEndingDate(
   tournamentId: string,
-  options: RecalculateOptions
+  options: RecalculateOptions,
+  supabaseClient?: any
 ): Promise<TournamentDurationResult> {
-  const supabase = await createClient()
+  const supabase = supabaseClient ?? await createClient()
 
   // Récupérer les informations du tournoi
   const { data: tournament, error: tournamentError } = await supabase
