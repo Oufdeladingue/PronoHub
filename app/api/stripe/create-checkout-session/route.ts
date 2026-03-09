@@ -169,6 +169,9 @@ export async function POST(request: NextRequest) {
     // Toujours passer par /payment/cancel pour gérer le contexte web/app
     const cancelUrl = `${baseUrl}/payment/cancel?return=${encodeURIComponent(returnPath)}`
 
+    // Idempotency key pour éviter les doublons en cas de double-clic
+    const idempotencyKey = `checkout_${user.id}_${purchaseType}_${Date.now()}`
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -190,6 +193,8 @@ export async function POST(request: NextRequest) {
       customer_email: user.email,
       metadata,
       locale: 'fr',
+    }, {
+      idempotencyKey,
     })
 
     let purchaseTypeDb = purchaseType as string

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getProductConfig, ExtensionProduct } from '@/lib/stripe-products'
-import Stripe from 'stripe'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover'
-})
+import { stripe, isStripeEnabled, getBaseUrl } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isStripeEnabled || !stripe) {
+      return NextResponse.json(
+        { error: 'Stripe n\'est pas configuré' },
+        { status: 503 }
+      )
+    }
+
     const supabase = await createClient()
 
     // Vérifier l'authentification
@@ -65,8 +68,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Récupérer la config du produit
+    // Récupérer la config du produit (fallback constantes)
     const product = getProductConfig(productType)
+
+    // Charger le prix dynamique depuis pricing_config
+    const priceConfigMapping: Record<ExtensionProduct, string> = {
+      duration_extension: 'duration_extension_price',
+      player_extension: 'player_extension_price',
+      stats_option: 'stats_access_lifetime_price',
+    }
+
+    let priceInCents = product.price // fallback sur constante
+    const configKey = priceConfigMapping[productType]
+
+    if (configKey) {
+      const { data: priceConfig } = await supabase
+        .from('pricing_config')
+        .select('config_value')
+        .eq('config_key', configKey)
+        .eq('is_active', true)
+        .single()
+
+      if (priceConfig?.config_value) {
+        priceInCents = Math.round(priceConfig.config_value * 100)
+      }
+    }
 
     // Mapper les produits d'extension vers les types d'achat
     const purchaseTypeMap: Record<ExtensionProduct, string> = {
@@ -77,14 +103,16 @@ export async function POST(request: NextRequest) {
 
     const purchaseType = purchaseTypeMap[productType]
 
+    const baseUrl = getBaseUrl()
+
     // URLs de succès et d'annulation
     const successUrl = tournamentId
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/tournaments/${tournamentId}?payment=success&type=${productType}`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success&type=${productType}`
+      ? `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=extension&tournament=${tournamentId}`
+      : `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=stats&stats_type=lifetime`
 
-    const cancelUrl = tournamentId
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/tournaments/${tournamentId}?payment=cancelled`
-      : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=cancelled`
+    const cancelUrl = `${baseUrl}/payment/cancel?return=${encodeURIComponent(
+      tournamentId ? `/tournaments/${tournamentId}` : '/dashboard'
+    )}`
 
     // Créer l'enregistrement d'achat dans la base (status: pending)
     const { data: purchase, error: purchaseError } = await supabase
@@ -92,8 +120,8 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         purchase_type: purchaseType,
-        amount: product.price / 100, // Convertir centimes en euros
-        currency: product.currency,
+        amount: priceInCents / 100,
+        currency: 'eur',
         status: 'pending',
         used: false,
         tournament_id: tournamentId || null
@@ -109,25 +137,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Créer la session Stripe
+    // Créer la session Stripe avec price_data (pas de priceId requis)
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [
         {
-          price: product.priceId,
-          quantity: 1
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: product.name,
+              description: product.description,
+            },
+            unit_amount: priceInCents,
+          },
+          quantity: 1,
         }
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      customer_email: user.email,
       metadata: {
         user_id: user.id,
         purchase_type: purchaseType,
         tournament_id: tournamentId || '',
         product_type: productType,
         purchase_id: purchase.id
-      }
+      },
+      locale: 'fr',
     })
 
     // Mettre à jour le purchase avec le session ID

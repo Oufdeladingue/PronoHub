@@ -62,7 +62,9 @@ function PaymentSuccessContent() {
 
         if (isCapacitor()) {
           // Récupérer le token depuis localStorage (stocké par Supabase)
-          const authData = localStorage.getItem('sb-txpmihreaxmtsxlgmdko-auth-token')
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+          const projectRef = supabaseUrl.match(/\/\/([^.]+)\./)?.[1] || ''
+          const authData = projectRef ? localStorage.getItem(`sb-${projectRef}-auth-token`) : null
           if (authData) {
             try {
               const session = JSON.parse(authData)

@@ -344,6 +344,22 @@ async function handlePlatiniumParticipation(session: any) {
     return
   }
 
+  // Récupérer le prix depuis pricing_config, fallback sur le montant de la session
+  let amountPaid = (session.amount_total || 699) / 100
+  try {
+    const { data: priceConfig } = await supabaseAdmin
+      .from('pricing_config')
+      .select('config_value')
+      .eq('config_key', 'platinium_creation_price')
+      .eq('is_active', true)
+      .single()
+    if (priceConfig?.config_value) {
+      amountPaid = priceConfig.config_value
+    }
+  } catch {
+    // Fallback sur le montant de la session Stripe
+  }
+
   // Ajouter le participant
   await supabaseAdmin
     .from('tournament_participants')
@@ -353,7 +369,7 @@ async function handlePlatiniumParticipation(session: any) {
       participant_role: 'member',
       invite_type: 'paid_slot',
       has_paid: true,
-      amount_paid: 6.99,
+      amount_paid: amountPaid,
     })
 
   // Mettre à jour l'achat avec l'ID du tournoi
