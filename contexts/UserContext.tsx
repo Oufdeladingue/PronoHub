@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { identifyUser, resetUser, trackPlatform } from '@/lib/analytics'
 import { isCapacitor } from '@/lib/capacitor'
 
@@ -75,7 +75,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Tracker l'activité
     const trackActivity = async () => {
       try {
-        const response = await fetch('/api/user/activity', {
+        const response = await fetchWithAuth('/api/user/activity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         })
