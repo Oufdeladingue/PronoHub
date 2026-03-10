@@ -353,7 +353,7 @@ function EchauffementPageContent() {
             window.location.href = '/dashboard'
           }
         } else {
-          window.location.href = '/auth/login'
+          window.location.href = `/auth/login?redirectTo=${encodeURIComponent(`/${tournamentSlug}/opposition`)}`
         }
         return
       }
