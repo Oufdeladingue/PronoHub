@@ -40,14 +40,12 @@ export async function updateSession(request: NextRequest) {
     const THROTTLE_MS = 5 * 60 * 1000 // 5 minutes
 
     if (!lastActivity || now - parseInt(lastActivity, 10) >= THROTTLE_MS) {
-      // Fire-and-forget : on n'attend pas le résultat pour ne pas ralentir la navigation
-      supabase
+      // Await pour garantir l'exécution avant que le runtime Edge ne coupe
+      const { error: lastSeenError } = await supabase
         .from('profiles')
         .update({ last_seen_at: new Date().toISOString() })
         .eq('id', user.id)
-        .then(({ error }) => {
-          if (error) console.error('[middleware] last_seen_at update error:', error.message)
-        })
+      if (lastSeenError) console.error('[middleware] last_seen_at update error:', lastSeenError.message)
 
       // Poser le cookie de throttle sur la réponse
       supabaseResponse.cookies.set('last_activity', now.toString(), {
