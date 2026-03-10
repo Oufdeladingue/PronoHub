@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortDir = searchParams.get('sortDir') || 'desc'
     const filter = searchParams.get('filter') || ''
+    const lastSeenFrom = searchParams.get('lastSeenFrom') || ''
+    const lastSeenTo = searchParams.get('lastSeenTo') || ''
+    const lastSeenNever = searchParams.get('lastSeenNever') === 'true'
     const offset = (page - 1) * pageSize
 
     const validSortColumns = ['username', 'email', 'created_at', 'last_seen_at', 'country']
@@ -43,17 +46,35 @@ export async function GET(request: NextRequest) {
     const isSuspectFilter = filter === 'suspect'
     const suspectCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
+    // Helper: appliquer les filtres communs à une requête
+    const applyFilters = (query: any) => {
+      if (search) {
+        query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
+      }
+      if (isSuspectFilter) {
+        query = query.is('last_seen_at', null).lt('created_at', suspectCutoff)
+      }
+      if (lastSeenNever) {
+        query = query.is('last_seen_at', null)
+      } else {
+        if (lastSeenFrom) {
+          query = query.gte('last_seen_at', lastSeenFrom)
+        }
+        if (lastSeenTo) {
+          // Ajouter 1 jour pour inclure la date de fin complète
+          const toDate = new Date(lastSeenTo)
+          toDate.setDate(toDate.getDate() + 1)
+          query = query.lt('last_seen_at', toDate.toISOString())
+        }
+      }
+      return query
+    }
+
     // Count query
     let countQuery = adminClient
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-
-    if (search) {
-      countQuery = countQuery.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
-    }
-    if (isSuspectFilter) {
-      countQuery = countQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
-    }
+    countQuery = applyFilters(countQuery)
 
     // Requête paginée
     let usersQuery = adminClient
@@ -61,13 +82,7 @@ export async function GET(request: NextRequest) {
       .select('id, username, email, created_at, last_seen_at, country, last_platform')
       .order(actualSortBy, { ascending, nullsFirst: false })
       .range(offset, offset + pageSize - 1)
-
-    if (search) {
-      usersQuery = usersQuery.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
-    }
-    if (isSuspectFilter) {
-      usersQuery = usersQuery.is('last_seen_at', null).lt('created_at', suspectCutoff)
-    }
+    usersQuery = applyFilters(usersQuery)
 
     // Count + data en parallèle (économise 1 round-trip)
     const [{ count: totalCount }, { data: usersData, error: usersError }] = await Promise.all([

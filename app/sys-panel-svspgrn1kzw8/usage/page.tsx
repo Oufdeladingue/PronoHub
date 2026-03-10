@@ -488,6 +488,12 @@ export default function AdminUsagePage() {
   const [usersSortDir, setUsersSortDir] = useState<'asc' | 'desc'>('desc')
   const [activeTournamentsModal, setActiveTournamentsModal] = useState<ActiveTournamentsModalState | null>(null)
   const [usersFilter, setUsersFilter] = useState<'' | 'suspect'>('')
+  const [lastSeenFrom, setLastSeenFrom] = useState('')
+  const [lastSeenTo, setLastSeenTo] = useState('')
+  const [lastSeenNever, setLastSeenNever] = useState(false)
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
+  const [bulkDeleteModal, setBulkDeleteModal] = useState(false)
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false)
   const [userDeleteModal, setUserDeleteModal] = useState<{ userId: string; username: string } | null>(null)
   const [userDeleteLoading, setUserDeleteLoading] = useState(false)
   const [userDeleteError, setUserDeleteError] = useState<string | null>(null)
@@ -532,11 +538,17 @@ export default function AdminUsagePage() {
 
   const fetchAdminUsers = useCallback(async () => {
     setUsersLoading(true)
+    setSelectedUsers(new Set())
     try {
       const sortParam = usersSortBy === 'active_tournaments_count' ? 'created_at' : usersSortBy
       const filterParam = usersFilter ? `&filter=${usersFilter}` : ''
+      const dateParams = [
+        lastSeenFrom ? `&lastSeenFrom=${lastSeenFrom}` : '',
+        lastSeenTo ? `&lastSeenTo=${lastSeenTo}` : '',
+        lastSeenNever ? `&lastSeenNever=true` : '',
+      ].join('')
       const response = await fetch(
-        `/api/admin/users?search=${encodeURIComponent(usersSearch)}&page=${usersPage}&pageSize=${usersPageSize}&sortBy=${sortParam}&sortDir=${usersSortDir}${filterParam}`
+        `/api/admin/users?search=${encodeURIComponent(usersSearch)}&page=${usersPage}&pageSize=${usersPageSize}&sortBy=${sortParam}&sortDir=${usersSortDir}${filterParam}${dateParams}`
       )
       const data = await response.json()
 
@@ -556,7 +568,7 @@ export default function AdminUsagePage() {
       console.error('Error fetching admin users:', error)
     }
     setUsersLoading(false)
-  }, [usersSearch, usersPage, usersPageSize, usersSortBy, usersSortDir, usersFilter])
+  }, [usersSearch, usersPage, usersPageSize, usersSortBy, usersSortDir, usersFilter, lastSeenFrom, lastSeenTo, lastSeenNever])
 
   const handleUsersSort = (column: UsersSortBy) => {
     if (usersSortBy === column) {
@@ -607,6 +619,47 @@ export default function AdminUsagePage() {
       sortDir: usersSortDir
     })
     window.open(`/api/admin/users/export?${params.toString()}`, '_blank')
+  }
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === adminUsers.length) {
+      setSelectedUsers(new Set())
+    } else {
+      setSelectedUsers(new Set(adminUsers.map(u => u.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkDeleteLoading(true)
+    try {
+      const response = await fetch('/api/admin/users/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: Array.from(selectedUsers) })
+      })
+      const data = await response.json()
+      if (data.success) {
+        setToasts(prev => [...prev, { id: Date.now(), type: 'success', message: data.message }])
+        setBulkDeleteModal(false)
+        setSelectedUsers(new Set())
+        fetchAdminUsers()
+      } else {
+        setToasts(prev => [...prev, { id: Date.now(), type: 'error', message: data.error }])
+      }
+    } catch {
+      setToasts(prev => [...prev, { id: Date.now(), type: 'error', message: 'Erreur réseau' }])
+    } finally {
+      setBulkDeleteLoading(false)
+    }
   }
 
   const formatRelativeDate = (dateStr: string | null) => {
@@ -1625,8 +1678,8 @@ export default function AdminUsagePage() {
                 </button>
               </div>
 
-              {/* Filtre Suspects */}
-              <div className="flex items-center gap-2 mb-4">
+              {/* Filtres */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
                 <button
                   onClick={() => { setUsersFilter(usersFilter === 'suspect' ? '' : 'suspect'); setUsersPage(1) }}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
@@ -1640,12 +1693,79 @@ export default function AdminUsagePage() {
                   </svg>
                   Suspects
                 </button>
-                {usersFilter === 'suspect' && (
-                  <span className="text-xs text-gray-500">
-                    Comptes jamais connect{'\u00e9'}s, cr{'\u00e9'}{'\u00e9'}s depuis +24h
-                  </span>
-                )}
+
+                <div className="h-6 w-px bg-gray-300" />
+
+                {/* Filtre plage dernière connexion */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 whitespace-nowrap">Dernière connexion :</span>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={lastSeenNever}
+                      onChange={(e) => {
+                        setLastSeenNever(e.target.checked)
+                        if (e.target.checked) { setLastSeenFrom(''); setLastSeenTo('') }
+                        setUsersPage(1)
+                      }}
+                      className="w-3.5 h-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-xs text-gray-600">Jamais</span>
+                  </label>
+                  {!lastSeenNever && (
+                    <>
+                      <input
+                        type="date"
+                        value={lastSeenFrom}
+                        onChange={(e) => { setLastSeenFrom(e.target.value); setUsersPage(1) }}
+                        className="px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700"
+                        placeholder="Du"
+                      />
+                      <span className="text-xs text-gray-400">au</span>
+                      <input
+                        type="date"
+                        value={lastSeenTo}
+                        onChange={(e) => { setLastSeenTo(e.target.value); setUsersPage(1) }}
+                        className="px-2 py-1 border border-gray-300 rounded text-xs bg-white text-gray-700"
+                        placeholder="Au"
+                      />
+                    </>
+                  )}
+                  {(lastSeenFrom || lastSeenTo || lastSeenNever) && (
+                    <button
+                      onClick={() => { setLastSeenFrom(''); setLastSeenTo(''); setLastSeenNever(false); setUsersPage(1) }}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      title="Effacer le filtre"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {/* Barre d'actions groupées */}
+              {selectedUsers.size > 0 && (
+                <div className="flex items-center gap-3 mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <span className="text-sm font-medium text-purple-700">
+                    {selectedUsers.size} sélectionné{selectedUsers.size > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={() => setBulkDeleteModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Supprimer la sélection
+                  </button>
+                  <button
+                    onClick={() => setSelectedUsers(new Set())}
+                    className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Tout désélectionner
+                  </button>
+                </div>
+              )}
 
               {/* Tableau Desktop */}
               <div className="hidden md:block bg-white rounded-lg shadow">
@@ -1653,6 +1773,14 @@ export default function AdminUsagePage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-3 py-3 w-10">
+                          <input
+                            type="checkbox"
+                            checked={adminUsers.length > 0 && selectedUsers.size === adminUsers.length}
+                            onChange={toggleSelectAll}
+                            className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          />
+                        </th>
                         <th
                           onClick={() => handleUsersSort('email')}
                           className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
@@ -1699,19 +1827,27 @@ export default function AdminUsagePage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {usersLoading ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
                       ) : adminUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
                       ) : (
                         adminUsers.map((u) => (
-                          <tr key={u.id} className={`hover:bg-gray-50 ${u.suspect_reasons.length > 0 ? 'bg-red-50/50' : ''}`}>
+                          <tr key={u.id} className={`hover:bg-gray-50 ${selectedUsers.has(u.id) ? 'bg-purple-50' : u.suspect_reasons.length > 0 ? 'bg-red-50/50' : ''}`}>
+                            <td className="px-3 py-3 w-10">
+                              <input
+                                type="checkbox"
+                                checked={selectedUsers.has(u.id)}
+                                onChange={() => toggleUserSelection(u.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                            </td>
                             <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate" title={u.email || ''}>
                               {u.email || <span className="text-gray-400 italic">Aucun</span>}
                             </td>
@@ -1825,9 +1961,16 @@ export default function AdminUsagePage() {
                   <div className="text-center py-8 text-gray-500">Aucun utilisateur trouvé</div>
                 ) : (
                   adminUsers.map((u) => (
-                    <div key={u.id} className={`bg-white rounded-lg shadow p-4 border ${u.suspect_reasons.length > 0 ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
+                    <div key={u.id} className={`bg-white rounded-lg shadow p-4 border ${selectedUsers.has(u.id) ? 'border-purple-400 bg-purple-50/50' : u.suspect_reasons.length > 0 ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
                       <div className="flex items-start justify-between mb-2">
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.has(u.id)}
+                            onChange={() => toggleUserSelection(u.id)}
+                            className="w-4 h-4 mt-1 rounded border-gray-300 text-purple-600 focus:ring-purple-500 flex-shrink-0"
+                          />
+                          <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900 truncate">{u.username}</p>
                             {u.suspect_reasons.length > 0 && (
@@ -1840,6 +1983,7 @@ export default function AdminUsagePage() {
                           {u.suspect_reasons.length > 0 && (
                             <p className="text-xs text-red-600 mt-0.5">{u.suspect_reasons.join(' \u00b7 ')}</p>
                           )}
+                          </div>
                         </div>
                         {u.active_tournaments_count > 0 ? (
                           <button
@@ -1927,6 +2071,57 @@ export default function AdminUsagePage() {
                   </button>
                 </div>
               </div>
+              {/* Modale de suppression utilisateur */}
+              {/* Modale suppression groupée */}
+              {bulkDeleteModal && (
+                <div className="modal-backdrop" onClick={() => !bulkDeleteLoading && setBulkDeleteModal(false)}>
+                  <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Suppression groupée</h3>
+                    </div>
+
+                    <p className="text-gray-600 mb-2">
+                      Vous allez supprimer <strong className="text-red-600">{selectedUsers.size} utilisateur{selectedUsers.size > 1 ? 's' : ''}</strong>.
+                    </p>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Les comptes protégés (créateurs de tournois, achats, abonnements) seront automatiquement ignorés. Cette action est <strong className="text-red-600">irréversible</strong>.
+                    </p>
+
+                    <div className="flex gap-3 justify-end">
+                      <button
+                        onClick={() => setBulkDeleteModal(false)}
+                        disabled={bulkDeleteLoading}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={bulkDeleteLoading}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {bulkDeleteLoading ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Suppression en cours...
+                          </>
+                        ) : (
+                          `Supprimer ${selectedUsers.size} compte${selectedUsers.size > 1 ? 's' : ''}`
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Modale de suppression utilisateur */}
               {userDeleteModal && (
                 <div className="modal-backdrop" onClick={() => !userDeleteLoading && setUserDeleteModal(null)}>
