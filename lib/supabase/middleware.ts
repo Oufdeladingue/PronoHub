@@ -33,6 +33,33 @@ export async function updateSession(request: NextRequest) {
   // Refresh session if expired - required for Server Components
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Mettre à jour last_seen_at (throttlé par cookie, max 1 fois / 5 min)
+  if (user && !request.nextUrl.pathname.startsWith('/api/')) {
+    const lastActivity = request.cookies.get('last_activity')?.value
+    const now = Date.now()
+    const THROTTLE_MS = 5 * 60 * 1000 // 5 minutes
+
+    if (!lastActivity || now - parseInt(lastActivity, 10) >= THROTTLE_MS) {
+      // Fire-and-forget : on n'attend pas le résultat pour ne pas ralentir la navigation
+      supabase
+        .from('profiles')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('id', user.id)
+        .then(({ error }) => {
+          if (error) console.error('[middleware] last_seen_at update error:', error.message)
+        })
+
+      // Poser le cookie de throttle sur la réponse
+      supabaseResponse.cookies.set('last_activity', now.toString(), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 300, // 5 minutes en secondes
+        path: '/',
+      })
+    }
+  }
+
   // Helper: créer une redirection en conservant les cookies de session rafraîchis
   function redirectWithCookies(url: URL) {
     const response = NextResponse.redirect(url)
