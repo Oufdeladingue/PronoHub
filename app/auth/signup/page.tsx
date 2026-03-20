@@ -10,6 +10,7 @@ import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import TurnstileWidget from '@/components/TurnstileWidget'
 import AgeGate from '@/components/AgeGate'
 import { trackSignup } from '@/lib/analytics'
+import { isDisposableEmail } from '@/lib/disposable-emails'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -220,6 +221,30 @@ function SignUpForm() {
     }
 
     try {
+      // Bloquer les emails jetables/temporaires (côté client)
+      if (isDisposableEmail(email)) {
+        setError('Les adresses email temporaires ne sont pas acceptées. Veuillez utiliser une adresse email permanente.')
+        setLoading(false)
+        return
+      }
+
+      // Pré-vérification serveur : rate limit + email jetable (double protection)
+      try {
+        const checkSignup = await fetch('/api/auth/check-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        })
+        const checkData = await checkSignup.json()
+        if (!checkData.allowed) {
+          setError(checkData.reason)
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Fail-open sur erreur réseau (la vérification client est déjà passée)
+      }
+
       // Vérifier la restriction par pays avant inscription (via Cloudflare cf-ipcountry)
       try {
         const countryCheck = await fetch('/api/auth/check-country')
@@ -233,7 +258,7 @@ function SignUpForm() {
         // Fail-open : si la vérification échoue, on laisse passer
       }
 
-      // Vérifier Turnstile (si configuré)
+      // Vérifier Turnstile anti-bot
       if (turnstileToken) {
         try {
           const turnstileCheck = await fetch('/api/auth/verify-turnstile', {
@@ -248,7 +273,9 @@ function SignUpForm() {
             return
           }
         } catch {
-          // Fail-open
+          setError('Erreur lors de la vérification anti-bot. Veuillez réessayer.')
+          setLoading(false)
+          return
         }
       }
 

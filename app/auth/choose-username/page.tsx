@@ -105,6 +105,7 @@ function ChooseUsernameForm() {
           username: newUsername,
           email: user.email,
           has_chosen_username: true,
+          last_seen_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
       if (profileError) throw profileError

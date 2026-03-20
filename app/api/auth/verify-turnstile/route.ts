@@ -9,8 +9,8 @@ export async function POST(request: NextRequest) {
   try {
     const secretKey = process.env.TURNSTILE_SECRET_KEY
     if (!secretKey) {
-      // Turnstile non configuré — laisser passer
-      return NextResponse.json({ success: true })
+      console.warn('[Turnstile] TURNSTILE_SECRET_KEY non configuré — blocage par sécurité')
+      return NextResponse.json({ success: false, error: 'Anti-bot non configuré' }, { status: 500 })
     }
 
     const { token } = await request.json()
@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[Turnstile] Error:', error)
-    // Fail-open : en cas d'erreur, on laisse passer
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: false, error: 'Erreur de vérification anti-bot' }, { status: 500 })
   }
 }

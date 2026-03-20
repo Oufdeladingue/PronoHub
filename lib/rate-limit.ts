@@ -84,6 +84,8 @@ export function checkRateLimit(
 export const RATE_LIMITS = {
   // Login: 5 tentatives par minute par IP
   login: { limit: 5, windowMs: 60 * 1000 },
+  // Signup: 3 tentatives par heure par IP
+  signup: { limit: 3, windowMs: 60 * 60 * 1000 },
   // API générale: 100 requêtes par minute par IP
   api: { limit: 100, windowMs: 60 * 1000 },
   // Création de ressources: 10 par minute par utilisateur
