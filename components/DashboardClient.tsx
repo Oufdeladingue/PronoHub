@@ -631,20 +631,20 @@ function DashboardContent({
                         <a
                           key={comp.id || comp.custom_competition_id}
                           href={compUrl}
-                          className="flex-shrink-0 w-[130px] snap-start rounded-lg border border-white/10 p-3 hover:border-[#ff9900] transition-colors group text-center bg-white/5"
+                          className="flex-shrink-0 w-[130px] snap-start rounded-lg border theme-border p-3 hover:border-[#ff9900] transition-colors group text-center theme-secondary-bg"
                         >
                           <div className="w-14 h-14 mx-auto mb-2">
                             <img
-                              src={comp.custom_emblem_white || comp.emblem || '/images/default-competition.png'}
+                              src={comp.emblem || comp.custom_emblem_color || comp.custom_emblem_white || '/images/default-competition.png'}
                               alt={comp.name}
                               className="w-full h-full object-contain"
                             />
                           </div>
-                          <p className="text-xs font-semibold text-white line-clamp-2 group-hover:text-[#ff9900] transition-colors">
+                          <p className="text-xs font-semibold theme-text line-clamp-2 group-hover:text-[#ff9900] transition-colors">
                             {comp.name}
                           </p>
                           {comp.remaining_matchdays != null && (
-                            <p className="text-[10px] text-gray-500 mt-1">
+                            <p className="text-[10px] theme-text-secondary mt-1">
                               {comp.remaining_matchdays} journée{comp.remaining_matchdays > 1 ? 's' : ''}
                             </p>
                           )}
