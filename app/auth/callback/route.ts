@@ -89,6 +89,46 @@ export async function GET(request: Request) {
 
       if (exchangeError) {
         console.error('[OAuth Callback] Exchange FAILED:', exchangeError.message)
+
+        // Double-call protection: si le code a déjà été consommé par un appel concurrent,
+        // vérifier si une session existe déjà avant d'afficher une erreur
+        if (exchangeError.message.includes('flow state')) {
+          const { data: { session: existingSession } } = await supabase.auth.getSession()
+          if (existingSession) {
+            console.log('[OAuth Callback] Flow state error but session exists (double-call), proceeding with existing session')
+            // Continuer le flux normal avec la session existante
+            const user = existingSession.user
+            let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('has_chosen_username')
+              .eq('id', user.id)
+              .single()
+
+            if (profile && profile.has_chosen_username !== true) {
+              finalPath = redirectTo
+                ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+                : '/auth/choose-username'
+            }
+
+            if (isCapacitor) {
+              const params = new URLSearchParams({
+                access_token: existingSession.access_token,
+                refresh_token: existingSession.refresh_token,
+                redirectTo: finalPath,
+              })
+              return capacitorRedirectPage(`pronohub://auth/callback?${params.toString()}`)
+            }
+
+            const response = NextResponse.redirect(`${origin}${finalPath}`)
+            pendingCookies.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+            return response
+          }
+        }
+
         return NextResponse.redirect(
           `${origin}/auth/login?error=${encodeURIComponent(exchangeError.message)}`
         )
