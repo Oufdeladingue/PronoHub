@@ -360,11 +360,15 @@ function DashboardContent({
 
   const handleDismissWelcome = async (action: 'create' | 'join' | 'explore' | 'skip') => {
     setShowWelcomeModal(false)
-    // Marquer comme vu en base (fire-and-forget)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      supabase.from('profiles').update({ has_seen_welcome: true }).eq('id', user.id)
+    // Marquer comme vu en base
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase.from('profiles').update({ has_seen_welcome: true }).eq('id', user.id)
+      }
+    } catch (err) {
+      console.error('[WelcomeModal] Failed to update has_seen_welcome:', err)
     }
     if (action === 'create') {
       router.push('/vestiaire')
