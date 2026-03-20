@@ -358,7 +358,7 @@ function DashboardContent({
     })
   const hasArchivedTournaments = finishedTournaments.length > 0 || leftTournaments.length > 0
 
-  const handleDismissWelcome = async (action: 'create' | 'explore') => {
+  const handleDismissWelcome = async (action: 'create' | 'join' | 'explore' | 'skip') => {
     setShowWelcomeModal(false)
     // Marquer comme vu en base (fire-and-forget)
     const supabase = createClient()
@@ -368,12 +368,17 @@ function DashboardContent({
     }
     if (action === 'create') {
       router.push('/vestiaire')
-    } else {
-      // Scroll vers la section compétitions populaires
+    } else if (action === 'join') {
+      setShowJoinInput(true)
+      setTimeout(() => {
+        document.getElementById('join-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    } else if (action === 'explore') {
       setTimeout(() => {
         document.getElementById('popular-competitions')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }, 100)
     }
+    // 'skip' = juste fermer le modal
   }
 
   const handleJoinTournament = async () => {
