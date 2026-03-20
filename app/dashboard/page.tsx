@@ -91,6 +91,7 @@ export default async function DashboardPage() {
   ])
 
   const hasChosenUsername = profile?.has_chosen_username === true
+  const hasSeenWelcome = profile?.has_seen_welcome === true
 
   // Mettre à jour la plateforme (fire-and-forget, pas de await)
   supabase.from('profiles').update({ last_platform: 'web' }).eq('id', user.id).then(() => {})
@@ -681,6 +682,7 @@ export default async function DashboardPage() {
           canCreateTournament={canCreateTournament}
           hasSubscription={hasSubscription}
           hasChosenUsername={hasChosenUsername}
+          hasSeenWelcome={hasSeenWelcome}
           quotas={{
             freeTournaments: freeTournamentsParticipating,
             freeTournamentsMax: FREE_KICK_MAX,

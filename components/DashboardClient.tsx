@@ -11,6 +11,7 @@ import { openExternalUrl, isAndroid, isCapacitor } from '@/lib/capacitor'
 import { useTrophyNotifications } from '@/hooks/useTrophyNotifications'
 import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
 import AndroidAppPromotionModal from '@/components/AndroidAppPromotionModal'
+import WelcomeModal from '@/components/WelcomeModal'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -86,6 +87,7 @@ interface DashboardClientProps {
   canCreateTournament: boolean
   hasSubscription: boolean
   hasChosenUsername: boolean
+  hasSeenWelcome?: boolean
   quotas: QuotasInfo
   credits?: UserCredits
   tournaments: any[]
@@ -100,6 +102,7 @@ function DashboardContent({
   canCreateTournament,
   hasSubscription,
   hasChosenUsername,
+  hasSeenWelcome,
   quotas,
   credits,
   tournaments,
@@ -137,6 +140,11 @@ function DashboardContent({
   const [isUsingSlot, setIsUsingSlot] = useState(false)
   const [tournamentsWithLiveMatches, setTournamentsWithLiveMatches] = useState<Set<string>>(new Set())
 
+  // Onboarding: welcome modal + compétitions populaires
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
+  const [popularCompetitions, setPopularCompetitions] = useState<any[]>([])
+  const [loadingCompetitions, setLoadingCompetitions] = useState(false)
+
   // Modale choix de pseudo (pour les nouveaux users)
   const [showUsernameModal, setShowUsernameModal] = useState(!hasChosenUsername)
   const [newUsername, setNewUsername] = useState('')
@@ -158,6 +166,30 @@ function DashboardContent({
       }
     }
   }, [])
+
+  // Onboarding: afficher le welcome modal pour les nouveaux utilisateurs
+  useEffect(() => {
+    if (hasChosenUsername && hasSeenWelcome === false) {
+      setShowWelcomeModal(true)
+    }
+  }, [hasChosenUsername, hasSeenWelcome])
+
+  // Onboarding: charger les compétitions populaires si l'utilisateur n'a aucun tournoi
+  useEffect(() => {
+    if (tournaments.length === 0 && hasChosenUsername) {
+      setLoadingCompetitions(true)
+      fetchWithAuth('/api/competitions/active')
+        .then(res => res.json())
+        .then(data => {
+          const active = (data.competitions || [])
+            .filter((c: any) => (c.remaining_matchdays ?? 1) > 0)
+            .slice(0, 6)
+          setPopularCompetitions(active)
+        })
+        .catch(console.error)
+        .finally(() => setLoadingCompetitions(false))
+    }
+  }, [tournaments.length, hasChosenUsername])
 
   // Vérification de disponibilité du pseudo (debounce 500ms)
   useEffect(() => {
@@ -325,6 +357,24 @@ function DashboardContent({
       return dateB - dateA // Décroissant (plus récent en premier)
     })
   const hasArchivedTournaments = finishedTournaments.length > 0 || leftTournaments.length > 0
+
+  const handleDismissWelcome = async (action: 'create' | 'explore') => {
+    setShowWelcomeModal(false)
+    // Marquer comme vu en base (fire-and-forget)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      supabase.from('profiles').update({ has_seen_welcome: true }).eq('id', user.id)
+    }
+    if (action === 'create') {
+      router.push('/vestiaire')
+    } else {
+      // Scroll vers la section compétitions populaires
+      setTimeout(() => {
+        document.getElementById('popular-competitions')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
@@ -540,13 +590,13 @@ function DashboardContent({
             </div>
           </div>
           {activeTournaments.length === 0 ? (
-            <div className="flex flex-col items-center text-center py-10 px-4">
-              <img src="/images/no-tournoi.png" alt="" className="mb-4 max-w-[252px]" />
+            <div className="flex flex-col items-center text-center py-6 px-4">
+              <img src="/images/no-tournoi.png" alt="" className="mb-3 max-w-[180px]" />
               <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
-              <p className="theme-text-secondary text-sm mb-6 max-w-xs">
+              <p className="theme-text-secondary text-sm mb-5 max-w-xs">
                 Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <a
                   href="/vestiaire"
                   className="px-6 py-2.5 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
@@ -565,6 +615,51 @@ function DashboardContent({
                   Rejoindre avec un code
                 </button>
               </div>
+
+              {/* Compétitions populaires */}
+              {popularCompetitions.length > 0 && (
+                <div id="popular-competitions" className="w-full mt-2">
+                  <h3 className="text-base font-bold text-[#ff9900] mb-4 text-left">
+                    Compétitions populaires
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    {popularCompetitions.map((comp: any) => {
+                      const compUrl = comp.is_custom
+                        ? `/vestiaire/create/custom_${comp.custom_competition_id}`
+                        : `/vestiaire/create/${comp.id}`
+                      return (
+                        <a
+                          key={comp.id || comp.custom_competition_id}
+                          href={compUrl}
+                          className="flex-shrink-0 w-[130px] snap-start rounded-lg border border-white/10 p-3 hover:border-[#ff9900] transition-colors group text-center bg-white/5"
+                        >
+                          <div className="w-14 h-14 mx-auto mb-2">
+                            <img
+                              src={comp.custom_emblem_white || comp.emblem || '/images/default-competition.png'}
+                              alt={comp.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <p className="text-xs font-semibold text-white line-clamp-2 group-hover:text-[#ff9900] transition-colors">
+                            {comp.name}
+                          </p>
+                          {comp.remaining_matchdays != null && (
+                            <p className="text-[10px] text-gray-500 mt-1">
+                              {comp.remaining_matchdays} journée{comp.remaining_matchdays > 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </a>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {loadingCompetitions && (
+                <div className="w-full flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#ff9900]" />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -1695,6 +1790,11 @@ function DashboardContent({
       {/* Modale promotion app Android */}
       {showAndroidAppModal && (
         <AndroidAppPromotionModal onClose={() => setShowAndroidAppModal(false)} />
+      )}
+
+      {/* Modale de bienvenue (onboarding) */}
+      {showWelcomeModal && (
+        <WelcomeModal onDismiss={handleDismissWelcome} />
       )}
     </div>
   )
