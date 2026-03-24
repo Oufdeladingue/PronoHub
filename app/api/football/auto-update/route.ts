@@ -288,6 +288,49 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
         continue
       }
 
+      // Nettoyage des placeholders orphelins pour les phases knockout
+      // Quand football-data.org remplace des matchs placeholder (ID 552xxx, équipes null)
+      // par de vrais matchs (ID 556xxx, avec équipes), les anciens placeholders restent en BDD.
+      // On supprime les placeholders d'un stage+matchday dès que des vrais matchs existent pour ce même stage+matchday.
+      const knockoutStages = ['QUARTER_FINALS', 'SEMI_FINALS', 'FINAL', 'PLAYOFFS', 'LAST_16']
+      const { data: placeholders } = await supabase
+        .from('imported_matches')
+        .select('id, football_data_match_id, stage, matchday')
+        .eq('competition_id', competition.id)
+        .in('stage', knockoutStages)
+        .eq('home_team_id', 0)
+
+      if (placeholders && placeholders.length > 0) {
+        // Pour chaque placeholder, vérifier si de vrais matchs existent pour le même stage+matchday
+        const placeholderIdsToDelete: string[] = []
+        for (const ph of placeholders) {
+          const { count } = await supabase
+            .from('imported_matches')
+            .select('id', { count: 'exact', head: true })
+            .eq('competition_id', competition.id)
+            .eq('stage', ph.stage)
+            .eq('matchday', ph.matchday)
+            .neq('home_team_id', 0)
+
+          if (count && count > 0) {
+            placeholderIdsToDelete.push(ph.id)
+          }
+        }
+
+        if (placeholderIdsToDelete.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('imported_matches')
+            .delete()
+            .in('id', placeholderIdsToDelete)
+
+          if (deleteError) {
+            console.error(`[AUTO-UPDATE] Error cleaning placeholders for ${competition.code}:`, deleteError)
+          } else {
+            console.log(`[AUTO-UPDATE] Cleaned ${placeholderIdsToDelete.length} placeholder match(es) for ${competition.code}`)
+          }
+        }
+      }
+
       results.push({
         competitionId: competition.id,
         name: competition.name,
