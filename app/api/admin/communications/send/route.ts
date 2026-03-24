@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer l'ID de la communication et les canaux sélectionnés
-    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel, excludeUserIds } = await request.json()
+    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel, avoidDoubleSend, excludeUserIds } = await request.json()
 
     if (!communicationId) {
       return NextResponse.json({ success: false, error: 'ID communication manquant' }, { status: 400 })
@@ -112,7 +112,9 @@ export async function POST(request: NextRequest) {
       }> = []
 
       // Envoyer l'email si configuré
-      if (hasEmail && recipient.email) {
+      // Si avoidDoubleSend: skip l'email pour les users qui ont l'app (fcm_token) → ils recevront le push
+      const skipEmailForThisUser = avoidDoubleSend && recipient.fcm_token && hasPush
+      if (hasEmail && recipient.email && !skipEmailForThisUser) {
         try {
           // Remplacer les variables utilisateur et CTA
           const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)

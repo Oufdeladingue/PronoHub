@@ -89,6 +89,7 @@ export default function EditCommunicationPage() {
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendChannels, setSendChannels] = useState({ email: true, push: true })
+  const [avoidDoubleSend, setAvoidDoubleSend] = useState(false) // Push prioritaire : pas d'email si l'user a l'app
   const [sendResult, setSendResult] = useState<{
     totalSent: number
     emailsSent: number
@@ -363,6 +364,7 @@ export default function EditCommunicationPage() {
           communicationId,
           sendEmail: sendChannels.email,
           sendPush: sendChannels.push,
+          avoidDoubleSend: avoidDoubleSend && sendChannels.email && sendChannels.push,
           excludeUserIds: excludedUserIds.size > 0 ? Array.from(excludedUserIds) : undefined
         })
       })
@@ -1068,6 +1070,32 @@ export default function EditCommunicationPage() {
                     </div>
                   )}
                 </label>
+
+                {/* Option anti-doublon */}
+                {sendChannels.email && sendChannels.push && (
+                  <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    avoidDoubleSend
+                      ? 'border-amber-500 bg-amber-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={avoidDoubleSend}
+                      onChange={(e) => setAvoidDoubleSend(e.target.checked)}
+                      className="w-5 h-5 text-amber-600 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🔀</span>
+                        <span className="font-medium text-gray-900">Éviter le doublon</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Les users avec l'app recevront <strong>uniquement le push</strong> (pas l'email).
+                        Les users sans app recevront l'email.
+                      </p>
+                    </div>
+                  </label>
+                )}
 
                 {/* Avertissement si aucun canal */}
                 {!sendChannels.email && !sendChannels.push && (
