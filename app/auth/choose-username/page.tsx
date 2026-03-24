@@ -12,6 +12,7 @@ function ChooseUsernameForm() {
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [savingUsername, setSavingUsername] = useState(false)
+  const [honeypot, setHoneypot] = useState('')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -84,6 +85,16 @@ function ChooseUsernameForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setUsernameError(null)
+
+    // Honeypot : si rempli, c'est un bot — simuler un succès
+    if (honeypot) {
+      console.warn('[choose-username] Honeypot triggered')
+      setSavingUsername(true)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      router.replace('/dashboard')
+      return
+    }
+
     if (newUsername.length < 3) {
       setUsernameError('Au moins 3 caractères requis')
       return
@@ -192,6 +203,17 @@ function ChooseUsernameForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Honeypot anti-bot — invisible pour les humains */}
+            <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }}>
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
             <div>
               <input
                 type="text"

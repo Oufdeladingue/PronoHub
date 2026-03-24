@@ -24,6 +24,7 @@ function SignUpForm() {
   const [acceptCGU, setAcceptCGU] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [titleFontSize, setTitleFontSize] = useState(16)
+  const pageLoadTime = useRef(Date.now())
   const titleRef = useRef<HTMLHeadingElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -113,6 +114,15 @@ function SignUpForm() {
   const handleOAuthSignIn = async (provider: 'google') => {
     setError(null)
     setGoogleLoading(true)
+
+    // Détection bot : interaction trop rapide (< 2s après chargement page)
+    const elapsed = Date.now() - pageLoadTime.current
+    if (elapsed < 2000) {
+      console.warn('[Signup] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
+      setError('Veuillez patienter un instant avant de continuer.')
+      setGoogleLoading(false)
+      return
+    }
 
     try {
       // Vérifier la restriction par pays avant OAuth (via Cloudflare cf-ipcountry)
@@ -205,6 +215,15 @@ function SignUpForm() {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    // Détection bot : interaction trop rapide (< 2s après chargement page)
+    const elapsed = Date.now() - pageLoadTime.current
+    if (elapsed < 2000) {
+      console.warn('[Signup] Bot behavior detected: form submit too fast', elapsed, 'ms')
+      setError('Veuillez patienter un instant avant de continuer.')
+      setLoading(false)
+      return
+    }
 
     // Validation du mot de passe
     if (!passwordValidation.isValid) {

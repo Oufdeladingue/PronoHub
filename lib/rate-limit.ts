@@ -86,6 +86,8 @@ export const RATE_LIMITS = {
   login: { limit: 5, windowMs: 60 * 1000 },
   // Signup: 3 tentatives par heure par IP
   signup: { limit: 3, windowMs: 60 * 60 * 1000 },
+  // OAuth callback: 5 tentatives par heure par IP
+  oauthCallback: { limit: 5, windowMs: 60 * 60 * 1000 },
   // API générale: 100 requêtes par minute par IP
   api: { limit: 100, windowMs: 60 * 1000 },
   // Création de ressources: 10 par minute par utilisateur

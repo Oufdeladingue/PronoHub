@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ function LoginForm() {
   const redirectTo = searchParams.get('redirectTo')
   const oauthDone = searchParams.get('oauthDone') === '1'
   const continueUrl = searchParams.get('continue')
+  const pageLoadTime = useRef(Date.now())
   const [redirecting, setRedirecting] = useState(oauthDone)
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
@@ -126,6 +127,15 @@ function LoginForm() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true)
     setError(null)
+
+    // Détection bot : interaction trop rapide (< 2s après chargement page)
+    const elapsed = Date.now() - pageLoadTime.current
+    if (elapsed < 2000) {
+      console.warn('[Login] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
+      setError('Veuillez patienter un instant avant de continuer.')
+      setGoogleLoading(false)
+      return
+    }
 
     try {
       // CAS 1: Google Sign-In natif Android (popup native)

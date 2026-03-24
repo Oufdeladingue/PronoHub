@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
+import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 
 /**
  * Génère une page HTML qui redirige vers le custom URL scheme pronohub://
@@ -44,6 +45,14 @@ export async function GET(request: Request) {
   const redirectTo = requestUrl.searchParams.get('redirectTo')
   const source = requestUrl.searchParams.get('source')
   const isCapacitor = source === 'capacitor'
+
+  // Rate limit par IP sur le callback OAuth
+  const clientIP = getClientIP(request)
+  const rateCheck = checkRateLimit(`oauth-callback:${clientIP}`, RATE_LIMITS.oauthCallback)
+  if (!rateCheck.success) {
+    console.warn('[OAuth Callback] Rate limited:', clientIP)
+    return NextResponse.redirect(new URL('/auth/login?error=Trop+de+tentatives.+R%C3%A9essayez+plus+tard.', request.url))
+  }
 
   // Origin publique (important derrière un reverse proxy Coolify/Traefik)
   const forwardedHost = request.headers.get('x-forwarded-host')
