@@ -154,25 +154,44 @@ async function checkAllMatchesFinished(
   endingMatchday: number
 ): Promise<boolean> {
   if (customCompetitionId) {
-    // Compétition custom
+    // Compétition custom — vérifier via imported_matches (le statut réel est là, pas sur custom_competition_matches)
     const { data: matchdays } = await supabase
       .from('custom_competition_matchdays')
       .select('id')
       .eq('custom_competition_id', customCompetitionId)
+      .eq('status', 'published')
       .lte('matchday_number', endingMatchday)
 
     if (!matchdays || matchdays.length === 0) {
-      return true // Pas de matchs = considéré comme terminé
+      return false // Pas de matchdays publiés = tournoi pas encore prêt, ne pas finaliser
     }
 
     const matchdayIds = matchdays.map((md: any) => md.id)
 
-    // Vérifier s'il y a des matchs non terminés
-    const { data: unfinishedMatches } = await supabase
+    // Récupérer les imported_match_id des matchs custom
+    const { data: customMatches } = await supabase
       .from('custom_competition_matches')
-      .select('id')
+      .select('imported_match_id')
       .in('custom_matchday_id', matchdayIds)
-      .not('cached_status', 'in', '("FINISHED","AWARDED")')
+
+    if (!customMatches || customMatches.length === 0) {
+      return false // Pas de matchs = pas terminé
+    }
+
+    const importedMatchIds = customMatches
+      .map((m: any) => m.imported_match_id)
+      .filter((id: any) => id !== null)
+
+    if (importedMatchIds.length === 0) {
+      return false
+    }
+
+    // Vérifier le statut réel des matchs importés
+    const { data: unfinishedMatches } = await supabase
+      .from('imported_matches')
+      .select('id')
+      .in('id', importedMatchIds)
+      .not('status', 'in', '("FINISHED","AWARDED")')
       .limit(1)
 
     return !unfinishedMatches || unfinishedMatches.length === 0
