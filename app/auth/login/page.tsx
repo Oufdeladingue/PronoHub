@@ -130,7 +130,7 @@ function LoginForm() {
 
     // Détection bot : interaction trop rapide (< 2s après chargement page)
     const elapsed = Date.now() - pageLoadTime.current
-    if (elapsed < 2000) {
+    if (elapsed < 800) {
       console.warn('[Login] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
       setError('Veuillez patienter un instant avant de continuer.')
       setGoogleLoading(false)

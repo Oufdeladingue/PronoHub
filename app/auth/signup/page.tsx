@@ -117,7 +117,7 @@ function SignUpForm() {
 
     // Détection bot : interaction trop rapide (< 2s après chargement page)
     const elapsed = Date.now() - pageLoadTime.current
-    if (elapsed < 2000) {
+    if (elapsed < 800) {
       console.warn('[Signup] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
       setError('Veuillez patienter un instant avant de continuer.')
       setGoogleLoading(false)
@@ -218,7 +218,7 @@ function SignUpForm() {
 
     // Détection bot : interaction trop rapide (< 2s après chargement page)
     const elapsed = Date.now() - pageLoadTime.current
-    if (elapsed < 2000) {
+    if (elapsed < 800) {
       console.warn('[Signup] Bot behavior detected: form submit too fast', elapsed, 'ms')
       setError('Veuillez patienter un instant avant de continuer.')
       setLoading(false)
