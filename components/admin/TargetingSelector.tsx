@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import type { TargetingFilters } from '@/lib/admin/email-templates'
+
+interface Tournament {
+  id: string
+  name: string
+  status: string
+}
 
 interface TargetingSelectorProps {
   value: TargetingFilters
@@ -10,6 +17,20 @@ interface TargetingSelectorProps {
 
 export default function TargetingSelector({ value, onChange }: TargetingSelectorProps) {
   const [filters, setFilters] = useState<TargetingFilters>(value)
+  const [tournaments, setTournaments] = useState<Tournament[]>([])
+
+  // Charger la liste des tournois
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('tournaments')
+        .select('id, name, status')
+        .order('created_at', { ascending: false })
+      setTournaments(data || [])
+    }
+    fetchTournaments()
+  }, [])
 
   // Mettre à jour le parent quand les filtres changent
   useEffect(() => {
@@ -61,6 +82,43 @@ export default function TargetingSelector({ value, onChange }: TargetingSelector
                 />
                 <span className="text-sm text-gray-700">N'a pas de tournoi actif</span>
               </label>
+
+              <div className="pt-2 border-t border-gray-100">
+                <label className="block text-sm text-gray-700 mb-1">
+                  Participants d'un tournoi :
+                </label>
+                <select
+                  value={filters.specificTournamentId || ''}
+                  onChange={(e) => {
+                    setFilters(prev => {
+                      const newFilters = { ...prev }
+                      if (e.target.value) {
+                        newFilters.specificTournamentId = e.target.value
+                      } else {
+                        delete newFilters.specificTournamentId
+                      }
+                      return newFilters
+                    })
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white"
+                >
+                  <option value="">Tous les tournois</option>
+                  {tournaments.filter(t => t.status !== 'completed').length > 0 && (
+                    <optgroup label="En cours">
+                      {tournaments.filter(t => t.status !== 'completed').map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {tournaments.filter(t => t.status === 'completed').length > 0 && (
+                    <optgroup label="Terminés">
+                      {tournaments.filter(t => t.status === 'completed').map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
             </div>
           </div>
 

@@ -170,6 +170,7 @@ export interface TargetingFilters {
   // Tournois
   hasActiveTournament?: boolean
   hasNoActiveTournament?: boolean
+  specificTournamentId?: string // Cibler les participants d'un tournoi spécifique
   tournamentTypes?: ('FREE_KICK' | 'ONE_SHOT' | 'PLATINUM' | 'TEAM_ELITE')[]
 
   // Activité

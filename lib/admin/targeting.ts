@@ -114,6 +114,25 @@ export async function calculateRecipients(
     // Si les deux sont cochés, on ne filtre pas (tous les users)
   }
 
+  // Filtre tournoi spécifique
+  if (filters.specificTournamentId) {
+    const userIds = filteredProfiles.map(p => p.id)
+
+    const { data: participants } = await supabase
+      .from('tournament_participants')
+      .select('user_id')
+      .eq('tournament_id', filters.specificTournamentId)
+      .in('user_id', userIds)
+
+    const tournamentUsers = new Set(
+      participants?.map(p => p.user_id) || []
+    )
+
+    filteredProfiles = filteredProfiles.filter(p =>
+      tournamentUsers.has(p.id)
+    )
+  }
+
   // Filtre nombre minimum de pronostics
   if (filters.minPredictions) {
     const userIds = filteredProfiles.map(p => p.id)
