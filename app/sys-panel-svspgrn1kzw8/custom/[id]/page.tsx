@@ -77,11 +77,29 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
   const [previewMatches, setPreviewMatches] = useState<any[]>([])
   const [loadingPreview, setLoadingPreview] = useState(false)
 
+  // Créer une date locale à midi pour éviter les décalages UTC/timezone
+  function parseLocalDate(dateStr: string | Date): Date {
+    if (typeof dateStr === 'string') {
+      // "2026-03-29" → Date locale à midi (pas minuit UTC qui décale d'un jour)
+      const [y, m, d] = dateStr.split('-').map(Number)
+      return new Date(y, m - 1, d, 12, 0, 0)
+    }
+    return new Date(dateStr.getFullYear(), dateStr.getMonth(), dateStr.getDate(), 12, 0, 0)
+  }
+
+  function formatLocalDate(d: Date): string {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   function getMonday(d: Date): Date {
-    const date = new Date(d)
+    const date = parseLocalDate(d)
     const day = date.getDay()
     const diff = date.getDate() - day + (day === 0 ? -6 : 1)
-    return new Date(date.setDate(diff))
+    date.setDate(diff)
+    return date
   }
 
   function getSunday(d: Date): Date {
@@ -94,30 +112,29 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
   // Trouver la première semaine disponible (non assignée) après la dernière journée
   function getFirstAvailableWeek(): { start: string; end: string } {
     if (matchdays.length === 0) {
-      // Pas de journées existantes, proposer la semaine courante
       return {
-        start: getMonday(new Date()).toISOString().split('T')[0],
-        end: getSunday(new Date()).toISOString().split('T')[0]
+        start: formatLocalDate(getMonday(new Date())),
+        end: formatLocalDate(getSunday(new Date()))
       }
     }
 
     // Trouver la dernière semaine assignée (week_end le plus tardif)
     const sortedMatchdays = [...matchdays].sort((a, b) =>
-      new Date(b.week_end).getTime() - new Date(a.week_end).getTime()
+      parseLocalDate(b.week_end).getTime() - parseLocalDate(a.week_end).getTime()
     )
-    const lastWeekEnd = new Date(sortedMatchdays[0].week_end)
+    const lastWeekEnd = parseLocalDate(sortedMatchdays[0].week_end)
 
     // La semaine suivante commence le lundi après cette date
-    const nextMonday = new Date(lastWeekEnd)
-    nextMonday.setDate(nextMonday.getDate() + 1) // Jour après le dimanche = lundi
+    const nextDay = new Date(lastWeekEnd)
+    nextDay.setDate(nextDay.getDate() + 1)
 
     // S'assurer qu'on est bien sur un lundi
-    const monday = getMonday(nextMonday)
+    const monday = getMonday(nextDay)
     const sunday = getSunday(monday)
 
     return {
-      start: monday.toISOString().split('T')[0],
-      end: sunday.toISOString().split('T')[0]
+      start: formatLocalDate(monday),
+      end: formatLocalDate(sunday)
     }
   }
 
@@ -193,11 +210,11 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
       await fetchMatchdays()
 
       // Avancer à la semaine suivante
-      const nextMonday = new Date(selectedWeek.start)
+      const nextMonday = parseLocalDate(selectedWeek.start)
       nextMonday.setDate(nextMonday.getDate() + 7)
       setSelectedWeek({
-        start: nextMonday.toISOString().split('T')[0],
-        end: getSunday(nextMonday).toISOString().split('T')[0]
+        start: formatLocalDate(nextMonday),
+        end: formatLocalDate(getSunday(nextMonday))
       })
     } catch (err: any) {
       setError(err.message)

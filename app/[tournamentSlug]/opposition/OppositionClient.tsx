@@ -157,16 +157,37 @@ export default function OppositionClient({
 
   // États pour les pronostics - allMatches et matchdayStages initialisés depuis le server
   // Calculer availableMatchdays immédiatement pour éviter le CLS
+  // Pour les tournois custom : ne garder que les matchdays ayant des matchs (les draft/vides sont exclus côté server)
   const [availableMatchdays, setAvailableMatchdays] = useState<number[]>(() => {
     const start = serverTournament.starting_matchday
     const end = serverTournament.ending_matchday
     if (!start || !end) return []
+
+    if (serverTournament.custom_competition_id) {
+      // Custom : extraire les matchdays réellement présents dans les matchs pré-chargés
+      const matchdaysWithMatches = new Set(
+        serverAllMatches.map((m: any) => m.matchday as number)
+      )
+      return Array.from(matchdaysWithMatches).sort((a, b) => a - b)
+    }
+
     const matchdays: number[] = []
     for (let i = start; i <= end; i++) {
       matchdays.push(i)
     }
     return matchdays
   })
+
+  // Pour les tournois custom : mapping realMatchday → displayNumber (numérotation séquentielle)
+  // Ex: si matchdays réels sont [9, 10, 11, 13, 15] → affichage J1, J2, J3, J4, J5
+  const matchdayDisplayMap = useMemo(() => {
+    if (!serverTournament.custom_competition_id) return null
+    const map: Record<number, number> = {}
+    availableMatchdays.forEach((md, index) => {
+      map[md] = index + 1
+    })
+    return map
+  }, [availableMatchdays, serverTournament.custom_competition_id])
   const [matchdayStages, setMatchdayStages] = useState<Record<number, StageType | null>>(serverMatchdayStages as Record<number, StageType | null>)
   const [selectedMatchday, setSelectedMatchday] = useState<number | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
@@ -675,9 +696,6 @@ export default function OppositionClient({
     try {
       if (!tournament) return
 
-      // Utiliser les journées enregistrées au démarrage du tournoi
-      // Ces journées sont calculées correctement lors du lancement (API /start)
-      // et incluent uniquement les journées jouables
       const startMatchday = tournament.starting_matchday
       const endMatchday = tournament.ending_matchday
 
@@ -686,10 +704,19 @@ export default function OppositionClient({
         return
       }
 
-      // Construire la liste des journées du tournoi
-      const matchdays: number[] = []
-      for (let i = startMatchday; i <= endMatchday; i++) {
-        matchdays.push(i)
+      let matchdays: number[]
+
+      if (tournament.custom_competition_id) {
+        // Custom : extraire les matchdays réellement présents dans les matchs chargés
+        const matchdaysWithMatches = new Set(
+          allMatches.map((m: any) => m.matchday as number)
+        )
+        matchdays = Array.from(matchdaysWithMatches).sort((a, b) => a - b)
+      } else {
+        matchdays = []
+        for (let i = startMatchday; i <= endMatchday; i++) {
+          matchdays.push(i)
+        }
       }
 
       setAvailableMatchdays(matchdays)
@@ -2022,7 +2049,9 @@ export default function OppositionClient({
                         const hasMatchesForMatchday = allMatches.some((m: any) => (m.virtual_matchday || m.matchday) === matchday)
                         // Calculer le leg (Aller/Retour) pour les phases knockout
                         const leg = tournament.custom_competition_id ? undefined : getLegNumber(matchday, matchdayStages)
-                        const matchdayLabel = getStageShortLabel(stage, matchday, hasMatchesForMatchday, leg)
+                        // Pour les custom, utiliser le numéro séquentiel (J1, J2...) au lieu du vrai numéro de matchday
+                        const displayMatchday = matchdayDisplayMap ? matchdayDisplayMap[matchday] : matchday
+                        const matchdayLabel = getStageShortLabel(stage, displayMatchday, hasMatchesForMatchday, leg)
                         const showWarning = shouldShowMatchdayWarning(matchday)
                         return (
                           <button
@@ -3334,6 +3363,7 @@ export default function OppositionClient({
               teamsEnabled={tournament.teams_enabled}
               tournamentType={tournament.tournament_type}
               isCustomCompetition={!!tournament.custom_competition_id}
+              matchdayDisplayMap={matchdayDisplayMap}
             />
           )}
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 // GET - Récupérer les journées d'une compétition custom
 export async function GET(
@@ -223,14 +223,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID de journée requis' }, { status: 400 })
     }
 
-    const { error } = await supabase
+    // Utiliser le client admin (service role) pour bypass RLS sur les opérations de suppression
+    const adminSupabase = createAdminClient()
+
+    const { error, count } = await adminSupabase
       .from('custom_competition_matchdays')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', matchdayId)
 
     if (error) {
       console.error('Error deleting matchday:', error)
       return NextResponse.json({ error: 'Failed to delete matchday' }, { status: 500 })
+    }
+
+    if (count === 0) {
+      return NextResponse.json({ error: 'Journée introuvable' }, { status: 404 })
     }
 
     return NextResponse.json({

@@ -58,9 +58,10 @@ interface TournamentRankingsProps {
   tournamentType?: string
   currentUserId?: string // OPTIMISATION: Recevoir l'ID utilisateur depuis le parent
   isCustomCompetition?: boolean
+  matchdayDisplayMap?: Record<number, number> | null // Mapping realMatchday → displayNumber pour custom
 }
 
-export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition }: TournamentRankingsProps) {
+export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition, matchdayDisplayMap }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
@@ -341,7 +342,8 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               .map(matchday => {
                 const stage = matchdayStages[matchday]
                 const leg = getLegNumber(matchday, matchdayStages)
-                const matchdayLabel = getStageShortLabel(stage, matchday, undefined, leg)
+                const displayMatchday = matchdayDisplayMap ? matchdayDisplayMap[matchday] : matchday
+                const matchdayLabel = getStageShortLabel(stage, displayMatchday, undefined, leg)
                 const isFinished = isMatchdayFinished(matchday)
                 return (
                   <button

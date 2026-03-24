@@ -220,11 +220,12 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
   let matchesData: any[] = []
 
   if (tournament.custom_competition_id) {
-    // Compétition custom - récupérer matchdays et matchs en parallèle si possible
+    // Compétition custom - ne récupérer que les matchdays publiés (pas les brouillons)
     const { data: matchdaysData } = await supabase
       .from('custom_competition_matchdays')
       .select('id, matchday_number')
       .eq('custom_competition_id', tournament.custom_competition_id)
+      .eq('status', 'published')
       .gte('matchday_number', startMatchday)
       .lte('matchday_number', endMatchday)
 
