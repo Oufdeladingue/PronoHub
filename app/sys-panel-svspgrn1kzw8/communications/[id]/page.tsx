@@ -12,6 +12,7 @@ import EmojiPicker from '@/components/admin/EmojiPicker'
 import EmailEditor from '@/components/admin/EmailEditor'
 import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
 import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
+import ImageUploader from '@/components/admin/ImageUploader'
 
 interface Communication {
   id: string
@@ -886,16 +887,29 @@ export default function EditCommunicationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL de l'image (optionnelle)
+                    Image de notification (optionnelle)
                   </label>
-                  <input
-                    type="text"
-                    value={communication.notification_image_url || ''}
-                    onChange={(e) => handleChange('notification_image_url', e.target.value)}
-                    disabled={!canEdit}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
-                    placeholder="https://..."
-                  />
+
+                  {canEdit && (
+                    <ImageUploader
+                      onImageUploaded={(url) => handleChange('notification_image_url', url)}
+                      currentImageUrl={communication.notification_image_url || undefined}
+                    />
+                  )}
+
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Ou entrez une URL
+                    </label>
+                    <input
+                      type="text"
+                      value={communication.notification_image_url || ''}
+                      onChange={(e) => handleChange('notification_image_url', e.target.value)}
+                      disabled={!canEdit}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
 
                 <div>
