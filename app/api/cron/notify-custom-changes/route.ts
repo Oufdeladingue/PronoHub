@@ -51,7 +51,9 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
     const now = new Date()
 
-    // 0. Vérifier s'il y a des changements en attente (early exit pour économiser les ressources)
+    // 0. Vérifier s'il y a des changements en attente
+    // Ne pas se fier uniquement au flag queue (il peut être reset prématurément
+    // si des changements sont ajoutés < 1h avant un run). Vérifier aussi en base directement.
     const { data: queue } = await supabase
       .from('notification_queue')
       .select('has_pending_custom_changes, last_check_custom_changes')
@@ -59,19 +61,30 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!queue?.has_pending_custom_changes) {
-      // No pending changes, skip
-      // Mettre à jour le timestamp de check
-      await supabase
-        .from('notification_queue')
-        .update({ last_check_custom_changes: now.toISOString() })
-        .eq('id', 1)
+      // Le flag est off, mais vérifier s'il reste des changements non notifiés > 1h
+      const delayCheck = new Date(now)
+      delayCheck.setHours(delayCheck.getHours() - DELAY_HOURS)
+      const { count: pendingCount } = await supabase
+        .from('custom_matchday_changes')
+        .select('*', { count: 'exact', head: true })
+        .is('notified_at', null)
+        .lt('created_at', delayCheck.toISOString())
 
-      return NextResponse.json({
-        success: true,
-        message: 'Aucun changement en attente',
-        processed: 0,
-        skipped: true
-      })
+      if (!pendingCount || pendingCount === 0) {
+        // Vraiment rien à traiter
+        await supabase
+          .from('notification_queue')
+          .update({ last_check_custom_changes: now.toISOString() })
+          .eq('id', 1)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Aucun changement en attente',
+          processed: 0,
+          skipped: true
+        })
+      }
+      console.log(`[NOTIFY-CUSTOM] Queue flag was false but found ${pendingCount} pending changes, proceeding`)
     }
 
     // Calculer la date limite (changements datant de plus d'1 heure)

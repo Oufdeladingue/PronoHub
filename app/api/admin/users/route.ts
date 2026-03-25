@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
 
     // Helper: appliquer les filtres communs à une requête
     const applyFilters = (query: any) => {
+      // Exclure le compte admin de visualisation des stats
+      query = query.neq('email', 'admin@test.fr')
       if (search) {
         query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
       }
