@@ -24,11 +24,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 })
     }
 
-    // Paramètres de pagination et recherche
+    // Paramètres de pagination, recherche et tri
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
+    const sortBy = searchParams.get('sortBy') || 'username'
+    const sortDir = (searchParams.get('sortDir') || 'asc') as 'asc' | 'desc'
     const offset = (page - 1) * pageSize
 
     // Requête pour compter le total d'utilisateurs
@@ -42,12 +44,18 @@ export async function GET(request: NextRequest) {
 
     const { count: totalCount } = await countQuery
 
-    // Requête pour récupérer les utilisateurs avec pagination
+    // Si tri sur une colonne calculée, récupérer TOUS les users (tri côté serveur après calcul)
+    const needsServerSort = sortBy !== 'username'
+
     let usersQuery = adminClient
       .from('profiles')
       .select('id, username, avatar')
       .order('username', { ascending: true })
-      .range(offset, offset + pageSize - 1)
+
+    if (!needsServerSort) {
+      usersQuery = usersQuery.order('username', { ascending: sortDir === 'asc' })
+        .range(offset, offset + pageSize - 1)
+    }
 
     if (search) {
       usersQuery = usersQuery.ilike('username', `%${search}%`)
@@ -232,9 +240,33 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Si tri sur colonne calculée, trier puis paginer côté serveur
+    let finalStats = userStats
+    if (needsServerSort) {
+      finalStats.sort((a: any, b: any) => {
+        let valA: number | string = 0
+        let valB: number | string = 0
+        switch (sortBy) {
+          case 'freeKick': valA = a.freeKick.total; valB = b.freeKick.total; break
+          case 'oneShot': valA = a.oneShot.total; valB = b.oneShot.total; break
+          case 'elite': valA = a.elite.total; valB = b.elite.total; break
+          case 'platinium': valA = a.platinium.total; valB = b.platinium.total; break
+          case 'availableSlots': valA = a.availableSlots; valB = b.availableSlots; break
+          case 'platiniumCredits': valA = a.platiniumCredits; valB = b.platiniumCredits; break
+          case 'durationExtensionCredits': valA = a.durationExtensionCredits; valB = b.durationExtensionCredits; break
+          case 'totalSpent': valA = a.totalSpent; valB = b.totalSpent; break
+          default: valA = a.username.toLowerCase(); valB = b.username.toLowerCase()
+        }
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1
+        return 0
+      })
+      finalStats = finalStats.slice(offset, offset + pageSize)
+    }
+
     return NextResponse.json({
       success: true,
-      users: userStats,
+      users: finalStats,
       totalCount: totalCount || 0,
       page,
       pageSize

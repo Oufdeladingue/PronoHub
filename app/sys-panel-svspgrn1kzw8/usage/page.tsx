@@ -960,7 +960,7 @@ export default function AdminUsagePage() {
   const fetchUsers = useCallback(async () => {
     setCreditsLoading(true)
     try {
-      const response = await fetch(`/api/admin/credits?search=${encodeURIComponent(creditsSearch)}&page=${creditsPage}&pageSize=${creditsPageSize}`)
+      const response = await fetch(`/api/admin/credits?search=${encodeURIComponent(creditsSearch)}&page=${creditsPage}&pageSize=${creditsPageSize}&sortBy=${creditsSortBy}&sortDir=${creditsSortDir}`)
       const data = await response.json()
 
       if (data.success) {
@@ -971,7 +971,7 @@ export default function AdminUsagePage() {
       console.error('Error fetching users:', error)
     }
     setCreditsLoading(false)
-  }, [creditsSearch, creditsPage, creditsPageSize])
+  }, [creditsSearch, creditsPage, creditsPageSize, creditsSortBy, creditsSortDir])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1020,30 +1020,6 @@ export default function AdminUsagePage() {
 
   const creditsTotalPages = Math.ceil(creditsTotalCount / creditsPageSize)
 
-  // Tri des users crédits
-  const sortedUsers = useMemo(() => {
-    const sorted = [...users]
-    sorted.sort((a, b) => {
-      let valA: number | string = 0
-      let valB: number | string = 0
-      switch (creditsSortBy) {
-        case 'username': valA = a.username.toLowerCase(); valB = b.username.toLowerCase(); break
-        case 'freeKick': valA = a.freeKick.total; valB = b.freeKick.total; break
-        case 'oneShot': valA = a.oneShot.total; valB = b.oneShot.total; break
-        case 'elite': valA = a.elite.total; valB = b.elite.total; break
-        case 'platinium': valA = a.platinium.total; valB = b.platinium.total; break
-        case 'availableSlots': valA = a.availableSlots; valB = b.availableSlots; break
-        case 'platiniumCredits': valA = a.platiniumCredits; valB = b.platiniumCredits; break
-        case 'durationExtensionCredits': valA = a.durationExtensionCredits; valB = b.durationExtensionCredits; break
-        case 'totalSpent': valA = a.totalSpent; valB = b.totalSpent; break
-      }
-      if (valA < valB) return creditsSortDir === 'asc' ? -1 : 1
-      if (valA > valB) return creditsSortDir === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
-  }, [users, creditsSortBy, creditsSortDir])
-
   const handleCreditsSort = (col: string) => {
     if (creditsSortBy === col) {
       setCreditsSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -1051,6 +1027,7 @@ export default function AdminUsagePage() {
       setCreditsSortBy(col)
       setCreditsSortDir('desc')
     }
+    setCreditsPage(1)
   }
 
   const sortIcon = (col: string) => creditsSortBy === col ? (creditsSortDir === 'asc' ? ' ↑' : ' ↓') : ''
@@ -2286,14 +2263,14 @@ export default function AdminUsagePage() {
                             Chargement...
                           </td>
                         </tr>
-                      ) : sortedUsers.length === 0 ? (
+                      ) : users.length === 0 ? (
                         <tr>
                           <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
                       ) : (
-                        sortedUsers.map((user) => (
+                        users.map((user) => (
                           <tr key={user.userId} className="hover:bg-gray-50">
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
