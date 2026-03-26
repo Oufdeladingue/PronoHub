@@ -74,7 +74,7 @@ function HeroSection() {
             data-animate
             style={{ '--stagger': '100ms' } as React.CSSProperties}
           >
-            Créez vos tournois de Ligue 1, LDC ou Coupe du monde en 30 secondes et affronte tes amis.
+            Crée ton tournoi de Ligue 1, LDC ou Coupe du monde en 30 secondes et affronte tes amis.
             <br />
             Gratuit, sans pub, 100% fun.
           </p>
