@@ -171,6 +171,7 @@ interface UserStats {
   platiniumCredits: number
   platiniumPrepaid11Credits: number
   durationExtensionCredits: number
+  totalSpent: number
 }
 
 interface Toast {
@@ -506,6 +507,8 @@ export default function AdminUsagePage() {
   const [creditsPage, setCreditsPage] = useState(1)
   const [creditsTotalCount, setCreditsTotalCount] = useState(0)
   const [addingCredit, setAddingCredit] = useState<{ userId: string; type: string } | null>(null)
+  const [creditsSortBy, setCreditsSortBy] = useState<string>('username')
+  const [creditsSortDir, setCreditsSortDir] = useState<'asc' | 'desc'>('asc')
   const [toasts, setToasts] = useState<Toast[]>([])
   const [statsTournamentModal, setStatsTournamentModal] = useState<{ userId: string; username: string } | null>(null)
   const [userTournaments, setUserTournaments] = useState<Array<{
@@ -1016,6 +1019,41 @@ export default function AdminUsagePage() {
   }
 
   const creditsTotalPages = Math.ceil(creditsTotalCount / creditsPageSize)
+
+  // Tri des users crédits
+  const sortedUsers = useMemo(() => {
+    const sorted = [...users]
+    sorted.sort((a, b) => {
+      let valA: number | string = 0
+      let valB: number | string = 0
+      switch (creditsSortBy) {
+        case 'username': valA = a.username.toLowerCase(); valB = b.username.toLowerCase(); break
+        case 'freeKick': valA = a.freeKick.total; valB = b.freeKick.total; break
+        case 'oneShot': valA = a.oneShot.total; valB = b.oneShot.total; break
+        case 'elite': valA = a.elite.total; valB = b.elite.total; break
+        case 'platinium': valA = a.platinium.total; valB = b.platinium.total; break
+        case 'availableSlots': valA = a.availableSlots; valB = b.availableSlots; break
+        case 'platiniumCredits': valA = a.platiniumCredits; valB = b.platiniumCredits; break
+        case 'durationExtensionCredits': valA = a.durationExtensionCredits; valB = b.durationExtensionCredits; break
+        case 'totalSpent': valA = a.totalSpent; valB = b.totalSpent; break
+      }
+      if (valA < valB) return creditsSortDir === 'asc' ? -1 : 1
+      if (valA > valB) return creditsSortDir === 'asc' ? 1 : -1
+      return 0
+    })
+    return sorted
+  }, [users, creditsSortBy, creditsSortDir])
+
+  const handleCreditsSort = (col: string) => {
+    if (creditsSortBy === col) {
+      setCreditsSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setCreditsSortBy(col)
+      setCreditsSortDir('desc')
+    }
+  }
+
+  const sortIcon = (col: string) => creditsSortBy === col ? (creditsSortDir === 'asc' ? ' ↑' : ' ↓') : ''
 
   const openStatsTournamentModal = async (userId: string, username: string) => {
     setStatsTournamentModal({ userId, username })
@@ -2229,32 +2267,33 @@ export default function AdminUsagePage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Free-Kick</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">One-Shot</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Elite Team</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Platinium</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Slots dispo</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Crédits Plat.</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ext. Durée</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('username')}>Utilisateur{sortIcon('username')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('freeKick')}>Free-Kick{sortIcon('freeKick')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('oneShot')}>One-Shot{sortIcon('oneShot')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('elite')}>Elite Team{sortIcon('elite')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('platinium')}>Platinium{sortIcon('platinium')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('availableSlots')}>Slots dispo{sortIcon('availableSlots')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('platiniumCredits')}>Crédits Plat.{sortIcon('platiniumCredits')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('durationExtensionCredits')}>Ext. Durée{sortIcon('durationExtensionCredits')}</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none" onClick={() => handleCreditsSort('totalSpent')}>Total dépensé{sortIcon('totalSpent')}</th>
                         <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {creditsLoading ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                             Chargement...
                           </td>
                         </tr>
-                      ) : users.length === 0 ? (
+                      ) : sortedUsers.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={10} className="px-4 py-8 text-center text-gray-500">
                             Aucun utilisateur trouvé
                           </td>
                         </tr>
                       ) : (
-                        users.map((user) => (
+                        sortedUsers.map((user) => (
                           <tr key={user.userId} className="hover:bg-gray-50">
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-3">
@@ -2306,6 +2345,11 @@ export default function AdminUsagePage() {
                             <td className="px-4 py-4 whitespace-nowrap text-center">
                               <span className={`font-medium ${user.durationExtensionCredits > 0 ? 'text-teal-500' : 'text-gray-400'}`}>
                                 {user.durationExtensionCredits}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 whitespace-nowrap text-center">
+                              <span className={`font-semibold ${user.totalSpent > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                {user.totalSpent > 0 ? `${user.totalSpent.toFixed(2)} €` : '—'}
                               </span>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-center">

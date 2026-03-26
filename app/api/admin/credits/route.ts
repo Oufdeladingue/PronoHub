@@ -78,7 +78,8 @@ export async function GET(request: NextRequest) {
       allSlotCredits,
       allPlatiniumSoloCredits,
       allPlatiniumGroupCredits,
-      allDurationExtensionCredits
+      allDurationExtensionCredits,
+      allPurchaseAmounts
     ] = await Promise.all([
       // Récupérer toutes les participations en une seule requête
       adminClient
@@ -136,6 +137,15 @@ export async function GET(request: NextRequest) {
         .eq('purchase_type', 'duration_extension')
         .eq('status', 'completed')
         .eq('used', false)
+        .then(r => r.data || []),
+
+      // Récupérer le total dépensé par user (tous achats complétés)
+      adminClient
+        .from('tournament_purchases')
+        .select('user_id, amount')
+        .in('user_id', userIds)
+        .eq('status', 'completed')
+        .not('amount', 'is', null)
         .then(r => r.data || [])
     ])
 
@@ -160,6 +170,13 @@ export async function GET(request: NextRequest) {
     const platiniumSoloMap = countByUser(allPlatiniumSoloCredits)
     const platiniumGroupMap = countByUser(allPlatiniumGroupCredits)
     const durationExtensionMap = countByUser(allDurationExtensionCredits)
+
+    // Calculer le total dépensé par user (somme des amounts)
+    const totalSpentMap = new Map<string, number>()
+    allPurchaseAmounts.forEach((p: any) => {
+      const amount = typeof p.amount === 'number' ? p.amount : parseFloat(p.amount) || 0
+      totalSpentMap.set(p.user_id, (totalSpentMap.get(p.user_id) || 0) + amount)
+    })
 
     // Construire les stats pour chaque utilisateur
     const userStats = usersData.map((user) => {
@@ -210,7 +227,8 @@ export async function GET(request: NextRequest) {
         availableSlots: slotsMap.get(user.id) || 0,
         platiniumCredits: platiniumSoloMap.get(user.id) || 0,
         platiniumPrepaid11Credits: platiniumGroupMap.get(user.id) || 0,
-        durationExtensionCredits: durationExtensionMap.get(user.id) || 0
+        durationExtensionCredits: durationExtensionMap.get(user.id) || 0,
+        totalSpent: Math.round((totalSpentMap.get(user.id) || 0) * 100) / 100
       }
     })
 
