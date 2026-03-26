@@ -51,68 +51,129 @@ function HeroSection() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,153,0,0.14)_0%,rgba(255,153,0,0.00)_45%)]" />
       </div>
 
-      {/* ── Content ── */}
-      <div className="relative z-[2] mx-auto flex min-h-[calc(100vh-56px)] max-w-6xl flex-col items-center px-6 pb-10 pt-20 text-center sm:pt-24">
+      {/* ── Content: 2 columns on desktop ── */}
+      <div className="relative z-[2] mx-auto flex min-h-[calc(100vh-56px)] max-w-7xl flex-col items-center px-6 pb-10 pt-20 sm:pt-24 md:flex-row md:items-center md:gap-8 lg:gap-12">
 
-        {/* H1 */}
-        <h1
-          className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
-          data-animate
-        >
-          Fais-toi plaisir,
-          <br className="hidden sm:block" />
-          {' '}deviens le <span className="text-[#ff9900]">roi du prono</span>.
-        </h1>
-
-        {/* Subtitle */}
-        <p
-          className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:text-lg"
-          data-animate
-          style={{ '--stagger': '100ms' } as React.CSSProperties}
-        >
-          Crée un tournoi, invite tes potes et grimpe au classement en temps réel.
-        </p>
-
-        {/* CTAs */}
-        <div
-          className="mt-6 flex w-full max-w-xl flex-col gap-3 sm:flex-row sm:justify-center"
-          data-animate
-          style={{ '--stagger': '200ms' } as React.CSSProperties}
-        >
-          <Link
-            href="/auth/signup"
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#ff9900] px-6 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,153,0,0.18)] transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900] focus:ring-offset-0 active:scale-[0.98]"
+        {/* Left column: text + CTAs */}
+        <div className="flex flex-col items-center text-center md:items-start md:text-left md:w-[40%] md:shrink-0">
+          {/* H1 */}
+          <h1
+            className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
+            data-animate
           >
-            Créer mon tournoi
-          </Link>
-          <Link
-            href="/auth/login"
-            className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60 active:scale-[0.98]"
+            Fais-toi plaisir,
+            <br className="hidden sm:block" />
+            {' '}deviens le <span className="text-[#ff9900]">roi du</span>
+            <br className="hidden sm:block" />
+            <span className="text-[#ff9900] text-5xl sm:text-6xl lg:text-[72px]">prono</span><span className="text-white">.</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p
+            className="mt-4 max-w-md text-pretty text-base leading-relaxed text-slate-300 sm:text-lg"
+            data-animate
+            style={{ '--stagger': '100ms' } as React.CSSProperties}
           >
-            Se connecter
-          </Link>
+            Créez vos tournois de Ligue 1, LDC ou Coupe du monde en 30 secondes et affronte tes amis.
+            <br />
+            Gratuit, sans pub, 100% fun.
+          </p>
+
+          {/* CTAs — stacked like reference */}
+          <div
+            className="mt-8 flex w-full max-w-md flex-col gap-3"
+            data-animate
+            style={{ '--stagger': '200ms' } as React.CSSProperties}
+          >
+            <Link
+              href="/auth/signup"
+              className="hero-cta-primary inline-flex h-14 items-center justify-center rounded-2xl bg-[#ff9900] px-8 text-base font-semibold text-black transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900] focus:ring-offset-0 active:scale-[0.98]"
+            >
+              Créer mon tournoi gratuitement
+            </Link>
+            <Link
+              href="/auth/login"
+              className="inline-flex h-14 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-8 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60 active:scale-[0.98]"
+            >
+              Voir une démo
+            </Link>
+          </div>
+
+          {/* Social proof — avatars + text */}
+          <div
+            className="mt-6 flex items-center gap-3"
+            data-animate
+            style={{ '--stagger': '300ms' } as React.CSSProperties}
+          >
+            <div className="flex -space-x-2">
+              {[1,2,3,4].map((i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={`/images/avatars/avatar-${i}.png`}
+                  alt=""
+                  className="h-9 w-9 rounded-full border-2 border-[#0a0e1a] object-cover"
+                />
+              ))}
+            </div>
+            <p className="text-sm text-slate-300">
+              Déjà plus de <span className="font-semibold text-white">5 000</span> pronostiqueurs inscrits
+            </p>
+          </div>
         </div>
 
-        {/* Trust line */}
-        <p
-          className="mt-3 flex items-center gap-2 text-xs text-slate-400"
-          data-animate
-          style={{ '--stagger': '300ms' } as React.CSSProperties}
-        >
-          <span>Gratuit</span>
-          <span className="text-slate-600">&bull;</span>
-          <span>Sans pub</span>
-          <span className="text-slate-600">&bull;</span>
-          <span>30 secondes</span>
-        </p>
-
-        {/* ── Hero image ── */}
+        {/* Right column: mockups with carousel */}
         <div
-          className="relative mt-8 w-full max-w-4xl"
+          className="hero-mockups relative mt-10 w-full md:mt-0 md:w-[60%]"
           data-animate
           style={{ '--stagger': '400ms' } as React.CSSProperties}
         >
-          <Image src="/images/hero-img.png" alt="PronoHub - Aperçu de l'application" width={1200} height={800} className="mx-auto w-full h-auto" priority sizes="(max-width: 1024px) 100vw, 896px" />
+          {/* Desktop mockup */}
+          <div className="mockup-desktop relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/frame-desktop.png" alt="" className="w-full h-auto relative z-[2]" />
+            <div className="mockup-screen mockup-screen-desktop absolute overflow-hidden z-[1]">
+              {[1,2,3,4,5].map((i) => (
+                <Image
+                  key={`desktop-${i}`}
+                  src={`/images/desktop-${i}.png`}
+                  alt={`PronoHub écran ${i}`}
+                  width={1300}
+                  height={770}
+                  data-slide={i - 1}
+                  className={`hero-slide absolute inset-0 w-full h-full object-cover object-top${i === 1 ? ' active' : ''}`}
+                  priority={i === 1}
+                  loading={i === 1 ? 'eager' : 'lazy'}
+                  sizes="(max-width: 1024px) 55vw, 600px"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile mockup */}
+          <div className="mockup-mobile absolute z-[3]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/frame-mobile.png" alt="" className="w-full h-auto relative z-[2]" />
+            <div className="mockup-screen mockup-screen-mobile absolute overflow-hidden z-[1]">
+              {[1,2,3,4,5].map((i) => (
+                <Image
+                  key={`mobile-${i}`}
+                  src={`/images/mobile-${i}.png`}
+                  alt={`PronoHub mobile écran ${i}`}
+                  width={375}
+                  height={812}
+                  data-slide={i - 1}
+                  className={`hero-slide absolute inset-0 w-full h-full object-cover object-top${i === 1 ? ' active' : ''}`}
+                  priority={i === 1}
+                  loading={i === 1 ? 'eager' : 'lazy'}
+                  sizes="(max-width: 768px) 45vw, 150px"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Orange halo behind mockups */}
+          <div className="hero-halo" aria-hidden="true" />
         </div>
       </div>
     </section>

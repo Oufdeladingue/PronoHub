@@ -106,6 +106,30 @@ export function ClientShell({ children }: { children: ReactNode }) {
     return () => container.removeEventListener('scroll', handler)
   }, [])
 
+  // ── Hero mockup carousel (auto-rotate slides every 4s) ──
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const slides = document.querySelectorAll<HTMLElement>('.hero-slide')
+    if (slides.length === 0) return
+
+    const totalSlides = 5
+    let current = 0
+
+    const timer = setInterval(() => {
+      slides.forEach(s => s.classList.remove('active'))
+      current = (current + 1) % totalSlides
+      slides.forEach(s => {
+        const idx = parseInt(s.getAttribute('data-slide') || '0')
+        if (idx === current) {
+          s.classList.add('active')
+        }
+      })
+    }, 4000)
+
+    return () => clearInterval(timer)
+  }, [])
+
   // ── Hero parallax (desktop only, reduced-motion aware) ──
   useEffect(() => {
     const container = scrollRef.current

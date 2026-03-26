@@ -57,6 +57,100 @@
   transform: translateY(0);
 }
 
+/* ── Hero mockups carousel ─────────────────── */
+.hero-mockups {
+  position: relative;
+  isolation: isolate;
+}
+
+.hero-halo {
+  position: absolute;
+  top: -30%;
+  left: -25%;
+  width: 150%;
+  height: 160%;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 50% 50%,
+      rgba(255, 153, 0, 0.30) 0%,
+      rgba(255, 153, 0, 0.18) 30%,
+      rgba(255, 153, 0, 0.06) 55%,
+      transparent 75%
+    );
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(20px);
+}
+
+.mockup-desktop {
+  position: relative;
+  z-index: 1;
+}
+
+.mockup-mobile {
+  bottom: -4%;
+  right: -4%;
+  width: 22%;
+}
+
+/* Screen zones — positioned inside the frames */
+/* Desktop iMac: screen area below title bar, inside bezel */
+.mockup-screen-desktop {
+  top: 3.6%;
+  left: 10%;
+  width: 79.2%;
+  height: 74.3%;
+  border-radius: 1px;
+}
+
+/* Mobile iPhone: screen area inside phone bezel, below notch */
+.mockup-screen-mobile {
+  top: 3.5%;
+  left: 7.7%;
+  width: 84%;
+  height: 93%;
+  border-radius: 8% / 4%;
+}
+
+/* Slides: fade transition */
+.hero-slide {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.hero-slide.active {
+  opacity: 1;
+}
+
+/* Responsive: on mobile, hide desktop mockup, center phone */
+@media (max-width: 767px) {
+  .mockup-desktop {
+    display: none;
+  }
+
+  .mockup-mobile {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
+    width: 55% !important;
+    margin: 0 auto;
+  }
+}
+
+/* ── CTA button glow ──────────────────────── */
+.hero-cta-primary {
+  box-shadow:
+    0 8px 40px rgba(255, 153, 0, 0.35),
+    0 0 80px rgba(255, 153, 0, 0.15);
+}
+
+.hero-cta-primary:hover {
+  box-shadow:
+    0 8px 50px rgba(255, 153, 0, 0.5),
+    0 0 100px rgba(255, 153, 0, 0.25);
+}
+
 /* ── Reduced motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   [data-animate],
@@ -73,6 +167,10 @@
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
+  }
+
+  .hero-slide {
+    transition: none !important;
   }
 }
 
