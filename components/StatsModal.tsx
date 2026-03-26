@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import StandingsModal from './StandingsModal'
 import { fetchWithAuth } from '@/lib/supabase/client'
 
@@ -527,16 +528,17 @@ export default function StatsModal({
 
   // Pendant le chargement initial, afficher un loader
   if (loading || (showOnlyStandings && !showStandings)) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div className="theme-card p-8 rounded-lg bg-white dark:bg-slate-900" onClick={(e) => e.stopPropagation()}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-[#ff9900] mx-auto"></div>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[9999] p-4 pointer-events-auto" onClick={onClose}>
         <div
@@ -684,6 +686,7 @@ export default function StatsModal({
           onClose={() => setShowStandings(false)}
         />
       )}
-    </>
+    </>,
+    document.body
   )
 }
