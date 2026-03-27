@@ -162,13 +162,26 @@ export async function GET(request: Request) {
       let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
 
       if (sessionData?.user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('has_chosen_username')
           .eq('id', sessionData.user.id)
           .single()
 
-        if (profile && profile.has_chosen_username !== true) {
+        console.log('[OAuth Callback] Profile check', {
+          userId: sessionData.user.id,
+          email: sessionData.user.email,
+          profileFound: !!profile,
+          profileError: profileError?.message || null,
+          hasChosenUsername: profile?.has_chosen_username,
+        })
+
+        if (profileError || !profile) {
+          // Profile pas encore créé (trigger DB peut avoir du retard)
+          // → forcer choose-username
+          console.warn('[OAuth Callback] Profile not found or error, forcing choose-username')
+          finalPath = '/auth/choose-username'
+        } else if (profile.has_chosen_username !== true) {
           finalPath = redirectTo
             ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
             : '/auth/choose-username'

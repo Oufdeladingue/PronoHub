@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { trackUsernameChosen } from '@/lib/analytics'
+import posthog from 'posthog-js'
 
 function ChooseUsernameForm() {
   const [newUsername, setNewUsername] = useState('')
@@ -22,8 +23,12 @@ function ChooseUsernameForm() {
   // Vérifier que l'utilisateur est connecté et n'a pas déjà choisi son pseudo
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
       if (!user) {
+        console.warn('[Choose Username] No user found, redirecting to login', { error: userError?.message })
+        if (typeof window !== 'undefined' && posthog.__loaded) {
+          posthog.capture('choose_username_no_session', { error: userError?.message })
+        }
         router.replace('/auth/login')
         return
       }
@@ -40,6 +45,10 @@ function ChooseUsernameForm() {
       }
 
       setLoading(false)
+      // Track que l'user est arrivé sur la page choose-username
+      if (typeof window !== 'undefined' && posthog.__loaded) {
+        posthog.capture('choose_username_page_viewed', { userId: user.id })
+      }
     }
     checkUser()
   }, [])
