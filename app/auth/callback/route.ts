@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
 import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Génère une page HTML qui redirige vers le custom URL scheme pronohub://
@@ -121,8 +122,9 @@ export async function GET(request: Request) {
                 : '/auth/choose-username'
             }
 
-            // Poser last_seen_at
-            await supabase
+            // Poser last_seen_at via admin client (bypass RLS)
+            const adminClient2 = createAdminClient()
+            await adminClient2
               .from('profiles')
               .update({ last_seen_at: new Date().toISOString() })
               .eq('id', user.id)
@@ -168,7 +170,9 @@ export async function GET(request: Request) {
       let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
 
       if (sessionData?.user) {
-        const { data: profile, error: profileError } = await supabase
+        // Utiliser admin client pour lire le profil (le client user n'a pas encore ses cookies)
+        const adminProfileClient = createAdminClient()
+        const { data: profile, error: profileError } = await adminProfileClient
           .from('profiles')
           .select('has_chosen_username')
           .eq('id', sessionData.user.id)
@@ -194,12 +198,17 @@ export async function GET(request: Request) {
         }
       }
 
-      // Poser last_seen_at dès le callback (ne pas attendre le middleware)
+      // Poser last_seen_at dès le callback via admin client (bypass RLS)
+      // Le client user n'a pas encore ses cookies de session posés à ce stade
       if (sessionData?.user) {
-        await supabase
+        const adminClient = createAdminClient()
+        const { error: lastSeenError } = await adminClient
           .from('profiles')
           .update({ last_seen_at: new Date().toISOString() })
           .eq('id', sessionData.user.id)
+        if (lastSeenError) {
+          console.error('[OAuth Callback] Failed to set last_seen_at:', lastSeenError.message)
+        }
       }
 
       // Pour Capacitor
