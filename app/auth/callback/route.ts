@@ -115,11 +115,17 @@ export async function GET(request: Request) {
               .eq('id', user.id)
               .single()
 
-            if (profile && profile.has_chosen_username !== true) {
+            if (!profile || profile.has_chosen_username !== true) {
               finalPath = redirectTo
                 ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
                 : '/auth/choose-username'
             }
+
+            // Poser last_seen_at
+            await supabase
+              .from('profiles')
+              .update({ last_seen_at: new Date().toISOString() })
+              .eq('id', user.id)
 
             if (isCapacitor) {
               const params = new URLSearchParams({
@@ -186,6 +192,14 @@ export async function GET(request: Request) {
             ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
             : '/auth/choose-username'
         }
+      }
+
+      // Poser last_seen_at dès le callback (ne pas attendre le middleware)
+      if (sessionData?.user) {
+        await supabase
+          .from('profiles')
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq('id', sessionData.user.id)
       }
 
       // Pour Capacitor

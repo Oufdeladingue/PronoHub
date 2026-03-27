@@ -23,21 +23,41 @@ function ChooseUsernameForm() {
   // Vérifier que l'utilisateur est connecté et n'a pas déjà choisi son pseudo
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      // Retry: la session peut mettre quelques ms à se propager via les cookies après le callback
+      let user = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data } = await supabase.auth.getUser()
+        if (data.user) {
+          user = data.user
+          break
+        }
+        // Attendre avant de réessayer (500ms, 1s)
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+      }
+
       if (!user) {
-        console.warn('[Choose Username] No user found, redirecting to login', { error: userError?.message })
+        console.warn('[Choose Username] No user found after retries, redirecting to login')
         if (typeof window !== 'undefined' && posthog.__loaded) {
-          posthog.capture('choose_username_no_session', { error: userError?.message })
+          posthog.capture('choose_username_no_session')
         }
         router.replace('/auth/login')
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('has_chosen_username')
-        .eq('id', user.id)
-        .single()
+      // Retry aussi pour le profil (le trigger DB peut avoir du retard)
+      let profile = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('has_chosen_username')
+          .eq('id', user.id)
+          .single()
+        if (data) {
+          profile = data
+          break
+        }
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+      }
 
       if (profile?.has_chosen_username === true) {
         router.replace(redirectTo || '/dashboard')
