@@ -599,30 +599,35 @@ function DashboardContent({
             </div>
           </div>
           {activeTournaments.length === 0 ? (
-            <div className="flex flex-col items-center text-center py-6 px-4">
-              <img src="/images/no-tournoi.png" alt="" className="mb-3 max-w-[180px]" />
-              <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
-              <p className="theme-text-secondary text-sm mb-5 max-w-xs">
-                Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <a
-                  href="/vestiaire"
-                  className="px-6 py-2.5 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
-                >
-                  Créer un tournoi
-                </a>
-                <button
-                  onClick={() => {
-                    setShowJoinInput(true)
-                    setTimeout(() => {
-                      document.getElementById('join-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                    }, 100)
-                  }}
-                  className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
-                >
-                  Rejoindre avec un code
-                </button>
+            <div className="py-6 px-4">
+              {/* Two-column layout: text left, referee right */}
+              <div className="flex flex-col-reverse sm:flex-row items-center gap-6 mb-6">
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left flex-1">
+                  <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
+                  <p className="theme-text-secondary text-sm mb-5 max-w-xs">
+                    Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <a
+                      href="/vestiaire"
+                      className="px-6 py-2.5 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
+                    >
+                      Créer un tournoi
+                    </a>
+                    <button
+                      onClick={() => {
+                        setShowJoinInput(true)
+                        setTimeout(() => {
+                          document.getElementById('join-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }, 100)
+                      }}
+                      className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
+                    >
+                      Rejoindre avec un code
+                    </button>
+                  </div>
+                </div>
+                <img src="/images/no-tournoi.png" alt="" className="max-w-[140px] sm:max-w-[160px]" />
               </div>
 
               {/* Compétitions populaires */}
@@ -631,7 +636,7 @@ function DashboardContent({
                   <h3 className="text-base font-bold text-[#ff9900] mb-4 text-left">
                     Compétitions populaires
                   </h3>
-                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <div className="flex gap-3 justify-center flex-wrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {popularCompetitions.map((comp: any) => {
                       const compUrl = comp.is_custom
                         ? `/vestiaire/create/custom_${comp.custom_competition_id}`
@@ -644,7 +649,7 @@ function DashboardContent({
                         >
                           <div className="w-14 h-14 mx-auto mb-2">
                             <img
-                              src={comp.emblem || comp.custom_emblem_color || comp.custom_emblem_white || '/images/default-competition.png'}
+                              src={comp.custom_emblem_white || comp.emblem || comp.custom_emblem_color || '/images/default-competition.png'}
                               alt={comp.name}
                               className="w-full h-full object-contain"
                             />
