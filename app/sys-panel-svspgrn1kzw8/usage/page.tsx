@@ -202,7 +202,29 @@ interface ActiveTournamentsModalState {
 
 type UsersSortBy = 'username' | 'email' | 'country' | 'created_at' | 'last_seen_at' | 'active_tournaments_count'
 
-type TabType = 'tournaments' | 'users' | 'credits' | 'notifications'
+type TabType = 'tournaments' | 'users' | 'credits' | 'notifications' | 'funnel'
+
+interface FunnelData {
+  totalSignups: number
+  googleSignups: number
+  emailSignups: number
+  usernameChosen: number
+  usernameNotChosen: number
+  hasSeenDashboard: number
+  hasJoinedTournament: number
+  hasMadePrediction: number
+  // Par période
+  periods: Array<{
+    label: string
+    from: string
+    to: string
+    signups: number
+    usernameChosen: number
+    hasSeenDashboard: number
+    hasJoinedTournament: number
+    hasMadePrediction: number
+  }>
+}
 
 interface NotificationLog {
   id: string
@@ -499,6 +521,10 @@ export default function AdminUsagePage() {
   const [userDeleteLoading, setUserDeleteLoading] = useState(false)
   const [userDeleteError, setUserDeleteError] = useState<string | null>(null)
   const [userDeleteBlockers, setUserDeleteBlockers] = useState<string[]>([])
+
+  // ===== ÉTATS FUNNEL =====
+  const [funnelData, setFunnelData] = useState<FunnelData | null>(null)
+  const [funnelLoading, setFunnelLoading] = useState(false)
 
   // ===== ÉTATS CRÉDITS =====
   const [users, setUsers] = useState<UserStats[]>([])
@@ -1081,6 +1107,20 @@ export default function AdminUsagePage() {
 
   // ===== EFFETS =====
 
+  const fetchFunnel = useCallback(async () => {
+    setFunnelLoading(true)
+    try {
+      const response = await fetch('/api/admin/funnel')
+      const data = await response.json()
+      if (data.success) {
+        setFunnelData(data.funnel)
+      }
+    } catch (error) {
+      console.error('Error fetching funnel:', error)
+    }
+    setFunnelLoading(false)
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'tournaments') {
       fetchTournaments()
@@ -1088,6 +1128,8 @@ export default function AdminUsagePage() {
       fetchAdminUsers()
     } else if (activeTab === 'notifications') {
       fetchNotifications()
+    } else if (activeTab === 'funnel') {
+      fetchFunnel()
     } else {
       fetchUsers()
     }
@@ -1216,6 +1258,20 @@ export default function AdminUsagePage() {
                 </span>
               )}
               {activeTab === 'notifications' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('funnel')}
+              className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'funnel'
+                  ? 'text-purple-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Tunnel
+              {activeTab === 'funnel' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600" />
               )}
             </button>
@@ -3433,6 +3489,132 @@ export default function AdminUsagePage() {
           </div>
         </div>
       )}
+          {/* ===== ONGLET TUNNEL ===== */}
+          {activeTab === 'funnel' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Tunnel de conversion</h2>
+                <button
+                  onClick={fetchFunnel}
+                  disabled={funnelLoading}
+                  className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {funnelLoading ? 'Chargement...' : 'Actualiser'}
+                </button>
+              </div>
+
+              {funnelLoading && !funnelData ? (
+                <div className="text-center py-12 text-gray-500">Chargement du tunnel...</div>
+              ) : funnelData ? (
+                <>
+                  {/* Funnel global */}
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Vue globale</h3>
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Inscriptions totales', value: funnelData.totalSignups, color: 'bg-blue-500', detail: `Google: ${funnelData.googleSignups} | Email: ${funnelData.emailSignups}` },
+                        { label: 'Pseudo choisi', value: funnelData.usernameChosen, color: 'bg-indigo-500' },
+                        { label: 'A vu le dashboard', value: funnelData.hasSeenDashboard, color: 'bg-purple-500' },
+                        { label: 'A rejoint un tournoi', value: funnelData.hasJoinedTournament, color: 'bg-orange-500' },
+                        { label: 'A fait un pronostic', value: funnelData.hasMadePrediction, color: 'bg-green-500' },
+                      ].map((step, i) => {
+                        const pct = funnelData.totalSignups > 0 ? Math.round((step.value / funnelData.totalSignups) * 100) : 0
+                        const prevValue = i === 0 ? step.value : [funnelData.totalSignups, funnelData.usernameChosen, funnelData.hasSeenDashboard, funnelData.hasJoinedTournament, funnelData.hasMadePrediction][i - 1]
+                        const dropoff = prevValue > 0 ? Math.round(((prevValue - step.value) / prevValue) * 100) : 0
+                        return (
+                          <div key={step.label}>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-700">{step.label}</span>
+                                {step.detail && <span className="text-xs text-gray-400">{step.detail}</span>}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-bold text-gray-900">{step.value}</span>
+                                <span className="text-xs text-gray-500">({pct}%)</span>
+                                {i > 0 && dropoff > 0 && (
+                                  <span className="text-xs text-red-500 font-medium">-{dropoff}%</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-6 overflow-hidden">
+                              <div
+                                className={`${step.color} h-6 rounded-full transition-all duration-500 flex items-center justify-end pr-2`}
+                                style={{ width: `${Math.max(pct, 2)}%` }}
+                              >
+                                {pct >= 10 && <span className="text-xs text-white font-medium">{pct}%</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Pertes clés */}
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                        <p className="text-xs text-red-600 font-medium uppercase">Perdus au pseudo</p>
+                        <p className="text-2xl font-bold text-red-700 mt-1">{funnelData.usernameNotChosen}</p>
+                        <p className="text-xs text-red-500 mt-1">{funnelData.totalSignups > 0 ? Math.round((funnelData.usernameNotChosen / funnelData.totalSignups) * 100) : 0}% des inscrits</p>
+                      </div>
+                      <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                        <p className="text-xs text-orange-600 font-medium uppercase">Inscrits sans tournoi</p>
+                        <p className="text-2xl font-bold text-orange-700 mt-1">{funnelData.usernameChosen - funnelData.hasJoinedTournament}</p>
+                        <p className="text-xs text-orange-500 mt-1">Ont un pseudo mais aucun tournoi</p>
+                      </div>
+                      <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+                        <p className="text-xs text-yellow-600 font-medium uppercase">En tournoi sans prono</p>
+                        <p className="text-2xl font-bold text-yellow-700 mt-1">{funnelData.hasJoinedTournament - funnelData.hasMadePrediction}</p>
+                        <p className="text-xs text-yellow-500 mt-1">Ont rejoint mais n'ont jamais pronostiqué</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Évolution par période */}
+                  {funnelData.periods.length > 0 && (
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Par semaine (4 dernières)</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Période</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Inscriptions</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pseudo choisi</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Dashboard</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tournoi rejoint</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Pronostic fait</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Taux conversion</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {funnelData.periods.map((period) => {
+                              const convRate = period.signups > 0 ? Math.round((period.hasMadePrediction / period.signups) * 100) : 0
+                              return (
+                                <tr key={period.label} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{period.label}</td>
+                                  <td className="px-4 py-3 text-sm text-center text-gray-900 font-semibold">{period.signups}</td>
+                                  <td className="px-4 py-3 text-sm text-center">{period.usernameChosen} <span className="text-xs text-gray-400">({period.signups > 0 ? Math.round((period.usernameChosen / period.signups) * 100) : 0}%)</span></td>
+                                  <td className="px-4 py-3 text-sm text-center">{period.hasSeenDashboard}</td>
+                                  <td className="px-4 py-3 text-sm text-center">{period.hasJoinedTournament}</td>
+                                  <td className="px-4 py-3 text-sm text-center">{period.hasMadePrediction}</td>
+                                  <td className="px-4 py-3 text-sm text-center">
+                                    <span className={`font-bold ${convRate >= 50 ? 'text-green-600' : convRate >= 25 ? 'text-orange-500' : 'text-red-500'}`}>
+                                      {convRate}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          )}
+
     </AdminLayout>
   )
 }
