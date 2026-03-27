@@ -3489,9 +3489,10 @@ export default function AdminUsagePage() {
           </div>
         </div>
       )}
-          {/* ===== ONGLET TUNNEL ===== */}
-          {activeTab === 'funnel' && (
-            <div className="space-y-6">
+
+      {/* ===== ONGLET TUNNEL ===== */}
+      {activeTab === 'funnel' && (
+        <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Tunnel de conversion</h2>
                 <button
