@@ -69,6 +69,36 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Forcer la sélection de pseudo avant d'accéder à l'app
+  // Cookie cache pour éviter une requête DB à chaque page load
+  const isProtectedRoute = pathname === '/' || pathname === '/dashboard' || pathname.startsWith('/vestiaire') || pathname.match(/^\/[^/]+\/opposition/)
+  const hasUsernameCookie = request.cookies.get('username_chosen')?.value === '1'
+
+  if (user && isProtectedRoute && !hasUsernameCookie && !pathname.startsWith('/auth/') && !pathname.startsWith('/api/')) {
+    const { data: usernameProfile } = await supabase
+      .from('profiles')
+      .select('has_chosen_username')
+      .eq('id', user.id)
+      .single()
+
+    if (usernameProfile && usernameProfile.has_chosen_username !== true) {
+      const chooseUrl = new URL('/auth/choose-username', request.url)
+      if (pathname !== '/') {
+        chooseUrl.searchParams.set('redirectTo', pathname)
+      }
+      return redirectWithCookies(chooseUrl)
+    }
+
+    // Pseudo choisi → poser le cookie pour ne plus refaire la requête
+    supabaseResponse.cookies.set('username_chosen', '1', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365, // 1 an
+      path: '/',
+    })
+  }
+
   // Si connecté et sur la page d'accueil, rediriger vers le dashboard côté serveur
   // (évite le flash de la landing page)
   if (user && pathname === '/') {

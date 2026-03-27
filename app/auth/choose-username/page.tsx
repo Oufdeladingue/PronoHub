@@ -150,6 +150,9 @@ function ChooseUsernameForm() {
         })
       if (profileError) throw profileError
 
+      // Poser le cookie pour que le middleware ne re-vérifie pas
+      document.cookie = 'username_chosen=1; path=/; max-age=31536000; SameSite=Lax'
+
       // Envoyer l'email de bienvenue en arrière-plan
       fetch('/api/email/welcome', { method: 'POST' }).catch(console.error)
 
