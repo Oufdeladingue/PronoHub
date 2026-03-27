@@ -81,7 +81,7 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (usernameProfile && usernameProfile.has_chosen_username !== true) {
+    if (!usernameProfile || usernameProfile.has_chosen_username !== true) {
       const chooseUrl = new URL('/auth/choose-username', request.url)
       if (pathname !== '/') {
         chooseUrl.searchParams.set('redirectTo', pathname)
