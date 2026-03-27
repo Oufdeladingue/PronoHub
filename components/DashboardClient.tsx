@@ -670,7 +670,7 @@ function DashboardContent({
                         <a
                           key={comp.id || comp.custom_competition_id}
                           href={compUrl}
-                          className="flex-shrink-0 w-[150px] rounded-lg border theme-border p-4 hover:border-[#ff9900] transition-colors group text-center theme-secondary-bg"
+                          className="flex-shrink-0 w-[150px] rounded-xl border-2 border-[#ff9900]/30 p-4 group text-center theme-secondary-bg relative overflow-hidden transition-all duration-300 hover:border-[#ff9900] hover:shadow-[0_25px_50px_-12px_rgba(255,153,0,0.15)] hover:scale-[1.03]"
                         >
                           <div className="w-16 h-16 mx-auto mb-2">
                             <img
