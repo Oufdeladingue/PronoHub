@@ -601,23 +601,23 @@ function DashboardContent({
           {activeTournaments.length === 0 ? (
             <div className="py-6 px-4">
               {/* Two-column layout centered: text left, referee right */}
-              <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6 max-w-xl mx-auto">
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                  <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
-                  <p className="theme-text-secondary text-sm mb-5 max-w-xs">
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-6 sm:gap-12 mb-8 max-w-2xl mx-auto py-4">
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left flex-1">
+                  <h3 className="text-2xl font-bold theme-text mb-3">Pas encore de tournoi ?</h3>
+                  <p className="theme-text-secondary text-base mb-6 max-w-sm">
                     Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-3 w-full max-w-sm">
                     <a
                       href="/vestiaire"
-                      className="px-6 py-2.5 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
+                      className="px-8 py-3 rounded-xl bg-[#ff9900] text-black font-semibold text-base hover:bg-[#e68a00] transition-colors text-center"
                     >
                       Créer un tournoi
                     </a>
                     {!showJoinInput ? (
                       <button
                         onClick={() => setShowJoinInput(true)}
-                        className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
+                        className="px-8 py-3 rounded-xl border theme-border theme-text font-medium text-base hover-theme-accent-border transition-colors"
                       >
                         Rejoindre avec un code
                       </button>
@@ -627,21 +627,21 @@ function DashboardContent({
                           type="text"
                           value={joinCode}
                           onChange={handleJoinCodeChange}
-                          placeholder="CODE 8 CAR."
+                          placeholder="CODE 8 CARACTÈRES"
                           maxLength={8}
-                          className="w-32 px-3 py-2 border-2 border-[#ff9900] rounded-lg text-center font-mono text-sm uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
+                          className="flex-1 px-4 py-3 border-2 border-[#ff9900] rounded-xl text-center font-mono text-base uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
                           autoFocus
                         />
                         <button
                           onClick={handleJoinTournament}
                           disabled={joinCode.length !== 8 || isJoining}
-                          className="px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-5 py-3 rounded-xl bg-[#ff9900] text-black font-semibold text-base hover:bg-[#e68a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isJoining ? '...' : 'OK'}
                         </button>
                         <button
                           onClick={() => { setShowJoinInput(false); setJoinCode(''); setJoinError('') }}
-                          className="px-3 py-2 rounded-lg border theme-border theme-text text-sm hover-theme-accent-border transition-colors"
+                          className="px-4 py-3 rounded-xl border theme-border theme-text text-base hover-theme-accent-border transition-colors"
                         >
                           ✕
                         </button>
@@ -649,10 +649,10 @@ function DashboardContent({
                     )}
                   </div>
                   {joinError && (
-                    <p className="text-red-500 text-xs mt-2">{joinError}</p>
+                    <p className="text-red-500 text-sm mt-2">{joinError}</p>
                   )}
                 </div>
-                <img src="/images/no-tournoi.png" alt="" className="max-w-[130px] sm:max-w-[150px]" />
+                <img src="/images/no-tournoi.png" alt="" className="max-w-[160px] sm:max-w-[200px]" />
               </div>
 
               {/* Compétitions populaires */}
