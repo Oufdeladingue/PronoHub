@@ -614,18 +614,43 @@ function DashboardContent({
                     >
                       Créer un tournoi
                     </a>
-                    <button
-                      onClick={() => {
-                        setShowJoinInput(true)
-                        setTimeout(() => {
-                          document.getElementById('join-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                        }, 100)
-                      }}
-                      className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
-                    >
-                      Rejoindre avec un code
-                    </button>
+                    {!showJoinInput ? (
+                      <button
+                        onClick={() => setShowJoinInput(true)}
+                        className="px-6 py-2.5 rounded-lg border theme-border theme-text font-medium text-sm hover-theme-accent-border transition-colors"
+                      >
+                        Rejoindre avec un code
+                      </button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={joinCode}
+                          onChange={handleJoinCodeChange}
+                          placeholder="CODE 8 CAR."
+                          maxLength={8}
+                          className="w-32 px-3 py-2 border-2 border-[#ff9900] rounded-lg text-center font-mono text-sm uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
+                          autoFocus
+                        />
+                        <button
+                          onClick={handleJoinTournament}
+                          disabled={joinCode.length !== 8 || isJoining}
+                          className="px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isJoining ? '...' : 'OK'}
+                        </button>
+                        <button
+                          onClick={() => { setShowJoinInput(false); setJoinCode(''); setJoinError('') }}
+                          className="px-3 py-2 rounded-lg border theme-border theme-text text-sm hover-theme-accent-border transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
+                  {joinError && (
+                    <p className="text-red-500 text-xs mt-2">{joinError}</p>
+                  )}
                 </div>
                 <img src="/images/no-tournoi.png" alt="" className="max-w-[130px] sm:max-w-[150px]" />
               </div>
@@ -1616,7 +1641,8 @@ function DashboardContent({
           </div>
         )}
 
-        {/* Actions : Créer et Rejoindre */}
+        {/* Actions : Créer et Rejoindre (masqué si aucun tournoi — déjà dans l'empty state) */}
+        {activeTournaments.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="theme-card">
             <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Creer un tournoi</h2>
@@ -1694,6 +1720,7 @@ function DashboardContent({
             )}
           </div>
         </div>
+        )}
       </main>
       <Footer />
 
