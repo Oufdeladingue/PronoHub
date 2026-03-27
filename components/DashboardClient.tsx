@@ -679,7 +679,7 @@ function DashboardContent({
                               className="w-full h-full object-contain"
                             />
                           </div>
-                          <p className="text-xs font-semibold theme-text line-clamp-2 group-hover:text-[#ff9900] transition-colors">
+                          <p className="text-xs font-semibold theme-text truncate group-hover:text-[#ff9900] transition-colors" title={comp.name}>
                             {comp.name}
                           </p>
                           {comp.remaining_matchdays != null && (
