@@ -600,9 +600,9 @@ function DashboardContent({
           </div>
           {activeTournaments.length === 0 ? (
             <div className="py-6 px-4">
-              {/* Two-column layout: text left, referee right */}
-              <div className="flex flex-col-reverse sm:flex-row items-center gap-6 mb-6">
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left flex-1">
+              {/* Two-column layout centered: text left, referee right */}
+              <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-6 max-w-xl mx-auto">
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                   <h3 className="text-lg font-bold theme-text mb-2">Pas encore de tournoi ?</h3>
                   <p className="theme-text-secondary text-sm mb-5 max-w-xs">
                     Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
@@ -627,7 +627,7 @@ function DashboardContent({
                     </button>
                   </div>
                 </div>
-                <img src="/images/no-tournoi.png" alt="" className="max-w-[140px] sm:max-w-[160px]" />
+                <img src="/images/no-tournoi.png" alt="" className="max-w-[130px] sm:max-w-[150px]" />
               </div>
 
               {/* Compétitions populaires */}
@@ -636,7 +636,7 @@ function DashboardContent({
                   <h3 className="text-base font-bold text-[#ff9900] mb-4 text-left">
                     Compétitions populaires
                   </h3>
-                  <div className="flex gap-3 justify-center flex-wrap" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                  <div className="flex gap-3 justify-center flex-wrap">
                     {popularCompetitions.map((comp: any) => {
                       const compUrl = comp.is_custom
                         ? `/vestiaire/create/custom_${comp.custom_competition_id}`
@@ -645,9 +645,9 @@ function DashboardContent({
                         <a
                           key={comp.id || comp.custom_competition_id}
                           href={compUrl}
-                          className="flex-shrink-0 w-[130px] snap-start rounded-lg border theme-border p-3 hover:border-[#ff9900] transition-colors group text-center theme-secondary-bg"
+                          className="flex-shrink-0 w-[150px] rounded-lg border theme-border p-4 hover:border-[#ff9900] transition-colors group text-center theme-secondary-bg"
                         >
-                          <div className="w-14 h-14 mx-auto mb-2">
+                          <div className="w-16 h-16 mx-auto mb-2">
                             <img
                               src={comp.custom_emblem_white || comp.emblem || comp.custom_emblem_color || '/images/default-competition.png'}
                               alt={comp.name}
@@ -659,7 +659,7 @@ function DashboardContent({
                           </p>
                           {comp.remaining_matchdays != null && (
                             <p className="text-[10px] theme-text-secondary mt-1">
-                              {comp.remaining_matchdays} journée{comp.remaining_matchdays > 1 ? 's' : ''}
+                              {comp.remaining_matchdays} journée{comp.remaining_matchdays > 1 ? 's' : ''} restante{comp.remaining_matchdays > 1 ? 's' : ''}
                             </p>
                           )}
                         </a>
