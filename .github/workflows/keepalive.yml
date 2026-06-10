@@ -1,0 +1,32 @@
+name: Keepalive (anti-désactivation des crons)
+
+# GitHub désactive automatiquement les workflows planifiés (schedule:) après
+# 60 jours sans aucun commit sur le repo. Quand ça arrive, TOUS les crons
+# (finalize-tournaments, update-matches, etc.) s'arrêtent silencieusement.
+#
+# Ce workflow fait un commit automatique léger lorsqu'on approche du seuil,
+# ce qui réarme le compteur d'inactivité et garde les crons actifs.
+
+on:
+  schedule:
+    # Une fois par semaine (lundi 5h10 UTC)
+    - cron: '10 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Réarmer le compteur d'inactivité
+        uses: gautamkrishnar/keepalive-workflow@v2
+        with:
+          # Fait un commit vide uniquement si le dernier commit date de plus de 45 jours
+          # (donc avant le seuil de 60 jours de GitHub)
+          time_elapsed: '45'
+          commit_message: 'chore: keepalive (maintien des crons GitHub Actions)'
