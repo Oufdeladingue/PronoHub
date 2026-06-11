@@ -279,14 +279,16 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             winner_team_id: keepExisting ? undefined : winnerTeamId,
           }
         })
-        // Retirer les champs undefined pour ne pas écraser les scores en DB
+        // Ne jamais écraser un score/champ existant avec null ou undefined.
+        // CRUCIAL pour la CDM : football-data renvoie parfois FINISHED avec un score null
+        // → on garde le score live déjà en base (et le statut FINISHED finalise le match).
         .map((m: any) => {
           const clean = { ...m }
-          if (clean.home_score === undefined) delete clean.home_score
-          if (clean.away_score === undefined) delete clean.away_score
-          if (clean.home_score_90 === undefined) delete clean.home_score_90
-          if (clean.away_score_90 === undefined) delete clean.away_score_90
-          if (clean.winner_team_id === undefined) delete clean.winner_team_id
+          if (clean.home_score == null) delete clean.home_score
+          if (clean.away_score == null) delete clean.away_score
+          if (clean.home_score_90 == null) delete clean.home_score_90
+          if (clean.away_score_90 == null) delete clean.away_score_90
+          if (clean.winner_team_id == null) delete clean.winner_team_id
           return clean
         })
 

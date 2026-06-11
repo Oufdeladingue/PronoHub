@@ -218,7 +218,9 @@ export async function patchLiveWorldCupWithApiFootball(
     // score connu ; football-data corrige le score final si un but tardif a été manqué.
     const isLiveInDb = m.status === 'IN_PLAY' || m.status === 'PAUSED'
     const lastMinute = (m as any).live_minute ?? 0
-    const looksOver = lastMinute >= 90 || now - koTime > MATCH_DURATION_MS
+    // Disparu de live=all + dernière minute >= 85 (toute fin de 2e période / prolongations)
+    // OU coup d'envoi > 2h15 (filet). Le seuil 85 évite de manquer une fin signalée à 88'/89'.
+    const looksOver = lastMinute >= 85 || now - koTime > MATCH_DURATION_MS
     if (isLiveInDb && looksOver) {
       let { error } = await supabase
         .from('imported_matches')
