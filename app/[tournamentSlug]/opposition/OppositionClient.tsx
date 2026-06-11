@@ -1851,11 +1851,24 @@ export default function OppositionClient({
     }
   }, [tournament, refreshMatchScores])
 
-  // Propager les changements de scores aux matchs affichés
+  // Propager les changements de scores aux matchs affichés + recalculer les points en direct
+  // (sans refresh) : quand un score évolue via le polling/realtime, les points de l'utilisateur
+  // ET des adversaires sont recalculés automatiquement.
   useEffect(() => {
-    if (selectedMatchday !== null) {
-      const filteredMatches = filterMatchesForMatchday(selectedMatchday)
-      setMatches(filteredMatches)
+    if (selectedMatchday === null) return
+    const filteredMatches = filterMatchesForMatchday(selectedMatchday)
+    setMatches(filteredMatches)
+
+    if (filteredMatches.length === 0) return
+
+    // Points de l'utilisateur connecté
+    fetchMatchPoints(filteredMatches)
+
+    // Points des adversaires : uniquement si les pronostics sont clôturés (30 min avant le 1er match)
+    const firstMatchTime = new Date(Math.min(...filteredMatches.map(m => new Date(m.utc_date).getTime())))
+    const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000)
+    if (new Date() >= closingTime) {
+      preloadMatchdayPredictions(filteredMatches)
     }
   }, [allMatches])
 
