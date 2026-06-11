@@ -94,7 +94,7 @@ export async function patchLiveWorldCupWithApiFootball(
 
   const { data: candidates, error: candErr } = await supabase
     .from('imported_matches')
-    .select('id, football_data_match_id, competition_id, stage, home_team_id, away_team_id, home_team_name, away_team_name, utc_date, status, home_score, away_score')
+    .select('id, football_data_match_id, competition_id, stage, home_team_id, away_team_id, home_team_name, away_team_name, utc_date, status, home_score, away_score, live_minute')
     .in('competition_id', WC_COMPETITION_IDS)
     .in('status', ['TIMED', 'IN_PLAY', 'PAUSED'])
     .gt('utc_date', fourHoursAgo)
@@ -212,14 +212,25 @@ export async function patchLiveWorldCupWithApiFootball(
       continue
     }
 
-    // Pas dans live=all : si on l'avait marqué en cours et que le match devrait être fini → finaliser
+    // Pas dans live=all : un match qu'on suivait en direct et qui en disparaît est terminé.
+    // Déclencheurs : dernière minute connue >= 90 (fin de temps réglementaire / prolongations),
+    // OU coup d'envoi > 2h15 (filet de sécurité si la minute manque). On conserve le dernier
+    // score connu ; football-data corrige le score final si un but tardif a été manqué.
     const isLiveInDb = m.status === 'IN_PLAY' || m.status === 'PAUSED'
-    const shouldBeOver = now - koTime > MATCH_DURATION_MS
-    if (isLiveInDb && shouldBeOver) {
-      const { error } = await supabase
+    const lastMinute = (m as any).live_minute ?? 0
+    const looksOver = lastMinute >= 90 || now - koTime > MATCH_DURATION_MS
+    if (isLiveInDb && looksOver) {
+      let { error } = await supabase
         .from('imported_matches')
-        .update({ status: 'FINISHED', finished: true, last_updated_at: new Date().toISOString() })
+        .update({ status: 'FINISHED', finished: true, live_minute: null, last_updated_at: new Date().toISOString() })
         .eq('id', m.id)
+      // Repli si la colonne live_minute n'existe pas encore
+      if (error && /live_minute/i.test(error.message || '')) {
+        ;({ error } = await supabase
+          .from('imported_matches')
+          .update({ status: 'FINISHED', finished: true, last_updated_at: new Date().toISOString() })
+          .eq('id', m.id))
+      }
       if (error) result.errors.push(`finalize ${m.football_data_match_id}: ${error.message}`)
       else result.finalized++
     }
