@@ -94,7 +94,7 @@ export async function patchLiveWorldCupWithApiFootball(
 
   const { data: candidates, error: candErr } = await supabase
     .from('imported_matches')
-    .select('id, football_data_match_id, competition_id, stage, home_team_name, away_team_name, utc_date, status, home_score, away_score')
+    .select('id, football_data_match_id, competition_id, stage, home_team_id, away_team_id, home_team_name, away_team_name, utc_date, status, home_score, away_score')
     .in('competition_id', WC_COMPETITION_IDS)
     .in('status', ['TIMED', 'IN_PLAY', 'PAUSED'])
     .gt('utc_date', fourHoursAgo)
@@ -174,8 +174,12 @@ export async function patchLiveWorldCupWithApiFootball(
 
     if (fixture) {
       const newStatus = transformStatus(fixture.fixture?.status?.short)
+      // goals = score affiché en direct (inclut prolongations une fois jouées)
       const homeScore = fixture.goals?.home ?? null
       const awayScore = fixture.goals?.away ?? null
+      // score.fulltime = score à l'issue du temps réglementaire (90 min, HORS prolongations/TAB).
+      // Rempli par API-Football dès que le match entre en prolongation → base de calcul des
+      // points pour les matchs à élimination directe (cf. home_score_90 dans OppositionClient).
       const ft = fixture.score?.fulltime || {}
 
       const update: Record<string, any> = {
@@ -185,11 +189,14 @@ export async function patchLiveWorldCupWithApiFootball(
         away_score: awayScore,
         last_updated_at: new Date().toISOString(),
       }
-      // Score à 90 min (utile pour les phases à élimination directe)
+      // Score à 90 min (référence de points pour les phases à élimination directe)
       if (ft.home != null && ft.away != null) {
         update.home_score_90 = ft.home
         update.away_score_90 = ft.away
       }
+      // Qualifié (bonus +1) : mapper le vainqueur API-Football sur les IDs football-data de la ligne
+      if (fixture.teams?.home?.winner === true) update.winner_team_id = m.home_team_id
+      else if (fixture.teams?.away?.winner === true) update.winner_team_id = m.away_team_id
 
       const { error } = await supabase.from('imported_matches').update(update).eq('id', m.id)
       if (error) result.errors.push(`update ${m.football_data_match_id}: ${error.message}`)
