@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { patchStaleScoresWithApiFootball, type FallbackResult } from '@/lib/api-football-fallback'
+import { patchLiveWorldCupWithApiFootball } from '@/lib/api-football-live'
 import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
@@ -16,6 +17,7 @@ export interface AutoUpdateResult {
   finishedTournaments?: { id: string; name: string }[]
   fallback?: FallbackResult
   nativeStatsPatched?: number
+  wcLivePatched?: number
   results?: any[]
   error?: string
 }
@@ -382,6 +384,24 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     console.error('[AUTO-UPDATE] Native-stats fallback error:', nativeStatsError.message)
   }
 
+  // API-Football live fallback: Coupe du Monde (football-data laisse la CDM en TIMED)
+  // DOIT s'exécuter après l'upsert football-data pour que le score live l'emporte.
+  let wcLivePatched = 0
+  try {
+    const wcLive = await patchLiveWorldCupWithApiFootball(supabase)
+    wcLivePatched = wcLive.patched + wcLive.finalized
+    if (wcLivePatched > 0) {
+      console.log(`[AUTO-UPDATE] API-Football WC live: ${wcLive.patched} live, ${wcLive.finalized} finalized`)
+    } else if (wcLive.skipped) {
+      console.log(`[AUTO-UPDATE] API-Football WC live skipped: ${wcLive.skipped}`)
+    }
+    if (wcLive.errors.length > 0) {
+      console.error('[AUTO-UPDATE] API-Football WC live errors:', wcLive.errors)
+    }
+  } catch (wcLiveError: any) {
+    console.error('[AUTO-UPDATE] API-Football WC live error:', wcLiveError.message)
+  }
+
   return {
     success: true,
     message: `Auto-update completed: ${successCount} successful, ${failureCount} failed`,
@@ -391,6 +411,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
     finishedTournaments: finishedTournaments.length > 0 ? finishedTournaments : undefined,
     fallback: fallbackResult,
     nativeStatsPatched,
+    wcLivePatched,
     results
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { scrapeMatchScore } from '@/lib/native-stats-scraper'
+import { patchLiveWorldCupWithApiFootball } from '@/lib/api-football-live'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -274,6 +275,16 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
       const individualResults = await updateMatchesIndividually(apiKey, matchIds, supabase)
       results.push(...individualResults)
     }
+  }
+
+  // API-Football live fallback Coupe du Monde — APRÈS football-data pour que le live l'emporte
+  try {
+    const wcLive = await patchLiveWorldCupWithApiFootball(supabase)
+    if (wcLive.patched > 0 || wcLive.finalized > 0) {
+      console.log(`[REALTIME-UPDATE] API-Football WC live: ${wcLive.patched} live, ${wcLive.finalized} finalized`)
+    }
+  } catch (wcLiveError: any) {
+    console.error('[REALTIME-UPDATE] API-Football WC live error:', wcLiveError.message)
   }
 
   const successCount = results.filter(r => r.success).length
