@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { formatGroupName } from '@/lib/stage-formatter'
 
 interface StandingRow {
   team_id: number
   team_name: string
   team_crest: string | null
+  group_name: string | null
   position: number
   played_games: number
   won: number
@@ -40,6 +42,7 @@ export default function StandingsModal({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [standings, setStandings] = useState<StandingRow[]>([])
+  const [groupLabel, setGroupLabel] = useState<string | null>(null)
 
   // Bloquer le scroll du body quand la modale est ouverte (y compris Android WebView)
   useEffect(() => {
@@ -106,7 +109,20 @@ export default function StandingsModal({
         }
 
         const data = await response.json()
-        setStandings(data.standings || [])
+        const all: StandingRow[] = data.standings || []
+
+        // Compétition à poules : ne garder que le groupe des équipes du match.
+        // (chaque groupe a son group_name ; pour une ligue, un seul groupe → on garde tout)
+        const distinctGroups = new Set(all.map(r => r.group_name).filter(Boolean))
+        if (distinctGroups.size > 1) {
+          const teamGroup = all.find(r => highlightTeamIds.includes(r.team_id))?.group_name || null
+          const filtered = teamGroup ? all.filter(r => r.group_name === teamGroup) : all
+          setStandings([...filtered].sort((a, b) => a.position - b.position))
+          setGroupLabel(formatGroupName(teamGroup))
+        } else {
+          setStandings(all)
+          setGroupLabel(null)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Une erreur est survenue')
       } finally {
@@ -157,6 +173,9 @@ export default function StandingsModal({
             )}
             <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900]">
               {competitionName || 'Classement'}
+              {groupLabel && (
+                <span className="ml-2 text-sm font-semibold theme-text-secondary">· {groupLabel}</span>
+              )}
             </h3>
           </div>
           <button

@@ -84,36 +84,43 @@ export async function GET(request: Request) {
 
         const standingsData = await standingsResponse.json()
 
-        // Extraire le classement principal (TOTAL, pas HOME/AWAY)
-        const totalStandings = standingsData.standings?.find(
-          (s: any) => s.type === 'TOTAL'
+        // Extraire TOUS les classements principaux (type TOTAL, pas HOME/AWAY).
+        // Pour une ligue, il y a une seule entrée TOTAL.
+        // Pour une compétition à poules (Coupe du Monde, Euro...), football-data
+        // renvoie une entrée TOTAL par groupe, chacune avec un champ `group`.
+        const totalStandings = (standingsData.standings || []).filter(
+          (s: any) => s.type === 'TOTAL' && Array.isArray(s.table)
         )
 
-        if (!totalStandings || !totalStandings.table) {
+        if (totalStandings.length === 0) {
           console.log(`[STANDINGS] No TOTAL standings found for competition ${compId}`)
           continue
         }
 
-        // Préparer les données pour l'upsert (filtrer les entrées sans team_id)
-        const standingsToInsert = totalStandings.table
-          .filter((team: any) => team.team?.id != null)
-          .map((team: any) => ({
-            competition_id: compId,
-            team_id: team.team.id,
-            team_name: team.team.name,
-            team_crest: team.team.crest,
-            position: team.position,
-            played_games: team.playedGames,
-            won: team.won,
-            draw: team.draw,
-            lost: team.lost,
-            goals_for: team.goalsFor,
-            goals_against: team.goalsAgainst,
-            goal_difference: team.goalDifference,
-            points: team.points,
-            form: team.form || null,
-            updated_at: new Date().toISOString()
-          }))
+        // Préparer les données pour l'upsert (filtrer les entrées sans team_id),
+        // en aplatissant tous les groupes et en conservant le nom du groupe.
+        const standingsToInsert = totalStandings.flatMap((group: any) =>
+          group.table
+            .filter((team: any) => team.team?.id != null)
+            .map((team: any) => ({
+              competition_id: compId,
+              team_id: team.team.id,
+              team_name: team.team.name,
+              team_crest: team.team.crest,
+              group_name: group.group || null,
+              position: team.position,
+              played_games: team.playedGames,
+              won: team.won,
+              draw: team.draw,
+              lost: team.lost,
+              goals_for: team.goalsFor,
+              goals_against: team.goalsAgainst,
+              goal_difference: team.goalDifference,
+              points: team.points,
+              form: team.form || null,
+              updated_at: new Date().toISOString()
+            }))
+        )
 
         // Upsert les classements
         const { error: upsertError } = await supabase

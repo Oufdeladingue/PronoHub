@@ -234,6 +234,17 @@ export function getStageOrder(stage: StageType): number {
 }
 
 /**
+ * Normalise un nom de groupe en libellé français.
+ * Gère les deux formats renvoyés par football-data ("GROUP_A" sur les matchs,
+ * "Group A" sur les classements) → "Groupe A".
+ */
+export function formatGroupName(group: string | null | undefined): string | null {
+  if (!group) return null
+  const clean = group.replace(/group/i, '').replace(/[_\s]/g, '').toUpperCase()
+  return clean ? `Groupe ${clean}` : null
+}
+
+/**
  * Groupe les journées par stage pour une compétition
  * Retourne une structure organisée pour l'affichage des onglets
  */

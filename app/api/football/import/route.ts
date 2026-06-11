@@ -363,6 +363,7 @@ async function importFromFootballData(competitionId: number) {
         competition_id: competitionId,
         matchday: match.matchday ?? 1, // Default to 1 for single-leg knockout (WC)
         stage: match.stage || null, // Phase de compétition (LEAGUE_STAGE, PLAYOFFS, QUARTER_FINALS, etc.)
+        group_name: match.group || null, // Groupe pour les phases de poule (GROUP_A, ...)
         utc_date: match.utcDate,
         status: match.status,
         home_team_id: hasHomeTeam ? match.homeTeam.id : 0,

@@ -10,7 +10,7 @@ import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
-import { getStageShortLabel, getLegNumber, isKnockoutStage, type StageType } from '@/lib/stage-formatter'
+import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { trackPredictionSubmitted } from '@/lib/analytics'
@@ -51,6 +51,7 @@ interface Match {
   id: string
   matchday: number
   stage?: StageType | null
+  group_name?: string | null
   utc_date: string
   home_team_id?: number | null
   away_team_id?: number | null
@@ -2378,6 +2379,15 @@ export default function OppositionClient({
                                   }
                                 `}</style>
                                 <div className={cardClasses}>
+
+                                {/* Badge du groupe (phases de poule : Coupe du Monde, Euro...) */}
+                                {match.group_name && (
+                                  <div className="flex justify-center mb-1.5">
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide theme-text-secondary px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                                      {formatGroupName(match.group_name)}
+                                    </span>
+                                  </div>
+                                )}
 
                                 {/* Affichage MOBILE uniquement */}
                                 <div className={`md:hidden relative ${isClosed ? 'opacity-75' : ''}`}>

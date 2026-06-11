@@ -249,6 +249,7 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             competition_id: competition.id,
             matchday: match.matchday ?? 1,
             stage: match.stage || null,
+            group_name: match.group || null,
             utc_date: match.utcDate,
             status: effectiveStatus,
             finished: effectiveFinished,
