@@ -66,6 +66,7 @@ interface Match {
   home_score_90?: number | null
   away_score_90?: number | null
   live_minute?: number | null
+  last_updated_at?: string | null
   winner_team_id?: number | null
   // Champs pour les tournois custom (compétition source du match)
   competition_id?: number | null
@@ -125,11 +126,17 @@ const isMatchFinished = (match: Match): boolean => {
 }
 
 // Libellé de la minute de jeu en direct (ex: "48'", "MT" à la mi-temps). Vide si non pertinent.
-const liveMinuteLabel = (match: Match): string => {
+// Interpole la minute localement entre deux mises à jour serveur (cron ~5 min) pour qu'elle
+// reste juste et "tourne" toute seule. `nowMs` permet de re-render via un timer.
+const liveMinuteLabel = (match: Match, nowMs: number): string => {
   if (isMatchFinished(match)) return ''
   if (match.status === 'PAUSED') return 'MT'
-  if (match.live_minute != null) return `${match.live_minute}'`
-  return ''
+  if (match.live_minute == null) return ''
+  const base = match.live_minute
+  const updatedAt = match.last_updated_at ? new Date(match.last_updated_at).getTime() : null
+  // Minutes écoulées depuis la dernière valeur serveur, plafonnées (évite l'emballement si le cron cale)
+  const extra = updatedAt ? Math.min(Math.max(0, Math.floor((nowMs - updatedAt) / 60000)), 6) : 0
+  return `${base + extra}'`
 }
 
 export default function OppositionClient({
@@ -223,6 +230,10 @@ export default function OppositionClient({
 
   // État pour les points gagnés par match
   const [matchPoints, setMatchPoints] = useState<Record<string, number>>({})
+
+  // Horloge locale pour interpoler la minute de jeu en direct (initialisée à 0 pour éviter
+  // un mismatch d'hydratation ; mise à jour par un timer quand un match est en cours)
+  const [liveNowMs, setLiveNowMs] = useState<number>(0)
 
   // État pour les pronostics par défaut (virtuels, non en base)
   const [defaultPredictions, setDefaultPredictions] = useState<Record<string, boolean>>({})
@@ -516,7 +527,7 @@ export default function OppositionClient({
     const supabase = createClient()
     const { data } = await supabase
       .from('imported_matches')
-      .select('id, status, home_score, away_score, home_score_90, away_score_90, finished')
+      .select('id, status, home_score, away_score, home_score_90, away_score_90, live_minute, last_updated_at, finished')
       .in('id', matchIds)
 
     if (data) {
@@ -532,6 +543,7 @@ export default function OppositionClient({
             m.home_score !== fresh.home_score ||
             m.away_score !== fresh.away_score ||
             (m as any).home_score_90 !== (fresh as any).home_score_90 ||
+            (m as any).live_minute !== (fresh as any).live_minute ||
             m.finished !== fresh.finished
           ) {
             hasChanges = true
@@ -542,6 +554,8 @@ export default function OppositionClient({
               away_score: fresh.away_score,
               home_score_90: (fresh as any).home_score_90 ?? m.home_score_90,
               away_score_90: (fresh as any).away_score_90 ?? m.away_score_90,
+              live_minute: (fresh as any).live_minute ?? null,
+              last_updated_at: (fresh as any).last_updated_at ?? (m as any).last_updated_at,
               finished: fresh.finished,
             }
           }
@@ -1806,6 +1820,7 @@ export default function OppositionClient({
               home_score_90: updated.home_score_90 ?? (current as any).home_score_90,
               away_score_90: updated.away_score_90 ?? (current as any).away_score_90,
               live_minute: updated.live_minute ?? null,
+              last_updated_at: updated.last_updated_at ?? (current as any).last_updated_at,
               finished: updated.finished
             }
             return newMatches
@@ -1850,6 +1865,15 @@ export default function OppositionClient({
       document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [tournament, refreshMatchScores])
+
+  // Faire avancer la minute de jeu interpolée toutes les 20 s, uniquement si un match est en cours
+  const hasLiveMatchOnScreen = matches.some(m => m.status === 'IN_PLAY')
+  useEffect(() => {
+    if (!hasLiveMatchOnScreen) return
+    setLiveNowMs(Date.now())
+    const id = setInterval(() => setLiveNowMs(Date.now()), 20000)
+    return () => clearInterval(id)
+  }, [hasLiveMatchOnScreen])
 
   // Propager les changements de scores aux matchs affichés + recalculer les points en direct
   // (sans refresh) : quand un score évolue via le polling/realtime, les points de l'utilisateur
@@ -2518,9 +2542,9 @@ export default function OppositionClient({
                                           }`}>
                                             {match.home_score} - {match.away_score}
                                           </span>
-                                          {liveMinuteLabel(match) && (
+                                          {liveMinuteLabel(match, liveNowMs) && (
                                             <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-400">
-                                              {liveMinuteLabel(match)}
+                                              {liveMinuteLabel(match, liveNowMs)}
                                             </span>
                                           )}
                                         </div>
@@ -2912,9 +2936,9 @@ export default function OppositionClient({
                                             }`}>
                                               {match.home_score} - {match.away_score}
                                             </span>
-                                            {liveMinuteLabel(match) && (
+                                            {liveMinuteLabel(match, liveNowMs) && (
                                               <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
-                                                ({liveMinuteLabel(match)})
+                                                ({liveMinuteLabel(match, liveNowMs)})
                                               </span>
                                             )}
                                           </div>
