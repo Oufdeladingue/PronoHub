@@ -198,7 +198,15 @@ export async function patchLiveWorldCupWithApiFootball(
       if (fixture.teams?.home?.winner === true) update.winner_team_id = m.home_team_id
       else if (fixture.teams?.away?.winner === true) update.winner_team_id = m.away_team_id
 
-      const { error } = await supabase.from('imported_matches').update(update).eq('id', m.id)
+      // Minute de jeu en direct (effacée une fois le match terminé)
+      update.live_minute = newStatus === 'FINISHED' ? null : (fixture.fixture?.status?.elapsed ?? null)
+
+      let { error } = await supabase.from('imported_matches').update(update).eq('id', m.id)
+      // Repli si la colonne live_minute n'existe pas encore (migration non appliquée)
+      if (error && /live_minute/i.test(error.message || '')) {
+        delete update.live_minute
+        ;({ error } = await supabase.from('imported_matches').update(update).eq('id', m.id))
+      }
       if (error) result.errors.push(`update ${m.football_data_match_id}: ${error.message}`)
       else result.patched++
       continue

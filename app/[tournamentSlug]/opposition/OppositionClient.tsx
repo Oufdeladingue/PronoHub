@@ -65,6 +65,7 @@ interface Match {
   away_score?: number | null
   home_score_90?: number | null
   away_score_90?: number | null
+  live_minute?: number | null
   winner_team_id?: number | null
   // Champs pour les tournois custom (compétition source du match)
   competition_id?: number | null
@@ -121,6 +122,14 @@ const shouldShowQualifierChoice = (match: Match, matchdayStages: Record<number, 
 // Helper function pour déterminer si un match est terminé
 const isMatchFinished = (match: Match): boolean => {
   return match.status === 'FINISHED' || match.finished === true
+}
+
+// Libellé de la minute de jeu en direct (ex: "48'", "MT" à la mi-temps). Vide si non pertinent.
+const liveMinuteLabel = (match: Match): string => {
+  if (isMatchFinished(match)) return ''
+  if (match.status === 'PAUSED') return 'MT'
+  if (match.live_minute != null) return `${match.live_minute}'`
+  return ''
 }
 
 export default function OppositionClient({
@@ -507,7 +516,7 @@ export default function OppositionClient({
     const supabase = createClient()
     const { data } = await supabase
       .from('imported_matches')
-      .select('id, status, home_score, away_score, finished')
+      .select('id, status, home_score, away_score, home_score_90, away_score_90, finished')
       .in('id', matchIds)
 
     if (data) {
@@ -522,10 +531,19 @@ export default function OppositionClient({
             m.status !== fresh.status ||
             m.home_score !== fresh.home_score ||
             m.away_score !== fresh.away_score ||
+            (m as any).home_score_90 !== (fresh as any).home_score_90 ||
             m.finished !== fresh.finished
           ) {
             hasChanges = true
-            return { ...m, status: fresh.status, home_score: fresh.home_score, away_score: fresh.away_score, finished: fresh.finished }
+            return {
+              ...m,
+              status: fresh.status,
+              home_score: fresh.home_score,
+              away_score: fresh.away_score,
+              home_score_90: (fresh as any).home_score_90 ?? m.home_score_90,
+              away_score_90: (fresh as any).away_score_90 ?? m.away_score_90,
+              finished: fresh.finished,
+            }
           }
           return m
         })
@@ -1770,11 +1788,13 @@ export default function OppositionClient({
             const idx = prev.findIndex(m => m.id === updated.id)
             if (idx === -1) return prev
             const current = prev[idx]
-            // Ne mettre à jour que si quelque chose a changé
+            // Ne mettre à jour que si quelque chose a changé (inclut la minute de jeu)
             if (
               current.status === updated.status &&
               current.home_score === updated.home_score &&
               current.away_score === updated.away_score &&
+              (current as any).home_score_90 === updated.home_score_90 &&
+              (current as any).live_minute === updated.live_minute &&
               current.finished === updated.finished
             ) return prev
             const newMatches = [...prev]
@@ -1783,6 +1803,9 @@ export default function OppositionClient({
               status: updated.status,
               home_score: updated.home_score,
               away_score: updated.away_score,
+              home_score_90: updated.home_score_90 ?? (current as any).home_score_90,
+              away_score_90: updated.away_score_90 ?? (current as any).away_score_90,
+              live_minute: updated.live_minute ?? null,
               finished: updated.finished
             }
             return newMatches
@@ -2482,6 +2505,11 @@ export default function OppositionClient({
                                           }`}>
                                             {match.home_score} - {match.away_score}
                                           </span>
+                                          {liveMinuteLabel(match) && (
+                                            <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-400">
+                                              {liveMinuteLabel(match)}
+                                            </span>
+                                          )}
                                         </div>
                                       ) : (
                                         <div className="h-5"></div>
@@ -2871,6 +2899,11 @@ export default function OppositionClient({
                                             }`}>
                                               {match.home_score} - {match.away_score}
                                             </span>
+                                            {liveMinuteLabel(match) && (
+                                              <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+                                                ({liveMinuteLabel(match)})
+                                              </span>
+                                            )}
                                           </div>
                                         )}
                                       </div>
