@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { Suspense } from 'react'
 import OppositionClient from './OppositionClient'
 import OppositionCapacitorWrapper from '@/components/OppositionCapacitorWrapper'
+import { getStageOrder } from '@/lib/stage-formatter'
 import type { Metadata } from 'next'
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -333,89 +334,48 @@ async function fetchAllMatchesServer(supabase: any, tournament: any) {
       }).sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
     }
   } else if (tournament.competition_id) {
-    // Compétition importée classique
-    // Pour les compétitions avec phases knockout (CL, coupes), les matchdays redémarrent à 1 par phase
-    // On doit donc récupérer:
-    // 1. Les matchs LEAGUE_STAGE dans la plage de matchdays
-    // 2. TOUS les matchs des phases knockout (car leurs matchdays sont 1-2 peu importe la phase)
-
-    // Liste des phases knockout reconnues
-    const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL']
-
-    // D'abord vérifier si la compétition a des phases knockout
-    const { data: knockoutCheck } = await supabase
+    // Compétition importée
+    // Certaines compétitions (Coupe du Monde, Euro, CL, coupes) redémarrent le
+    // matchday à 1 à chaque phase (GROUP_STAGE md1-3, puis LAST_32/LAST_16/...
+    // tous en md1-2). On calcule donc une "journée virtuelle" séquentielle en
+    // ordonnant les paires (stage, matchday) par ordre de phase puis par matchday.
+    // Pour une ligue classique (REGULAR_SEASON), cela revient exactement à
+    // virtual_matchday = matchday.
+    const { data: allCompMatches } = await supabase
       .from('imported_matches')
-      .select('id')
+      .select('*')
       .eq('competition_id', tournament.competition_id)
-      .in('stage', KNOCKOUT_STAGES)
-      .limit(1)
 
-    const hasKnockoutStages = knockoutCheck && knockoutCheck.length > 0
+    const allMatches = allCompMatches || []
 
-    if (hasKnockoutStages) {
-      // Compétition avec knockout: deux requêtes parallèles
-      const [leagueStageResult, knockoutResult] = await Promise.all([
-        // 1. Matchs de phase de ligue (LEAGUE_STAGE ou REGULAR_SEASON) dans la plage de matchdays
-        supabase
-          .from('imported_matches')
-          .select('*')
-          .eq('competition_id', tournament.competition_id)
-          .not('stage', 'in', `(${KNOCKOUT_STAGES.map(s => `"${s}"`).join(',')})`)
-          .gte('matchday', startMatchday)
-          .lte('matchday', endMatchday),
-        // 2. Tous les matchs knockout (ils ont matchday 1-2 par phase)
-        supabase
-          .from('imported_matches')
-          .select('*')
-          .eq('competition_id', tournament.competition_id)
-          .in('stage', KNOCKOUT_STAGES)
-      ])
-
-      const leagueMatches = leagueStageResult.data || []
-      const knockoutMatches = knockoutResult.data || []
-
-      // Ordre des phases knockout avec leur base de journée virtuelle
-      // LEAGUE_STAGE: matchday 1-8 (pas de changement)
-      // Les phases knockout ont leur matchday réel 1-2 (aller-retour)
-      // On calcule une journée virtuelle séquentielle pour l'affichage
-      const STAGE_ORDER: Record<string, number> = {
-        'LEAGUE_STAGE': 0,      // matchday reste tel quel (1-8)
-        'PLAYOFFS': 8,          // matchday 1->9, matchday 2->10
-        'LAST_16': 10,          // matchday 1->11, matchday 2->12
-        'QUARTER_FINALS': 12,   // matchday 1->13, matchday 2->14
-        'SEMI_FINALS': 14,      // matchday 1->15, matchday 2->16
-        'FINAL': 16             // matchday 1->17
+    // Construire la liste ordonnée des paires (stage, matchday) distinctes
+    const pairKey = (m: any) => `${m.stage || 'REGULAR_SEASON'}__${m.matchday ?? 1}`
+    const pairs = new Map<string, { stage: string | null; matchday: number; order: number }>()
+    for (const m of allMatches) {
+      const key = pairKey(m)
+      if (!pairs.has(key)) {
+        pairs.set(key, {
+          stage: m.stage || null,
+          matchday: m.matchday ?? 1,
+          order: getStageOrder((m.stage || null) as any)
+        })
       }
-
-      // Ajouter la journée virtuelle aux matchs
-      const leagueWithVirtual = leagueMatches.map((m: any) => ({
-        ...m,
-        virtual_matchday: m.matchday // Pour league stage, la journée virtuelle = matchday réel
-      }))
-
-      const knockoutWithVirtual = knockoutMatches.map((m: any) => {
-        const baseMatchday = STAGE_ORDER[m.stage] || 8
-        return {
-          ...m,
-          virtual_matchday: baseMatchday + (m.matchday || 1) // stage base + leg number
-        }
-      })
-
-      // Fusionner et trier par date
-      matchesData = [...leagueWithVirtual, ...knockoutWithVirtual]
-        .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
-    } else {
-      // Compétition classique (ligue): filtre par matchday uniquement
-      const { data: allMatchesData } = await supabase
-        .from('imported_matches')
-        .select('*')
-        .eq('competition_id', tournament.competition_id)
-        .gte('matchday', startMatchday)
-        .lte('matchday', endMatchday)
-        .order('utc_date', { ascending: true })
-
-      matchesData = allMatchesData || []
     }
+
+    // Numéroter séquentiellement : tri par ordre de phase puis par matchday
+    const sortedPairs = Array.from(pairs.values()).sort((a, b) =>
+      a.order !== b.order ? a.order - b.order : a.matchday - b.matchday
+    )
+    const virtualByKey = new Map<string, number>()
+    sortedPairs.forEach((p, i) => {
+      virtualByKey.set(`${p.stage || 'REGULAR_SEASON'}__${p.matchday}`, i + 1)
+    })
+
+    // Assigner la journée virtuelle et filtrer sur la plage du tournoi
+    matchesData = allMatches
+      .map((m: any) => ({ ...m, virtual_matchday: virtualByKey.get(pairKey(m)) || m.matchday }))
+      .filter((m: any) => m.virtual_matchday >= startMatchday && m.virtual_matchday <= endMatchday)
+      .sort((a: any, b: any) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
   }
 
   return matchesData
