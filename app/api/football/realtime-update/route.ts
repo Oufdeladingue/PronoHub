@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 import { patchLiveWorldCupWithApiFootball } from '@/lib/api-football-live'
+import { extractFootballDataScores } from '@/lib/football-data-score'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -236,11 +237,16 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
           }
 
           if (!updateData) {
+            const scR = extractFootballDataScores(matchData.score)
             updateData = {
               status: matchData.status,
               finished: matchData.status === 'FINISHED',
-              home_score: matchData.score?.fullTime?.home ?? null,
-              away_score: matchData.score?.fullTime?.away ?? null,
+              home_score: scR.home_score,
+              away_score: scR.away_score,
+              home_score_90: scR.home_score_90,
+              away_score_90: scR.away_score_90,
+              winner_team_id: scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null)
+                : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null,
               last_updated_at: new Date().toISOString(),
             }
           }
@@ -391,11 +397,16 @@ async function updateMatchesIndividually(
       }
 
       if (!updateData) {
+        const scR = extractFootballDataScores(matchData.score)
         updateData = {
           status: matchData.status,
           finished: matchData.status === 'FINISHED',
-          home_score: matchData.score?.fullTime?.home ?? null,
-          away_score: matchData.score?.fullTime?.away ?? null,
+          home_score: scR.home_score,
+          away_score: scR.away_score,
+          home_score_90: scR.home_score_90,
+          away_score_90: scR.away_score_90,
+          winner_team_id: scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null)
+            : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null,
           last_updated_at: new Date().toISOString(),
         }
       }

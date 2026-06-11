@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { patchStaleScoresWithApiFootball, type FallbackResult } from '@/lib/api-football-fallback'
 import { patchLiveWorldCupWithApiFootball } from '@/lib/api-football-live'
+import { extractFootballDataScores } from '@/lib/football-data-score'
 import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
@@ -245,6 +246,15 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
           // Garder FINISHED si déjà marqué, sauf si football-data confirme aussi FINISHED (scores peuvent s'améliorer)
           const effectiveStatus = alreadyFinished && !apiSaysFinished ? 'FINISHED' : match.status
           const effectiveFinished = alreadyFinished || apiSaysFinished
+          const keepExisting = alreadyFinished && !apiSaysFinished
+
+          // Extraction robuste : exclut les TAB du score affiché et capture le score à 90'
+          // (regularTime) pour le calcul des points en phase à élimination directe.
+          const sc = extractFootballDataScores(match.score)
+          const winnerTeamId =
+            sc.winnerSide === 'home' ? (match.homeTeam?.id ?? null)
+            : sc.winnerSide === 'away' ? (match.awayTeam?.id ?? null)
+            : null
 
           return {
             football_data_match_id: match.id,
@@ -262,8 +272,11 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             away_team_name: match.awayTeam?.name || 'À déterminer',
             away_team_crest: match.awayTeam?.crest || null,
             // Si déjà FINISHED en DB et football-data ne confirme pas, garder les scores existants
-            home_score: alreadyFinished && !apiSaysFinished ? undefined : match.score?.fullTime?.home,
-            away_score: alreadyFinished && !apiSaysFinished ? undefined : match.score?.fullTime?.away,
+            home_score: keepExisting ? undefined : sc.home_score,
+            away_score: keepExisting ? undefined : sc.away_score,
+            home_score_90: keepExisting ? undefined : sc.home_score_90,
+            away_score_90: keepExisting ? undefined : sc.away_score_90,
+            winner_team_id: keepExisting ? undefined : winnerTeamId,
           }
         })
         // Retirer les champs undefined pour ne pas écraser les scores en DB
@@ -271,6 +284,9 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
           const clean = { ...m }
           if (clean.home_score === undefined) delete clean.home_score
           if (clean.away_score === undefined) delete clean.away_score
+          if (clean.home_score_90 === undefined) delete clean.home_score_90
+          if (clean.away_score_90 === undefined) delete clean.away_score_90
+          if (clean.winner_team_id === undefined) delete clean.winner_team_id
           return clean
         })
 
