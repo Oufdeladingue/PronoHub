@@ -33,8 +33,9 @@ export const STAGE_NAMES: Record<string, string> = {
   // ============================================
   'ROUND_OF_64': '64èmes de finale',
   'LAST_64': '64èmes de finale',
-  'ROUND_OF_32': '32èmes de finale',
-  'LAST_32': '32èmes de finale',
+  // « Nèmes de finale » = nombre de matchs (pas d'équipes) : LAST_32 = 32 équipes = 16 matchs.
+  'ROUND_OF_32': '16èmes de finale',
+  'LAST_32': '16èmes de finale',
   'ROUND_OF_16': 'Huitièmes de finale',
   'LAST_16': 'Huitièmes de finale',
   'QUARTER_FINALS': 'Quarts de finale',

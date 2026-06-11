@@ -30,7 +30,9 @@ const STAGE_TRANSLATIONS: Record<string, string> = {
   'PLAYOFFS': 'Barrages',
 
   // Phases à élimination
-  'LAST_32': '32èmes de finale',
+  // NB: « Nèmes de finale » compte les matchs, pas les équipes.
+  // LAST_32 = 32 équipes = 16 matchs = 16èmes ; LAST_16 = 16 équipes = 8 matchs = 8èmes.
+  'LAST_32': '16èmes de finale',
   'LAST_16': '8èmes de finale',
   'ROUND_OF_16': '8èmes de finale',
   'QUARTER_FINALS': 'Quarts de finale',
@@ -49,7 +51,7 @@ const STAGE_SHORT_TRANSLATIONS: Record<string, string> = {
   'GROUP_STAGE': 'Poule',
   'PRELIMINARY_ROUND': 'Préliminaire',
   'PLAYOFFS': 'Barrage',
-  'LAST_32': '32ème',
+  'LAST_32': '16ème',
   'LAST_16': '8ème',
   'ROUND_OF_16': '8ème',
   'QUARTER_FINALS': 'Quart',
