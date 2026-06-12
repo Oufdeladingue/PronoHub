@@ -5,6 +5,8 @@ import path from 'path'
 import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
 import { getAvatarUrl } from '@/lib/avatars'
+import { GET as rankingsGET } from '@/app/api/tournaments/[tournamentId]/rankings/route'
+import { GET as teamsRankingsGET } from '@/app/api/tournaments/[tournamentId]/teams/rankings/route'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,12 +51,12 @@ async function fetchImageAsBase64(url: string | null): Promise<string | null> {
   }
 }
 
-// Avatar (PNG/SVG) → PNG carré base64 (normalise les SVG d'équipes pour satori)
-async function loadAvatarPng(url: string): Promise<string | null> {
+// Avatar (PNG/SVG) lu depuis le disque (public/) → PNG carré base64
+// (lecture locale = pas de dépendance réseau/proxy ; normalise les SVG d'équipes pour satori)
+async function loadAvatarPng(avatarPath: string): Promise<string | null> {
   try {
-    const res = await fetchWithTimeout(url, 3500)
-    if (!res.ok) return null
-    const buf = Buffer.from(await res.arrayBuffer())
+    const rel = avatarPath.replace(/^\//, '')
+    const buf = await fs.readFile(path.join(process.cwd(), 'public', rel))
     const png = await sharp(buf).resize(64, 64, { fit: 'cover' }).png().toBuffer()
     return `data:image/png;base64,${png.toString('base64')}`
   } catch {
@@ -102,8 +104,6 @@ export async function GET(request: NextRequest) {
     if (!tournamentId) {
       return NextResponse.json({ error: 'tournamentId requis' }, { status: 400 })
     }
-    const base = new URL(request.url).origin
-
     const supabase = createAdminClient()
     const { data: tournament } = await supabase
       .from('tournaments')
@@ -122,13 +122,17 @@ export async function GET(request: NextRequest) {
     let matchesTotal = 0
     let unit = 'joueurs'
 
+    // Appel in-process des handlers de classement (pas de HTTP vers soi-même → robuste derrière le proxy)
+    const callRoute = async (handler: typeof rankingsGET, url: string) => {
+      const res = await handler(new Request(url) as any, { params: Promise.resolve({ tournamentId }) } as any)
+      return res.ok ? await res.json() : {}
+    }
+
     if (mode === 'teams') {
-      const [tRes, gRes] = await Promise.all([
-        fetchWithTimeout(`${base}/api/tournaments/${tournamentId}/teams/rankings`, 8000),
-        fetchWithTimeout(`${base}/api/tournaments/${tournamentId}/rankings`, 8000),
+      const [tJson, gJson] = await Promise.all([
+        callRoute(teamsRankingsGET as any, `http://internal/api/tournaments/${tournamentId}/teams/rankings`),
+        callRoute(rankingsGET, `http://internal/api/tournaments/${tournamentId}/rankings`),
       ])
-      const tJson = tRes.ok ? await tRes.json() : { rankings: [] }
-      const gJson = gRes.ok ? await gRes.json() : {}
       isLive = !!gJson.hasInProgressMatches
       matchesFinished = gJson.matchesFinished || 0
       matchesTotal = gJson.matchesTotal || 0
@@ -136,7 +140,7 @@ export async function GET(request: NextRequest) {
       rows = (tJson.rankings || []).map((t: any) => ({
         rank: t.rank,
         name: t.teamName || 'Équipe',
-        avatar: t.teamAvatar ? `${base}/images/team-avatars/${t.teamAvatar}.svg` : null,
+        avatar: t.teamAvatar ? `/images/team-avatars/${t.teamAvatar}.svg` : null,
         // Moyenne de points par joueur (équité entre équipes d'effectifs différents)
         pointsStr: (t.avgPoints ?? 0).toFixed(1),
         corrects: t.totalCorrectResults ?? 0,
@@ -145,17 +149,16 @@ export async function GET(request: NextRequest) {
       }))
     } else {
       const url = mode === 'matchday' && matchdayParam
-        ? `${base}/api/tournaments/${tournamentId}/rankings?matchday=${matchdayParam}`
-        : `${base}/api/tournaments/${tournamentId}/rankings`
-      const res = await fetchWithTimeout(url, 8000)
-      const json = res.ok ? await res.json() : { rankings: [] }
+        ? `http://internal/api/tournaments/${tournamentId}/rankings?matchday=${matchdayParam}`
+        : `http://internal/api/tournaments/${tournamentId}/rankings`
+      const json = await callRoute(rankingsGET, url)
       isLive = !!json.hasInProgressMatches
       matchesFinished = json.matchesFinished || 0
       matchesTotal = json.matchesTotal || 0
       rows = (json.rankings || []).map((p: any) => ({
         rank: p.rank,
         name: p.playerName || 'Joueur',
-        avatar: `${base}${getAvatarUrl(p.avatar || 'avatar1')}`,
+        avatar: getAvatarUrl(p.avatar || 'avatar1'),
         pointsStr: `${p.totalPoints ?? 0}`,
         corrects: p.correctResults ?? 0,
         exacts: p.exactScores ?? 0,
