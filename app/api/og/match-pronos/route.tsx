@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     const [{ data: tournament }, { data: match }] = await Promise.all([
-      supabase.from('tournaments').select('name, bonus_qualified, scoring_draw_with_default_prediction').eq('id', tournamentId).maybeSingle(),
+      supabase.from('tournaments').select('name, bonus_qualified').eq('id', tournamentId).maybeSingle(),
       supabase
         .from('imported_matches')
         .select('home_team_name, away_team_name, home_team_crest, away_team_crest, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id, stage, utc_date, status')
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
           exactScore: get('points_exact_score', 3),
           correctResult: get('points_correct_result', 1),
           incorrectResult: get('points_incorrect_result', 0),
-          drawWithDefaultPrediction: tournament?.scoring_draw_with_default_prediction ?? 1,
+          drawWithDefaultPrediction: 1, // pas de colonne dédiée → défaut (= correctResult)
         }
         const { data: bonus } = await supabase
           .from('tournament_bonus_matches')
