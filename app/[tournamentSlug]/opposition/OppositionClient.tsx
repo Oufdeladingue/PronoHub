@@ -1364,6 +1364,32 @@ export default function OppositionClient({
     }
   }
 
+  // Timers d'auto-enregistrement (un par match) : sauvegarde après 2s d'inactivité,
+  // comme si l'utilisateur avait cliqué sur "Enregistrer". Évite les pronos oubliés.
+  const autoSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  // Nettoyer tous les timers en attente au démontage
+  useEffect(() => {
+    const timers = autoSaveTimers.current
+    return () => {
+      Object.values(timers).forEach(clearTimeout)
+    }
+  }, [])
+
+  const scheduleAutoSave = (matchId: string) => {
+    // Remettre à zéro le compte à rebours à chaque modification
+    if (autoSaveTimers.current[matchId]) {
+      clearTimeout(autoSaveTimers.current[matchId])
+    }
+    autoSaveTimers.current[matchId] = setTimeout(() => {
+      delete autoSaveTimers.current[matchId]
+      // Ne pas auto-enregistrer un match verrouillé/clôturé entre-temps
+      const match = matches.find(m => m.id === matchId)
+      if (match && isMatchLocked(match)) return
+      savePrediction(matchId)
+    }, 2000)
+  }
+
   const handleScoreChange = (matchId: string, team: 'home' | 'away', value: number) => {
     setPredictions(prev => {
       const currentPrediction = prev[matchId]
@@ -1386,6 +1412,8 @@ export default function OppositionClient({
     }
     // Marquer comme "en attente d'enregistrement" (pour déclencher l'animation pulse)
     setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
+    // Programmer l'auto-enregistrement après 2s d'inactivité
+    scheduleAutoSave(matchId)
   }
 
   const unlockPrediction = (matchId: string) => {
@@ -1395,6 +1423,11 @@ export default function OppositionClient({
   }
 
   const savePrediction = async (matchId: string) => {
+    // Annuler un éventuel auto-enregistrement en attente (clic manuel ou save direct)
+    if (autoSaveTimers.current[matchId]) {
+      clearTimeout(autoSaveTimers.current[matchId])
+      delete autoSaveTimers.current[matchId]
+    }
     try {
       setSavingPrediction(matchId)
       const supabase = createClient()
