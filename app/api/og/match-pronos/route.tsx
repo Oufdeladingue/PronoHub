@@ -146,7 +146,6 @@ export async function GET(request: NextRequest) {
         const base: Row = { name: nameById.get(p.user_id) || 'Joueur', ph, pa, status: 'neutral', points: null }
 
         if (isFinished && settings) {
-          // Score de référence : 90 min pour les phases à élimination, sinon score final
           const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
           const as = (isKnockout && match.away_score_90 != null ? match.away_score_90 : match.away_score) as number
           if (hs != null && as != null) {
@@ -186,9 +185,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const MAX_ROWS = 6
-    const extra = Math.max(0, rows.length - MAX_ROWS)
-    const shown = rows.slice(0, MAX_ROWS)
+    // ---- Mise en page : 1 ou 2 colonnes selon le nombre de joueurs ----
+    const TWO_COLS = revealed && rows.length > 8
+    const MAX_SHOWN = TWO_COLS ? 22 : 10
+    const extra = Math.max(0, rows.length - MAX_SHOWN)
+    const shown = rows.slice(0, MAX_SHOWN)
+    const rowsPerCol = TWO_COLS ? Math.ceil(shown.length / 2) : shown.length
 
     const [fr, fb, fblack, logo, homeCrest, awayCrest] = await Promise.all([
       loadFont(400),
@@ -216,7 +218,7 @@ export async function GET(request: NextRequest) {
     const borderColor = (s: Row['status']) => (s === 'neutral' ? COLORS.border : statusColor(s))
 
     // ---- Header ----
-    const header = el('div', { alignItems: 'center', justifyContent: 'space-between', width: '100%' }, [
+    const header = el('div', { height: '48px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }, [
       el('div', { alignItems: 'center', gap: '14px' }, [
         ...(logo ? [img(logo, 44, 44)] : []),
         txt('PronoHub', { fontSize: '30px', fontWeight: 900, color: COLORS.text }),
@@ -228,13 +230,14 @@ export async function GET(request: NextRequest) {
     const teamBlock = (name: string, crest: string | null, align: 'flex-end' | 'flex-start') =>
       el('div', { alignItems: 'center', gap: '12px', flex: 1, justifyContent: align }, [
         ...(align === 'flex-end'
-          ? [txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' }), ...(crest ? [img(crest, 52, 52)] : [])]
-          : [...(crest ? [img(crest, 52, 52)] : []), txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' })]),
+          ? [txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' }), ...(crest ? [img(crest, 50, 50)] : [])]
+          : [...(crest ? [img(crest, 50, 50)] : []), txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' })]),
       ])
 
+    const MATCHBAR_H = 110
     const matchBar = el(
       'div',
-      { flexDirection: 'column', alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', padding: '14px 24px', gap: '6px' },
+      { height: `${MATCHBAR_H}px`, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', gap: '6px' },
       [
         el('div', { alignItems: 'center', justifyContent: 'center', width: '100%', gap: '18px' }, [
           teamBlock(match.home_team_name || 'Domicile', homeCrest, 'flex-end'),
@@ -245,54 +248,70 @@ export async function GET(request: NextRequest) {
       ]
     )
 
-    // ---- Lignes joueurs ----
-    const playerRows = revealed
-      ? shown.map((p) =>
-          el('div', { alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '12px', padding: '8px 16px', gap: '14px', border: `2px solid ${borderColor(p.status)}` }, [
-            el('div', { width: '36px', height: '36px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
-              txt((p.name[0] || '?').toUpperCase(), { fontSize: '18px', fontWeight: 900, color: '#0f172a' }),
-            ]),
-            txt(p.name, { fontSize: '22px', fontWeight: 700, color: COLORS.text, flex: 1, overflow: 'hidden' }),
-            el('div', { background: '#0f172a', borderRadius: '8px', padding: '5px 16px', alignItems: 'center', gap: '6px' }, [
-              txt(`${p.ph}`, { fontSize: '23px', fontWeight: 900, color: statusColor(p.status) }),
-              txt('-', { fontSize: '19px', color: COLORS.sub }),
-              txt(`${p.pa}`, { fontSize: '23px', fontWeight: 900, color: statusColor(p.status) }),
-            ]),
-            // Points uniquement si match terminé
-            ...(p.points !== null
-              ? [
-                  el('div', { width: '78px', justifyContent: 'flex-end' }, [
-                    txt(`${p.points > 0 ? '+' : ''}${p.points} pts`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
-                  ]),
-                ]
-              : []),
-          ])
-        )
-      : [
-          el('div', { width: '100%', justifyContent: 'center', alignItems: 'center', padding: '60px 0' }, [
-            txt('🔒 Pronostics révélés 30 min avant le coup d’envoi', { fontSize: '24px', fontWeight: 700, color: COLORS.sub }),
-          ]),
-        ]
+    // ---- Ligne joueur ----
+    const ROW_H = 46
+    const ROW_GAP = 7
+    const makeRow = (p: Row, rank: number) =>
+      el('div', { height: `${ROW_H}px`, alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '10px', padding: '0 14px', gap: '10px', border: `2px solid ${borderColor(p.status)}` }, [
+        // Rang (si match terminé) ou pastille initiale
+        el('div', { width: '30px', height: '30px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
+          txt(isFinished ? `${rank}` : (p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
+        ]),
+        txt(p.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, flex: 1, overflow: 'hidden' }),
+        el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 12px', alignItems: 'center', gap: '5px', flexShrink: 0 }, [
+          txt(`${p.ph}`, { fontSize: '20px', fontWeight: 900, color: statusColor(p.status) }),
+          txt('-', { fontSize: '16px', color: COLORS.sub }),
+          txt(`${p.pa}`, { fontSize: '20px', fontWeight: 900, color: statusColor(p.status) }),
+        ]),
+        ...(p.points !== null
+          ? [el('div', { width: '64px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.points > 0 ? '+' : ''}${p.points} pts`, { fontSize: '17px', fontWeight: 900, color: statusColor(p.status) })])]
+          : []),
+      ])
 
-    if (revealed && extra > 0) {
-      playerRows.push(el('div', { width: '100%', justifyContent: 'center', padding: '2px' }, [txt(`+ ${extra} autre${extra > 1 ? 's' : ''} joueur${extra > 1 ? 's' : ''}`, { fontSize: '18px', color: COLORS.sub })]))
+    // ---- Corps : 1 ou 2 colonnes ----
+    let body: any
+    let bodyH: number
+    if (!revealed) {
+      bodyH = 160
+      body = el('div', { height: `${bodyH}px`, width: '100%', justifyContent: 'center', alignItems: 'center' }, [
+        txt('🔒 Pronostics révélés 30 min avant le coup d’envoi', { fontSize: '24px', fontWeight: 700, color: COLORS.sub }),
+      ])
+    } else {
+      const colStyle = { flexDirection: 'column' as const, gap: `${ROW_GAP}px`, flex: 1 }
+      if (TWO_COLS) {
+        const left = shown.slice(0, rowsPerCol)
+        const right = shown.slice(rowsPerCol)
+        body = el('div', { width: '100%', gap: '14px' }, [
+          el('div', colStyle, left.map((p, i) => makeRow(p, i + 1))),
+          el('div', colStyle, right.map((p, i) => makeRow(p, rowsPerCol + i + 1))),
+        ])
+      } else {
+        body = el('div', { ...colStyle, width: '100%' }, shown.map((p, i) => makeRow(p, i + 1)))
+      }
+      bodyH = rowsPerCol * ROW_H + (rowsPerCol - 1) * ROW_GAP
     }
 
     // ---- Footer ----
-    const footer = el('div', { width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
-      txt(tournament?.name || 'PronoHub', { fontSize: '18px', color: COLORS.sub, maxWidth: '500px', overflow: 'hidden' }),
+    const FOOTER_H = 26
+    const footer = el('div', { height: `${FOOTER_H}px`, width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
+      txt(tournament?.name ? `${tournament.name}${extra > 0 ? ` · +${extra} autres` : ''}` : 'PronoHub', { fontSize: '17px', color: COLORS.sub, maxWidth: '760px', overflow: 'hidden' }),
       txt('pronohub.club', { fontSize: '18px', fontWeight: 700, color: COLORS.orange }),
     ])
 
+    const PAD_V = 26
+    const GAP = 12
+    const WIDTH = 1200
+    const HEIGHT = PAD_V * 2 + 48 + GAP + MATCHBAR_H + GAP + bodyH + GAP + FOOTER_H
+
     const root = el(
       'div',
-      { width: '1200px', height: '630px', flexDirection: 'column', background: COLORS.bg, padding: '26px 40px', gap: '12px' },
-      [header, matchBar, el('div', { flexDirection: 'column', gap: '7px', width: '100%', flex: 1 }, playerRows), footer]
+      { width: `${WIDTH}px`, height: `${HEIGHT}px`, flexDirection: 'column', background: COLORS.bg, padding: `${PAD_V}px 40px`, gap: `${GAP}px` },
+      [header, matchBar, body, footer]
     )
 
     const svg = await satori(root as any, {
-      width: 1200,
-      height: 630,
+      width: WIDTH,
+      height: HEIGHT,
       fonts: [
         { name: 'Inter', data: fr, weight: 400, style: 'normal' as const },
         { name: 'Inter', data: fb, weight: 700, style: 'normal' as const },
