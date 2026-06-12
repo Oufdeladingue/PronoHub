@@ -251,6 +251,7 @@ export default function OppositionClient({
 
   // États pour les accordéons de pronostics des autres
   const [expandedMatches, setExpandedMatches] = useState<Set<string>>(new Set())
+  const [sharingMatch, setSharingMatch] = useState<string | null>(null) // Match en cours de partage (image)
 
   const [allPlayersPredictions, setAllPlayersPredictions] = useState<Record<string, any[]>>({})
 
@@ -1414,6 +1415,39 @@ export default function OppositionClient({
     setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
     // Programmer l'auto-enregistrement après 2s d'inactivité
     scheduleAutoSave(matchId)
+  }
+
+  // Partager la grille des pronos d'un match (image générée côté serveur + Web Share API)
+  const handleShareMatchPronos = async (match: Match) => {
+    if (!tournament) return
+    try {
+      setSharingMatch(match.id)
+      const url = `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${match.id}`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Image non générée')
+      const blob = await res.blob()
+      const file = new File([blob], `pronos-pronohub.png`, { type: 'image/png' })
+      const shareText = `Les pronos du match ${translateTeamName(match.home_team_name)} - ${translateTeamName(match.away_team_name)} sur PronoHub`
+      const nav = navigator as any
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: 'PronoHub', text: shareText })
+      } else {
+        // Fallback (desktop/navigateur sans Web Share) : télécharger l'image
+        const objUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = objUrl
+        a.download = file.name
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(objUrl)
+      }
+    } catch (e: any) {
+      // L'utilisateur a annulé le partage natif → ne rien afficher
+      if (e?.name !== 'AbortError') console.error('Partage des pronos échoué:', e)
+    } finally {
+      setSharingMatch(null)
+    }
   }
 
   const unlockPrediction = (matchId: string) => {
@@ -3449,6 +3483,28 @@ export default function OppositionClient({
                                               </div>
                                             </div>
                                           ))
+                                        )}
+                                        {/* Bouton de partage des pronos (sous la dernière ligne) */}
+                                        {allPlayersPredictions[match.id].length > 0 && (
+                                          <button
+                                            onClick={() => handleShareMatchPronos(match)}
+                                            disabled={sharingMatch === match.id}
+                                            className="w-full mt-1 px-3 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition disabled:opacity-60"
+                                          >
+                                            {sharingMatch === match.id ? (
+                                              <>
+                                                <span className="inline-block w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                                                Génération…
+                                              </>
+                                            ) : (
+                                              <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                                </svg>
+                                                Partager les pronos
+                                              </>
+                                            )}
+                                          </button>
                                         )}
                                       </div>
                                     )}
