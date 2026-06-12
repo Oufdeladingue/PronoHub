@@ -267,11 +267,11 @@ export async function GET(request: NextRequest) {
     // ---- Ligne joueur ----
     const ROW_H = 46
     const ROW_GAP = 7
-    const makeRow = (p: Row, rank: number) =>
+    const makeRow = (p: Row) =>
       el('div', { height: `${ROW_H}px`, alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '10px', padding: '0 14px', gap: '10px', border: `2px solid ${borderColor(p.status)}` }, [
-        // Rang (si match terminé) ou pastille initiale
+        // Pastille initiale (pas de rang : il peut y avoir des égalités)
         el('div', { width: '30px', height: '30px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
-          txt(isFinished ? `${rank}` : (p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
+          txt((p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
         ]),
         el('div', { alignItems: 'center', gap: '7px', flex: 1, overflow: 'hidden' }, [
           txt(p.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
@@ -301,11 +301,11 @@ export async function GET(request: NextRequest) {
         const left = shown.slice(0, rowsPerCol)
         const right = shown.slice(rowsPerCol)
         body = el('div', { width: '100%', gap: '14px' }, [
-          el('div', colStyle, left.map((p, i) => makeRow(p, i + 1))),
-          el('div', colStyle, right.map((p, i) => makeRow(p, rowsPerCol + i + 1))),
+          el('div', colStyle, left.map((p) => makeRow(p))),
+          el('div', colStyle, right.map((p) => makeRow(p))),
         ])
       } else {
-        body = el('div', { ...colStyle, width: '100%' }, shown.map((p, i) => makeRow(p, i + 1)))
+        body = el('div', { ...colStyle, width: '100%' }, shown.map((p) => makeRow(p)))
       }
       bodyH = rowsPerCol * ROW_H + (rowsPerCol - 1) * ROW_GAP
     }
