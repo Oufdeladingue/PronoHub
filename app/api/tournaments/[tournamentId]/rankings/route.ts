@@ -1,7 +1,7 @@
 import { createClient as createServerClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { calculatePoints, calculateKnockoutPoints, getWinnerSide, calculateRankings, type PlayerStats } from '@/lib/scoring'
-import { isKnockoutStage, type StageType } from '@/lib/stage-formatter'
+import { isKnockoutStage, getStageOrder, type StageType } from '@/lib/stage-formatter'
 
 export async function GET(
   request: Request,
@@ -206,41 +206,27 @@ export async function GET(
       const hasKnockoutRank = knockoutCheck && knockoutCheck.length > 0
 
       if (hasKnockoutRank) {
-        // Compétition avec knockout : charger tous les matchs et assigner les virtual matchdays
-        const STAGE_ORDER: Record<string, number> = {
-          'LEAGUE_STAGE': 0,
-          'PLAYOFFS': 8,
-          'LAST_16': 10,
-          'QUARTER_FINALS': 12,
-          'SEMI_FINALS': 14,
-          'FINAL': 16
+        // Compétition à phases (CL, Coupe du Monde…) : le matchday redémarre à 1 par phase.
+        // Journée virtuelle SÉQUENTIELLE (ordre de phase + matchday), format-agnostique :
+        // gère GROUP_STAGE, LAST_32, THIRD_PLACE… (pas seulement le format Ligue des Champions).
+        const { data: allComp } = await supabase
+          .from('imported_matches')
+          .select('*')
+          .eq('competition_id', tournament.competition_id)
+        const all = allComp || []
+        const pairKey = (m: any) => `${m.stage || 'REGULAR_SEASON'}__${m.matchday ?? 1}`
+        const pairs = new Map<string, { stage: string | null; matchday: number; order: number }>()
+        for (const m of all) {
+          const k = pairKey(m)
+          if (!pairs.has(k)) pairs.set(k, { stage: m.stage || null, matchday: m.matchday ?? 1, order: getStageOrder((m.stage || null) as any) })
         }
+        const sortedPairs = Array.from(pairs.values()).sort((a, b) => a.order !== b.order ? a.order - b.order : a.matchday - b.matchday)
+        const vmap = new Map<string, number>()
+        sortedPairs.forEach((p, i) => vmap.set(`${p.stage || 'REGULAR_SEASON'}__${p.matchday}`, i + 1))
 
-        const [leagueResult, knockoutResult] = await Promise.all([
-          supabase
-            .from('imported_matches')
-            .select('*')
-            .eq('competition_id', tournament.competition_id)
-            .not('stage', 'in', `(${KNOCKOUT_STAGES_RANK.map(s => `"${s}"`).join(',')})`)
-            .gte('matchday', startMatchday)
-            .lte('matchday', endMatchday),
-          supabase
-            .from('imported_matches')
-            .select('*')
-            .eq('competition_id', tournament.competition_id)
-            .in('stage', KNOCKOUT_STAGES_RANK)
-        ])
-
-        const allCompMatches = [
-          ...(leagueResult.data || []).map((m: any) => ({ ...m, matchday: m.matchday })),
-          ...(knockoutResult.data || []).map((m: any) => ({
-            ...m,
-            matchday: (STAGE_ORDER[m.stage] || 8) + (m.matchday || 1)
-          }))
-        ]
-
-        // Filtrer par virtual matchday range du tournoi
-        const matchesInRange = allCompMatches.filter((m: any) => matchdaysToCalculate.includes(m.matchday))
+        const matchesInRange = all
+          .map((m: any) => ({ ...m, matchday: vmap.get(pairKey(m)) || m.matchday }))
+          .filter((m: any) => matchdaysToCalculate.includes(m.matchday))
         finishedMatchesRaw = matchesInRange.filter((m: any) => m.home_score !== null && m.away_score !== null)
         allMatchesRaw = matchesInRange.map((m: any) => ({ id: m.id, matchday: m.matchday, utc_date: m.utc_date }))
       } else {

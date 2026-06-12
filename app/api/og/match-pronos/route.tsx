@@ -4,7 +4,7 @@ import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
-import { isKnockoutStage, type StageType } from '@/lib/stage-formatter'
+import { isKnockoutStage, isGroupStage, getStageLabel, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { calculatePoints, calculateKnockoutPoints, getWinnerSide, type PointsSettings } from '@/lib/scoring'
 
 export const dynamic = 'force-dynamic'
@@ -40,20 +40,7 @@ async function getFonts() {
   return _fontsCache
 }
 
-async function fetchImageAsBase64(url: string | null): Promise<string | null> {
-  if (!url) return null
-  try {
-    const res = await fetchWithTimeout(url, 3500, { next: { revalidate: 3600 } } as any)
-    if (!res.ok) return null
-    const buf = await res.arrayBuffer()
-    const ct = res.headers.get('content-type') || 'image/png'
-    return `data:${ct};base64,${Buffer.from(buf).toString('base64')}`
-  } catch {
-    return null
-  }
-}
-
-// Charge le logo en respectant son ratio largeur/hauteur (évite la compression), avec cache
+// Charge le logo PronoHub en respectant son ratio largeur/hauteur (cache mémoire)
 let _logoCache: { src: string; w: number; h: number } | null | undefined = undefined
 async function loadLogo(targetH: number): Promise<{ src: string; w: number; h: number } | null> {
   if (_logoCache !== undefined) return _logoCache
@@ -66,6 +53,19 @@ async function loadLogo(targetH: number): Promise<{ src: string; w: number; h: n
     _logoCache = null
   }
   return _logoCache
+}
+
+async function fetchImageAsBase64(url: string | null): Promise<string | null> {
+  if (!url) return null
+  try {
+    const res = await fetchWithTimeout(url, 3500, { next: { revalidate: 3600 } } as any)
+    if (!res.ok) return null
+    const buf = await res.arrayBuffer()
+    const ct = res.headers.get('content-type') || 'image/png'
+    return `data:${ct};base64,${Buffer.from(buf).toString('base64')}`
+  } catch {
+    return null
+  }
 }
 
 // ---- mini-DSL pour construire les éléments satori ----
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       supabase.from('tournaments').select('name, bonus_qualified').eq('id', tournamentId).maybeSingle(),
       supabase
         .from('imported_matches')
-        .select('home_team_name, away_team_name, home_team_crest, away_team_crest, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id, stage, utc_date, status')
+        .select('home_team_name, away_team_name, home_team_crest, away_team_crest, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id, stage, matchday, group_name, competition_id, utc_date, status')
         .eq('id', matchId)
         .maybeSingle(),
     ])
@@ -116,6 +116,14 @@ export async function GET(request: NextRequest) {
     if (!match) {
       return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
     }
+
+    // Emblème de la compétition (pour l'en-tête)
+    const { data: comp } = await supabase
+      .from('competitions')
+      .select('emblem, custom_emblem_white')
+      .eq('id', match.competition_id)
+      .maybeSingle()
+    const compEmblemUrl = comp?.custom_emblem_white || comp?.emblem || null
 
     const isFinished = match.status === 'FINISHED' || match.status === 'AWARDED'
     const isLive = ['IN_PLAY', 'PAUSED', 'SUSPENDED'].includes(match.status || '')
@@ -230,37 +238,45 @@ export async function GET(request: NextRequest) {
     const shown = rows.slice(0, MAX_SHOWN)
     const rowsPerCol = TWO_COLS ? Math.ceil(shown.length / 2) : shown.length
 
-    const [fonts, logo, homeCrest, awayCrest] = await Promise.all([
+    const [fonts, logo, compEmblem, homeCrest, awayCrest] = await Promise.all([
       getFonts(),
-      loadLogo(40),
+      loadLogo(38),
+      fetchImageAsBase64(compEmblemUrl),
       fetchImageAsBase64(match.home_team_crest),
       fetchImageAsBase64(match.away_team_crest),
     ])
     const [fr, fb, fblack] = fonts
 
     // En-tête : score final / live / heure de coup d'envoi
-    let scoreLabel: string
-    if (isFinished || isLive) {
-      scoreLabel = `${match.home_score ?? 0} - ${match.away_score ?? 0}`
-    } else {
-      const d = match.utc_date ? new Date(match.utc_date) : null
-      scoreLabel = d
-        ? d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
-        : 'à venir'
-    }
+    const scoreLabel = isFinished || isLive ? `${match.home_score ?? 0} - ${match.away_score ?? 0}` : 'VS'
     const stateTag = isFinished ? 'Terminé' : isLive ? '● En direct' : 'À venir'
     const stateColor = isFinished ? COLORS.sub : isLive ? COLORS.red : COLORS.sub
+
+    // Métadonnées du match : jour, heure, journée, poule
+    const md = match.utc_date ? new Date(match.utc_date) : null
+    const dayLabel = md ? md.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }) : ''
+    const dayCap = dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : ''
+    const timeLabel = md ? md.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : ''
+    const grouped = !!(match.stage && isGroupStage(match.stage as StageType))
+    const journeeLabel = grouped ? `Journée ${match.matchday ?? 1}` : (getStageLabel((match.stage as StageType) || null) || '')
+    const pouleLabel = formatGroupName(match.group_name)
+    const metaLine = [dayCap && timeLabel ? `${dayCap} · ${timeLabel}` : (dayCap || timeLabel), journeeLabel, pouleLabel].filter(Boolean).join('     ·     ')
 
     const statusColor = (s: Row['status']) => (s === 'exact' ? COLORS.gold : s === 'correct' ? COLORS.green : s === 'wrong' ? COLORS.red : COLORS.text)
     const borderColor = (s: Row['status']) => (s === 'neutral' ? COLORS.border : statusColor(s))
 
     // ---- Header ----
-    const header = el('div', { height: '48px', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '20px' }, [
-      el('div', { alignItems: 'center', gap: '14px', flex: 1, overflow: 'hidden' }, [
-        ...(logo ? [img(logo.src, logo.w, logo.h)] : []),
-        txt(tournament?.name || 'PronoHub', { fontSize: '26px', fontWeight: 900, color: COLORS.text, maxWidth: '560px', overflow: 'hidden', whiteSpace: 'nowrap' }),
+    const logoW = logo ? logo.w : 0
+    const header = el('div', { height: '48px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }, [
+      // gauche : logo de l'app
+      el('div', { alignItems: 'center', width: `${logoW}px` }, logo ? [img(logo.src, logo.w, logo.h)] : []),
+      // centre : emblème de la compétition + nom du tournoi
+      el('div', { alignItems: 'center', justifyContent: 'center', gap: '14px', flex: 1, overflow: 'hidden' }, [
+        ...(compEmblem ? [img(compEmblem, 42, 42)] : []),
+        txt(tournament?.name || 'PronoHub', { fontSize: '28px', fontWeight: 900, color: COLORS.text, maxWidth: '720px', overflow: 'hidden', whiteSpace: 'nowrap' }),
       ]),
-      txt('C’est qui le roi du Prono ?', { fontSize: '22px', fontWeight: 700, color: COLORS.orange, whiteSpace: 'nowrap', flexShrink: 0 }),
+      // droite : espace pour équilibrer le centrage
+      el('div', { width: `${logoW}px` }),
     ])
 
     // ---- Bandeau match ----
@@ -271,7 +287,7 @@ export async function GET(request: NextRequest) {
           : [...(crest ? [img(crest, 50, 50)] : []), txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' })]),
       ])
 
-    const MATCHBAR_H = 110
+    const MATCHBAR_H = 136
     const matchBar = el(
       'div',
       { height: `${MATCHBAR_H}px`, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', gap: '6px' },
@@ -281,7 +297,8 @@ export async function GET(request: NextRequest) {
           txt(scoreLabel, { fontSize: '30px', fontWeight: 900, color: COLORS.orange, padding: '0 10px', whiteSpace: 'nowrap' }),
           teamBlock(match.away_team_name || 'Extérieur', awayCrest, 'flex-start'),
         ]),
-        txt(stateTag, { fontSize: '16px', fontWeight: 700, color: stateColor }),
+        txt(stateTag, { fontSize: '15px', fontWeight: 700, color: stateColor }),
+        ...(metaLine ? [txt(metaLine, { fontSize: '15px', color: COLORS.sub })] : []),
       ]
     )
 
@@ -334,7 +351,7 @@ export async function GET(request: NextRequest) {
     // ---- Footer ----
     const FOOTER_H = 26
     const footer = el('div', { height: `${FOOTER_H}px`, width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
-      txt(extra > 0 ? `+ ${extra} autre${extra > 1 ? 's' : ''} joueur${extra > 1 ? 's' : ''}` : 'PronoHub', { fontSize: '17px', color: COLORS.sub, maxWidth: '760px', overflow: 'hidden' }),
+      txt(extra > 0 ? `C’est qui le roi du Prono ?  ·  +${extra} autres` : 'C’est qui le roi du Prono ?', { fontSize: '17px', fontWeight: 700, color: COLORS.text, maxWidth: '820px', overflow: 'hidden' }),
       txt('pronohub.club', { fontSize: '18px', fontWeight: 700, color: COLORS.orange }),
     ])
 

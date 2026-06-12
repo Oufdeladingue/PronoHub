@@ -11,7 +11,7 @@ import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, type StageType } from '@/lib/stage-formatter'
-import SharePronosModal from '@/components/SharePronosModal'
+import ShareImageModal from '@/components/ShareImageModal'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
 import { trackPredictionSubmitted } from '@/lib/analytics'
@@ -3461,7 +3461,7 @@ export default function OppositionClient({
                                         {allPlayersPredictions[match.id].length > 0 && (
                                           <button
                                             onClick={() => handleShareMatchPronos(match)}
-                                            className="w-full mt-1 px-3 py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-2 bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition"
+                                            className="mx-auto w-fit mt-2 px-5 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition"
                                           >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                               <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -3831,11 +3831,12 @@ export default function OppositionClient({
 
         {/* Modale de partage des pronos du match */}
         {shareModalMatch && tournament && (
-          <SharePronosModal
-            tournamentId={tournament.id}
-            matchId={shareModalMatch.id}
-            homeTeamName={translateTeamName(shareModalMatch.home_team_name)}
-            awayTeamName={translateTeamName(shareModalMatch.away_team_name)}
+          <ShareImageModal
+            imageUrl={`/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}`}
+            shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
+            shareText={`Les pronos de ${translateTeamName(shareModalMatch.home_team_name)} - ${translateTeamName(shareModalMatch.away_team_name)} sur PronoHub 👀`}
+            downloadName="pronos-pronohub.png"
+            title="Partager les pronos"
             onClose={() => setShareModalMatch(null)}
           />
         )}

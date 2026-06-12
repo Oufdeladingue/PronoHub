@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
+import ShareImageModal from '@/components/ShareImageModal'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 
 interface PlayerStats {
@@ -63,6 +64,7 @@ interface TournamentRankingsProps {
 
 export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition, matchdayDisplayMap }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
+  const [shareOpen, setShareOpen] = useState(false)
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
   const [loading, setLoading] = useState(false)
@@ -406,9 +408,15 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           <div>
             {/* Info classement équipes */}
             <div className="mb-3 md:mb-4 p-2 md:p-3 rounded-lg info-bg-container">
-              <p className="text-xs md:text-sm theme-text-secondary">
-                Classement basé sur la moyenne des points de chaque équipe. En cas d&apos;égalité, la moyenne de bons résultats départage.
-              </p>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4">
+                <p className="text-xs md:text-sm theme-text-secondary">
+                  Classement basé sur la moyenne des points de chaque équipe. En cas d&apos;égalité, la moyenne de bons résultats départage.
+                </p>
+                <button onClick={() => setShareOpen(true)} className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                  Partager
+                </button>
+              </div>
             </div>
 
             {/* Tableau des équipes */}
@@ -567,16 +575,22 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                   </>
                 )}
               </p>
-              {rankingsData.hasInProgressMatches && (
-                <div className="flex items-center gap-2 px-3 py-1 quota-warning-box rounded-lg animate-pulse">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 quota-warning-icon" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-xs font-semibold quota-warning-title">
-                    Classement provisoire - Matchs en cours
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {rankingsData.hasInProgressMatches && (
+                  <div className="flex items-center gap-2 px-3 py-1 quota-warning-box rounded-lg animate-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 quota-warning-icon" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-xs font-semibold quota-warning-title">
+                      Classement provisoire - Matchs en cours
+                    </span>
+                  </div>
+                )}
+                <button onClick={() => setShareOpen(true)} className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                  Partager
+                </button>
+              </div>
             </div>
           </div>
 
@@ -716,6 +730,22 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
           </div>
         </div>
       )}
+
+      {shareOpen && (() => {
+        const mode = selectedView === 'teams' ? 'teams' : selectedView === 'general' ? 'general' : 'matchday'
+        const mdParam = typeof selectedView === 'number' ? `&matchday=${selectedView}` : ''
+        const ctx = mode === 'teams' ? 'par équipes' : mode === 'matchday' ? `Journée ${selectedView}` : 'général'
+        return (
+          <ShareImageModal
+            imageUrl={`/api/og/ranking?tournamentId=${tournamentId}&mode=${mode}${mdParam}`}
+            shareUrl={`https://www.pronohub.club/share/ranking/${tournamentId}?mode=${mode}${mdParam}`}
+            shareText={`Classement ${ctx}${tournamentName ? ' de ' + tournamentName : ''} sur PronoHub 👀`}
+            downloadName="classement-pronohub.png"
+            title="Partager le classement"
+            onClose={() => setShareOpen(false)}
+          />
+        )
+      })()}
     </div>
   )
 }
