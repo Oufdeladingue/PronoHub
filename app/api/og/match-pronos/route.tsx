@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const MAX_ROWS = 9
+    const MAX_ROWS = 6
     const extra = Math.max(0, rows.length - MAX_ROWS)
     const shown = rows.slice(0, MAX_ROWS)
 
@@ -248,9 +248,9 @@ export async function GET(request: NextRequest) {
     // ---- Lignes joueurs ----
     const playerRows = revealed
       ? shown.map((p) =>
-          el('div', { alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '12px', padding: '9px 18px', gap: '14px', border: `2px solid ${borderColor(p.status)}` }, [
-            el('div', { width: '38px', height: '38px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
-              txt((p.name[0] || '?').toUpperCase(), { fontSize: '19px', fontWeight: 900, color: '#0f172a' }),
+          el('div', { alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '12px', padding: '8px 16px', gap: '14px', border: `2px solid ${borderColor(p.status)}` }, [
+            el('div', { width: '36px', height: '36px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
+              txt((p.name[0] || '?').toUpperCase(), { fontSize: '18px', fontWeight: 900, color: '#0f172a' }),
             ]),
             txt(p.name, { fontSize: '22px', fontWeight: 700, color: COLORS.text, flex: 1, overflow: 'hidden' }),
             el('div', { background: '#0f172a', borderRadius: '8px', padding: '5px 16px', alignItems: 'center', gap: '6px' }, [
@@ -286,8 +286,8 @@ export async function GET(request: NextRequest) {
 
     const root = el(
       'div',
-      { width: '1200px', height: '630px', flexDirection: 'column', background: COLORS.bg, padding: '34px 44px', gap: '16px' },
-      [header, matchBar, el('div', { flexDirection: 'column', gap: '9px', width: '100%', flex: 1 }, playerRows), footer]
+      { width: '1200px', height: '630px', flexDirection: 'column', background: COLORS.bg, padding: '26px 40px', gap: '12px' },
+      [header, matchBar, el('div', { flexDirection: 'column', gap: '7px', width: '100%', flex: 1 }, playerRows), footer]
     )
 
     const svg = await satori(root as any, {
