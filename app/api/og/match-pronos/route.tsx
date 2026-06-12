@@ -34,10 +34,13 @@ async function fetchImageAsBase64(url: string | null): Promise<string | null> {
   }
 }
 
-async function loadLocalImageAsBase64(rel: string): Promise<string | null> {
+// Charge le logo en respectant son ratio largeur/hauteur (évite la compression)
+async function loadLogo(targetH: number): Promise<{ src: string; w: number; h: number } | null> {
   try {
-    const buf = await fs.readFile(path.join(process.cwd(), 'public', rel))
-    return `data:image/png;base64,${buf.toString('base64')}`
+    const buf = await fs.readFile(path.join(process.cwd(), 'public', 'images/logo.png'))
+    const meta = await sharp(buf).metadata()
+    const ratio = (meta.width || 1) / (meta.height || 1)
+    return { src: `data:image/png;base64,${buf.toString('base64')}`, w: Math.round(targetH * ratio), h: targetH }
   } catch {
     return null
   }
@@ -66,7 +69,7 @@ const COLORS = {
   red: '#ef4444',
 }
 
-type Row = { name: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null }
+type Row = { name: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null; isDefault: boolean }
 
 export async function GET(request: NextRequest) {
   try {
@@ -101,13 +104,22 @@ export async function GET(request: NextRequest) {
 
     let rows: Row[] = []
     if (revealed) {
+      // Tous les participants du tournoi (pour inclure ceux qui ont oublié de pronostiquer)
+      const { data: parts } = await supabase
+        .from('tournament_participants')
+        .select('user_id')
+        .eq('tournament_id', tournamentId)
+
       const { data: preds } = await supabase
         .from('predictions')
         .select('user_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier')
         .eq('tournament_id', tournamentId)
         .eq('match_id', matchId)
 
-      const userIds = [...new Set((preds || []).map((p) => p.user_id))]
+      const predByUser = new Map((preds || []).map((p) => [p.user_id, p]))
+      let userIds = [...new Set((parts || []).map((p) => p.user_id))]
+      if (userIds.length === 0) userIds = [...predByUser.keys()] // fallback si pas de participants listés
+
       const nameById = new Map<string, string>()
       if (userIds.length > 0) {
         const { data: profs } = await supabase.from('profiles').select('id, username').in('id', userIds)
@@ -140,10 +152,14 @@ export async function GET(request: NextRequest) {
         isKnockout = !!(match.stage && isKnockoutStage(match.stage as StageType))
       }
 
-      rows = (preds || []).map((p) => {
-        const ph = p.predicted_home_score ?? 0
-        const pa = p.predicted_away_score ?? 0
-        const base: Row = { name: nameById.get(p.user_id) || 'Joueur', ph, pa, status: 'neutral', points: null }
+      rows = userIds.map((uid) => {
+        const p = predByUser.get(uid)
+        const hasPred = !!p
+        // "défaut" = pas de prono saisi (oubli) OU prono par défaut auto (0-0)
+        const isDefault = !hasPred || !!p!.is_default_prediction
+        const ph = hasPred ? (p!.predicted_home_score ?? 0) : 0
+        const pa = hasPred ? (p!.predicted_away_score ?? 0) : 0
+        const base: Row = { name: nameById.get(uid) || 'Joueur', ph, pa, status: 'neutral', points: null, isDefault }
 
         if (isFinished && settings) {
           const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
@@ -155,11 +171,11 @@ export async function GET(request: NextRequest) {
               res = calculateKnockoutPoints(
                 { predictedHomeScore: ph, predictedAwayScore: pa },
                 { homeScore: hs, awayScore: as },
-                (p.predicted_qualifier as 'home' | 'away' | null) || null,
+                (hasPred ? (p!.predicted_qualifier as 'home' | 'away' | null) : null) || null,
                 winnerSide,
                 settings,
                 isBonus,
-                !!p.is_default_prediction,
+                isDefault,
                 true,
               )
             } else {
@@ -168,7 +184,7 @@ export async function GET(request: NextRequest) {
                 { homeScore: hs, awayScore: as },
                 settings,
                 isBonus,
-                !!p.is_default_prediction,
+                isDefault,
               )
             }
             base.points = res.points
@@ -196,7 +212,7 @@ export async function GET(request: NextRequest) {
       loadFont(400),
       loadFont(700),
       loadFont(900),
-      loadLocalImageAsBase64('images/logo.png'),
+      loadLogo(40),
       fetchImageAsBase64(match.home_team_crest),
       fetchImageAsBase64(match.away_team_crest),
     ])
@@ -218,12 +234,12 @@ export async function GET(request: NextRequest) {
     const borderColor = (s: Row['status']) => (s === 'neutral' ? COLORS.border : statusColor(s))
 
     // ---- Header ----
-    const header = el('div', { height: '48px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }, [
-      el('div', { alignItems: 'center', gap: '14px' }, [
-        ...(logo ? [img(logo, 44, 44)] : []),
-        txt('PronoHub', { fontSize: '30px', fontWeight: 900, color: COLORS.text }),
+    const header = el('div', { height: '48px', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '20px' }, [
+      el('div', { alignItems: 'center', gap: '14px', flex: 1, overflow: 'hidden' }, [
+        ...(logo ? [img(logo.src, logo.w, logo.h)] : []),
+        txt(tournament?.name || 'PronoHub', { fontSize: '26px', fontWeight: 900, color: COLORS.text, maxWidth: '560px', overflow: 'hidden', whiteSpace: 'nowrap' }),
       ]),
-      txt('Les pronos du match', { fontSize: '22px', fontWeight: 700, color: COLORS.orange }),
+      txt('C’est qui le roi du Prono ?', { fontSize: '22px', fontWeight: 700, color: COLORS.orange, whiteSpace: 'nowrap', flexShrink: 0 }),
     ])
 
     // ---- Bandeau match ----
@@ -257,7 +273,10 @@ export async function GET(request: NextRequest) {
         el('div', { width: '30px', height: '30px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
           txt(isFinished ? `${rank}` : (p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
         ]),
-        txt(p.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, flex: 1, overflow: 'hidden' }),
+        el('div', { alignItems: 'center', gap: '7px', flex: 1, overflow: 'hidden' }, [
+          txt(p.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
+          ...(p.isDefault ? [el('div', { background: 'rgba(250,204,21,0.16)', borderRadius: '5px', padding: '1px 7px', flexShrink: 0 }, [txt('défaut', { fontSize: '12px', fontWeight: 700, color: COLORS.gold })])] : []),
+        ]),
         el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 12px', alignItems: 'center', gap: '5px', flexShrink: 0 }, [
           txt(`${p.ph}`, { fontSize: '20px', fontWeight: 900, color: statusColor(p.status) }),
           txt('-', { fontSize: '16px', color: COLORS.sub }),
@@ -294,7 +313,7 @@ export async function GET(request: NextRequest) {
     // ---- Footer ----
     const FOOTER_H = 26
     const footer = el('div', { height: `${FOOTER_H}px`, width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
-      txt(tournament?.name ? `${tournament.name}${extra > 0 ? ` · +${extra} autres` : ''}` : 'PronoHub', { fontSize: '17px', color: COLORS.sub, maxWidth: '760px', overflow: 'hidden' }),
+      txt(extra > 0 ? `+ ${extra} autre${extra > 1 ? 's' : ''} joueur${extra > 1 ? 's' : ''}` : 'PronoHub', { fontSize: '17px', color: COLORS.sub, maxWidth: '760px', overflow: 'hidden' }),
       txt('pronohub.club', { fontSize: '18px', fontWeight: 700, color: COLORS.orange }),
     ])
 
