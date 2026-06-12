@@ -4,6 +4,8 @@ import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
+import { isKnockoutStage, type StageType } from '@/lib/stage-formatter'
+import { calculatePoints, calculateKnockoutPoints, getWinnerSide, type PointsSettings } from '@/lib/scoring'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +66,8 @@ const COLORS = {
   red: '#ef4444',
 }
 
+type Row = { name: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null }
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -76,10 +80,10 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient()
 
     const [{ data: tournament }, { data: match }] = await Promise.all([
-      supabase.from('tournaments').select('name').eq('id', tournamentId).maybeSingle(),
+      supabase.from('tournaments').select('name, bonus_qualified, scoring_draw_with_default_prediction').eq('id', tournamentId).maybeSingle(),
       supabase
         .from('imported_matches')
-        .select('home_team_name, away_team_name, home_team_crest, away_team_crest, home_score, away_score, utc_date, status')
+        .select('home_team_name, away_team_name, home_team_crest, away_team_crest, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id, stage, utc_date, status')
         .eq('id', matchId)
         .maybeSingle(),
     ])
@@ -88,18 +92,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
     }
 
-    // Confidentialité : les pronos ne sont révélés qu'au verrouillage (30 min avant le coup d'envoi)
-    const kickoff = match.utc_date ? new Date(match.utc_date).getTime() : 0
-    const revealAt = kickoff - 30 * 60 * 1000
-    const revealed = Date.now() >= revealAt
+    const isFinished = match.status === 'FINISHED' || match.status === 'AWARDED'
+    const isLive = ['IN_PLAY', 'PAUSED', 'SUSPENDED'].includes(match.status || '')
 
-    // Pronostics + profils
-    let players: Array<{ name: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'pending' }> = []
-    const hasRealScore = match.home_score !== null && match.away_score !== null
+    // Confidentialité : pronos révélés au verrouillage (30 min avant le coup d'envoi)
+    const kickoff = match.utc_date ? new Date(match.utc_date).getTime() : 0
+    const revealed = Date.now() >= kickoff - 30 * 60 * 1000
+
+    let rows: Row[] = []
     if (revealed) {
       const { data: preds } = await supabase
         .from('predictions')
-        .select('user_id, predicted_home_score, predicted_away_score')
+        .select('user_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier')
         .eq('tournament_id', tournamentId)
         .eq('match_id', matchId)
 
@@ -110,32 +114,82 @@ export async function GET(request: NextRequest) {
         for (const p of profs || []) nameById.set(p.id, p.username || 'Joueur')
       }
 
-      players = (preds || []).map((p) => {
+      // Barème + match bonus uniquement si le match est terminé (sinon : pas de points)
+      let settings: PointsSettings | null = null
+      let isBonus = false
+      let isKnockout = false
+      if (isFinished) {
+        const { data: ps } = await supabase
+          .from('admin_settings')
+          .select('setting_key, setting_value')
+          .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result'])
+        const get = (k: string, d: number) => parseInt(ps?.find((s) => s.setting_key === k)?.setting_value ?? String(d)) || d
+        settings = {
+          exactScore: get('points_exact_score', 3),
+          correctResult: get('points_correct_result', 1),
+          incorrectResult: get('points_incorrect_result', 0),
+          drawWithDefaultPrediction: tournament?.scoring_draw_with_default_prediction ?? 1,
+        }
+        const { data: bonus } = await supabase
+          .from('tournament_bonus_matches')
+          .select('match_id')
+          .eq('tournament_id', tournamentId)
+          .eq('match_id', matchId)
+          .maybeSingle()
+        isBonus = !!bonus
+        isKnockout = !!(match.stage && isKnockoutStage(match.stage as StageType))
+      }
+
+      rows = (preds || []).map((p) => {
         const ph = p.predicted_home_score ?? 0
         const pa = p.predicted_away_score ?? 0
-        let st: 'exact' | 'correct' | 'wrong' | 'pending' = 'pending'
-        if (hasRealScore) {
-          const hs = match.home_score as number
-          const as = match.away_score as number
-          if (ph === hs && pa === as) st = 'exact'
-          else {
-            const po = ph > pa ? 'H' : ph < pa ? 'A' : 'D'
-            const ro = hs > as ? 'H' : hs < as ? 'A' : 'D'
-            st = po === ro ? 'correct' : 'wrong'
+        const base: Row = { name: nameById.get(p.user_id) || 'Joueur', ph, pa, status: 'neutral', points: null }
+
+        if (isFinished && settings) {
+          // Score de référence : 90 min pour les phases à élimination, sinon score final
+          const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
+          const as = (isKnockout && match.away_score_90 != null ? match.away_score_90 : match.away_score) as number
+          if (hs != null && as != null) {
+            let res
+            if (isKnockout && tournament?.bonus_qualified) {
+              const winnerSide = getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
+              res = calculateKnockoutPoints(
+                { predictedHomeScore: ph, predictedAwayScore: pa },
+                { homeScore: hs, awayScore: as },
+                (p.predicted_qualifier as 'home' | 'away' | null) || null,
+                winnerSide,
+                settings,
+                isBonus,
+                !!p.is_default_prediction,
+                true,
+              )
+            } else {
+              res = calculatePoints(
+                { predictedHomeScore: ph, predictedAwayScore: pa },
+                { homeScore: hs, awayScore: as },
+                settings,
+                isBonus,
+                !!p.is_default_prediction,
+              )
+            }
+            base.points = res.points
+            base.status = res.isExactScore ? 'exact' : res.isCorrectResult ? 'correct' : 'wrong'
           }
         }
-        return { name: nameById.get(p.user_id) || 'Joueur', ph, pa, status: st }
+        return base
       })
-      // exact d'abord, puis bons résultats, puis ratés
-      const order = { exact: 0, correct: 1, wrong: 2, pending: 3 }
-      players.sort((a, b) => order[a.status] - order[b.status] || a.name.localeCompare(b.name))
+
+      if (isFinished) {
+        rows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name))
+      } else {
+        rows.sort((a, b) => a.name.localeCompare(b.name))
+      }
     }
 
     const MAX_ROWS = 9
-    const extra = Math.max(0, players.length - MAX_ROWS)
-    const shown = players.slice(0, MAX_ROWS)
+    const extra = Math.max(0, rows.length - MAX_ROWS)
+    const shown = rows.slice(0, MAX_ROWS)
 
-    // Assets
     const [fr, fb, fblack, logo, homeCrest, awayCrest] = await Promise.all([
       loadFont(400),
       loadFont(700),
@@ -145,11 +199,23 @@ export async function GET(request: NextRequest) {
       fetchImageAsBase64(match.away_team_crest),
     ])
 
-    const scoreLabel = hasRealScore ? `${match.home_score} - ${match.away_score}` : 'à venir'
+    // En-tête : score final / live / heure de coup d'envoi
+    let scoreLabel: string
+    if (isFinished || isLive) {
+      scoreLabel = `${match.home_score ?? 0} - ${match.away_score ?? 0}`
+    } else {
+      const d = match.utc_date ? new Date(match.utc_date) : null
+      scoreLabel = d
+        ? d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+        : 'à venir'
+    }
+    const stateTag = isFinished ? 'Terminé' : isLive ? '● En direct' : 'À venir'
+    const stateColor = isFinished ? COLORS.sub : isLive ? COLORS.red : COLORS.sub
 
-    const statusColor = (s: string) => (s === 'exact' ? COLORS.gold : s === 'correct' ? COLORS.green : s === 'wrong' ? COLORS.red : COLORS.sub)
+    const statusColor = (s: Row['status']) => (s === 'exact' ? COLORS.gold : s === 'correct' ? COLORS.green : s === 'wrong' ? COLORS.red : COLORS.text)
+    const borderColor = (s: Row['status']) => (s === 'neutral' ? COLORS.border : statusColor(s))
 
-    // ---- Header : logo + titre ----
+    // ---- Header ----
     const header = el('div', { alignItems: 'center', justifyContent: 'space-between', width: '100%' }, [
       el('div', { alignItems: 'center', gap: '14px' }, [
         ...(logo ? [img(logo, 44, 44)] : []),
@@ -162,44 +228,54 @@ export async function GET(request: NextRequest) {
     const teamBlock = (name: string, crest: string | null, align: 'flex-end' | 'flex-start') =>
       el('div', { alignItems: 'center', gap: '12px', flex: 1, justifyContent: align }, [
         ...(align === 'flex-end'
-          ? [txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '320px' }), ...(crest ? [img(crest, 52, 52)] : [])]
-          : [...(crest ? [img(crest, 52, 52)] : []), txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '320px' })]),
+          ? [txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' }), ...(crest ? [img(crest, 52, 52)] : [])]
+          : [...(crest ? [img(crest, 52, 52)] : []), txt(name, { fontSize: '24px', fontWeight: 700, color: COLORS.text, maxWidth: '300px' })]),
       ])
 
     const matchBar = el(
       'div',
-      { alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', padding: '18px 24px', gap: '18px' },
+      { flexDirection: 'column', alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', padding: '14px 24px', gap: '6px' },
       [
-        teamBlock(match.home_team_name || 'Domicile', homeCrest, 'flex-end'),
-        txt(scoreLabel, { fontSize: '30px', fontWeight: 900, color: COLORS.orange, padding: '0 10px', whiteSpace: 'nowrap' }),
-        teamBlock(match.away_team_name || 'Extérieur', awayCrest, 'flex-start'),
+        el('div', { alignItems: 'center', justifyContent: 'center', width: '100%', gap: '18px' }, [
+          teamBlock(match.home_team_name || 'Domicile', homeCrest, 'flex-end'),
+          txt(scoreLabel, { fontSize: '30px', fontWeight: 900, color: COLORS.orange, padding: '0 10px', whiteSpace: 'nowrap' }),
+          teamBlock(match.away_team_name || 'Extérieur', awayCrest, 'flex-start'),
+        ]),
+        txt(stateTag, { fontSize: '16px', fontWeight: 700, color: stateColor }),
       ]
     )
 
     // ---- Lignes joueurs ----
-    const rows = revealed
+    const playerRows = revealed
       ? shown.map((p) =>
-          el('div', { alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '12px', padding: '10px 18px', gap: '14px', border: `2px solid ${statusColor(p.status)}` }, [
-            // pastille initiale
-            el('div', { width: '40px', height: '40px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
-              txt((p.name[0] || '?').toUpperCase(), { fontSize: '20px', fontWeight: 900, color: '#0f172a' }),
+          el('div', { alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '12px', padding: '9px 18px', gap: '14px', border: `2px solid ${borderColor(p.status)}` }, [
+            el('div', { width: '38px', height: '38px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
+              txt((p.name[0] || '?').toUpperCase(), { fontSize: '19px', fontWeight: 900, color: '#0f172a' }),
             ]),
             txt(p.name, { fontSize: '22px', fontWeight: 700, color: COLORS.text, flex: 1, overflow: 'hidden' }),
-            el('div', { background: '#0f172a', borderRadius: '8px', padding: '6px 16px', alignItems: 'center', gap: '6px' }, [
-              txt(`${p.ph}`, { fontSize: '24px', fontWeight: 900, color: statusColor(p.status) }),
-              txt('-', { fontSize: '20px', color: COLORS.sub }),
-              txt(`${p.pa}`, { fontSize: '24px', fontWeight: 900, color: statusColor(p.status) }),
+            el('div', { background: '#0f172a', borderRadius: '8px', padding: '5px 16px', alignItems: 'center', gap: '6px' }, [
+              txt(`${p.ph}`, { fontSize: '23px', fontWeight: 900, color: statusColor(p.status) }),
+              txt('-', { fontSize: '19px', color: COLORS.sub }),
+              txt(`${p.pa}`, { fontSize: '23px', fontWeight: 900, color: statusColor(p.status) }),
             ]),
+            // Points uniquement si match terminé
+            ...(p.points !== null
+              ? [
+                  el('div', { width: '78px', justifyContent: 'flex-end' }, [
+                    txt(`${p.points > 0 ? '+' : ''}${p.points} pts`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
+                  ]),
+                ]
+              : []),
           ])
         )
       : [
           el('div', { width: '100%', justifyContent: 'center', alignItems: 'center', padding: '60px 0' }, [
-            txt('🔒 Pronostics révélés au coup d’envoi', { fontSize: '26px', fontWeight: 700, color: COLORS.sub }),
+            txt('🔒 Pronostics révélés 30 min avant le coup d’envoi', { fontSize: '24px', fontWeight: 700, color: COLORS.sub }),
           ]),
         ]
 
     if (revealed && extra > 0) {
-      rows.push(el('div', { width: '100%', justifyContent: 'center', padding: '4px' }, [txt(`+ ${extra} autre${extra > 1 ? 's' : ''} joueur${extra > 1 ? 's' : ''}`, { fontSize: '18px', color: COLORS.sub })]))
+      playerRows.push(el('div', { width: '100%', justifyContent: 'center', padding: '2px' }, [txt(`+ ${extra} autre${extra > 1 ? 's' : ''} joueur${extra > 1 ? 's' : ''}`, { fontSize: '18px', color: COLORS.sub })]))
     }
 
     // ---- Footer ----
@@ -210,8 +286,8 @@ export async function GET(request: NextRequest) {
 
     const root = el(
       'div',
-      { width: '1200px', height: '630px', flexDirection: 'column', background: COLORS.bg, padding: '36px 44px', gap: '18px' },
-      [header, matchBar, el('div', { flexDirection: 'column', gap: '10px', width: '100%', flex: 1 }, rows), footer]
+      { width: '1200px', height: '630px', flexDirection: 'column', background: COLORS.bg, padding: '34px 44px', gap: '16px' },
+      [header, matchBar, el('div', { flexDirection: 'column', gap: '9px', width: '100%', flex: 1 }, playerRows), footer]
     )
 
     const svg = await satori(root as any, {
