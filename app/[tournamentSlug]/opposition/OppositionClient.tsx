@@ -1364,7 +1364,7 @@ export default function OppositionClient({
     }
   }
 
-  // Timers d'auto-enregistrement (un par match) : sauvegarde après 2s d'inactivité,
+  // Timers d'auto-enregistrement (un par match) : sauvegarde après 3s d'inactivité,
   // comme si l'utilisateur avait cliqué sur "Enregistrer". Évite les pronos oubliés.
   const autoSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -1387,7 +1387,7 @@ export default function OppositionClient({
       const match = matches.find(m => m.id === matchId)
       if (match && isMatchLocked(match)) return
       savePrediction(matchId)
-    }, 2000)
+    }, 3000)
   }
 
   const handleScoreChange = (matchId: string, team: 'home' | 'away', value: number) => {
