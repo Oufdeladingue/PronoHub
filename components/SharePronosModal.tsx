@@ -51,7 +51,14 @@ export default function SharePronosModal({ tournamentId, matchId, homeTeamName, 
       try {
         setLoading(true)
         setError(false)
-        const res = await fetch(`/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`)
+        const ctrl = new AbortController()
+        const timer = setTimeout(() => ctrl.abort(), 25000)
+        let res: Response
+        try {
+          res = await fetch(`/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`, { signal: ctrl.signal })
+        } finally {
+          clearTimeout(timer)
+        }
         if (!res.ok) throw new Error('image')
         const b = await res.blob()
         const url = URL.createObjectURL(b)

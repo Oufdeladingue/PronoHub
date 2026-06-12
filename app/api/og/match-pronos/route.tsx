@@ -9,6 +9,17 @@ import { calculatePoints, calculateKnockoutPoints, getWinnerSide, type PointsSet
 
 export const dynamic = 'force-dynamic'
 
+// fetch avec timeout (évite qu'une URL lente bloque toute la génération)
+async function fetchWithTimeout(url: string, ms: number, opts: RequestInit = {}): Promise<Response> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal })
+  } finally {
+    clearTimeout(t)
+  }
+}
+
 // ---- helpers (police, images) ----
 async function loadFont(weight: number): Promise<ArrayBuffer> {
   const urls: Record<number, string> = {
@@ -16,15 +27,23 @@ async function loadFont(weight: number): Promise<ArrayBuffer> {
     700: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hjp-Ek-_EeA.woff',
     900: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuBWYAZ9hjp-Ek-_EeA.woff',
   }
-  const res = await fetch(urls[weight] || urls[400])
+  const res = await fetchWithTimeout(urls[weight] || urls[400], 8000)
   if (!res.ok) throw new Error('font load failed')
   return res.arrayBuffer()
+}
+
+// Cache des polices en mémoire (process) : évite de re-fetch Google à chaque appel
+let _fontsCache: [ArrayBuffer, ArrayBuffer, ArrayBuffer] | null = null
+async function getFonts() {
+  if (_fontsCache) return _fontsCache
+  _fontsCache = await Promise.all([loadFont(400), loadFont(700), loadFont(900)]) as [ArrayBuffer, ArrayBuffer, ArrayBuffer]
+  return _fontsCache
 }
 
 async function fetchImageAsBase64(url: string | null): Promise<string | null> {
   if (!url) return null
   try {
-    const res = await fetch(url, { next: { revalidate: 3600 } })
+    const res = await fetchWithTimeout(url, 3500, { next: { revalidate: 3600 } } as any)
     if (!res.ok) return null
     const buf = await res.arrayBuffer()
     const ct = res.headers.get('content-type') || 'image/png'
@@ -34,16 +53,19 @@ async function fetchImageAsBase64(url: string | null): Promise<string | null> {
   }
 }
 
-// Charge le logo en respectant son ratio largeur/hauteur (évite la compression)
+// Charge le logo en respectant son ratio largeur/hauteur (évite la compression), avec cache
+let _logoCache: { src: string; w: number; h: number } | null | undefined = undefined
 async function loadLogo(targetH: number): Promise<{ src: string; w: number; h: number } | null> {
+  if (_logoCache !== undefined) return _logoCache
   try {
     const buf = await fs.readFile(path.join(process.cwd(), 'public', 'images/logo.png'))
     const meta = await sharp(buf).metadata()
     const ratio = (meta.width || 1) / (meta.height || 1)
-    return { src: `data:image/png;base64,${buf.toString('base64')}`, w: Math.round(targetH * ratio), h: targetH }
+    _logoCache = { src: `data:image/png;base64,${buf.toString('base64')}`, w: Math.round(targetH * ratio), h: targetH }
   } catch {
-    return null
+    _logoCache = null
   }
+  return _logoCache
 }
 
 // ---- mini-DSL pour construire les éléments satori ----
@@ -208,14 +230,13 @@ export async function GET(request: NextRequest) {
     const shown = rows.slice(0, MAX_SHOWN)
     const rowsPerCol = TWO_COLS ? Math.ceil(shown.length / 2) : shown.length
 
-    const [fr, fb, fblack, logo, homeCrest, awayCrest] = await Promise.all([
-      loadFont(400),
-      loadFont(700),
-      loadFont(900),
+    const [fonts, logo, homeCrest, awayCrest] = await Promise.all([
+      getFonts(),
       loadLogo(40),
       fetchImageAsBase64(match.home_team_crest),
       fetchImageAsBase64(match.away_team_crest),
     ])
+    const [fr, fb, fblack] = fonts
 
     // En-tête : score final / live / heure de coup d'envoi
     let scoreLabel: string
