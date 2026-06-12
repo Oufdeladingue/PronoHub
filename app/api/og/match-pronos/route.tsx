@@ -6,6 +6,7 @@ import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
 import { isKnockoutStage, isGroupStage, getStageLabel, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { calculatePoints, calculateKnockoutPoints, getWinnerSide, type PointsSettings } from '@/lib/scoring'
+import { translateTeamName } from '@/lib/translations'
 
 export const dynamic = 'force-dynamic'
 
@@ -293,9 +294,9 @@ export async function GET(request: NextRequest) {
       { height: `${MATCHBAR_H}px`, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', gap: '6px' },
       [
         el('div', { alignItems: 'center', justifyContent: 'center', width: '100%', gap: '18px' }, [
-          teamBlock(match.home_team_name || 'Domicile', homeCrest, 'flex-end'),
+          teamBlock(translateTeamName(match.home_team_name || 'Domicile'), homeCrest, 'flex-end'),
           txt(scoreLabel, { fontSize: '30px', fontWeight: 900, color: COLORS.orange, padding: '0 10px', whiteSpace: 'nowrap' }),
-          teamBlock(match.away_team_name || 'Extérieur', awayCrest, 'flex-start'),
+          teamBlock(translateTeamName(match.away_team_name || 'Extérieur'), awayCrest, 'flex-start'),
         ]),
         txt(stateTag, { fontSize: '15px', fontWeight: 700, color: stateColor }),
         ...(metaLine ? [txt(metaLine, { fontSize: '15px', color: COLORS.sub })] : []),

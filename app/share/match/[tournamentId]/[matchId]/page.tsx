@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createAdminClient } from '@/lib/supabase/server'
+import { translateTeamName } from '@/lib/translations'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ async function getMatch(matchId: string) {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { tournamentId, matchId } = await params
   const match = await getMatch(matchId)
-  const teams = match ? `${match.home_team_name} - ${match.away_team_name}` : 'du match'
+  const teams = match ? `${translateTeamName(match.home_team_name)} - ${translateTeamName(match.away_team_name)}` : 'du match'
   const title = `Pronos ${teams} | PronoHub`
   const description = 'Découvre les pronostics des joueurs sur PronoHub.'
   const ogUrl = `${BASE}/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function SharePronosPage({ params }: { params: Promise<Params> }) {
   const { tournamentId, matchId } = await params
   const match = await getMatch(matchId)
-  const teams = match ? `${match.home_team_name} — ${match.away_team_name}` : 'Pronostics du match'
+  const teams = match ? `${translateTeamName(match.home_team_name)} — ${translateTeamName(match.away_team_name)}` : 'Pronostics du match'
   const ogUrl = `/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`
 
   return (
