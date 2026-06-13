@@ -6,6 +6,18 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'utilisateurs à traiter par exécution
 
+// Budget temps pour rester sous le timeout de la gateway (erreur 524). Au-delà, on s'arrête
+// proprement ; le run suivant (4 crons/jour) traite la suite, la déduplication évite les doublons.
+const TIME_BUDGET_MS = 80_000
+
+// Empêche un appel (email/push) qui traîne de bloquer tout le run.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timeout après ${ms}ms`)), ms)),
+  ])
+}
+
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
@@ -72,6 +84,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient()
     const now = new Date()
+    const startTime = Date.now()
 
     // Plan Hobby Vercel : 1 exécution/jour à 10h
     // On récupère tous les matchs du jour (de maintenant jusqu'à minuit)
@@ -425,9 +438,29 @@ export async function GET(request: NextRequest) {
     let skipped = 0
     const errors: string[] = []
 
-    const usersToProcess = Array.from(userMissingMap.values()).slice(0, BATCH_SIZE)
+    // Exclure les utilisateurs déjà notifiés aujourd'hui AVANT de découper le batch.
+    // Sinon on re-traite/skip toujours les 50 premiers et les suivants ne reçoivent jamais rien.
+    const todayStartFilter = new Date(now)
+    todayStartFilter.setHours(0, 0, 0, 0)
+    const { data: sentTodayLogs } = await supabase
+      .from('notification_logs')
+      .select('user_id')
+      .eq('notification_type', 'reminder')
+      .gte('scheduled_at', todayStartFilter.toISOString())
+    const alreadyNotified = new Set((sentTodayLogs || []).map(l => l.user_id))
+
+    const pendingUsers = Array.from(userMissingMap.values()).filter(u => !alreadyNotified.has(u.user_id))
+    const usersToProcess = pendingUsers.slice(0, BATCH_SIZE)
+    let stoppedForTime = false
 
     for (const userData of usersToProcess) {
+      // Respecter le budget temps pour ne pas déclencher un timeout gateway (524)
+      if (Date.now() - startTime > TIME_BUDGET_MS) {
+        stoppedForTime = true
+        console.log(`[REMINDERS] Budget temps atteint (${TIME_BUDGET_MS}ms), arrêt — reste pour le prochain run`)
+        break
+      }
+
       const todayStart = new Date(now)
       todayStart.setHours(0, 0, 0, 0)
 
@@ -442,7 +475,7 @@ export async function GET(request: NextRequest) {
         .eq('notification_type', 'reminder')
         .eq('channel', channel)
         .gte('scheduled_at', todayStart.toISOString())
-        .single()
+        .maybeSingle()
 
       if (existingLog) {
         skipped++
@@ -529,7 +562,7 @@ export async function GET(request: NextRequest) {
           })
           const imageUrl = `${baseUrl}/api/og/reminder?${imageParams.toString()}`
 
-          notificationSent = await sendPushNotification(
+          notificationSent = await withTimeout(sendPushNotification(
             userData.fcm_token!,
             title,
             body,
@@ -540,7 +573,7 @@ export async function GET(request: NextRequest) {
               clickAction: '/dashboard'
             },
             imageUrl
-          )
+          ), 15000, 'push')
         } catch (pushError: any) {
           errors.push(`Push error for ${userData.user_id}: ${pushError.message}`)
         }
@@ -550,7 +583,7 @@ export async function GET(request: NextRequest) {
         await new Promise(resolve => setTimeout(resolve, 600))
 
         try {
-          const result = await sendMultiTournamentReminderEmail(userData.email, {
+          const result = await withTimeout(sendMultiTournamentReminderEmail(userData.email, {
             username: userData.username,
             tournaments: userData.tournaments.map(t => ({
               name: t.name,
@@ -578,7 +611,7 @@ export async function GET(request: NextRequest) {
             })),
             defaultPredictionMaxPoints: 1,
             earliestDeadline: deadlineStr
-          })
+          }), 20000, 'email')
           notificationSent = result.success
           if (!result.success) {
             errors.push(`Email error for ${userData.user_id}: ${result.error}`)
@@ -608,9 +641,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'CRON exécuté avec succès',
+      message: stoppedForTime ? 'CRON arrêté (budget temps) — suite au prochain run' : 'CRON exécuté avec succès',
       processed,
       skipped,
+      stoppedForTime,
+      pendingUsers: pendingUsers.length,
       errors: errors.length > 0 ? errors : undefined,
       matchesFound: allUpcomingMatches.length,
       importedMatchesFound: normalizedImportedMatches.length,
