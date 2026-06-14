@@ -211,6 +211,10 @@ export default function OppositionClient({
   const [matches, setMatches] = useState<Match[]>([])
   const [allMatches, setAllMatches] = useState<Match[]>(serverAllMatches) // Pré-chargé depuis le server
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({})
+  // Ref toujours à jour des prédictions : l'auto-enregistrement (setTimeout) doit lire la DERNIÈRE
+  // valeur, pas une closure figée au clic — sinon la dernière modif n'est pas sauvegardée.
+  const predictionsRef = useRef<Record<string, Prediction>>({})
+  predictionsRef.current = predictions
   const [allPredictions, setAllPredictions] = useState<Record<string, Prediction>>({}) // Toutes les prédictions de l'utilisateur pour tous les matchs
   const [savingPrediction, setSavingPrediction] = useState<string | null>(null)
   const [successPrediction, setSuccessPrediction] = useState<string | null>(null) // Track successful save for visual feedback
@@ -1442,7 +1446,8 @@ export default function OppositionClient({
 
       if (!user || !tournament) return
 
-      const prediction = predictions[matchId]
+      // Lire depuis le ref pour avoir la valeur la plus récente (cas de l'auto-enregistrement)
+      const prediction = predictionsRef.current[matchId]
       if (!prediction || prediction.predicted_home_score === null || prediction.predicted_home_score === undefined ||
           prediction.predicted_away_score === null || prediction.predicted_away_score === undefined) {
         alert('Veuillez renseigner les deux scores')
@@ -1456,7 +1461,7 @@ export default function OppositionClient({
         .eq('tournament_id', tournament.id)
         .eq('user_id', user.id)
         .eq('match_id', matchId)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         // Mettre à jour
