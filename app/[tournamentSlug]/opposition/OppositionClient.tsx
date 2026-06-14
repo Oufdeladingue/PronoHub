@@ -1450,21 +1450,43 @@ export default function OppositionClient({
 
       if (!user || !tournament) return
 
-      // Upsert atomique sur la contrainte UNIQUE (tournament_id, user_id, match_id) :
-      // supprime la race check-then-write et empêche tout doublon.
-      const { error: upsertError } = await supabase
+      // NB: on garde check-then-insert/update (et non un upsert) car un upsert doit satisfaire
+      // la policy RLS INSERT même sur le chemin de mise à jour, ce qui fait échouer le
+      // re-enregistrement d'un prono existant. La contrainte UNIQUE en base empêche les doublons.
+      const { data: existing } = await supabase
         .from('predictions')
-        .upsert({
-          tournament_id: tournament.id,
-          user_id: user.id,
-          match_id: matchId,
-          predicted_home_score: prediction.predicted_home_score,
-          predicted_away_score: prediction.predicted_away_score,
-        }, { onConflict: 'tournament_id,user_id,match_id' })
+        .select('id')
+        .eq('tournament_id', tournament.id)
+        .eq('user_id', user.id)
+        .eq('match_id', matchId)
+        .maybeSingle()
 
-      if (upsertError) {
-        console.error('Erreur lors de l\'enregistrement:', upsertError)
-        throw upsertError
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('predictions')
+          .update({
+            predicted_home_score: prediction.predicted_home_score,
+            predicted_away_score: prediction.predicted_away_score,
+          })
+          .eq('id', existing.id)
+        if (updateError) {
+          console.error('Erreur lors de la mise à jour:', updateError)
+          throw updateError
+        }
+      } else {
+        const { error: insertError } = await supabase
+          .from('predictions')
+          .insert({
+            tournament_id: tournament.id,
+            user_id: user.id,
+            match_id: matchId,
+            predicted_home_score: prediction.predicted_home_score,
+            predicted_away_score: prediction.predicted_away_score,
+          })
+        if (insertError) {
+          console.error('Erreur lors de l\'insertion:', insertError)
+          throw insertError
+        }
       }
 
       // Marquer comme sauvegardé, non modifié et verrouillé

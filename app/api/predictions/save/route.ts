@@ -21,28 +21,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'bad request' }, { status: 400 })
     }
 
-    const rows = predictions
-      .filter((p) => p && typeof p.matchId === 'string' && Number.isFinite(Number(p.home)) && Number.isFinite(Number(p.away)))
-      .map((p) => ({
-        tournament_id: tournamentId,
-        user_id: user.id,
-        match_id: p.matchId,
-        predicted_home_score: Number(p.home),
-        predicted_away_score: Number(p.away),
-      }))
-
-    if (rows.length === 0) {
+    const valid = predictions.filter(
+      (p) => p && typeof p.matchId === 'string' && Number.isFinite(Number(p.home)) && Number.isFinite(Number(p.away))
+    )
+    if (valid.length === 0) {
       return NextResponse.json({ saved: 0 })
     }
 
-    const { error } = await supabase
-      .from('predictions')
-      .upsert(rows, { onConflict: 'tournament_id,user_id,match_id' })
+    // check-then-insert/update (pas d'upsert : un upsert exige la policy RLS INSERT même en
+    // mise à jour, ce qui échoue pour un prono existant). Contrainte UNIQUE → pas de doublon.
+    let saved = 0
+    for (const p of valid) {
+      const { data: existing } = await supabase
+        .from('predictions')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', user.id)
+        .eq('match_id', p.matchId)
+        .maybeSingle()
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      if (existing) {
+        const { error } = await supabase
+          .from('predictions')
+          .update({ predicted_home_score: Number(p.home), predicted_away_score: Number(p.away) })
+          .eq('id', existing.id)
+        if (!error) saved++
+      } else {
+        const { error } = await supabase
+          .from('predictions')
+          .insert({
+            tournament_id: tournamentId,
+            user_id: user.id,
+            match_id: p.matchId,
+            predicted_home_score: Number(p.home),
+            predicted_away_score: Number(p.away),
+          })
+        if (!error) saved++
+      }
     }
-    return NextResponse.json({ saved: rows.length })
+    return NextResponse.json({ saved })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'error' }, { status: 500 })
   }
