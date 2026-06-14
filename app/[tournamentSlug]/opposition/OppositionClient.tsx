@@ -1373,14 +1373,8 @@ export default function OppositionClient({
   // Timers d'auto-enregistrement (un par match) : sauvegarde après 3s d'inactivité,
   // comme si l'utilisateur avait cliqué sur "Enregistrer". Évite les pronos oubliés.
   const autoSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-
-  // Nettoyer tous les timers en attente au démontage
-  useEffect(() => {
-    const timers = autoSaveTimers.current
-    return () => {
-      Object.values(timers).forEach(clearTimeout)
-    }
-  }, [])
+  // Le nettoyage des timers au démontage est assuré par flushPendingAutoSaves (plus bas), qui
+  // SAUVEGARDE puis annule les timers en attente (évite de perdre une modif en quittant la page).
 
   const scheduleAutoSave = (matchId: string) => {
     // Remettre à zéro le compte à rebours à chaque modification
@@ -1433,12 +1427,22 @@ export default function OppositionClient({
     setModifiedPredictions(prev => ({ ...prev, [matchId]: true }))
   }
 
-  const savePrediction = async (matchId: string) => {
+  const savePrediction = async (matchId: string, opts?: { silent?: boolean }) => {
     // Annuler un éventuel auto-enregistrement en attente (clic manuel ou save direct)
     if (autoSaveTimers.current[matchId]) {
       clearTimeout(autoSaveTimers.current[matchId])
       delete autoSaveTimers.current[matchId]
     }
+
+    // Capturer la valeur AVANT tout await : immunise contre un changement d'état concurrent
+    // (changement de journée / re-fetch) qui remplacerait predictions pendant la sauvegarde.
+    const prediction = predictionsRef.current[matchId]
+    if (!prediction || prediction.predicted_home_score === null || prediction.predicted_home_score === undefined ||
+        prediction.predicted_away_score === null || prediction.predicted_away_score === undefined) {
+      if (!opts?.silent) alert('Veuillez renseigner les deux scores')
+      return
+    }
+
     try {
       setSavingPrediction(matchId)
       const supabase = createClient()
@@ -1446,53 +1450,21 @@ export default function OppositionClient({
 
       if (!user || !tournament) return
 
-      // Lire depuis le ref pour avoir la valeur la plus récente (cas de l'auto-enregistrement)
-      const prediction = predictionsRef.current[matchId]
-      if (!prediction || prediction.predicted_home_score === null || prediction.predicted_home_score === undefined ||
-          prediction.predicted_away_score === null || prediction.predicted_away_score === undefined) {
-        alert('Veuillez renseigner les deux scores')
-        return
-      }
-
-      // Vérifier si un pronostic existe déjà
-      const { data: existing } = await supabase
+      // Upsert atomique sur la contrainte UNIQUE (tournament_id, user_id, match_id) :
+      // supprime la race check-then-write et empêche tout doublon.
+      const { error: upsertError } = await supabase
         .from('predictions')
-        .select('id')
-        .eq('tournament_id', tournament.id)
-        .eq('user_id', user.id)
-        .eq('match_id', matchId)
-        .maybeSingle()
+        .upsert({
+          tournament_id: tournament.id,
+          user_id: user.id,
+          match_id: matchId,
+          predicted_home_score: prediction.predicted_home_score,
+          predicted_away_score: prediction.predicted_away_score,
+        }, { onConflict: 'tournament_id,user_id,match_id' })
 
-      if (existing) {
-        // Mettre à jour
-        const { error: updateError } = await supabase
-          .from('predictions')
-          .update({
-            predicted_home_score: prediction.predicted_home_score,
-            predicted_away_score: prediction.predicted_away_score
-          })
-          .eq('id', existing.id)
-
-        if (updateError) {
-          console.error('Erreur lors de la mise à jour:', updateError)
-          throw updateError
-        }
-      } else {
-        // Créer
-        const { error: insertError } = await supabase
-          .from('predictions')
-          .insert({
-            tournament_id: tournament.id,
-            user_id: user.id,
-            match_id: matchId,
-            predicted_home_score: prediction.predicted_home_score,
-            predicted_away_score: prediction.predicted_away_score
-          })
-
-        if (insertError) {
-          console.error('Erreur lors de l\'insertion:', insertError)
-          throw insertError
-        }
+      if (upsertError) {
+        console.error('Erreur lors de l\'enregistrement:', upsertError)
+        throw upsertError
       }
 
       // Marquer comme sauvegardé, non modifié et verrouillé
@@ -1511,7 +1483,8 @@ export default function OppositionClient({
       setTimeout(() => setSuccessPrediction(null), 500)
 
       // Après un save réussi sur un match éliminatoire, proposer le choix du qualifié
-      if (tournament.bonus_qualified) {
+      // (pas pendant un flush silencieux : la modale ne doit pas surgir lors d'un changement de journée)
+      if (!opts?.silent && tournament.bonus_qualified) {
         const match = matches.find(m => m.id === matchId)
         if (match && shouldShowQualifierChoice(match, matchdayStages)) {
           // Petit délai pour que le feedback vert apparaisse avant la modale
@@ -1521,15 +1494,72 @@ export default function OppositionClient({
 
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement du pronostic:', err)
-      alert('Erreur lors de l\'enregistrement')
-
-      // Show error feedback with red border for 500ms
-      setErrorPrediction(matchId)
-      setTimeout(() => setErrorPrediction(null), 500)
+      if (!opts?.silent) {
+        alert('Erreur lors de l\'enregistrement')
+        // Show error feedback with red border for 500ms
+        setErrorPrediction(matchId)
+        setTimeout(() => setErrorPrediction(null), 500)
+      }
     } finally {
       setSavingPrediction(null)
     }
   }
+
+  // Sauvegarde immédiate (asynchrone) de tous les pronos en attente d'auto-enregistrement.
+  // Appelée avant un changement de journée pour éviter de perdre une modif non encore sauvée.
+  const flushPendingAutoSaves = () => {
+    const pending = Object.keys(autoSaveTimers.current)
+    for (const matchId of pending) {
+      // Ne pas sauver un match verrouillé entre-temps : annuler juste le timer
+      const match = allMatches.find(m => m.id === matchId)
+      if (match && isMatchLocked(match)) {
+        clearTimeout(autoSaveTimers.current[matchId])
+        delete autoSaveTimers.current[matchId]
+        continue
+      }
+      // savePrediction annule déjà le timer et capture la valeur de façon synchrone
+      savePrediction(matchId, { silent: true })
+    }
+  }
+
+  // Flusher les pronos en attente quand on change de journée (le cleanup s'exécute AVANT le
+  // re-fetch de la nouvelle journée qui remplacerait l'état, donc la valeur capturée est la bonne).
+  useEffect(() => {
+    return () => { flushPendingAutoSaves() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMatchday])
+
+  // Filet anti-perte au refresh/fermeture : persister via sendBeacon les éditions encore en
+  // attente d'auto-enregistrement (un fetch classique ne se termine pas pendant l'unload).
+  useEffect(() => {
+    if (!tournament) return
+    const flushViaBeacon = () => {
+      const pending = Object.keys(autoSaveTimers.current)
+      if (pending.length === 0) return
+      const preds = pending
+        .map(id => {
+          const p = predictionsRef.current[id]
+          return p && p.predicted_home_score != null && p.predicted_away_score != null
+            ? { matchId: id, home: p.predicted_home_score, away: p.predicted_away_score }
+            : null
+        })
+        .filter(Boolean)
+      if (preds.length === 0) return
+      try {
+        const payload = JSON.stringify({ tournamentId: tournament.id, predictions: preds })
+        navigator.sendBeacon('/api/predictions/save', new Blob([payload], { type: 'application/json' }))
+      } catch {
+        // best-effort
+      }
+    }
+    const onVisibility = () => { if (document.hidden) flushViaBeacon() }
+    window.addEventListener('beforeunload', flushViaBeacon)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('beforeunload', flushViaBeacon)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [tournament?.id])
 
   // Sauvegarder le choix du qualifié pour un match éliminatoire
   // Utilise une route API server-side (admin client) pour bypass le cache PostgREST
