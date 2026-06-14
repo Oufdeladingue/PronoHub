@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
 interface ShareImageModalProps {
   imageUrl: string        // route /api/og/... (récupérée pour l'aperçu + le téléchargement)
@@ -74,7 +75,15 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
     return () => { if (revoked) URL.revokeObjectURL(revoked) }
   }, [imageUrl, downloadName])
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
+    // Sur l'app Android (WebView Capacitor), le téléchargement via lien <a download> + blob URL
+    // ne déclenche rien. On ouvre l'image (publique) dans le navigateur système où l'utilisateur
+    // peut l'enregistrer (appui long / menu). Le plugin Browser est déjà présent dans l'APK.
+    if (isCapacitor()) {
+      const absolute = imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
+      await openExternalUrl(absolute)
+      return
+    }
     if (!blob) return
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -84,7 +93,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 4000)
-  }, [blob, downloadName])
+  }, [blob, downloadName, imageUrl])
 
   const handleWhatsApp = useCallback(() => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')
