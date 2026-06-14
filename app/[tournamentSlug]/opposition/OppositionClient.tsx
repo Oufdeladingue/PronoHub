@@ -1445,48 +1445,26 @@ export default function OppositionClient({
 
     try {
       setSavingPrediction(matchId)
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      if (!tournament) return
 
-      if (!user || !tournament) return
-
-      // NB: on garde check-then-insert/update (et non un upsert) car un upsert doit satisfaire
-      // la policy RLS INSERT même sur le chemin de mise à jour, ce qui fait échouer le
-      // re-enregistrement d'un prono existant. La contrainte UNIQUE en base empêche les doublons.
-      const { data: existing } = await supabase
-        .from('predictions')
-        .select('id')
-        .eq('tournament_id', tournament.id)
-        .eq('user_id', user.id)
-        .eq('match_id', matchId)
-        .maybeSingle()
-
-      if (existing) {
-        const { error: updateError } = await supabase
-          .from('predictions')
-          .update({
-            predicted_home_score: prediction.predicted_home_score,
-            predicted_away_score: prediction.predicted_away_score,
-          })
-          .eq('id', existing.id)
-        if (updateError) {
-          console.error('Erreur lors de la mise à jour:', updateError)
-          throw updateError
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from('predictions')
-          .insert({
-            tournament_id: tournament.id,
-            user_id: user.id,
-            match_id: matchId,
-            predicted_home_score: prediction.predicted_home_score,
-            predicted_away_score: prediction.predicted_away_score,
-          })
-        if (insertError) {
-          console.error('Erreur lors de l\'insertion:', insertError)
-          throw insertError
-        }
+      // IMPORTANT : on écrit via la route serveur (service-role) car la policy RLS UPDATE de
+      // `predictions` bloque silencieusement les mises à jour en écriture client directe
+      // (0 ligne modifiée, sans erreur → le prono semblait enregistré mais revenait au refresh).
+      const response = await fetchWithAuth('/api/predictions/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tournamentId: tournament.id,
+          predictions: [{
+            matchId,
+            home: prediction.predicted_home_score,
+            away: prediction.predicted_away_score,
+          }],
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || (result.saved || 0) < 1) {
+        throw new Error(result.error || (result.locked ? 'Match déjà commencé' : 'Échec de l\'enregistrement'))
       }
 
       // Marquer comme sauvegardé, non modifié et verrouillé

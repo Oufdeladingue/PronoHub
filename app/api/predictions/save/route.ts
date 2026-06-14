@@ -1,66 +1,82 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 /**
- * Sauvegarde de pronostics — utilisée par navigator.sendBeacon() au refresh/fermeture de page
- * pour persister les éditions encore en attente d'auto-enregistrement (sinon perdues).
- * Upsert atomique sur la contrainte UNIQUE (tournament_id, user_id, match_id).
+ * Sauvegarde de pronostics côté serveur.
+ *
+ * POURQUOI une route serveur : la policy RLS UPDATE de `predictions` bloque silencieusement
+ * les mises à jour (0 ligne modifiée, sans erreur) → impossible de ré-éditer un prono en
+ * écriture directe depuis le client. On authentifie l'utilisateur (cookie web / Bearer mobile)
+ * puis on écrit via le client admin (service-role) qui contourne la RLS. La deadline est
+ * vérifiée côté serveur (anti-triche) et la contrainte UNIQUE empêche les doublons.
+ *
+ * Utilisée par le bouton Enregistrer / l'auto-save (via fetchWithAuth) ET par sendBeacon
+ * (cookies) au refresh.
  */
+const LOCK_BEFORE_KICKOFF_MS = 30 * 60 * 1000
+
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    // Auth (cookie web ou Bearer Capacitor) — createClient gère les deux
+    const authClient = await createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     const body = await request.json().catch(() => null)
     const tournamentId: string | undefined = body?.tournamentId
     const predictions: any[] = Array.isArray(body?.predictions) ? body.predictions : []
     if (!tournamentId || predictions.length === 0) {
-      return NextResponse.json({ error: 'bad request' }, { status: 400 })
+      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
     }
 
     const valid = predictions.filter(
-      (p) => p && typeof p.matchId === 'string' && Number.isFinite(Number(p.home)) && Number.isFinite(Number(p.away))
+      (p) => p && typeof p.matchId === 'string' &&
+        Number.isFinite(Number(p.home)) && Number.isFinite(Number(p.away))
     )
     if (valid.length === 0) {
-      return NextResponse.json({ saved: 0 })
+      return NextResponse.json({ saved: 0, locked: 0 })
     }
 
-    // check-then-insert/update (pas d'upsert : un upsert exige la policy RLS INSERT même en
-    // mise à jour, ce qui échoue pour un prono existant). Contrainte UNIQUE → pas de doublon.
+    const admin = createAdminClient()
+
+    // Vérifier la deadline : on n'enregistre pas un match déjà commencé (anti-triche serveur)
+    const matchIds = [...new Set(valid.map((p) => p.matchId))]
+    const { data: matches } = await admin
+      .from('imported_matches')
+      .select('id, utc_date')
+      .in('id', matchIds)
+    const kickoffById = new Map((matches || []).map((m) => [m.id, new Date(m.utc_date).getTime()]))
+    const now = Date.now()
+
     let saved = 0
-    for (const p of valid) {
-      const { data: existing } = await supabase
-        .from('predictions')
-        .select('id')
-        .eq('tournament_id', tournamentId)
-        .eq('user_id', user.id)
-        .eq('match_id', p.matchId)
-        .maybeSingle()
+    let locked = 0
+    const errors: string[] = []
 
-      if (existing) {
-        const { error } = await supabase
-          .from('predictions')
-          .update({ predicted_home_score: Number(p.home), predicted_away_score: Number(p.away) })
-          .eq('id', existing.id)
-        if (!error) saved++
-      } else {
-        const { error } = await supabase
-          .from('predictions')
-          .insert({
-            tournament_id: tournamentId,
-            user_id: user.id,
-            match_id: p.matchId,
-            predicted_home_score: Number(p.home),
-            predicted_away_score: Number(p.away),
-          })
-        if (!error) saved++
+    for (const p of valid) {
+      const kickoff = kickoffById.get(p.matchId)
+      if (kickoff != null && now >= kickoff - LOCK_BEFORE_KICKOFF_MS) {
+        locked++
+        continue
       }
+      // Upsert via service-role → contourne la RLS UPDATE défaillante, atomique (UNIQUE)
+      const { error } = await admin
+        .from('predictions')
+        .upsert({
+          tournament_id: tournamentId,
+          user_id: user.id,
+          match_id: p.matchId,
+          predicted_home_score: Number(p.home),
+          predicted_away_score: Number(p.away),
+        }, { onConflict: 'tournament_id,user_id,match_id' })
+      if (error) errors.push(`${p.matchId}: ${error.message}`)
+      else saved++
     }
-    return NextResponse.json({ saved })
+
+    return NextResponse.json({ saved, locked, errors: errors.length ? errors : undefined })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'error' }, { status: 500 })
+    console.error('[predictions/save] error:', e)
+    return NextResponse.json({ error: e?.message || 'Erreur serveur' }, { status: 500 })
   }
 }
