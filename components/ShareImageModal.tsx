@@ -90,16 +90,17 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
       await openExternalUrl(absolute)
       return
     }
-    if (!blob) return
-    const url = URL.createObjectURL(blob)
+    // Web : téléchargement DIRECT depuis l'URL (même origine) → le navigateur écrit lui-même
+    // les octets exacts du serveur sur le disque. On évite volontairement le couple
+    // objectURL + revokeObjectURL : si l'URL était révoquée avant la fin de l'écriture
+    // (scan antivirus Windows lent, etc.), le PNG sortait tronqué / "endommagé".
     const a = document.createElement('a')
-    a.href = url
+    a.href = currentImageUrl
     a.download = downloadName
     document.body.appendChild(a)
     a.click()
     a.remove()
-    setTimeout(() => URL.revokeObjectURL(url), 4000)
-  }, [blob, downloadName, currentImageUrl])
+  }, [currentImageUrl, downloadName])
 
   const handleWhatsApp = useCallback(() => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')
