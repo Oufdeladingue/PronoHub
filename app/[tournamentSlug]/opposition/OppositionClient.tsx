@@ -3900,6 +3900,10 @@ export default function OppositionClient({
         {shareModalMatch && tournament && (
           <ShareImageModal
             imageUrl={`/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}`}
+            modes={[
+              { key: 'alpha', label: 'Alphabétique', imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}` },
+              { key: 'classement', label: 'Classement', imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&sort=classement` },
+            ]}
             shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
             shareText={`Les pronos de ${translateTeamName(shareModalMatch.home_team_name)} - ${translateTeamName(shareModalMatch.away_team_name)} sur PronoHub 👀`}
             downloadName="pronos-pronohub.png"

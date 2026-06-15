@@ -15,6 +15,10 @@ export async function GET(
     )
     const { searchParams } = new URL(request.url)
     const matchday = searchParams.get('matchday')
+    // asOf (ISO) : ne compter que les matchs dont la date <= asOf (instantané "à l'issue de ce match").
+    // Utilisé par le partage d'un match précis → classement figé à ce moment-là.
+    const asOf = searchParams.get('asOf')
+    const asOfDate = asOf ? new Date(asOf) : null
 
     const { tournamentId } = await params
 
@@ -266,12 +270,13 @@ export async function GET(
 
     // Filtrer les matchs qui ont eu lieu AVANT la date de démarrage du tournoi
     // Ces matchs ne doivent pas compter (les joueurs n'ont pas pu pronostiquer)
-    const finishedMatches = tournamentStartDate
-      ? finishedMatchesRaw?.filter(m => {
-          const matchDate = new Date(m.utc_date)
-          return matchDate >= tournamentStartDate
-        })
-      : finishedMatchesRaw
+    // + borne haute asOf : ne garder que les matchs joués jusqu'à cette date (instantané historique)
+    const finishedMatches = (finishedMatchesRaw || []).filter(m => {
+      const matchDate = new Date(m.utc_date)
+      if (tournamentStartDate && matchDate < tournamentStartDate) return false
+      if (asOfDate && matchDate > asOfDate) return false
+      return true
+    })
 
     // OPTIMISATION: Créer une Map pour accès O(1) au lieu de find() O(n)
     const finishedMatchesMap = new Map(
@@ -531,8 +536,9 @@ export async function GET(
     const playersArray = Array.from(playerStatsMap.values())
 
     // Si on demande le classement général, calculer aussi le classement de la journée précédente
+    // (inutile pour un instantané asOf : l'appelant calcule lui-même l'incidence du match)
     let previousRankings: PlayerStats[] | undefined
-    if (!matchday) {
+    if (!matchday && !asOfDate) {
       // Trouver la dernière journée terminée (tous les matchs terminés)
       const journeysFinished: number[] = []
       for (const md of matchdaysToCalculate) {

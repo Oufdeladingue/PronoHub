@@ -10,16 +10,22 @@ interface ShareImageModalProps {
   shareText: string
   downloadName?: string
   title?: string
+  // Optionnel : toggle de modes (ex: Alphabétique / Classement). Chaque mode a sa propre image.
+  modes?: { key: string; label: string; imageUrl: string }[]
   onClose: () => void
 }
 
-export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title = 'Partager', onClose }: ShareImageModalProps) {
+export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title = 'Partager', modes, onClose }: ShareImageModalProps) {
   const [mounted, setMounted] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [canNativeShare, setCanNativeShare] = useState(false)
+  const [activeMode, setActiveMode] = useState<string>(modes?.[0]?.key ?? '')
+
+  // Image effective selon le mode sélectionné (sinon l'imageUrl par défaut)
+  const currentImageUrl = (modes && modes.find((m) => m.key === activeMode)?.imageUrl) || imageUrl
 
   useEffect(() => setMounted(true), [])
 
@@ -52,7 +58,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
         const timer = setTimeout(() => ctrl.abort(), 25000)
         let res: Response
         try {
-          res = await fetch(imageUrl, { signal: ctrl.signal })
+          res = await fetch(currentImageUrl, { signal: ctrl.signal })
         } finally {
           clearTimeout(timer)
         }
@@ -73,14 +79,14 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
     }
     load()
     return () => { if (revoked) URL.revokeObjectURL(revoked) }
-  }, [imageUrl, downloadName])
+  }, [currentImageUrl, downloadName])
 
   const handleDownload = useCallback(async () => {
     // Sur l'app Android (WebView Capacitor), le téléchargement via lien <a download> + blob URL
     // ne déclenche rien. On ouvre l'image (publique) dans le navigateur système où l'utilisateur
     // peut l'enregistrer (appui long / menu). Le plugin Browser est déjà présent dans l'APK.
     if (isCapacitor()) {
-      const absolute = imageUrl.startsWith('http') ? imageUrl : `${window.location.origin}${imageUrl}`
+      const absolute = currentImageUrl.startsWith('http') ? currentImageUrl : `${window.location.origin}${currentImageUrl}`
       await openExternalUrl(absolute)
       return
     }
@@ -93,7 +99,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
     a.click()
     a.remove()
     setTimeout(() => URL.revokeObjectURL(url), 4000)
-  }, [blob, downloadName, imageUrl])
+  }, [blob, downloadName, currentImageUrl])
 
   const handleWhatsApp = useCallback(() => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')
@@ -140,6 +146,23 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
         </div>
 
         <div className="p-4 overflow-y-auto flex-1">
+          {modes && modes.length > 1 && (
+            <div className="flex gap-1 p-1 mb-3 rounded-xl bg-slate-200 dark:bg-slate-800">
+              {modes.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setActiveMode(m.key)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    activeMode === m.key
+                      ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-[#ff9900] shadow'
+                      : 'text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="rounded-xl overflow-hidden border theme-border bg-slate-100 dark:bg-slate-800 min-h-[120px] flex items-center justify-center">
             {loading ? (
               <div className="py-12 flex flex-col items-center gap-3">

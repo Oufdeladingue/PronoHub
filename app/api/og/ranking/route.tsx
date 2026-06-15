@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import satori from 'satori'
 import sharp from 'sharp'
+import { Resvg } from '@resvg/resvg-js'
 import path from 'path'
 import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
@@ -272,7 +273,8 @@ export async function GET(request: NextRequest) {
         { name: 'Inter', data: fblack, weight: 900, style: 'normal' as const },
       ],
     })
-    const png = await sharp(Buffer.from(svg)).png().toBuffer()
+    // resvg-js (Rust) : rendu SVG→PNG bien plus rapide que sharp
+    const png = new Resvg(svg, { fitTo: { mode: 'width', value: WIDTH } }).render().asPng()
     return new NextResponse(new Uint8Array(png), {
       headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=120' },
     })

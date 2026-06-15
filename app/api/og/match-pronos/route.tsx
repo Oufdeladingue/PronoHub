@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import satori from 'satori'
 import sharp from 'sharp'
+import { Resvg } from '@resvg/resvg-js'
 import path from 'path'
 import fs from 'fs/promises'
 import { createAdminClient } from '@/lib/supabase/server'
 import { isKnockoutStage, isGroupStage, getStageLabel, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { calculatePoints, calculateKnockoutPoints, getWinnerSide, type PointsSettings } from '@/lib/scoring'
 import { translateTeamName } from '@/lib/translations'
+import { getAvatarUrl } from '@/lib/avatars'
+import { GET as rankingsGET } from '@/app/api/tournaments/[tournamentId]/rankings/route'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,6 +59,45 @@ async function loadLogo(targetH: number): Promise<{ src: string; w: number; h: n
   return _logoCache
 }
 
+// Charge un avatar joueur depuis public/ (avatarN.png ou trophée), en base64, avec cache mémoire
+const _avatarCache = new Map<string, string | null>()
+async function loadAvatar(avatarId: string): Promise<string | null> {
+  const id = avatarId || 'avatar1'
+  if (_avatarCache.has(id)) return _avatarCache.get(id)!
+  // getAvatarUrl renvoie un chemin public ('/avatars/avatarN.png' ou '/trophy/x.png')
+  const rel = getAvatarUrl(id).replace(/^\//, '')
+  let result: string | null = null
+  try {
+    const buf = await fs.readFile(path.join(process.cwd(), 'public', rel))
+    result = `data:image/png;base64,${buf.toString('base64')}`
+  } catch {
+    result = null
+  }
+  _avatarCache.set(id, result)
+  return result
+}
+
+// Classement du tournoi (rang + total de points par joueur) — appel IN-PROCESS du handler
+// rankings (pas de HTTP vers soi-même → plus rapide et robuste derrière le proxy)
+// asOf (ISO) : classement figé à l'issue de ce match (au lieu du classement actuel)
+async function fetchRankingMap(tournamentId: string, asOf?: string | null): Promise<Map<string, { rank: number | null; totalPoints: number }>> {
+  const map = new Map<string, { rank: number | null; totalPoints: number }>()
+  try {
+    const qs = asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''
+    const res = await rankingsGET(
+      new Request(`http://internal/api/tournaments/${tournamentId}/rankings${qs}`) as any,
+      { params: Promise.resolve({ tournamentId }) } as any,
+    )
+    if (res.ok) {
+      const j = await res.json()
+      for (const it of j?.rankings || []) map.set(it.playerId, { rank: it.rank ?? null, totalPoints: it.totalPoints ?? 0 })
+    }
+  } catch {
+    // échec classement → tri alphabétique de repli
+  }
+  return map
+}
+
 async function fetchImageAsBase64(url: string | null): Promise<string | null> {
   if (!url) return null
   try {
@@ -92,13 +134,14 @@ const COLORS = {
   red: '#ef4444',
 }
 
-type Row = { name: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null; isDefault: boolean }
+type Row = { uid: string; name: string; avatar: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null; isDefault: boolean; rank: number | null; totalPoints: number | null; rankDelta: number | null }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const tournamentId = searchParams.get('tournamentId')
     const matchId = searchParams.get('matchId')
+    const sort = searchParams.get('sort') === 'classement' ? 'classement' : 'alpha'
     if (!tournamentId || !matchId) {
       return NextResponse.json({ error: 'tournamentId et matchId requis' }, { status: 400 })
     }
@@ -118,14 +161,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Match introuvable' }, { status: 404 })
     }
 
-    // Emblème de la compétition (pour l'en-tête)
-    const { data: comp } = await supabase
-      .from('competitions')
-      .select('emblem, custom_emblem_white')
-      .eq('id', match.competition_id)
-      .maybeSingle()
-    const compEmblemUrl = comp?.custom_emblem_white || comp?.emblem || null
-
     const isFinished = match.status === 'FINISHED' || match.status === 'AWARDED'
     const isLive = ['IN_PLAY', 'PAUSED', 'SUSPENDED'].includes(match.status || '')
 
@@ -133,39 +168,50 @@ export async function GET(request: NextRequest) {
     const kickoff = match.utc_date ? new Date(match.utc_date).getTime() : 0
     const revealed = Date.now() >= kickoff - 30 * 60 * 1000
 
+    // Batch A : requêtes indépendantes en parallèle (emblème compétition + participants + pronos
+    // + barème + match bonus selon l'état du match)
+    const noop = Promise.resolve({ data: null as any })
+    const [compRes, partsRes, predsRes, psRes, bonusRes] = await Promise.all([
+      supabase.from('competitions').select('emblem, custom_emblem_white').eq('id', match.competition_id).maybeSingle(),
+      revealed ? supabase.from('tournament_participants').select('user_id').eq('tournament_id', tournamentId) : noop,
+      revealed ? supabase.from('predictions').select('user_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier').eq('tournament_id', tournamentId).eq('match_id', matchId) : noop,
+      (revealed && isFinished) ? supabase.from('admin_settings').select('setting_key, setting_value').in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result']) : noop,
+      (revealed && isFinished) ? supabase.from('tournament_bonus_matches').select('match_id').eq('tournament_id', tournamentId).eq('match_id', matchId).maybeSingle() : noop,
+    ])
+    const compEmblemUrl = compRes.data?.custom_emblem_white || compRes.data?.emblem || null
+
     let rows: Row[] = []
     if (revealed) {
-      // Tous les participants du tournoi (pour inclure ceux qui ont oublié de pronostiquer)
-      const { data: parts } = await supabase
-        .from('tournament_participants')
-        .select('user_id')
-        .eq('tournament_id', tournamentId)
-
-      const { data: preds } = await supabase
-        .from('predictions')
-        .select('user_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier')
-        .eq('tournament_id', tournamentId)
-        .eq('match_id', matchId)
+      // Participants + pronos déjà récupérés dans le Batch A
+      const parts = partsRes.data as { user_id: string }[] | null
+      const preds = predsRes.data as Array<{ user_id: string; predicted_home_score: number | null; predicted_away_score: number | null; is_default_prediction: boolean | null; predicted_qualifier: string | null }> | null
 
       const predByUser = new Map((preds || []).map((p) => [p.user_id, p]))
       let userIds = [...new Set((parts || []).map((p) => p.user_id))]
       if (userIds.length === 0) userIds = [...predByUser.keys()] // fallback si pas de participants listés
 
+      // Batch B : profils (avatars/noms) + classement du tournoi, en parallèle
+      const [profsRes, rankByUser] = await Promise.all([
+        userIds.length > 0
+          ? supabase.from('profiles').select('id, username, avatar').in('id', userIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; username: string | null; avatar: string | null }> }),
+        sort === 'classement'
+          ? fetchRankingMap(tournamentId, match.utc_date) // classement figé à l'issue de ce match
+          : Promise.resolve(new Map<string, { rank: number | null; totalPoints: number }>()),
+      ])
       const nameById = new Map<string, string>()
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase.from('profiles').select('id, username').in('id', userIds)
-        for (const p of profs || []) nameById.set(p.id, p.username || 'Joueur')
+      const avatarById = new Map<string, string>()
+      for (const p of (profsRes.data as Array<{ id: string; username: string | null; avatar: string | null }>) || []) {
+        nameById.set(p.id, p.username || 'Joueur')
+        avatarById.set(p.id, p.avatar || 'avatar1')
       }
 
-      // Barème + match bonus uniquement si le match est terminé (sinon : pas de points)
+      // Barème + match bonus (déjà récupérés dans le Batch A) si le match est terminé
       let settings: PointsSettings | null = null
       let isBonus = false
       let isKnockout = false
       if (isFinished) {
-        const { data: ps } = await supabase
-          .from('admin_settings')
-          .select('setting_key, setting_value')
-          .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result'])
+        const ps = psRes.data as Array<{ setting_key: string; setting_value: string }> | null
         const get = (k: string, d: number) => parseInt(ps?.find((s) => s.setting_key === k)?.setting_value ?? String(d)) || d
         settings = {
           exactScore: get('points_exact_score', 3),
@@ -173,13 +219,7 @@ export async function GET(request: NextRequest) {
           incorrectResult: get('points_incorrect_result', 0),
           drawWithDefaultPrediction: 1, // pas de colonne dédiée → défaut (= correctResult)
         }
-        const { data: bonus } = await supabase
-          .from('tournament_bonus_matches')
-          .select('match_id')
-          .eq('tournament_id', tournamentId)
-          .eq('match_id', matchId)
-          .maybeSingle()
-        isBonus = !!bonus
+        isBonus = !!bonusRes.data
         isKnockout = !!(match.stage && isKnockoutStage(match.stage as StageType))
       }
 
@@ -190,7 +230,8 @@ export async function GET(request: NextRequest) {
         const isDefault = !hasPred || !!p!.is_default_prediction
         const ph = hasPred ? (p!.predicted_home_score ?? 0) : 0
         const pa = hasPred ? (p!.predicted_away_score ?? 0) : 0
-        const base: Row = { name: nameById.get(uid) || 'Joueur', ph, pa, status: 'neutral', points: null, isDefault }
+        const rk = rankByUser.get(uid)
+        const base: Row = { uid, name: nameById.get(uid) || 'Joueur', avatar: avatarById.get(uid) || 'avatar1', ph, pa, status: 'neutral', points: null, isDefault, rank: rk?.rank ?? null, totalPoints: rk?.totalPoints ?? null, rankDelta: null }
 
         if (isFinished && settings) {
           const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
@@ -225,8 +266,27 @@ export async function GET(request: NextRequest) {
         return base
       })
 
-      if (isFinished) {
-        rows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name))
+      // Incidence de CE match sur le classement (mode classement + match terminé).
+      // rank/totalPoints = instantané À L'ISSUE de ce match (param asOf).
+      // place "avant" = re-classement sur (total à l'issue − points du match) ; delta = avant − après
+      if (sort === 'classement' && isFinished) {
+        const ranked = rows.filter((r) => r.rank != null && r.totalPoints != null)
+        const beforeOf = (r: Row) => (r.totalPoints ?? 0) - (r.points ?? 0)
+        for (const r of rows) {
+          if (r.rank == null || r.totalPoints == null) continue
+          const before = beforeOf(r)
+          const rankBefore = 1 + ranked.filter((o) => beforeOf(o) > before).length
+          r.rankDelta = rankBefore - r.rank
+        }
+      }
+
+      if (sort === 'classement') {
+        // Tri par classement du tournoi (rang croissant), puis total de points, puis nom
+        rows.sort((a, b) =>
+          (a.rank ?? 99999) - (b.rank ?? 99999) ||
+          (b.totalPoints ?? 0) - (a.totalPoints ?? 0) ||
+          a.name.localeCompare(b.name)
+        )
       } else {
         rows.sort((a, b) => a.name.localeCompare(b.name))
       }
@@ -248,6 +308,10 @@ export async function GET(request: NextRequest) {
     ])
     const [fr, fb, fblack] = fonts
 
+    // Avatars des joueurs affichés (depuis le disque, mis en cache)
+    const avatarSrcById = new Map<string, string | null>()
+    await Promise.all(shown.map(async (p) => { avatarSrcById.set(p.uid, await loadAvatar(p.avatar)) }))
+
     // En-tête : score final / live / heure de coup d'envoi
     const scoreLabel = isFinished || isLive ? `${match.home_score ?? 0} - ${match.away_score ?? 0}` : 'VS'
     const stateTag = isFinished ? 'Terminé' : isLive ? '● En direct' : 'À venir'
@@ -264,7 +328,6 @@ export async function GET(request: NextRequest) {
     const metaLine = [dayCap && timeLabel ? `${dayCap} · ${timeLabel}` : (dayCap || timeLabel), journeeLabel, pouleLabel].filter(Boolean).join('     ·     ')
 
     const statusColor = (s: Row['status']) => (s === 'exact' ? COLORS.gold : s === 'correct' ? COLORS.green : s === 'wrong' ? COLORS.red : COLORS.text)
-    const borderColor = (s: Row['status']) => (s === 'neutral' ? COLORS.border : statusColor(s))
 
     // ---- Header ----
     const logoW = logo ? logo.w : 0
@@ -306,25 +369,54 @@ export async function GET(request: NextRequest) {
     // ---- Ligne joueur ----
     const ROW_H = 46
     const ROW_GAP = 7
-    const makeRow = (p: Row) =>
-      el('div', { height: `${ROW_H}px`, alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '10px', padding: '0 14px', gap: '10px', border: `2px solid ${borderColor(p.status)}` }, [
-        // Pastille initiale (pas de rang : il peut y avoir des égalités)
-        el('div', { width: '30px', height: '30px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
-          txt((p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
-        ]),
+    const isClassement = sort === 'classement'
+    // Flèche d'incidence du match sur le classement : ▲ vert (gagné), ▼ rouge (perdu), = (inchangé)
+    // Triangle via SVG polygon (satori ne gère pas l'astuce CSS bordure-triangle)
+    const tri = (dir: 'up' | 'down', color: string): any => ({
+      type: 'svg',
+      props: {
+        width: 11, height: 9, viewBox: '0 0 11 9',
+        children: { type: 'polygon', props: { points: dir === 'up' ? '5.5,0 11,9 0,9' : '0,0 11,0 5.5,9', fill: color } },
+      },
+    })
+    const rankArrow = (delta: number | null): any[] => {
+      if (delta == null) return []
+      if (delta > 0) return [tri('up', COLORS.green)]
+      if (delta < 0) return [tri('down', COLORS.red)]
+      return [txt('=', { fontSize: '13px', fontWeight: 900, color: COLORS.sub })]
+    }
+    const makeRow = (p: Row) => {
+      const avSrc = avatarSrcById.get(p.uid)
+      const avatarEl = avSrc
+        ? img(avSrc, 30, 30, { borderRadius: '50%', objectFit: 'cover', flexShrink: 0 })
+        : el('div', { width: '30px', height: '30px', borderRadius: '50%', background: COLORS.orange, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }, [
+            txt((p.name[0] || '?').toUpperCase(), { fontSize: '16px', fontWeight: 900, color: '#0f172a' }),
+          ])
+      return el('div', { height: `${ROW_H}px`, alignItems: 'center', width: '100%', background: COLORS.card, borderRadius: '10px', padding: '0 12px', gap: '9px', border: `2px solid ${COLORS.border}` }, [
+        // Rang + flèche d'incidence du match (mode classement uniquement)
+        ...(isClassement ? [el('div', { width: '46px', alignItems: 'center', justifyContent: 'flex-start', gap: '4px', flexShrink: 0 }, [
+          txt(p.rank != null ? `${p.rank}` : '–', { fontSize: '18px', fontWeight: 900, color: COLORS.orange }),
+          ...rankArrow(p.rankDelta),
+        ])] : []),
+        avatarEl,
         el('div', { alignItems: 'center', gap: '7px', flex: 1, overflow: 'hidden' }, [
-          txt(p.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
+          txt(p.name, { fontSize: '18px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
           ...(p.isDefault ? [el('div', { background: 'rgba(250,204,21,0.16)', borderRadius: '5px', padding: '1px 7px', flexShrink: 0 }, [txt('défaut', { fontSize: '12px', fontWeight: 700, color: COLORS.gold })])] : []),
         ]),
-        el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 12px', alignItems: 'center', gap: '5px', flexShrink: 0 }, [
-          txt(`${p.ph}`, { fontSize: '20px', fontWeight: 900, color: statusColor(p.status) }),
-          txt('-', { fontSize: '16px', color: COLORS.sub }),
-          txt(`${p.pa}`, { fontSize: '20px', fontWeight: 900, color: statusColor(p.status) }),
+        // Total de points du tournoi (mode classement)
+        ...(isClassement ? [el('div', { width: '70px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.totalPoints ?? 0} pts`, { fontSize: '16px', fontWeight: 900, color: COLORS.text })])] : []),
+        // Pronostic du match
+        el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 11px', alignItems: 'center', gap: '5px', flexShrink: 0 }, [
+          txt(`${p.ph}`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
+          txt('-', { fontSize: '15px', color: COLORS.sub }),
+          txt(`${p.pa}`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
         ]),
+        // Points gagnés sur le match (si terminé)
         ...(p.points !== null
-          ? [el('div', { width: '64px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.points > 0 ? '+' : ''}${p.points} pts`, { fontSize: '17px', fontWeight: 900, color: statusColor(p.status) })])]
+          ? [el('div', { width: '58px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.points > 0 ? '+' : ''}${p.points}`, { fontSize: '17px', fontWeight: 900, color: statusColor(p.status) })])]
           : []),
       ])
+    }
 
     // ---- Corps : 1 ou 2 colonnes ----
     let body: any
@@ -377,7 +469,8 @@ export async function GET(request: NextRequest) {
       ],
     })
 
-    const png = await sharp(Buffer.from(svg)).png().toBuffer()
+    // resvg-js (Rust) : rendu SVG→PNG bien plus rapide que sharp pour ce cas
+    const png = new Resvg(svg, { fitTo: { mode: 'width', value: WIDTH } }).render().asPng()
 
     return new NextResponse(new Uint8Array(png), {
       headers: {

@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   skipTrailingSlashRedirect: true,
-  serverExternalPackages: ['geoip-lite'],
+  serverExternalPackages: ['geoip-lite', '@resvg/resvg-js', 'sharp'],
   // Proxy PostHog à travers notre propre domaine pour éviter les ad blockers et problèmes CORS/CSP
   async rewrites() {
     return [
