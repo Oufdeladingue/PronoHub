@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import StandingsModal from './StandingsModal'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { translateTeamName } from '@/lib/translations'
 
 interface TeamFormMatch {
   matchId: string
@@ -565,7 +566,7 @@ export default function StatsModal({
                 <img src={data.homeTeamCrest} alt={homeTeamName} className="w-5 h-5 object-contain" />
               )}
               <p className="text-xs theme-text">
-                {homeTeamName} <span className="text-blue-600 dark:text-[#ff9900] font-semibold">vs</span> {awayTeamName}
+                {translateTeamName(homeTeamName)} <span className="text-blue-600 dark:text-[#ff9900] font-semibold">vs</span> {translateTeamName(awayTeamName)}
               </p>
               {data?.awayTeamCrest && (
                 <img src={data.awayTeamCrest} alt={awayTeamName} className="w-5 h-5 object-contain" />
@@ -602,7 +603,7 @@ export default function StatsModal({
                     </h4>
                     <div className="space-y-4">
                       <TeamFormSection
-                        teamName={data.homeTeamName}
+                        teamName={translateTeamName(data.homeTeamName)}
                         teamCrest={data.homeTeamCrest}
                         matches={data.homeTeamForm}
                         selectedIndex={homeSelectedIndex}
@@ -611,7 +612,7 @@ export default function StatsModal({
                         position={data.homeTeamPosition}
                       />
                       <TeamFormSection
-                        teamName={data.awayTeamName}
+                        teamName={translateTeamName(data.awayTeamName)}
                         teamCrest={data.awayTeamCrest}
                         matches={data.awayTeamForm}
                         selectedIndex={awaySelectedIndex}

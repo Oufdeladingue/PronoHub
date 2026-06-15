@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { formatGroupName } from '@/lib/stage-formatter'
+import { translateTeamName } from '@/lib/translations'
 
 interface StandingRow {
   team_id: number
@@ -239,7 +240,7 @@ export default function StandingsModal({
                           />
                         )}
                         <span className={`truncate ${isHighlighted(team.team_id) ? 'font-semibold text-blue-600 dark:text-[#ff9900]' : 'theme-text'}`}>
-                          {team.team_name}
+                          {translateTeamName(team.team_name)}
                         </span>
                       </div>
                     </td>
