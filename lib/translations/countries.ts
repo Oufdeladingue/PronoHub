@@ -127,6 +127,7 @@ export const COUNTRY_NAMES: Record<string, string> = {
   'Angola': 'Angola',
   'Mozambique': 'Mozambique',
   'Cape Verde': 'Cap-Vert',
+  'Cape Verde Islands': 'Cap-Vert',
   'Cabo Verde': 'Cap-Vert',
   'Guinea': 'Guinée',
   'Equatorial Guinea': 'Guinée équatoriale',
