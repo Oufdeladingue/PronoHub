@@ -14,6 +14,12 @@ const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
  */
 export async function GET(request: Request) {
   try {
+    // Auth cron (même schéma que les autres crons)
+    const authHeader = request.headers.get('authorization')
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const competitionId = searchParams.get('competitionId')
 

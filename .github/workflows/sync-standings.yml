@@ -1,0 +1,30 @@
+name: Sync Standings
+
+on:
+  schedule:
+    # Toutes les 3 heures : rafraîchit les classements des compétitions (poules WC, ligues…)
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-standings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📊 Trigger sync-standings cron
+        run: |
+          response=$(curl -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}" \
+            -s \
+            https://www.pronohub.club/api/football/sync-standings)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+          echo "✅ Classements synchronisés"
