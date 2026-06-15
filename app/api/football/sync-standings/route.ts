@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -32,7 +32,10 @@ export async function GET(request: Request) {
       )
     }
 
-    const supabase = await createClient()
+    // IMPORTANT: service role (bypass RLS). Appelé par un cron sans cookies/JWT valide :
+    // createClient() transmettrait le Bearer CRON_SECRET à PostgREST → 401 sur tout,
+    // et la table competition_standings n'a aucune policy INSERT/UPDATE → 0 ligne écrite.
+    const supabase = createAdminClient()
 
     // Déterminer les compétitions à synchroniser
     let competitionsToSync: number[] = []
@@ -154,14 +157,16 @@ export async function GET(request: Request) {
       }
     }
 
+    // Si au moins une compétition a échoué (ex: RLS, rate limit, API down), renvoyer 500
+    // pour que le job GitHub Actions passe au ROUGE au lieu de rester vert à tort.
     return NextResponse.json({
-      success: true,
+      success: errors.length === 0,
       message: `Synced standings for ${totalSynced} competition(s)`,
       syncedCompetitions: totalSynced,
       totalTeams,
       details: syncedDetails,
       errors: errors.length > 0 ? errors : undefined
-    })
+    }, { status: errors.length > 0 ? 500 : 200 })
 
   } catch (error: any) {
     console.error('[STANDINGS] Error in sync-standings:', error)
