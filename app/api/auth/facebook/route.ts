@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { safePath } from '@/lib/safe-redirect'
 
 /**
  * Route proxy pour OAuth Facebook
@@ -13,7 +14,9 @@ import { NextResponse } from 'next/server'
  */
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const redirectTo = requestUrl.searchParams.get('redirectTo')
+  const rawRedirectTo = requestUrl.searchParams.get('redirectTo')
+  // Anti open-redirect : on ne propage qu'un chemin local validé
+  const redirectTo = rawRedirectTo ? safePath(rawRedirectTo) : null
 
   try {
     const supabase = await createClient()

@@ -1126,6 +1126,24 @@ export default function OppositionClient({
               predictedAway: 0,
               isDefaultPrediction: false,
               hasPronostic: false,
+              masked: false,
+              points: 0,
+              isExact: false,
+              isCorrect: false
+            }
+          }
+
+          // Prono caché (anti-triche : un autre joueur a pronostiqué mais le match n'est pas
+          // encore verrouillé) → on affiche un cadenas, pas le score.
+          if (prediction.masked) {
+            return {
+              username,
+              avatar: prediction.avatar || 'avatar1',
+              predictedHome: null,
+              predictedAway: null,
+              isDefaultPrediction: false,
+              hasPronostic: true,
+              masked: true,
               points: 0,
               isExact: false,
               isCorrect: false
@@ -1190,6 +1208,7 @@ export default function OppositionClient({
             isDefaultPrediction: prediction.is_default_prediction || false,
             predictedQualifier: prediction.predicted_qualifier || null,
             hasPronostic: true,
+            masked: false,
             points,
             isExact,
             isCorrect
@@ -1251,6 +1270,23 @@ export default function OppositionClient({
                 predictedAway: 0,
                 isDefaultPrediction: false,
                 hasPronostic: false,
+                masked: false,
+                points: 0,
+                isExact: false,
+                isCorrect: false
+              }
+            }
+
+            // Prono caché (anti-triche : pronostiqué mais match pas encore verrouillé)
+            if (prediction.masked) {
+              return {
+                username,
+                avatar: prediction.avatar || 'avatar1',
+                predictedHome: null,
+                predictedAway: null,
+                isDefaultPrediction: false,
+                hasPronostic: true,
+                masked: true,
                 points: 0,
                 isExact: false,
                 isCorrect: false
@@ -1315,6 +1351,7 @@ export default function OppositionClient({
               isDefaultPrediction: prediction.is_default_prediction || false,
               predictedQualifier: prediction.predicted_qualifier || null,
               hasPronostic: true,
+              masked: false,
               points,
               isExact,
               isCorrect
@@ -3417,7 +3454,12 @@ export default function OppositionClient({
 
                                                   {/* Colonne 2 - Pronostic */}
                                                   <div className="flex flex-col items-center gap-1">
-                                                    {playerPred.hasPronostic ? (
+                                                    {playerPred.masked ? (
+                                                      <div className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500 dark:text-slate-400">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                                                        <span className="text-xs font-medium">Masqué</span>
+                                                      </div>
+                                                    ) : playerPred.hasPronostic ? (
                                                       <>
                                                         <div className="flex items-center gap-1 px-3 py-1 bg-white dark:bg-slate-700 rounded">
                                                           <span className="font-bold text-slate-900 dark:text-white text-base">{playerPred.predictedHome ?? 0}</span>
@@ -3479,7 +3521,12 @@ export default function OppositionClient({
 
                                                   {/* COLONNE CENTRALE - Pronostic centré */}
                                                   <div className="flex flex-col items-center gap-1">
-                                                    {playerPred.hasPronostic ? (
+                                                    {playerPred.masked ? (
+                                                      <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500 dark:text-slate-400">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
+                                                        <span className="text-xs font-medium">Masqué jusqu'au coup d'envoi</span>
+                                                      </div>
+                                                    ) : playerPred.hasPronostic ? (
                                                       <>
                                                         <div className="flex items-center gap-2 px-3 py-1 bg-white dark:bg-slate-700 rounded">
                                                           <span className="font-bold text-slate-900 dark:text-white text-sm">{playerPred.predictedHome ?? 0}</span>
@@ -3524,8 +3571,10 @@ export default function OppositionClient({
                                             </div>
                                           ))
                                         )}
-                                        {/* Bouton de partage des pronos (sous la dernière ligne) */}
-                                        {allPlayersPredictions[match.id].length > 0 && (
+                                        {/* Bouton de partage des pronos (sous la dernière ligne).
+                                            Masqué tant que le match n'est pas verrouillé : avant ça, la grille
+                                            des autres joueurs est cachée (anti-triche) → rien à partager. */}
+                                        {allPlayersPredictions[match.id].length > 0 && isMatchLocked(match) && (
                                           <button
                                             onClick={() => handleShareMatchPronos(match)}
                                             className="mx-auto w-fit mt-2 px-5 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition"

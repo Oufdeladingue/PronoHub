@@ -1,6 +1,17 @@
-import { createClient as createServerClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+// Fenêtre de verrouillage : à partir de 30 min avant le coup d'envoi, les pronos ne sont plus
+// modifiables (cf. /api/predictions/save) → on peut alors révéler ceux des autres joueurs.
+const LOCK_BEFORE_KICKOFF_MS = 30 * 60 * 1000
+
+/**
+ * Pronostics de tous les joueurs pour UN match.
+ *
+ * SÉCURITÉ : route authentifiée (cookie web / Bearer Capacitor), réservée aux participants
+ * du tournoi. Les pronostics des AUTRES joueurs sont masqués tant que le match n'est pas
+ * verrouillé (anti-triche) — seul le booléen `has_prediction` est exposé avant.
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ tournamentId: string }> }
@@ -17,63 +28,83 @@ export async function GET(
       )
     }
 
-    // Utiliser la clé service_role pour accéder à toutes les prédictions
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    // Récupérer tous les participants du tournoi (triés par ordre d'inscription)
-    const { data: participants, error: participantsError } = await supabase
-      .from('tournament_participants')
-      .select('user_id, profiles(username, avatar), joined_at')
-      .eq('tournament_id', tournamentId)
-      .order('joined_at', { ascending: true })
-
-    if (participantsError) throw participantsError
-    if (!participants) {
-      return NextResponse.json({ predictions: [] })
+    // Authentification (cookie web ou Bearer Capacitor)
+    const authClient = await createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Récupérer toutes les prédictions pour ce match
-    const { data: predictions, error: predictionsError } = await supabase
-      .from('predictions')
-      .select('*, is_default_prediction')
-      .eq('tournament_id', tournamentId)
-      .eq('match_id', matchId)
+    // Données via service-role (bypass RLS) — autorisation vérifiée applicativement ci-dessous
+    const supabase = createAdminClient()
 
-    if (predictionsError) throw predictionsError
+    const [participantsResult, predictionsResult, matchResult, tournamentResult] = await Promise.all([
+      supabase
+        .from('tournament_participants')
+        .select('user_id, profiles(username, avatar), joined_at')
+        .eq('tournament_id', tournamentId)
+        .order('joined_at', { ascending: true }),
+      supabase
+        .from('predictions')
+        .select('*, is_default_prediction')
+        .eq('tournament_id', tournamentId)
+        .eq('match_id', matchId),
+      supabase
+        .from('imported_matches')
+        .select('status, finished, utc_date')
+        .eq('id', matchId)
+        .single(),
+      supabase
+        .from('tournaments')
+        .select('creator_id')
+        .eq('id', tournamentId)
+        .single()
+    ])
 
-    // Récupérer les informations du match pour savoir s'il est terminé
-    const { data: matchData } = await supabase
-      .from('imported_matches')
-      .select('status, finished, utc_date')
-      .eq('id', matchId)
-      .single()
+    if (participantsResult.error) throw participantsResult.error
+    if (predictionsResult.error) throw predictionsResult.error
 
-    const matchHasStarted = matchData && new Date(matchData.utc_date) <= new Date()
+    const participants = participantsResult.data || []
+    const predictions = predictionsResult.data || []
+    const matchData = matchResult.data
+
+    // Autorisation : l'appelant doit être participant du tournoi (ou son créateur)
+    const isParticipant = participants.some(p => p.user_id === user.id)
+    const isCreator = tournamentResult.data?.creator_id === user.id
+    if (!isParticipant && !isCreator) {
+      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+    }
+
+    const kickoff = matchData ? new Date(matchData.utc_date).getTime() : null
+    const now = Date.now()
+    const matchHasStarted = kickoff != null && now >= kickoff
     const matchIsFinished = matchData && (matchData.status === 'FINISHED' || matchData.finished === true)
+    // Les pronos des autres ne sont révélés qu'une fois le match verrouillé (kickoff − 30 min)
+    const predictionsRevealed = kickoff != null && now >= kickoff - LOCK_BEFORE_KICKOFF_MS
 
     // Combiner les données
     // Si le match a commencé/est terminé et qu'un utilisateur n'a pas pronostiqué,
     // on lui attribue automatiquement un pronostic par défaut 0-0
     const result = participants.map(participant => {
-      const pred = predictions?.find(p => p.user_id === participant.user_id)
+      const pred = predictions.find(p => p.user_id === participant.user_id)
       const hasPrediction = !!pred && pred.predicted_home_score !== null && pred.predicted_away_score !== null
 
-      // Si l'utilisateur n'a pas de pronostic et que le match a commencé,
-      // on applique le pronostic par défaut 0-0
       const shouldApplyDefault = !hasPrediction && (matchHasStarted || matchIsFinished)
+
+      // Le prono est visible si : c'est le mien, OU le match est verrouillé/commencé (révélé)
+      const reveal = participant.user_id === user.id || predictionsRevealed
 
       return {
         user_id: participant.user_id,
         username: (participant.profiles as any)?.username || 'Inconnu',
         avatar: (participant.profiles as any)?.avatar || 'avatar1',
-        predicted_home_score: shouldApplyDefault ? 0 : (pred?.predicted_home_score ?? null),
-        predicted_away_score: shouldApplyDefault ? 0 : (pred?.predicted_away_score ?? null),
+        predicted_home_score: shouldApplyDefault ? 0 : (reveal ? (pred?.predicted_home_score ?? null) : null),
+        predicted_away_score: shouldApplyDefault ? 0 : (reveal ? (pred?.predicted_away_score ?? null) : null),
         is_default_prediction: shouldApplyDefault ? true : (pred?.is_default_prediction ?? false),
         has_prediction: hasPrediction || shouldApplyDefault,
-        predicted_qualifier: pred?.predicted_qualifier ?? null
+        // masked = le joueur a pronostiqué mais c'est caché à l'appelant (anti-triche, avant verrouillage)
+        masked: hasPrediction && !reveal,
+        predicted_qualifier: reveal ? (pred?.predicted_qualifier ?? null) : null
       }
     })
 
@@ -81,7 +112,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Error fetching match predictions:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

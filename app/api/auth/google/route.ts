@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { safePath } from '@/lib/safe-redirect'
 
 /**
  * Route proxy pour OAuth Google
@@ -14,7 +15,9 @@ import { NextResponse } from 'next/server'
  */
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
-  const redirectTo = requestUrl.searchParams.get('redirectTo')
+  const rawRedirectTo = requestUrl.searchParams.get('redirectTo')
+  // Anti open-redirect : on ne propage qu'un chemin local validé
+  const redirectTo = rawRedirectTo ? safePath(rawRedirectTo) : null
   const source = requestUrl.searchParams.get('source')
 
   // Origin publique (important derrière un reverse proxy Coolify/Traefik)

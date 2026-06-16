@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createAuthClient } from '@/lib/supabase/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -12,8 +13,32 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   }
 })
 
+/**
+ * Vérifie que l'appelant est authentifié et super admin.
+ * Retourne une NextResponse d'erreur si l'accès est refusé, sinon null.
+ */
+async function requireSuperAdmin(): Promise<NextResponse | null> {
+  const supabase = await createAuthClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  if (profile?.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Accès refusé - Super admin requis' }, { status: 403 })
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const denied = await requireSuperAdmin()
+    if (denied) return denied
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const competitionId = formData.get('competitionId') as string
@@ -110,6 +135,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const denied = await requireSuperAdmin()
+    if (denied) return denied
+
     const { searchParams } = new URL(request.url)
     const competitionId = searchParams.get('competitionId')
     const type = searchParams.get('type') as 'white' | 'color'

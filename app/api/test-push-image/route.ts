@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendPushNotification } from '@/lib/firebase-admin'
 import { sendBadgeUnlockedEmail } from '@/lib/email/send'
 import { getTrophyInfo } from '@/lib/trophy-info'
 import { getAvatarUrl } from '@/lib/avatars'
 
+// Comparaison à temps constant (évite l'oracle de timing sur le secret)
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a)
+  const bb = Buffer.from(b)
+  if (ba.length !== bb.length) return false
+  return timingSafeEqual(ba, bb)
+}
+
 // Test endpoint pour vérifier les notifications avec images (push + email)
-// Usage: GET /api/test-push-image?email=ton@email.com
+// Usage: GET /api/test-push-image?secret=CRON_SECRET&email=ton@email.com
 // Optionnel: &trophy=king_of_day (par défaut: exact_score)
 // Optionnel: &mode=push|email|both (par défaut: push)
 // Optionnel: &type=badge_unlocked|new_matches|tournament_started|tournament_end|player_joined (par défaut: badge_unlocked)
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+
+  // Protection : envoie des push/emails réels → réservé au porteur du secret.
+  // (Secret en query-param pour rester testable via navigateur, cf. workflow de test.)
+  const secret = searchParams.get('secret')
+  const expected = process.env.CRON_SECRET
+  if (!expected) {
+    return NextResponse.json({ error: 'CRON_SECRET non configuré' }, { status: 500 })
+  }
+  if (!secret || !safeEqual(secret, expected)) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  }
+
   const email = searchParams.get('email')
   const trophyType = searchParams.get('trophy') || 'exact_score'
   const mode = searchParams.get('mode') || 'push' // push, email, both

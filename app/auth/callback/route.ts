@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
 import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/server'
+import { safePath } from '@/lib/safe-redirect'
 
 /**
  * Génère une page HTML qui redirige vers le custom URL scheme pronohub://
@@ -44,6 +45,8 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const redirectTo = requestUrl.searchParams.get('redirectTo')
+  // Chemin de redirection validé (anti open-redirect) : null si absent
+  const safeRedirect = redirectTo ? safePath(redirectTo) : null
   const source = requestUrl.searchParams.get('source')
   const isCapacitor = source === 'capacitor'
 
@@ -108,7 +111,7 @@ export async function GET(request: Request) {
             console.log('[OAuth Callback] Flow state error but session exists (double-call), proceeding with existing session')
             // Continuer le flux normal avec la session existante
             const user = existingSession.user
-            let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+            let finalPath = safeRedirect || '/dashboard'
 
             const { data: profile } = await supabase
               .from('profiles')
@@ -117,8 +120,8 @@ export async function GET(request: Request) {
               .single()
 
             if (!profile || profile.has_chosen_username !== true) {
-              finalPath = redirectTo
-                ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+              finalPath = safeRedirect
+                ? `/auth/choose-username?redirectTo=${encodeURIComponent(safeRedirect)}`
                 : '/auth/choose-username'
             }
 
@@ -167,7 +170,7 @@ export async function GET(request: Request) {
       }
 
       // Déterminer la page de redirection
-      let finalPath = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+      let finalPath = safeRedirect || '/dashboard'
 
       if (sessionData?.user) {
         // Utiliser admin client pour lire le profil (le client user n'a pas encore ses cookies)
@@ -192,8 +195,8 @@ export async function GET(request: Request) {
           console.warn('[OAuth Callback] Profile not found or error, forcing choose-username')
           finalPath = '/auth/choose-username'
         } else if (profile.has_chosen_username !== true) {
-          finalPath = redirectTo
-            ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}`
+          finalPath = safeRedirect
+            ? `/auth/choose-username?redirectTo=${encodeURIComponent(safeRedirect)}`
             : '/auth/choose-username'
         }
       }
@@ -242,7 +245,7 @@ export async function GET(request: Request) {
 
   console.log('[OAuth Callback] No code, redirecting to:', redirectTo || '/dashboard')
 
-  const finalRedirect = redirectTo ? decodeURIComponent(redirectTo) : '/dashboard'
+  const finalRedirect = safeRedirect || '/dashboard'
   if (isCapacitor) {
     return capacitorRedirectPage(
       `pronohub://auth/callback?redirectTo=${encodeURIComponent(finalRedirect)}`

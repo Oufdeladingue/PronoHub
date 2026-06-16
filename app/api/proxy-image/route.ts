@@ -26,13 +26,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'URL invalide' }, { status: 400 })
     }
 
-    // Vérifier que le domaine est autorisé
-    if (!ALLOWED_DOMAINS.some(domain => parsedUrl.hostname.includes(domain))) {
+    // Forcer HTTPS (empêche http:// vers des cibles internes)
+    if (parsedUrl.protocol !== 'https:') {
+      return NextResponse.json({ error: 'Schéma non autorisé' }, { status: 403 })
+    }
+
+    // Vérifier que le domaine est autorisé — égalité EXACTE (un .includes() laisserait
+    // passer crests.football-data.org.attacker.com)
+    if (!ALLOWED_DOMAINS.includes(parsedUrl.hostname)) {
       return NextResponse.json({ error: 'Domaine non autorisé' }, { status: 403 })
     }
 
-    // Récupérer l'image
+    // Récupérer l'image (pas de suivi de redirection : évite un rebond vers une cible interne)
     const response = await fetch(url, {
+      redirect: 'manual',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
