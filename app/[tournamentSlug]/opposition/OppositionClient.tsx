@@ -247,14 +247,14 @@ function ClosingCountdown({
                   {!isGuessMode ? (
                     <>
                       <span className="hidden md:inline">
-                        Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
+                        Tous les matchs de cette journée ne sont pas terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
                       </span>
                       <span className="md:hidden">
-                        Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
+                        Tous les matchs de cette journée ne sont pas terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
                       </span>
                     </>
                   ) : (
-                    <span>Certains matchs sont en cours ou terminés</span>
+                    <span>Tous les matchs de cette journée ne sont pas terminés</span>
                   )}
                 </>
               ) : (
