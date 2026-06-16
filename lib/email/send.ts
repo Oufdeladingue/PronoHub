@@ -1,5 +1,30 @@
 import resend, { EMAIL_CONFIG } from './resend'
+import { sendViaZeptoMail } from './zeptomail'
 import { getUnsubscribeUrl } from './unsubscribe'
+
+// Fournisseur d'envoi actif (zeptomail par défaut ; 'resend' pour repli). Pilotable sans redeploy
+// de code via la variable d'env EMAIL_PROVIDER.
+const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER || 'zeptomail').toLowerCase()
+
+// Retente un envoi sur erreur transitoire (429 / 5xx / réseau) avec backoff exponentiel.
+// Indispensable pour les rafales de crons (rappels/résultats à tous les participants).
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: any
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn()
+    } catch (e: any) {
+      lastErr = e
+      const status = e?.status
+      // Erreurs client définitives (4xx hors 429) : inutile de retenter
+      if (typeof status === 'number' && status < 500 && status !== 429) break
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i))) // 400, 800 ms
+      }
+    }
+  }
+  throw lastErr
+}
 import {
   ADMIN_EMAIL,
   getTournamentStartedAlertTemplate,
@@ -65,26 +90,43 @@ export async function sendEmail(
 
   try {
     const unsubscribeUrl = getUnsubscribeUrl(to)
-
-    const { data, error } = await resend.emails.send({
-      from: EMAIL_CONFIG.from,
-      to,
-      subject,
-      html,
-      text,
-      replyTo: EMAIL_CONFIG.replyTo,
-      headers: {
-        'List-Unsubscribe': `<${unsubscribeUrl}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      },
-    })
-
-    if (error) {
-      console.error('Resend error:', error)
-      return { success: false, error: error.message }
+    const unsubHeaders = {
+      'List-Unsubscribe': `<${unsubscribeUrl}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     }
 
-    return { success: true, messageId: data?.id }
+    // Repli explicite sur Resend si EMAIL_PROVIDER=resend
+    if (EMAIL_PROVIDER === 'resend') {
+      const { data, error } = await resend.emails.send({
+        from: EMAIL_CONFIG.from,
+        to,
+        subject,
+        html,
+        text,
+        replyTo: EMAIL_CONFIG.replyTo,
+        headers: unsubHeaders,
+      })
+      if (error) {
+        console.error('Resend error:', error)
+        return { success: false, error: error.message }
+      }
+      return { success: true, messageId: data?.id }
+    }
+
+    // Défaut : ZeptoMail (avec retry/backoff sur erreurs transitoires)
+    const { id } = await withRetry(() =>
+      sendViaZeptoMail({
+        fromAddress: EMAIL_CONFIG.fromAddress,
+        fromName: EMAIL_CONFIG.fromName,
+        to,
+        subject,
+        html,
+        text,
+        replyTo: EMAIL_CONFIG.replyTo,
+        headers: unsubHeaders,
+      })
+    )
+    return { success: true, messageId: id }
   } catch (err: any) {
     console.error('Email send error:', err)
     return { success: false, error: err.message }

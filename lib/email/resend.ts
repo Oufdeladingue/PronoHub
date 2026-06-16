@@ -23,5 +23,7 @@ export default {
 // Configuration email
 export const EMAIL_CONFIG = {
   from: 'PronoHub <noreply@pronohub.club>',
+  fromAddress: 'noreply@pronohub.club',
+  fromName: 'PronoHub',
   replyTo: 'contact@pronohub.club',
 }
