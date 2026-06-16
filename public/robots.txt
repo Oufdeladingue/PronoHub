@@ -18,7 +18,8 @@ Allow: /pricing
 Disallow: /dashboard
 Disallow: /profile
 Disallow: /api/
-Disallow: /sys-panel-*
+# NB : le panel admin n'est volontairement PAS listé ici (ne pas divulguer son chemin) ;
+# il est de toute façon auth-gated et noindex.
 
 # Sitemap
 Sitemap: https://www.pronohub.club/sitemap.xml

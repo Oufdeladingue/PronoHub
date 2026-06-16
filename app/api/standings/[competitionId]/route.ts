@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
-    const supabase = await createClient()
+    // Classements publics (pas de données par utilisateur) → client admin, pas de cookie sur
+    // la réponse, donc cachable côté CDN sans risque.
+    const supabase = createAdminClient()
     const { competitionId } = await params
 
     if (!competitionId) {
@@ -37,10 +39,16 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({
-      competitionId: parseInt(competitionId),
-      standings: standings || []
-    })
+    return NextResponse.json(
+      {
+        competitionId: parseInt(competitionId),
+        standings: standings || []
+      },
+      {
+        // Données rafraîchies toutes les 3h par le cron sync-standings → cache court côté CDN
+        headers: { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600' }
+      }
+    )
 
   } catch (error) {
     console.error('Error in standings API:', error)
