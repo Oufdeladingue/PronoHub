@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+const LOCK_BEFORE_KICKOFF_MS = 30 * 60 * 1000
+
 export async function POST(request: Request) {
   try {
     // Vérifier l'authentification
@@ -40,6 +42,23 @@ export async function POST(request: Request) {
         { error: 'Aucune prédiction trouvée pour ce match' },
         { status: 404 }
       )
+    }
+
+    // Vérifier la deadline côté serveur (anti-triche), même schéma que /api/predictions/save :
+    // on n'autorise pas de fixer/changer le qualifié à partir de 30 min avant le coup d'envoi.
+    const { data: match } = await adminClient
+      .from('imported_matches')
+      .select('utc_date')
+      .eq('id', matchId)
+      .single()
+    if (match?.utc_date) {
+      const kickoff = new Date(match.utc_date).getTime()
+      if (Date.now() >= kickoff - LOCK_BEFORE_KICKOFF_MS) {
+        return NextResponse.json(
+          { error: 'Match déjà commencé', locked: true },
+          { status: 403 }
+        )
+      }
     }
 
     // Mettre à jour le qualifié
