@@ -90,6 +90,7 @@ export default function EditCommunicationPage() {
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendChannels, setSendChannels] = useState({ email: true, push: true })
   const [avoidDoubleSend, setAvoidDoubleSend] = useState(false) // Push prioritaire : pas d'email si l'user a l'app
+  const [resendToAll, setResendToAll] = useState(false) // Forcer le renvoi même aux destinataires déjà servis
   const [sendResult, setSendResult] = useState<{
     totalSent: number
     emailsSent: number
@@ -365,7 +366,8 @@ export default function EditCommunicationPage() {
           sendEmail: sendChannels.email,
           sendPush: sendChannels.push,
           avoidDoubleSend: avoidDoubleSend && sendChannels.email && sendChannels.push,
-          excludeUserIds: excludedUserIds.size > 0 ? Array.from(excludedUserIds) : undefined
+          excludeUserIds: excludedUserIds.size > 0 ? Array.from(excludedUserIds) : undefined,
+          resendToAll
         })
       })
 
@@ -378,7 +380,8 @@ export default function EditCommunicationPage() {
 
       // Envoi désormais lancé en arrière-plan : la campagne se poursuit côté serveur.
       if (data.async) {
-        alert(`Envoi lancé pour ${data.totalRecipients} destinataire(s).\n\nLa campagne se poursuit en arrière-plan. Rafraîchis la page dans quelques minutes pour voir les statistiques (vagues d'envoi).`)
+        const skipMsg = data.alreadyServed > 0 ? `\n(${data.alreadyServed} destinataire(s) déjà servi(s) ignoré(s) — anti-doublon)` : ''
+        alert(`Envoi lancé pour ${data.totalRecipients} destinataire(s).${skipMsg}\n\nLa campagne se poursuit en arrière-plan. Rafraîchis la page dans quelques minutes pour voir les statistiques (vagues d'envoi).`)
         setCommunication(prev => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : null)
         reloadWaves()
         return
@@ -1106,6 +1109,31 @@ export default function EditCommunicationPage() {
                     </div>
                   </label>
                 )}
+
+                {/* Option renvoi aux déjà-servis (sinon anti-doublon par défaut) */}
+                <label className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  resendToAll
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={resendToAll}
+                    onChange={(e) => setResendToAll(e.target.checked)}
+                    className="w-5 h-5 text-red-600 rounded"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">📨</span>
+                      <span className="font-medium text-gray-900">Renvoyer aussi aux déjà-servis</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Par défaut, les destinataires ayant <strong>déjà reçu</strong> cette communication sont
+                      ignorés (anti-doublon, utile pour finir une campagne interrompue). Coche pour
+                      <strong> forcer un renvoi à tout le monde</strong>.
+                    </p>
+                  </div>
+                </label>
 
                 {/* Avertissement si aucun canal */}
                 {!sendChannels.email && !sendChannels.push && (

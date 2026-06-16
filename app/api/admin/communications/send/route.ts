@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Récupérer l'ID de la communication et les canaux sélectionnés
-    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel, avoidDoubleSend, excludeUserIds } = await request.json()
+    const { communicationId, sendEmail: sendEmailChannel, sendPush: sendPushChannel, avoidDoubleSend, excludeUserIds, resendToAll } = await request.json()
 
     if (!communicationId) {
       return NextResponse.json({ success: false, error: 'ID communication manquant' }, { status: 400 })
@@ -82,8 +82,31 @@ export async function POST(request: NextRequest) {
       recipients = recipients.filter(r => !excludeSet.has(r.id))
     }
 
+    // Anti-doublon : sauf demande explicite (resendToAll), on ignore les destinataires qui ont
+    // DÉJÀ reçu cette communication avec succès (log 'sent'). Permet de « finir » une campagne
+    // interrompue (ex : seuls 100 envoyés) en recliquant Envoyer, sans renvoyer aux servis.
+    let alreadyServed = 0
+    if (resendToAll !== true) {
+      const { data: sentLogs } = await supabase
+        .from('admin_communication_logs')
+        .select('user_id')
+        .eq('communication_id', communicationId)
+        .eq('status', 'sent')
+      const servedSet = new Set((sentLogs || []).map((l: any) => l.user_id))
+      if (servedSet.size > 0) {
+        const before = recipients.length
+        recipients = recipients.filter(r => !servedSet.has(r.id))
+        alreadyServed = before - recipients.length
+      }
+    }
+
     if (!recipients || recipients.length === 0) {
-      return NextResponse.json({ success: false, error: 'Aucun destinataire trouvé avec ces filtres' }, { status: 400 })
+      return NextResponse.json({
+        success: false,
+        error: alreadyServed > 0
+          ? `Tous les destinataires ciblés (${alreadyServed}) ont déjà reçu cette communication. Coche « Renvoyer aussi aux déjà-servis » pour forcer un renvoi.`
+          : 'Aucun destinataire trouvé avec ces filtres'
+      }, { status: 400 })
     }
 
     // Pré-traitement : remplacer les shortcodes matchs (indépendant de l'utilisateur)
@@ -269,7 +292,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       async: true,
-      totalRecipients: recipients.length
+      totalRecipients: recipients.length,
+      alreadyServed
     })
   } catch (error: any) {
     console.error('Error sending communication:', error)
