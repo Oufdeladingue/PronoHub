@@ -140,6 +140,147 @@ const liveMinuteLabel = (match: Match, nowMs: number): string => {
   return `${base + extra}'`
 }
 
+// Bandeau "temps restant avant clôture" — ISOLÉ dans son propre composant pour que le
+// rafraîchissement à la seconde ne re-render PAS tout OppositionClient (≈4000 lignes).
+// Il garde son propre état/timer ; le parent ne tique plus chaque seconde. (perf P-1)
+function ClosingCountdown({
+  matches,
+  isGuessMode,
+  matchdayTotalPoints,
+  hasEarlyBonus,
+  onShowRules,
+}: {
+  matches: Match[]
+  isGuessMode: boolean
+  matchdayTotalPoints: number
+  hasEarlyBonus: boolean
+  onShowRules: () => void
+}) {
+  const [timeRemaining, setTimeRemaining] = useState<string>('')
+
+  useEffect(() => {
+    if (matches.length === 0) { setTimeRemaining(''); return }
+    const calc = (): string => {
+      const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+      const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30 min avant
+      const diff = closingTime.getTime() - Date.now()
+      if (diff <= 0) return 'Pronostics clôturés'
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+      if (days > 0) return `${days}j ${hours}h ${minutes}min`
+      if (hours > 0) return `${hours}h ${minutes}min ${seconds}s`
+      return `${minutes}min ${seconds}s`
+    }
+    setTimeRemaining(calc())
+    const interval = setInterval(() => setTimeRemaining(calc()), 1000)
+    return () => clearInterval(interval)
+  }, [matches])
+
+  if (!timeRemaining) return null
+
+  const hasFirstMatchStarted = () => {
+    if (matches.length === 0) return false
+    const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
+    return new Date() >= firstMatchTime
+  }
+  const hasLastMatchEnded = () => {
+    if (matches.length === 0) return false
+    const lastMatchTime = new Date(Math.max(...matches.map(m => new Date(m.utc_date).getTime())))
+    const twoHoursAfter = new Date(lastMatchTime.getTime() + 2 * 60 * 60 * 1000)
+    return new Date() >= twoHoursAfter
+  }
+
+  return (
+    <div className="p-4 rounded-lg text-center theme-bg text-[#ff9900]">
+      <div className="flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+        </svg>
+        <span className="font-semibold text-xs md:text-base">
+          {timeRemaining === 'Pronostics clôturés' ? (
+            <>
+              {hasLastMatchEnded() ? (
+                /* Journée terminée */
+                <>
+                  {!isGuessMode ? (
+                    <>
+                      <span className="hidden md:inline">
+                        Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
+                        {hasEarlyBonus && (
+                          <>
+                            {' '}(dont{' '}
+                            <button
+                              onClick={onShowRules}
+                              className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                            >
+                              1 de bonus★
+                            </button>
+                            )
+                          </>
+                        )}
+                      </span>
+                      <span className="md:hidden">
+                        Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
+                        {hasEarlyBonus && (
+                          <>
+                            {' '}(dont{' '}
+                            <button
+                              onClick={onShowRules}
+                              className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
+                            >
+                              1 de bonus★
+                            </button>
+                            )
+                          </>
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    <span>Journée de compétition terminée</span>
+                  )}
+                </>
+              ) : hasFirstMatchStarted() ? (
+                /* Matchs en cours */
+                <>
+                  {!isGuessMode ? (
+                    <>
+                      <span className="hidden md:inline">
+                        Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
+                      </span>
+                      <span className="md:hidden">
+                        Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
+                      </span>
+                    </>
+                  ) : (
+                    <span>Certains matchs sont en cours ou terminés</span>
+                  )}
+                </>
+              ) : (
+                /* Pronostics clôturés mais aucun match commencé (30min avant) */
+                <>
+                  <span className="hidden md:inline">
+                    Pronostics clôturés : les matchs commencent bientôt
+                  </span>
+                  <span className="md:hidden">
+                    Pronostics clôturés :<br />les matchs commencent bientôt
+                  </span>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="hidden md:inline">Temps restant pour valider vos pronostics : {timeRemaining}</span>
+              <span className="md:hidden">Temps restant pour valider vos pronostics :<br />{timeRemaining}</span>
+            </>
+          )}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function OppositionClient({
   serverTournament,
   serverUser,
@@ -219,7 +360,6 @@ export default function OppositionClient({
   const [savingPrediction, setSavingPrediction] = useState<string | null>(null)
   const [successPrediction, setSuccessPrediction] = useState<string | null>(null) // Track successful save for visual feedback
   const [errorPrediction, setErrorPrediction] = useState<string | null>(null) // Track failed save for visual feedback
-  const [timeRemaining, setTimeRemaining] = useState<string>('')
   const [savedPredictions, setSavedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos sauvegardés
   const [modifiedPredictions, setModifiedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos modifiés
   const [lockedPredictions, setLockedPredictions] = useState<Record<string, boolean>>({}) // Suivi des pronos verrouillés
@@ -1823,46 +1963,8 @@ export default function OppositionClient({
     return new Date() >= twoHoursAfter
   }
 
-  // Calculer le temps restant avant la clôture des pronostics (30min avant le 1er match)
-  const calculateTimeRemaining = () => {
-    if (matches.length === 0) return ''
-
-    const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
-    const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30 minutes avant
-    const now = new Date()
-    const diff = closingTime.getTime() - now.getTime()
-
-    if (diff <= 0) {
-      return 'Pronostics clôturés'
-    }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-
-    if (days > 0) {
-      return `${days}j ${hours}h ${minutes}min`
-    } else if (hours > 0) {
-      return `${hours}h ${minutes}min ${seconds}s`
-    } else {
-      return `${minutes}min ${seconds}s`
-    }
-  }
-
-  // Timer en temps réel
-  useEffect(() => {
-    if (matches.length === 0) return
-
-    const updateTimer = () => {
-      setTimeRemaining(calculateTimeRemaining())
-    }
-
-    updateTimer()
-    const interval = setInterval(updateTimer, 1000)
-
-    return () => clearInterval(interval)
-  }, [matches])
+  // (Le compteur de clôture est désormais géré par <ClosingCountdown>, isolé pour ne pas
+  // re-render tout le composant chaque seconde — cf. perf P-1.)
 
   // Écouter les nouveaux messages en temps réel pour mettre à jour le compteur
   useEffect(() => {
@@ -2322,94 +2424,15 @@ export default function OppositionClient({
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Timer avant le premier match */}
-                    {timeRemaining && (
-                      <div className="p-4 rounded-lg text-center theme-bg text-[#ff9900]">
-                        <div className="flex items-center justify-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                          </svg>
-                          <span className="font-semibold text-xs md:text-base">
-                            {timeRemaining === 'Pronostics clôturés' ? (
-                              <>
-                                {hasLastMatchEnded() ? (
-                                  /* Journée terminée */
-                                  <>
-                                    {!isGuessMode ? (
-                                      <>
-                                        <span className="hidden md:inline">
-                                          Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
-                                          {hasEarlyBonus && (
-                                            <>
-                                              {' '}(dont{' '}
-                                              <button
-                                                onClick={() => setActiveTab('regles')}
-                                                className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                                              >
-                                                1 de bonus★
-                                              </button>
-                                              )
-                                            </>
-                                          )}
-                                        </span>
-                                        <span className="md:hidden">
-                                          Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
-                                          {hasEarlyBonus && (
-                                            <>
-                                              {' '}(dont{' '}
-                                              <button
-                                                onClick={() => setActiveTab('regles')}
-                                                className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                                              >
-                                                1 de bonus★
-                                              </button>
-                                              )
-                                            </>
-                                          )}
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span>Journée de compétition terminée</span>
-                                    )}
-                                  </>
-                                ) : hasFirstMatchStarted() ? (
-                                  /* Matchs en cours */
-                                  <>
-                                    {!isGuessMode ? (
-                                      <>
-                                        <span className="hidden md:inline">
-                                          Certains matchs sont en cours ou terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
-                                        </span>
-                                        <span className="md:hidden">
-                                          Certains matchs sont en cours ou terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <span>Certains matchs sont en cours ou terminés</span>
-                                    )}
-                                  </>
-                                ) : (
-                                  /* Pronostics clôturés mais aucun match commencé (30min avant) */
-                                  <>
-                                    <span className="hidden md:inline">
-                                      Pronostics clôturés : les matchs commencent bientôt
-                                    </span>
-                                    <span className="md:hidden">
-                                      Pronostics clôturés :<br />les matchs commencent bientôt
-                                    </span>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <span className="hidden md:inline">Temps restant pour valider vos pronostics : {timeRemaining}</span>
-                                <span className="md:hidden">Temps restant pour valider vos pronostics :<br />{timeRemaining}</span>
-                              </>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                    {/* Compteur de clôture — isolé dans <ClosingCountdown> pour ne pas
+                        re-render tout le composant chaque seconde (perf P-1) */}
+                    <ClosingCountdown
+                      matches={matches}
+                      isGuessMode={isGuessMode}
+                      matchdayTotalPoints={matchdayTotalPoints}
+                      hasEarlyBonus={hasEarlyBonus}
+                      onShowRules={() => setActiveTab('regles')}
+                    />
 
                     {/* Barre repliable des matchs terminés (masqués par défaut pour ne pas noyer les pronos à faire) */}
                     {canCollapseFinished && (

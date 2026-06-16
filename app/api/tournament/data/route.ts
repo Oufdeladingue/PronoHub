@@ -70,61 +70,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
   }
 
-  // Récupérer le nom de la compétition
-  let competitionName = 'Compétition'
-  if (tournamentData.custom_competition_id) {
-    const { data } = await supabase
-      .from('custom_competitions')
-      .select('name')
-      .eq('id', tournamentData.custom_competition_id)
-      .single()
-    competitionName = data?.name || 'Compétition Custom'
-  } else if (tournamentData.competition_id) {
-    const { data } = await supabase
-      .from('competitions')
-      .select('name')
-      .eq('id', tournamentData.competition_id)
-      .single()
-    competitionName = data?.name || 'Compétition'
-  }
+  // Compétition (nom + logos en UNE requête, c'était la même ligne lue 2 fois), pseudo du
+  // capitaine et matchs récupérés EN PARALLÈLE (étaient 4 awaits séquentiels). (perf P-8)
+  const isCustomComp = !!tournamentData.custom_competition_id
+  const compPromise = isCustomComp
+    ? supabase.from('custom_competitions').select('name, custom_emblem_white, custom_emblem_color').eq('id', tournamentData.custom_competition_id).single()
+    : tournamentData.competition_id
+      ? supabase.from('competitions').select('name, emblem, custom_emblem_white, custom_emblem_color').eq('id', tournamentData.competition_id).single()
+      : Promise.resolve({ data: null as any })
+  const captainPromise = tournamentData.creator_id
+    ? supabase.from('profiles').select('username').eq('id', tournamentData.creator_id).single()
+    : Promise.resolve({ data: null as any })
 
-  // Récupérer le logo de la compétition
-  let competitionLogo = { logo: null, logoWhite: null }
-  if (tournamentData.custom_competition_id) {
-    const { data } = await supabase
-      .from('custom_competitions')
-      .select('custom_emblem_white, custom_emblem_color')
-      .eq('id', tournamentData.custom_competition_id)
-      .single()
-    competitionLogo = {
-      logo: data?.custom_emblem_color || null,
-      logoWhite: data?.custom_emblem_white || null
-    }
-  } else if (tournamentData.competition_id) {
-    const { data } = await supabase
-      .from('competitions')
-      .select('emblem, custom_emblem_white, custom_emblem_color')
-      .eq('id', tournamentData.competition_id)
-      .single()
-    competitionLogo = {
-      logo: data?.custom_emblem_color || data?.emblem || null,
-      logoWhite: data?.custom_emblem_white || data?.emblem || null
+  const [compRes, captainRes, allMatches] = await Promise.all([
+    compPromise,
+    captainPromise,
+    fetchAllMatches(supabase, tournamentData),
+  ])
+
+  const compRow: any = compRes.data
+  let competitionName = isCustomComp ? 'Compétition Custom' : 'Compétition'
+  let competitionLogo: { logo: string | null; logoWhite: string | null } = { logo: null, logoWhite: null }
+  if (compRow) {
+    if (isCustomComp) {
+      competitionName = compRow.name || 'Compétition Custom'
+      competitionLogo = { logo: compRow.custom_emblem_color || null, logoWhite: compRow.custom_emblem_white || null }
+    } else {
+      competitionName = compRow.name || 'Compétition'
+      competitionLogo = {
+        logo: compRow.custom_emblem_color || compRow.emblem || null,
+        logoWhite: compRow.custom_emblem_white || compRow.emblem || null,
+      }
     }
   }
-
-  // Récupérer le pseudo du capitaine
-  let captainUsername = null
-  if (tournamentData.creator_id) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', tournamentData.creator_id)
-      .single()
-    captainUsername = data?.username || null
-  }
-
-  // Récupérer tous les matchs
-  const allMatches = await fetchAllMatches(supabase, tournamentData)
+  const captainUsername: string | null = (captainRes.data as any)?.username || null
 
   // Calculer les stages par matchday (utilise virtual_matchday si présent pour les compétitions knockout)
   const matchdayStages: Record<number, string | null> = {}

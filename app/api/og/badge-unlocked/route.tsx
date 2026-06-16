@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAllowedImageUrl } from '@/lib/safe-image-fetch'
+import { loadOgFont } from '@/lib/og-fonts'
 import satori from 'satori'
 import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
 import React from 'react'
 
-// Charger la police Inter depuis Google Fonts
-async function loadFont(weight: number = 400): Promise<ArrayBuffer> {
-  const fontUrls: Record<number, string> = {
-    400: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff',
-    700: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fAZ9hjp-Ek-_EeA.woff',
-    900: 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuBWYAZ9hjp-Ek-_EeA.woff',
-  }
-
-  const fontUrl = fontUrls[weight] || fontUrls[400]
-
-  try {
-    const response = await fetch(fontUrl)
-    if (response.ok) {
-      return await response.arrayBuffer()
-    }
-  } catch (e) {
-    console.error('[OG-Badge] Error loading font:', e)
-  }
-
-  throw new Error('Could not load font')
-}
+// Police Inter mutualisée + mise en cache (lib/og-fonts) — évite de re-télécharger à chaque rendu
+const loadFont = loadOgFont
 
 // Télécharger une image et la convertir en base64 data URL
 async function fetchImageAsBase64(url: string): Promise<string | null> {
