@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { sendEmail } from '@/lib/email/send'
@@ -92,13 +92,21 @@ export async function POST(request: NextRequest) {
       preProcessedBody = await replaceMatchShortcodes(preProcessedBody, supabase)
     }
 
+    // Envoi en ARRIÈRE-PLAN : on répond immédiatement au client, puis la campagne se poursuit
+    // dans le process (serveur long-running). Évite le timeout du proxy (~100 s Cloudflare) sur
+    // les grosses audiences — cause de l'erreur "JSON.parse" côté admin. Progression traçable
+    // via admin_communication_logs (par destinataire) et admin_communication_waves (à la fin).
+    // Écritures DB via le client service-role (insensible à l'expiration du token sur un long run).
+    const admin = createAdminClient()
+    const runSend = async () => {
     // Statistiques d'envoi
     let emailsSent = 0
     let emailsFailed = 0
     let pushSent = 0
     let pushFailed = 0
 
-    // Envoyer séquentiellement avec délai pour respecter le rate limit Resend
+    // Envoyer séquentiellement avec un léger délai (ZeptoMail encaisse un débit élevé ; le
+    // retry/backoff de sendEmail couvre un éventuel throttling)
     for (let idx = 0; idx < recipients.length; idx++) {
       const recipient = recipients[idx]
       const logs: Array<{
@@ -170,8 +178,8 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Délai entre chaque email pour respecter le rate limit Resend (~2/sec)
-        await new Promise(resolve => setTimeout(resolve, 600))
+        // Léger délai entre emails (ZeptoMail tolère un débit bien supérieur à Resend)
+        await new Promise(resolve => setTimeout(resolve, 150))
       }
 
       // Envoyer la notification push si configurée et si l'utilisateur a un token FCM
@@ -219,12 +227,12 @@ export async function POST(request: NextRequest) {
 
       // Sauvegarder les logs
       if (logs.length > 0) {
-        await supabase.from('admin_communication_logs').insert(logs)
+        await admin.from('admin_communication_logs').insert(logs)
       }
     }
 
     // Enregistrer la vague d'envoi avec les filtres utilisés
-    await supabase
+    await admin
       .from('admin_communication_waves')
       .insert({
         communication_id: communicationId,
@@ -241,7 +249,7 @@ export async function POST(request: NextRequest) {
 
     // Mettre à jour la communication avec les stats cumulées
     // On additionne les stats des vagues précédentes
-    await supabase
+    await admin
       .from('admin_communications')
       .update({
         status: 'sent',
@@ -253,14 +261,15 @@ export async function POST(request: NextRequest) {
         stats_push_failed: (communication.stats_push_failed || 0) + pushFailed
       })
       .eq('id', communicationId)
+    } // fin runSend
+
+    // Lancer l'envoi sans l'attendre (floating) et répondre tout de suite
+    runSend().catch((e) => console.error('[communications/send] background error:', e))
 
     return NextResponse.json({
       success: true,
-      totalSent: recipients.length,
-      emailsSent,
-      emailsFailed,
-      pushSent,
-      pushFailed
+      async: true,
+      totalRecipients: recipients.length
     })
   } catch (error: any) {
     console.error('Error sending communication:', error)

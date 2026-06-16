@@ -369,12 +369,22 @@ export default function EditCommunicationPage() {
         })
       })
 
-      const data = await response.json()
+      // Réponse possiblement non-JSON (timeout proxy, page d'erreur HTML) → message clair
+      const data = await response.json().catch(() => null)
 
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de l\'envoi')
+      if (!data || !data.success) {
+        throw new Error(data?.error || `Erreur serveur (HTTP ${response.status})`)
       }
 
+      // Envoi désormais lancé en arrière-plan : la campagne se poursuit côté serveur.
+      if (data.async) {
+        alert(`Envoi lancé pour ${data.totalRecipients} destinataire(s).\n\nLa campagne se poursuit en arrière-plan. Rafraîchis la page dans quelques minutes pour voir les statistiques (vagues d'envoi).`)
+        setCommunication(prev => prev ? { ...prev, status: 'sent', sent_at: new Date().toISOString() } : null)
+        reloadWaves()
+        return
+      }
+
+      // (Ancien chemin synchrone, conservé par compatibilité)
       setSendResult({
         totalSent: data.totalSent,
         emailsSent: data.emailsSent || 0,
