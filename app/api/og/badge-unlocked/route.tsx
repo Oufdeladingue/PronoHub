@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isAllowedImageUrl } from '@/lib/safe-image-fetch'
 import satori from 'satori'
 import sharp from 'sharp'
 import path from 'path'
@@ -29,10 +30,10 @@ async function loadFont(weight: number = 400): Promise<ArrayBuffer> {
 
 // Télécharger une image et la convertir en base64 data URL
 async function fetchImageAsBase64(url: string): Promise<string | null> {
-  if (!url) return null
+  if (!url || !isAllowedImageUrl(url)) return null
 
   try {
-    const response = await fetch(url, { next: { revalidate: 3600 } })
+    const response = await fetch(url, { redirect: 'manual', next: { revalidate: 3600 } })
     if (!response.ok) return null
 
     const buffer = await response.arrayBuffer()

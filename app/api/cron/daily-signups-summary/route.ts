@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/email'
 import { ADMIN_EMAIL } from '@/lib/email/admin-templates'
+import { assertCron } from '@/lib/cron-auth'
 
 // Cron job qui s'exécute à 12h et 20h pour récapituler les nouvelles inscriptions
 // Vérifie les inscriptions depuis la dernière exécution (ou depuis 8h si première exécution du jour)
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérifier l'autorisation (seulement depuis Vercel Cron ou en dev)
-    const authHeader = request.headers.get('authorization')
-    if (process.env.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    // Vérifier l'autorisation (toujours, indépendamment de NODE_ENV — contient des PII)
+    const denied = assertCron(request)
+    if (denied) return denied
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

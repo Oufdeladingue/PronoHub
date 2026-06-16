@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { requireSuperAdmin } from '@/lib/auth-guards'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
 export async function GET(request: Request) {
+  // Outil de debug (service-role, dump structure DB + infos API) → super admin uniquement
+  const guard = await requireSuperAdmin()
+  if (guard.response) return guard.response
+
   const { searchParams } = new URL(request.url)
   const checkDb = searchParams.get('db') === 'true'
 
@@ -250,6 +255,7 @@ export async function GET(request: Request) {
     })
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[debug/cl-matches] error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

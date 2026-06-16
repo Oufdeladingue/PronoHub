@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
+import { assertCron } from '@/lib/cron-auth'
 
 /**
  * Cron de finalisation automatique des tournois
@@ -16,17 +17,9 @@ import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérifier l'autorisation (secret de cron)
-    const authHeader = request.headers.get('authorization')
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
-
-    if (authHeader !== expectedAuth) {
-      console.error('[FINALIZE-TOURNAMENTS] Unauthorized access attempt')
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // Vérifier l'autorisation (secret de cron, timing-safe + exige CRON_SECRET défini)
+    const denied = assertCron(request)
+    if (denied) return denied
 
     const supabase = createAdminClient()
     const now = new Date().toISOString()

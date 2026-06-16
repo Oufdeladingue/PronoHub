@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { requireSuperAdmin } from '@/lib/auth-guards'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -8,6 +9,10 @@ const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
  * GET /api/admin/debug-match?home=Parma&away=Cagliari&tournament=elitetimcook
  */
 export async function GET(request: Request) {
+  // Outil de debug (service-role) → super admin uniquement
+  const guard = await requireSuperAdmin()
+  if (guard.response) return guard.response
+
   try {
     const supabase = createAdminClient()
     const apiKey = process.env.FOOTBALL_DATA_API_KEY
@@ -255,7 +260,7 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('[DEBUG-MATCH] Error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 

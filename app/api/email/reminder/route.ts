@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendMatchReminderEmail } from '@/lib/email'
+import { isValidCronAuth } from '@/lib/cron-auth'
 
 // Cette route peut être appelée par un cron job (ex: Vercel Cron)
 // ou manuellement depuis le panel admin
 
 export async function POST(request: NextRequest) {
   try {
-    // Vérifier la clé API pour les appels automatisés (cron)
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    // Si pas d'authorization header, vérifier l'auth Supabase
-    if (!authHeader || authHeader !== `Bearer ${cronSecret}`) {
+    // Cron (Bearer CRON_SECRET, timing-safe) OU session admin
+    if (!isValidCronAuth(request)) {
       const supabase = await createClient()
       const { data: { user }, error: authError } = await supabase.auth.getUser()
 
