@@ -491,7 +491,9 @@ export default function StatsModal({
 
         // Vérifier si on doit afficher directement le classement
         const totalFormMatches = (statsData.homeTeamForm?.length || 0) + (statsData.awayTeamForm?.length || 0)
-        const hasEnoughFormData = totalFormMatches >= 5
+        // Afficher la forme dès qu'il existe au moins un match (utile pour les sélections en
+        // Coupe du Monde : on montre les derniers matchs même s'il n'y en a qu'un)
+        const hasEnoughFormData = totalFormMatches >= 1
         const hasEnoughTrendsData = statsData.predictionTrends !== null
 
         // Si pas assez de données de forme ET pas assez de pronostics, afficher directement le classement
@@ -509,7 +511,7 @@ export default function StatsModal({
   }, [matchId, tournamentId, competitionId, homeTeamId, awayTeamId, homeTeamName, awayTeamName])
 
   // Calculer si on a assez de données pour afficher les sections
-  const hasEnoughFormData = data ? (data.homeTeamForm.length + data.awayTeamForm.length) >= 5 : false
+  const hasEnoughFormData = data ? (data.homeTeamForm.length + data.awayTeamForm.length) >= 1 : false
   const hasEnoughTrendsData = data?.predictionTrends !== null
   const showOnlyStandings = data && !hasEnoughFormData && !hasEnoughTrendsData
 
@@ -592,7 +594,7 @@ export default function StatsModal({
               </div>
             ) : data ? (
               <>
-                {/* Forme des equipes - masqué si moins de 5 matchs au total */}
+                {/* Forme des equipes - affichée dès qu'au moins un match existe */}
                 {hasEnoughFormData && (
                   <div>
                     <h4 className="text-sm font-semibold theme-text mb-3 flex items-center gap-2">
