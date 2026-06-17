@@ -1812,47 +1812,27 @@ export default function OppositionClient({
 
     const now = new Date()
 
-    // Récupérer le premier match de la journée
-    const firstMatchTime = new Date(Math.min(...matchdayMatches.map(m => new Date(m.utc_date).getTime())))
-    const hoursUntilFirstMatch = (firstMatchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-
-    // Vérifier si la journée a commencé ou commence dans moins de 48h
-    const journeyStartedOrSoon = hoursUntilFirstMatch < 48
-
-    if (!journeyStartedOrSoon) return false
-
-    // Vérifier si la journée est terminée
-    const lastMatchTime = new Date(Math.max(...matchdayMatches.map(m => new Date(m.utc_date).getTime())))
-    const hoursAfterLastMatch = (now.getTime() - lastMatchTime.getTime()) / (1000 * 60 * 60)
-    const isFinished = hoursAfterLastMatch > 2
-
-    if (isFinished) return false
-
-    // Vérifier s'il reste des pronostics manquants et éditables
-    let hasMissingEditablePredictions = false
-
+    // On se base sur la date de CHAQUE match (et non sur la date de début de la journée).
+    // Le badge s'affiche s'il existe au moins un match encore éditable, imminent, et non
+    // pronostiqué — utile pour les journées étalées sur plusieurs jours (ex. Coupe du Monde).
     for (const match of matchdayMatches) {
       const matchTime = new Date(match.utc_date)
       const hoursBeforeMatch = (matchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-      // Le match est encore éditable (plus d'30min avant le match)
-      const isEditable = hoursBeforeMatch > 0.5
+      // Fenêtre d'alerte propre à CE match : encore éditable (>30 min avant son coup d'envoi)
+      // et imminent (<48 h avant son coup d'envoi). Les matchs passés/verrouillés sont ignorés.
+      const isEditableAndSoon = hoursBeforeMatch > 0.5 && hoursBeforeMatch < 48
+      if (!isEditableAndSoon) continue
 
-      if (!isEditable) continue
-
-      // Vérifier si l'utilisateur a un pronostic pour ce match
       const userPrediction = allPredictions[match.id]
       const hasPrediction = userPrediction &&
         userPrediction.predicted_home_score !== null &&
         userPrediction.predicted_away_score !== null
 
-      if (!hasPrediction) {
-        hasMissingEditablePredictions = true
-        break
-      }
+      if (!hasPrediction) return true
     }
 
-    return hasMissingEditablePredictions
+    return false
   }
 
   // Fonctions pour la navigation des journées avec flèches
