@@ -277,6 +277,11 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             home_score_90: keepExisting ? undefined : sc.home_score_90,
             away_score_90: keepExisting ? undefined : sc.away_score_90,
             winner_team_id: keepExisting ? undefined : winnerTeamId,
+            // Minute de jeu en direct depuis football-data (plan Livescores) : présente pendant
+            // IN_PLAY/PAUSED, effacée hors live. last_updated_at bumpé seulement en live.
+            ...(['IN_PLAY', 'PAUSED'].includes(effectiveStatus)
+              ? { live_minute: match.minute ?? null, last_updated_at: new Date().toISOString() }
+              : { live_minute: null }),
           }
         })
         // Ne jamais écraser un score/champ existant avec null ou undefined.
