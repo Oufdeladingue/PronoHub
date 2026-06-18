@@ -3,7 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { patchStaleScoresWithApiFootball, type FallbackResult } from '@/lib/api-football-fallback'
 import { patchLiveWorldCupWithApiFootball } from '@/lib/api-football-live'
-import { extractFootballDataScores } from '@/lib/football-data-score'
+import { extractFootballDataScores, deriveLiveMinute } from '@/lib/football-data-score'
 import { scrapeMatchScore } from '@/lib/native-stats-scraper'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
@@ -277,10 +277,18 @@ export async function executeAutoUpdate(): Promise<AutoUpdateResult> {
             home_score_90: keepExisting ? undefined : sc.home_score_90,
             away_score_90: keepExisting ? undefined : sc.away_score_90,
             winner_team_id: keepExisting ? undefined : winnerTeamId,
-            // Minute de jeu en direct depuis football-data (plan Livescores) : présente pendant
-            // IN_PLAY/PAUSED, effacée hors live. last_updated_at bumpé seulement en live.
-            ...(['IN_PLAY', 'PAUSED'].includes(effectiveStatus)
-              ? { live_minute: match.minute ?? null, last_updated_at: new Date().toISOString() }
+            // Minute de jeu en direct : football-data ne peuple pas `minute` → on la dérive
+            // (coup d'envoi + statut + halfTime). Effacée hors live.
+            ...(['IN_PLAY', 'PAUSED', 'EXTRA_TIME', 'PENALTY_SHOOTOUT'].includes(effectiveStatus)
+              ? {
+                  live_minute: deriveLiveMinute(
+                    new Date(match.utcDate).getTime(),
+                    effectiveStatus,
+                    match.minute,
+                    match.score?.halfTime?.home != null
+                  ),
+                  last_updated_at: new Date().toISOString(),
+                }
               : { live_minute: null }),
           }
         })

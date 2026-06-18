@@ -39,6 +39,68 @@ export interface ExtractedScores {
 const num = (v: number | null | undefined): number => (typeof v === 'number' ? v : 0)
 
 /**
+ * Minute de jeu en direct.
+ *
+ * football-data (plan Livescores) renvoie un statut IN_PLAY/PAUSED + le score fiables,
+ * mais son champ `minute` est souvent `null`. On l'utilise quand il est présent, sinon
+ * on DÉRIVE une minute plausible depuis le coup d'envoi et le statut (le client lisse
+ * ensuite l'affichage entre deux polls). Approximation volontaire de ±qq min autour de
+ * la mi-temps — suffisant pour l'affichage.
+ *
+ * @param kickoffMs      coup d'envoi (ms epoch)
+ * @param status         statut football-data (IN_PLAY / PAUSED / EXTRA_TIME / …)
+ * @param fdMinute       champ `minute` football-data (souvent null)
+ * @param firstHalfDone  true si score.halfTime est peuplé → on est en 2e période
+ * @param nowMs          horloge (injectable pour les tests ; défaut Date.now())
+ */
+export function deriveLiveMinute(
+  kickoffMs: number,
+  status: string | null | undefined,
+  fdMinute: number | null | undefined,
+  firstHalfDone: boolean = false,
+  nowMs: number = Date.now()
+): number | null {
+  if (fdMinute != null) return fdMinute
+  if (status === 'PAUSED') return 45 // mi-temps
+  const elapsed = Math.floor((nowMs - kickoffMs) / 60000)
+  if (status === 'EXTRA_TIME' || status === 'PENALTY_SHOOTOUT') {
+    return Math.max(91, elapsed - 15) // au-delà du temps réglementaire
+  }
+  if (status !== 'IN_PLAY') return null
+  // 2e période si la 1re mi-temps est officiellement terminée (halfTime peuplé),
+  // ou à défaut si le temps réel dépasse largement 45' (filet).
+  const secondHalf = firstHalfDone || elapsed > 60
+  if (!secondHalf) return Math.min(Math.max(1, elapsed), 45) // 1re période (plafonnée)
+  return Math.max(46, elapsed - 15) // 2e période (≈ retirer la pause de 15 min)
+}
+
+export type MatchPhase = 'FIRST_HALF' | 'HALF_TIME' | 'SECOND_HALF' | 'EXTRA_TIME' | 'PENALTIES' | null
+
+/** Libellés FR courts pour l'affichage. */
+export const MATCH_PHASE_LABELS: Record<NonNullable<MatchPhase>, string> = {
+  FIRST_HALF: '1re MT',
+  HALF_TIME: 'Mi-temps',
+  SECOND_HALF: '2e MT',
+  EXTRA_TIME: 'Prolong.',
+  PENALTIES: 'TAB',
+}
+
+/**
+ * Phase d'un match en direct, dérivée du statut + de la minute (déjà stockés).
+ * Utilisable côté client (pas besoin du score halfTime) : la minute encode déjà la période.
+ */
+export function deriveMatchPhase(
+  status: string | null | undefined,
+  minute: number | null | undefined
+): MatchPhase {
+  if (status === 'PAUSED') return 'HALF_TIME'
+  if (status === 'EXTRA_TIME') return 'EXTRA_TIME'
+  if (status === 'PENALTY_SHOOTOUT') return 'PENALTIES'
+  if (status !== 'IN_PLAY') return null
+  return (minute ?? 0) > 45 ? 'SECOND_HALF' : 'FIRST_HALF'
+}
+
+/**
  * Extrait les scores corrects (affichage + 90 min + vainqueur) depuis un objet score
  * football-data.org. Gère les prolongations et les tirs au but.
  */

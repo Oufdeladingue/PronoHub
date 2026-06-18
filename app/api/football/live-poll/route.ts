@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { extractFootballDataScores } from '@/lib/football-data-score'
+import { extractFootballDataScores, deriveLiveMinute } from '@/lib/football-data-score'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 
@@ -49,10 +49,15 @@ async function pollOnce(
       : sc.winnerSide === 'away' ? (m.awayTeam?.id ?? null)
       : null
 
+    // Minute dérivée : football-data ne peuple pas son champ `minute` → on la calcule
+    // depuis le coup d'envoi + le statut (+ halfTime pour fiabiliser la 2e période).
+    const firstHalfDone = m.score?.halfTime?.home != null
+    const minute = deriveLiveMinute(new Date(m.utcDate).getTime(), m.status, m.minute, firstHalfDone)
+
     // Ne jamais écraser un score existant avec null (football-data peut renvoyer null en plein live)
     const update: Record<string, any> = {
       status: m.status,
-      live_minute: m.minute ?? null,
+      live_minute: minute,
       last_updated_at: new Date().toISOString(),
     }
     if (sc.home_score != null) update.home_score = sc.home_score
@@ -69,7 +74,7 @@ async function pollOnce(
     if (error) errors.push(`${m.id}: ${error.message}`)
     else {
       updated++
-      sample.push(`${m.homeTeam?.name} ${sc.home_score ?? '-'}-${sc.away_score ?? '-'} ${m.awayTeam?.name} [${m.status} ${m.minute ?? '∅'}']`)
+      sample.push(`${m.homeTeam?.name} ${sc.home_score ?? '-'}-${sc.away_score ?? '-'} ${m.awayTeam?.name} [${m.status} ${minute ?? '∅'}']`)
     }
   }
 

@@ -92,11 +92,14 @@ export async function patchLiveWorldCupWithApiFootball(
   const fourHoursAgo = new Date(now - 4 * 60 * 60 * 1000).toISOString()
   const tenMinAhead = new Date(now + 10 * 60 * 1000).toISOString()
 
+  // FILET uniquement : depuis le plan football-data Livescores, le live CDM vient de
+  // football-data (statut IN_PLAY + score). On n'appelle API-Football QUE si un match
+  // reste bloqué en TIMED dans sa fenêtre de jeu (échec football-data) → préserve le quota.
   const { data: candidates, error: candErr } = await supabase
     .from('imported_matches')
     .select('id, football_data_match_id, competition_id, stage, home_team_id, away_team_id, home_team_name, away_team_name, utc_date, status, home_score, away_score, live_minute')
     .in('competition_id', WC_COMPETITION_IDS)
-    .in('status', ['TIMED', 'IN_PLAY', 'PAUSED'])
+    .eq('status', 'TIMED')
     .gt('utc_date', fourHoursAgo)
     .lt('utc_date', tenMinAhead)
 

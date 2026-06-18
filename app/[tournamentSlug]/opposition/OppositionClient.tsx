@@ -131,13 +131,16 @@ const isMatchFinished = (match: Match): boolean => {
 // reste juste et "tourne" toute seule. `nowMs` permet de re-render via un timer.
 const liveMinuteLabel = (match: Match, nowMs: number): string => {
   if (isMatchFinished(match)) return ''
-  if (match.status === 'PAUSED') return 'MT'
+  if (match.status === 'PAUSED') return 'MT'          // mi-temps
+  if (match.status === 'PENALTY_SHOOTOUT') return 'TAB'
   if (match.live_minute == null) return ''
   const base = match.live_minute
   const updatedAt = match.last_updated_at ? new Date(match.last_updated_at).getTime() : null
   // Minutes écoulées depuis la dernière valeur serveur, plafonnées (évite l'emballement si le cron cale)
   const extra = updatedAt ? Math.min(Math.max(0, Math.floor((nowMs - updatedAt) / 60000)), 6) : 0
-  return `${base + extra}'`
+  const m = base + extra
+  if (match.status === 'EXTRA_TIME') return `Prol. ${m}'`  // prolongations
+  return `${m}'`
 }
 
 // Bandeau "temps restant avant clôture" — ISOLÉ dans son propre composant pour que le
