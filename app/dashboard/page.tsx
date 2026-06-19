@@ -629,7 +629,12 @@ export default async function DashboardPage() {
       userRank: tournamentRankings[t.id]?.userRank || null,
       totalParticipants: tournamentRankings[t.id]?.totalParticipants || 0,
       // Demandes d'équipe en attente (pour le capitaine)
-      pendingTeamRequests: pendingTeamRequests[t.id] || 0
+      pendingTeamRequests: pendingTeamRequests[t.id] || 0,
+      // Mort-né : jamais démarré (pending/warmup/draft) ET plus aucun match à venir alors que des
+      // journées existent (compétition terminée). À masquer côté user (aucun historique).
+      isDead: (t.status === 'pending' || t.status === 'warmup' || t.status === 'draft')
+        && !nextMatchDates[t.id]
+        && !!journeyInfo[t.id] && journeyInfo[t.id].total > 0
     }
 
     return tournamentData

@@ -346,10 +346,13 @@ function DashboardContent({
     }
   }
 
+  // Masquer les tournois "mort-nés" : jamais démarrés et dont la compétition est terminée
+  // (plus aucun match à venir) → aucun historique, on ne les affiche pas aux users.
+  const visibleTournaments = tournaments.filter(t => !t.isDead)
   // Séparer les tournois actifs/en attente des tournois terminés
-  const activeTournaments = tournaments.filter(t => t.status !== 'finished' && t.status !== 'completed')
+  const activeTournaments = visibleTournaments.filter(t => t.status !== 'finished' && t.status !== 'completed')
   // Trier les tournois terminés par date du dernier match (plus récent en premier)
-  const finishedTournaments = tournaments
+  const finishedTournaments = visibleTournaments
     .filter(t => t.status === 'finished' || t.status === 'completed')
     .sort((a, b) => {
       const dateA = a.lastMatchDate ? new Date(a.lastMatchDate).getTime() : 0
