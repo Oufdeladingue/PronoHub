@@ -33,7 +33,7 @@ export async function GET() {
       // 2. Compétitions personnalisées actives (avec matchdays et leurs matchs pour calculer les dates)
       supabase
         .from('custom_competitions')
-        .select('*, custom_competition_matchdays(id, matchday_number, status, custom_competition_matches(cached_utc_date))')
+        .select('*, custom_competition_matchdays(id, matchday_number, status, week_start, custom_competition_matches(cached_utc_date))')
         .eq('is_active', true)
         .order('name'),
 
@@ -229,6 +229,24 @@ export async function GET() {
       // Le flag hide_matchdays_badge permet de ne pas afficher le badge sur le vestiaire
       const remainingMatchdays = playableMatchdays > 0 ? playableMatchdays : 10
 
+      // Date de début de la compétition custom :
+      //  - si des matchs sont sélectionnés : date du tout premier match (cached_utc_date)
+      //  - sinon (journées encore vides) : lundi de la 1re journée (week_start)
+      const matchDatesMs = matchdays
+        .flatMap((md: any) => (md.custom_competition_matches || []).map((m: any) => m.cached_utc_date))
+        .filter(Boolean)
+        .map((d: string) => new Date(d).getTime())
+        .filter((t: number) => !isNaN(t))
+      const weekStartsMs = matchdays
+        .map((md: any) => md.week_start)
+        .filter(Boolean)
+        .map((d: string) => new Date(d).getTime())
+        .filter((t: number) => !isNaN(t))
+      const customFirstMs = matchDatesMs.length
+        ? Math.min(...matchDatesMs)
+        : (weekStartsMs.length ? Math.min(...weekStartsMs) : null)
+      const customHasStarted = customFirstMs != null && customFirstMs <= now.getTime()
+
       return {
         id: `custom_${customComp.id}`,
         name: customComp.name,
@@ -241,7 +259,9 @@ export async function GET() {
         is_active: customComp.is_active,
         remaining_matchdays: remainingMatchdays,
         remaining_matches: remainingMatchdays * (customComp.matches_per_matchday || 8),
-        hide_matchdays_badge: true, // Ne pas afficher le badge sur le vestiaire
+        start_date: customFirstMs != null ? new Date(customFirstMs).toISOString() : null,
+        has_started: customHasStarted,
+        hide_matchdays_badge: false, // Afficher le badge date ("Débute le X" / "En cours")
         tournaments_count: 0,
         is_most_popular: false,
         custom_emblem_white: customComp.custom_emblem_white ?? null,
