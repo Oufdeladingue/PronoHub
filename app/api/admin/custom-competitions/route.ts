@@ -74,13 +74,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, code, description, competition_type, matches_per_matchday, season } = body
+    const { name, code, description, competition_type, matches_per_matchday, season, custom_emblem_color, custom_emblem_white } = body
 
     if (!name || !code) {
       return NextResponse.json({ error: 'Nom et code requis' }, { status: 400 })
     }
 
-    // Créer la compétition
+    // Créer la compétition (emblèmes optionnels : réutilisés lors d'un "Nouvelle saison")
     const { data: competition, error } = await supabase
       .from('custom_competitions')
       .insert({
@@ -90,6 +90,8 @@ export async function POST(request: Request) {
         competition_type: competition_type || 'best_of_week',
         matches_per_matchday: matches_per_matchday || 8,
         season: season || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+        custom_emblem_color: custom_emblem_color || null,
+        custom_emblem_white: custom_emblem_white || null,
         is_active: true,
         created_by: user.id
       })

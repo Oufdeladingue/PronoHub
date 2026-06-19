@@ -81,7 +81,22 @@ export async function GET() {
     // Calculer les stats pour chaque compétition (sans requêtes supplémentaires)
     const now = new Date()
     const competitionsWithStats = (competitions || []).map((comp) => {
-      const allMatches = matchesByCompetition[comp.id] || []
+      // Borner à la SAISON COURANTE : sinon, après ré-import d'une nouvelle saison sous le même
+      // competition_id, les matchs de l'ancienne saison (mêmes numéros de journée, dates passées)
+      // faussent firstMatchDate → toutes les journées comptées comme "commencées" → 0 restante
+      // → la compétition apparaît à tort "Saison terminée".
+      const seasonStartMs = comp.current_season_start_date
+        ? new Date(comp.current_season_start_date).getTime() - 7 * 24 * 60 * 60 * 1000
+        : null
+      const seasonEndMs = comp.current_season_end_date
+        ? new Date(comp.current_season_end_date).getTime() + 21 * 24 * 60 * 60 * 1000
+        : null
+      const allMatches = (matchesByCompetition[comp.id] || []).filter((m: any) => {
+        const t = new Date(m.utc_date).getTime()
+        if (seasonStartMs != null && t < seasonStartMs) return false
+        if (seasonEndMs != null && t > seasonEndMs) return false
+        return true
+      })
 
       // Grouper les matchs par paire (stage, matchday) pour gérer les knockouts
       // où le matchday redémarre à 1 par stage (ex: CL, World Cup)

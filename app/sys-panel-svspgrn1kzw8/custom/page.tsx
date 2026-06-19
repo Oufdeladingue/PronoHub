@@ -42,7 +42,7 @@ export default function AdminCustomCompetitionsPage() {
   })
   // Si la création vient du bouton "Nouvelle saison", on garde l'ancienne compétition pour
   // proposer de la marquer "Terminée" une fois la nouvelle créée.
-  const [newSeasonSource, setNewSeasonSource] = useState<{ id: string; name: string } | null>(null)
+  const [newSeasonSource, setNewSeasonSource] = useState<{ id: string; name: string; emblemColor: string | null; emblemWhite: string | null } | null>(null)
 
   // Ouvre le modal de création VIERGE (réinitialise un éventuel pré-remplissage "Nouvelle saison")
   const openBlankCreateModal = () => {
@@ -84,7 +84,12 @@ export default function AdminCustomCompetitionsPage() {
       matches_per_matchday: comp.matches_per_matchday,
       season: next,
     })
-    setNewSeasonSource({ id: comp.id, name: `${comp.name} ${comp.season || ''}`.trim() })
+    setNewSeasonSource({
+      id: comp.id,
+      name: `${comp.name} ${comp.season || ''}`.trim(),
+      emblemColor: comp.custom_emblem_color,
+      emblemWhite: (comp as any).custom_emblem_white ?? null,
+    })
     setError(null)
     setShowCreateModal(true)
   }
@@ -116,7 +121,14 @@ export default function AdminCustomCompetitionsPage() {
       const response = await fetch('/api/admin/custom-competitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCompetition)
+        body: JSON.stringify({
+          ...newCompetition,
+          // En cas de "Nouvelle saison", on réutilise le logo de l'ancienne compétition
+          ...(newSeasonSource ? {
+            custom_emblem_color: newSeasonSource.emblemColor,
+            custom_emblem_white: newSeasonSource.emblemWhite,
+          } : {}),
+        })
       })
 
       const data = await response.json()
