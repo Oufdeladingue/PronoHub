@@ -28,6 +28,7 @@ export default function AdminCustomCompetitionsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'active' | 'finished'>('active')
 
   // Modal de création
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -261,6 +262,11 @@ export default function AdminCustomCompetitionsPage() {
     fetchCompetitions()
   }, [])
 
+  // Répartition par onglet : en cours (is_active) vs terminées
+  const activeComps = competitions.filter(c => c.is_active)
+  const finishedComps = competitions.filter(c => !c.is_active)
+  const displayedComps = activeTab === 'active' ? activeComps : finishedComps
+
   return (
     <AdminLayout currentPage="custom">
       <div className="min-h-screen bg-gray-50">
@@ -293,6 +299,32 @@ export default function AdminCustomCompetitionsPage() {
             </div>
           )}
 
+          {/* Onglets En cours / Terminées */}
+          {!loading && competitions.length > 0 && (
+            <div className="flex gap-2 mb-6 border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition ${
+                  activeTab === 'active'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                En cours <span className="ml-1 text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full">{activeComps.length}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('finished')}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition ${
+                  activeTab === 'finished'
+                    ? 'border-purple-600 text-purple-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Terminées <span className="ml-1 text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-full">{finishedComps.length}</span>
+              </button>
+            </div>
+          )}
+
           {/* Liste des compétitions */}
           {loading ? (
             <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
@@ -309,9 +341,13 @@ export default function AdminCustomCompetitionsPage() {
                 Créer votre première compétition
               </button>
             </div>
+          ) : displayedComps.length === 0 ? (
+            <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+              {activeTab === 'active' ? 'Aucune compétition en cours' : 'Aucune compétition terminée'}
+            </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {competitions.map((comp) => (
+              {displayedComps.map((comp) => (
                 <div
                   key={comp.id}
                   className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition"
