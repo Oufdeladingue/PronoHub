@@ -84,6 +84,9 @@ export default function AdminDataPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  // Aperçu des nouvelles saisons dispo à la source (1 appel football-data) : { [id]: {...} }
+  const [renewalMap, setRenewalMap] = useState<Record<number, { hasNewSeason: boolean; sourceStart: string | null; sourceEnd: string | null }>>({})
+
   // État pour les réglages de MAJ auto (système intelligent)
   const [smartSettings, setSmartSettings] = useState<SmartCronSettings>(defaultSmartSettings)
   const [loadingSettings, setLoadingSettings] = useState(false)
@@ -386,8 +389,21 @@ export default function AdminDataPage() {
     }
   }
 
+  // Aperçu des nouvelles saisons dispo à la source (1 appel football-data)
+  const fetchSeasonsOverview = async () => {
+    try {
+      const res = await fetch('/api/football/seasons-overview')
+      if (!res.ok) return
+      const data = await res.json()
+      setRenewalMap(data.overview || {})
+    } catch {
+      // silencieux : l'absence d'aperçu ne bloque pas la page
+    }
+  }
+
   useEffect(() => {
     fetchImportedCompetitions()
+    fetchSeasonsOverview()
   }, [])
 
   // Charger les paramètres de MAJ et stats API quand on passe à l'onglet
@@ -621,6 +637,8 @@ export default function AdminDataPage() {
                         onImport={importCompetition}
                         onToggleActive={toggleActive}
                         onToggleEvent={toggleEvent}
+                        showRenewal
+                        renewalStatus={renewalMap[comp.id]}
                       />
                     ))}
                   </div>
@@ -1276,7 +1294,9 @@ function CompetitionCard({
   togglingEvent,
   onImport,
   onToggleActive,
-  onToggleEvent
+  onToggleEvent,
+  showRenewal = false,
+  renewalStatus
 }: {
   competition: Competition
   importing: number | null
@@ -1285,7 +1305,14 @@ function CompetitionCard({
   onImport: (id: number) => void
   onToggleActive: (id: number, status: boolean) => void
   onToggleEvent: (id: number, status: boolean) => void
+  showRenewal?: boolean
+  renewalStatus?: { hasNewSeason: boolean; sourceStart: string | null; sourceEnd: string | null }
 }) {
+  // Sur l'onglet "Saisons terminées" : on connaît la dispo d'une nouvelle saison à la source.
+  // renewalStatus indéfini = encore en chargement (on n'empêche rien).
+  const renewalKnown = showRenewal && renewalStatus !== undefined
+  const noNewSeason = renewalKnown && !renewalStatus!.hasNewSeason
+  const hasNewSeason = renewalKnown && renewalStatus!.hasNewSeason
   return (
     <div className={`admin-competition-card ${comp.isActive ? 'active' : ''}`}>
       {/* Bouton d'activation (toggle switch) - Coin supérieur droit */}
@@ -1424,6 +1451,22 @@ function CompetitionCard({
         </button>
       </div>
 
+      {/* Message dispo nouvelle saison (onglet "Saisons terminées") */}
+      {showRenewal && (
+        hasNewSeason ? (
+          <div className="mb-2 w-full text-center text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-md px-2 py-1">
+            ✅ Nouvelle saison disponible
+            {renewalStatus?.sourceStart ? ` : ${formatDate(renewalStatus.sourceStart)} → ${formatDate(renewalStatus.sourceEnd || '')}` : ''}
+          </div>
+        ) : noNewSeason ? (
+          <div className="mb-2 w-full text-center text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-2 py-1">
+            Aucune nouvelle saison disponible pour l'instant
+          </div>
+        ) : (
+          <div className="mb-2 w-full text-center text-xs text-gray-400">Vérification de la saison…</div>
+        )
+      )}
+
       {/* Boutons d'action */}
       <div className="w-full mt-auto flex gap-3">
         <button
@@ -1434,10 +1477,11 @@ function CompetitionCard({
         </button>
         <button
           onClick={() => onImport(comp.id)}
-          disabled={importing === comp.id}
-          className="btn-admin-refresh"
+          disabled={importing === comp.id || noNewSeason}
+          className={`btn-admin-refresh ${noNewSeason ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={noNewSeason ? 'Aucune nouvelle saison disponible à la source' : hasNewSeason ? 'Importer la nouvelle saison' : 'Ré-importer / actualiser'}
         >
-          {importing === comp.id ? 'Import...' : 'Actualiser'}
+          {importing === comp.id ? 'Import...' : hasNewSeason ? 'Importer la saison' : 'Actualiser'}
         </button>
       </div>
     </div>
