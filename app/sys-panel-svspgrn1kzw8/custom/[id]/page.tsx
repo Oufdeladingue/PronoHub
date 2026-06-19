@@ -139,8 +139,22 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
   }
 
   // Ouvrir le modal de création avec la bonne semaine par défaut
-  function openCreateModal() {
-    const availableWeek = getFirstAvailableWeek()
+  async function openCreateModal() {
+    let availableWeek = getFirstAvailableWeek()
+    // 1re journée : proposer la première semaine qui contient des matchs dans les compétitions
+    // sources (au lieu de la semaine courante, souvent sans match en intersaison).
+    if (matchdays.length === 0) {
+      try {
+        const res = await fetch('/api/admin/custom-competitions/available-matches?earliest=true')
+        const data = await res.json()
+        if (res.ok && data.earliestDate) {
+          const monday = getMonday(new Date(data.earliestDate))
+          availableWeek = { start: formatLocalDate(monday), end: formatLocalDate(getSunday(monday)) }
+        }
+      } catch {
+        // fallback silencieux : on garde la semaine courante
+      }
+    }
     setSelectedWeek(availableWeek)
     setShowCreateModal(true)
   }

@@ -26,6 +26,19 @@ export async function GET(request: Request) {
     const weekStart = searchParams.get('week_start')
     const weekEnd = searchParams.get('week_end')
 
+    // Mode "earliest" : renvoie la date du 1er match À VENIR dans les compétitions actives.
+    // Sert à proposer la bonne semaine pour la 1re journée d'une compétition custom.
+    if (searchParams.get('earliest') === 'true') {
+      const { data: first } = await supabase
+        .from('imported_matches')
+        .select('utc_date, competitions!inner(is_active)')
+        .eq('competitions.is_active', true)
+        .gte('utc_date', new Date().toISOString())
+        .order('utc_date', { ascending: true })
+        .limit(1)
+      return NextResponse.json({ earliestDate: first?.[0]?.utc_date || null })
+    }
+
     if (!weekStart || !weekEnd) {
       return NextResponse.json({ error: 'Dates de début et fin requises' }, { status: 400 })
     }
