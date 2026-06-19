@@ -1,9 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
     const supabase = await createClient()
+    // Service role pour les données d'AFFICHAGE des compétitions custom : les matchdays/matchs
+    // custom sont bloqués par RLS pour le client utilisateur → dates imbriquées vides → start_date
+    // null → badge "Débute le {created_at}" erroné. On les lit donc en admin (non sensible).
+    const admin = createAdminClient()
 
     // Vérifier l'authentification
     const { data: { user } } = await supabase.auth.getUser()
@@ -31,7 +35,8 @@ export async function GET() {
         .order('name'),
 
       // 2. Compétitions personnalisées actives (avec matchdays et leurs matchs pour calculer les dates)
-      supabase
+      //    → admin (service role) car les tables custom imbriquées sont protégées par RLS
+      admin
         .from('custom_competitions')
         .select('*, custom_competition_matchdays(id, matchday_number, status, week_start, custom_competition_matches(cached_utc_date))')
         .eq('is_active', true)

@@ -281,13 +281,13 @@ export default function VestiaireClient() {
                 {/* Badge "Plus populaire" */}
                 {comp.is_most_popular && !comp.is_event && (
                   <div
-                    className="popular-star absolute top-3 right-3 z-20 rounded-full p-2 shadow-lg group/star transition-colors duration-300"
+                    className="popular-star absolute bottom-3 left-3 z-20 rounded-full p-2 shadow-lg group/star transition-colors duration-300"
                     title="Compétition la plus populaire"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-colors duration-300" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
-                    <span className="popular-tooltip absolute -bottom-10 right-0 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
+                    <span className="popular-tooltip absolute -top-9 left-0 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
                       Compétition la plus populaire
                     </span>
                   </div>
@@ -296,7 +296,7 @@ export default function VestiaireClient() {
                 {/* Badge "Événement" */}
                 {comp.is_event && (
                   <div
-                    className="event-badge absolute top-3 right-3 z-20 flex flex-col items-center gap-1 group/event"
+                    className="event-badge absolute bottom-3 right-3 z-20 flex flex-col items-center gap-1 group/event"
                     title="Compétition événementielle"
                   >
                     <div className="event-icon-container rounded-full p-2 shadow-lg animate-pulse-subtle">
@@ -309,6 +309,16 @@ export default function VestiaireClient() {
                     <span className="event-label text-[10px] font-bold uppercase tracking-wide">
                       Événement
                     </span>
+                  </div>
+                )}
+
+                {/* Journées restantes (compétition réellement en cours) - haut à droite, 2 lignes */}
+                {comp.has_started && !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
+                  <div className="absolute top-3 right-3 z-20 text-right leading-none">
+                    <div className="text-sm font-extrabold text-orange-400">Reste {comp.remaining_matchdays}</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      {comp.remaining_matchdays > 1 ? 'journées' : 'journée'}
+                    </div>
                   </div>
                 )}
 
@@ -328,9 +338,11 @@ export default function VestiaireClient() {
                       </span>
                     ) : !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
-                        {comp.has_started || !comp.start_date
+                        {comp.has_started
                           ? 'En cours'
-                          : `Débute le ${new Date(comp.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                          : (comp.start_date || (!comp.is_custom && comp.current_season_start_date))
+                            ? `Débute le ${new Date(comp.start_date || comp.current_season_start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                            : 'Prochainement'
                         }
                       </span>
                     )}
