@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { Suspense } from 'react'
@@ -182,8 +182,12 @@ export default async function DashboardPage() {
   }
 
   if (customCompetitionIds.length > 0) {
+    // Service-role : on lit nom/emblème même pour les compétitions custom TERMINÉES
+    // (is_active=false), que la RLS "Public can view active custom competitions" masquerait
+    // aux users → sinon le logo des tournois BOTW terminés disparaît de l'historique.
+    const adminSupabase = createAdminClient()
     competitionPromises.push(
-      supabase
+      adminSupabase
         .from('custom_competitions')
         .select('id, name, custom_emblem_white, custom_emblem_color')
         .in('id', customCompetitionIds)
