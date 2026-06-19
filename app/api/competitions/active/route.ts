@@ -165,10 +165,19 @@ export async function GET() {
         }
       ).length
 
+      // Date de début (1er match de la saison courante) + si la compétition a déjà commencé
+      const matchMs = allMatches
+        .map((m: any) => new Date(m.utc_date).getTime())
+        .filter((t: number) => !isNaN(t))
+      const firstMatchMs = matchMs.length ? Math.min(...matchMs) : null
+      const hasStarted = firstMatchMs != null && firstMatchMs <= now.getTime()
+
       return {
         ...comp,
         remaining_matchdays: remainingMatchdays,
         remaining_matches: remainingMatches,
+        start_date: firstMatchMs != null ? new Date(firstMatchMs).toISOString() : null,
+        has_started: hasStarted,
         tournaments_count: tournamentCountMap[comp.id] || 0
       }
     })

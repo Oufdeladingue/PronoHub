@@ -19,6 +19,8 @@ interface Competition {
   is_event?: boolean
   remaining_matchdays?: number
   remaining_matches?: number
+  start_date?: string | null
+  has_started?: boolean
   hide_matchdays_badge?: boolean
   tournaments_count?: number
   is_most_popular?: boolean
@@ -326,9 +328,9 @@ export default function VestiaireClient() {
                       </span>
                     ) : !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
-                        {comp.remaining_matchdays === 1
-                          ? '1 journée restante'
-                          : `${comp.remaining_matchdays} journées restantes`
+                        {comp.has_started || !comp.start_date
+                          ? 'En cours'
+                          : `Débute le ${new Date(comp.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
                         }
                       </span>
                     )}
