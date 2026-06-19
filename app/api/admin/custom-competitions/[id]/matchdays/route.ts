@@ -1,6 +1,39 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+/**
+ * Renumérote les journées d'une compétition custom de façon contiguë (1..N) dans l'ordre
+ * chronologique des semaines (week_start). Appelé après création/suppression pour que les
+ * numéros se suivent toujours, même après un saut de semaine, une suppression ou une insertion.
+ * Renumérotation en 2 passes (valeurs temporaires) pour ne pas violer UNIQUE(comp, matchday_number).
+ * Met aussi à jour total_matchdays.
+ */
+async function resequenceMatchdays(admin: ReturnType<typeof createAdminClient>, competitionId: string) {
+  const { data: mds } = await admin
+    .from('custom_competition_matchdays')
+    .select('id, matchday_number, week_start')
+    .eq('custom_competition_id', competitionId)
+    .order('week_start', { ascending: true })
+
+  const list = mds || []
+  // Maj du compteur total
+  await admin.from('custom_competitions').update({ total_matchdays: list.length }).eq('id', competitionId)
+
+  const changed = list
+    .map((m, i) => ({ id: m.id, want: i + 1, current: m.matchday_number }))
+    .filter(t => t.current !== t.want)
+  if (changed.length === 0) return
+
+  // Pass 1 : numéros temporaires (offset) pour éviter toute collision sur la contrainte UNIQUE
+  for (const t of changed) {
+    await admin.from('custom_competition_matchdays').update({ matchday_number: 100000 + t.want }).eq('id', t.id)
+  }
+  // Pass 2 : numéros finaux 1..N
+  for (const t of changed) {
+    await admin.from('custom_competition_matchdays').update({ matchday_number: t.want }).eq('id', t.id)
+  }
+}
+
 // GET - Récupérer les journées d'une compétition custom
 export async function GET(
   request: Request,
@@ -175,16 +208,14 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create matchday' }, { status: 500 })
     }
 
-    // Mettre à jour le compteur de journées
-    await supabase
-      .from('custom_competitions')
-      .update({ total_matchdays: finalMatchdayNumber })
-      .eq('id', id)
+    // Renumérotation contiguë par date (gère l'insertion d'une semaine entre deux journées)
+    const adminSupabase = createAdminClient()
+    await resequenceMatchdays(adminSupabase, id)
 
     return NextResponse.json({
       success: true,
       matchday,
-      message: `Journée ${finalMatchdayNumber} créée`
+      message: 'Journée créée'
     })
   } catch (error: any) {
     console.error('Error in matchdays POST:', error)
@@ -198,6 +229,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: competitionId } = await params
     const supabase = await createClient()
 
     // Vérifier que l'utilisateur est admin
@@ -239,6 +271,9 @@ export async function DELETE(
     if (count === 0) {
       return NextResponse.json({ error: 'Journée introuvable' }, { status: 404 })
     }
+
+    // Renumérotation contiguë par date après suppression (J1, J3 → J1, J2…)
+    await resequenceMatchdays(adminSupabase, competitionId)
 
     return NextResponse.json({
       success: true,
