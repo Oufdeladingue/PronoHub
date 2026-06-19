@@ -111,6 +111,15 @@ export async function GET(
 
     // IMPORTANT: Filtrer les matchs qui ont eu lieu avant la date de démarrage du tournoi
     const tournamentStartDate = tournament.start_date ? new Date(tournament.start_date) : null
+    // Borne HAUTE : exclure les matchs postérieurs à la fin du tournoi. Indispensable quand une
+    // ligue est ré-importée pour une nouvelle saison sous le même competition_id : sans ça, les
+    // J1→J38 de la saison suivante (mêmes numéros) viendraient polluer un ancien tournoi.
+    // Marge de 21 j (l'écart inter-saisons est d'~10 semaines, donc aucun risque de couper la
+    // dernière journée du tournoi).
+    const SEASON_END_MARGIN_MS = 21 * 24 * 60 * 60 * 1000
+    const tournamentEndDate = tournament.ending_date
+      ? new Date(new Date(tournament.ending_date).getTime() + SEASON_END_MARGIN_MS)
+      : null
 
     let finishedMatchesRaw: any[] = []
     let allMatchesRaw: any[] = []
@@ -274,6 +283,7 @@ export async function GET(
     const finishedMatches = (finishedMatchesRaw || []).filter(m => {
       const matchDate = new Date(m.utc_date)
       if (tournamentStartDate && matchDate < tournamentStartDate) return false
+      if (tournamentEndDate && matchDate > tournamentEndDate) return false
       if (asOfDate && matchDate > asOfDate) return false
       return true
     })
@@ -288,13 +298,13 @@ export async function GET(
       m.status === 'IN_PLAY' || m.status === 'PAUSED'
     ) || false
 
-    // Filtrer les matchs disponibles par date de démarrage du tournoi
-    const allMatches = tournamentStartDate
-      ? allMatchesRaw?.filter(m => {
-          const matchDate = new Date(m.utc_date)
-          return matchDate >= tournamentStartDate
-        })
-      : allMatchesRaw
+    // Filtrer les matchs disponibles par la fenêtre du tournoi (début ET fin de saison)
+    const allMatches = (allMatchesRaw || []).filter(m => {
+      const matchDate = new Date(m.utc_date)
+      if (tournamentStartDate && matchDate < tournamentStartDate) return false
+      if (tournamentEndDate && matchDate > tournamentEndDate) return false
+      return true
+    })
 
     // 6. Récupérer les matchs bonus pour ce tournoi
     const { data: bonusMatches } = await supabase

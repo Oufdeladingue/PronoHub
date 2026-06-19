@@ -271,7 +271,18 @@ async function fetchAllMatches(supabase: any, tournament: any) {
       .select('*')
       .eq('competition_id', tournament.competition_id)
 
-    const allMatches = allCompMatches || []
+    // Borne saison : ne garder que les matchs de la fenêtre du tournoi (début/fin + marge 21j),
+    // pour éviter la collision des numéros de journée avec une autre saison ré-importée sous le
+    // même competition_id. (Même logique que la page server opposition.)
+    const SEASON_MARGIN_MS = 21 * 24 * 60 * 60 * 1000
+    const seasonStartMs = tournament.start_date ? new Date(tournament.start_date).getTime() - SEASON_MARGIN_MS : null
+    const seasonEndMs = tournament.ending_date ? new Date(tournament.ending_date).getTime() + SEASON_MARGIN_MS : null
+    const allMatches = (allCompMatches || []).filter((m: any) => {
+      const t = new Date(m.utc_date).getTime()
+      if (seasonStartMs != null && t < seasonStartMs) return false
+      if (seasonEndMs != null && t > seasonEndMs) return false
+      return true
+    })
 
     const pairKey = (m: any) => `${m.stage || 'REGULAR_SEASON'}__${m.matchday ?? 1}`
     const pairs = new Map<string, { stage: string | null; matchday: number; order: number }>()
