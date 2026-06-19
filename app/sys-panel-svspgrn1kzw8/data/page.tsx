@@ -138,9 +138,33 @@ export default function AdminDataPage() {
   }
 
   const importCompetition = async (competitionId: number) => {
-    setImporting(competitionId)
     setError(null)
     setSuccess(null)
+
+    // 1) Vérifier la saison disponible à la source AVANT d'importer (évite de ré-importer
+    //    bêtement une saison déjà terminée si la nouvelle n'est pas encore publiée)
+    let confirmMsg = 'Lancer l\'import de cette compétition ?'
+    try {
+      const sres = await fetch(`/api/football/season-status?competitionId=${competitionId}`)
+      const s = await sres.json()
+      if (sres.ok) {
+        if (s.neverImported) {
+          confirmMsg = `Importer la saison ${s.sourceStart || '?'} → ${s.sourceEnd || '?'} ?`
+        } else if (s.hasNewSeason) {
+          confirmMsg = `✅ Nouvelle saison disponible : ${s.sourceStart} → ${s.sourceEnd}\n(saison actuellement importée : ${s.importedStart} → ${s.importedEnd})\n\nImporter la nouvelle saison maintenant ?`
+        } else {
+          confirmMsg = `⚠️ AUCUNE nouvelle saison sur football-data.\nLa saison courante à la source (${s.sourceStart} → ${s.sourceEnd}) est déjà celle qui est importée.\n\nRé-importer quand même (simple rafraîchissement) ?`
+        }
+      } else {
+        confirmMsg = `Impossible de vérifier la saison à la source (${s.error || 'erreur'}).\nImporter quand même ?`
+      }
+    } catch {
+      confirmMsg = 'Impossible de vérifier la saison à la source.\nImporter quand même ?'
+    }
+    if (!confirm(confirmMsg)) return
+
+    // 2) Import effectif
+    setImporting(competitionId)
     try {
       const response = await fetch('/api/football/import', {
         method: 'POST',
