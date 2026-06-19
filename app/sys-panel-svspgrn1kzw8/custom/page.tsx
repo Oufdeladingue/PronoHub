@@ -40,6 +40,20 @@ export default function AdminCustomCompetitionsPage() {
     matches_per_matchday: 8,
     season: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
   })
+  // Si la création vient du bouton "Nouvelle saison", on garde l'ancienne compétition pour
+  // proposer de la marquer "Terminée" une fois la nouvelle créée.
+  const [newSeasonSource, setNewSeasonSource] = useState<{ id: string; name: string } | null>(null)
+
+  // Ouvre le modal de création VIERGE (réinitialise un éventuel pré-remplissage "Nouvelle saison")
+  const openBlankCreateModal = () => {
+    setNewSeasonSource(null)
+    setNewCompetition({
+      name: '', code: '', description: '', competition_type: 'best_of_week', matches_per_matchday: 8,
+      season: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+    })
+    setError(null)
+    setShowCreateModal(true)
+  }
 
   // Modal d'édition (description + saison)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -70,6 +84,7 @@ export default function AdminCustomCompetitionsPage() {
       matches_per_matchday: comp.matches_per_matchday,
       season: next,
     })
+    setNewSeasonSource({ id: comp.id, name: `${comp.name} ${comp.season || ''}`.trim() })
     setError(null)
     setShowCreateModal(true)
   }
@@ -120,6 +135,27 @@ export default function AdminCustomCompetitionsPage() {
         matches_per_matchday: 8,
         season: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
       })
+
+      // Si on démarre une nouvelle saison à partir d'une ancienne, proposer de la clore maintenant
+      const source = newSeasonSource
+      setNewSeasonSource(null)
+      if (source && confirm(
+        `Nouvelle saison créée ✅\n\nMarquer l'ancienne saison « ${source.name} » comme TERMINÉE maintenant ?\n` +
+        `Les utilisateurs ne pourront plus la sélectionner (les tournois en cours restent intacts).\n\n` +
+        `Astuce : tu peux aussi la laisser active le temps de préparer les journées de la nouvelle, puis la terminer ensuite.`
+      )) {
+        try {
+          await fetch('/api/admin/custom-competitions', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: source.id, is_active: false }),
+          })
+          setSuccess('Nouvelle saison créée et ancienne saison marquée comme terminée')
+        } catch {
+          setError('Nouvelle saison créée, mais échec du marquage "terminée" de l\'ancienne (fais-le manuellement via le toggle).')
+        }
+      }
+
       await fetchCompetitions()
     } catch (err: any) {
       setError(err.message)
@@ -224,7 +260,7 @@ export default function AdminCustomCompetitionsPage() {
               <p className="text-gray-600">Créez des compétitions custom comme "Best of Week"</p>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={openBlankCreateModal}
               className="btn-admin-primary flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -255,7 +291,7 @@ export default function AdminCustomCompetitionsPage() {
               <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">Aucune compétition personnalisée</p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={openBlankCreateModal}
                 className="text-purple-600 hover:text-purple-700 font-medium"
               >
                 Créer votre première compétition
