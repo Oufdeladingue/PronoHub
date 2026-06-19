@@ -1,0 +1,30 @@
+name: Check New Seasons
+
+on:
+  schedule:
+    # Tous les jours à 08:10 UTC : détecte les nouvelles saisons publiées sur football-data
+    - cron: '10 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-new-seasons:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📅 Trigger check-new-seasons cron
+        run: |
+          response=$(curl -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}" \
+            -s \
+            https://www.pronohub.club/api/cron/check-new-seasons)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+          echo "✅ Vérification des nouvelles saisons terminée"

@@ -137,7 +137,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json()
-    const { id, is_active, description } = body
+    const { id, is_active, description, season } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID requis' }, { status: 400 })
@@ -149,12 +149,18 @@ export async function PATCH(request: Request) {
 
     if (typeof is_active === 'boolean') {
       updateData.is_active = is_active
-      message = `Compétition ${is_active ? 'activée' : 'désactivée'}`
+      // is_active=false = compétition "terminée" (masquée du vestiaire, tournois existants conservés)
+      message = is_active ? 'Compétition réactivée' : 'Compétition marquée comme terminée'
     }
 
     if (description !== undefined) {
       updateData.description = description
       message = 'Description mise à jour'
+    }
+
+    if (typeof season === 'string') {
+      updateData.season = season.trim() || null
+      message = 'Saison mise à jour'
     }
 
     if (Object.keys(updateData).length === 0) {

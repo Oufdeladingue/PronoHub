@@ -41,11 +41,38 @@ export default function AdminCustomCompetitionsPage() {
     season: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
   })
 
-  // Modal d'édition de description
+  // Modal d'édition (description + saison)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingCompetition, setEditingCompetition] = useState<CustomCompetition | null>(null)
   const [editDescription, setEditDescription] = useState('')
+  const [editSeason, setEditSeason] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Calcule la saison suivante "YYYY-YYYY" → "YYYY+1-YYYY+1" (ex: 2025-2026 → 2026-2027)
+  const nextSeasonLabel = (season: string | null): string => {
+    const m = (season || '').match(/(\d{4})\s*-\s*(\d{4})/)
+    if (m) return `${parseInt(m[1]) + 1}-${parseInt(m[2]) + 1}`
+    const y = new Date().getFullYear()
+    return `${y}-${y + 1}`
+  }
+
+  // Pré-remplit le modal de création pour démarrer une NOUVELLE saison à partir d'une compétition
+  // existante (même nom/type/format, saison +1, code suffixé pour rester unique).
+  const startNewSeason = (comp: CustomCompetition) => {
+    const next = nextSeasonLabel(comp.season)
+    const base = comp.code.replace(/[-_]?\d.*$/, '') // retire un éventuel suffixe d'année existant
+    const suffix = next.replace(/\D/g, '').slice(2, 6) // ex: 2026-2027 → "2627"
+    setNewCompetition({
+      name: comp.name,
+      code: `${base}${suffix}`.slice(0, 10),
+      description: comp.description || '',
+      competition_type: comp.competition_type,
+      matches_per_matchday: comp.matches_per_matchday,
+      season: next,
+    })
+    setError(null)
+    setShowCreateModal(true)
+  }
 
   const fetchCompetitions = async () => {
     setLoading(true)
@@ -149,10 +176,11 @@ export default function AdminCustomCompetitionsPage() {
   const openEditModal = (comp: CustomCompetition) => {
     setEditingCompetition(comp)
     setEditDescription(comp.description || '')
+    setEditSeason(comp.season || '')
     setShowEditModal(true)
   }
 
-  const saveDescription = async () => {
+  const saveCompetitionEdit = async () => {
     if (!editingCompetition) return
 
     setSaving(true)
@@ -161,7 +189,7 @@ export default function AdminCustomCompetitionsPage() {
       const response = await fetch('/api/admin/custom-competitions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingCompetition.id, description: editDescription })
+        body: JSON.stringify({ id: editingCompetition.id, description: editDescription, season: editSeason })
       })
 
       const data = await response.json()
@@ -170,7 +198,7 @@ export default function AdminCustomCompetitionsPage() {
         throw new Error(data.error || 'Échec de la mise à jour')
       }
 
-      setSuccess('Description mise à jour')
+      setSuccess('Compétition mise à jour')
       setShowEditModal(false)
       setEditingCompetition(null)
       await fetchCompetitions()
@@ -267,7 +295,7 @@ export default function AdminCustomCompetitionsPage() {
                             ? 'bg-green-400/30 hover:bg-green-400/50'
                             : 'bg-red-400/30 hover:bg-red-400/50'
                         } ${toggling === comp.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
-                        title={comp.is_active ? 'Cliquer pour désactiver' : 'Cliquer pour activer'}
+                        title={comp.is_active ? 'Cliquer pour marquer comme terminée' : 'Cliquer pour réactiver'}
                       >
                         {toggling === comp.id ? (
                           <span className="animate-spin">⏳</span>
@@ -276,7 +304,7 @@ export default function AdminCustomCompetitionsPage() {
                         ) : (
                           <ToggleLeft className="w-4 h-4" />
                         )}
-                        {comp.is_active ? 'Active' : 'Inactive'}
+                        {comp.is_active ? 'En cours' : 'Terminée'}
                       </button>
                     </div>
                     <h3 className="text-xl font-bold mt-2">{comp.name}</h3>
@@ -328,6 +356,14 @@ export default function AdminCustomCompetitionsPage() {
                       >
                         <Calendar className="w-4 h-4" />
                         Gérer les journées
+                      </button>
+                      <button
+                        onClick={() => startNewSeason(comp)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition text-sm font-medium"
+                        title={`Démarrer une nouvelle saison (${nextSeasonLabel(comp.season)})`}
+                      >
+                        <Plus className="w-4 h-4" />
+                        Nouvelle saison
                       </button>
                       <button
                         onClick={() => deleteCompetition(comp.id, comp.name)}
@@ -467,7 +503,7 @@ export default function AdminCustomCompetitionsPage() {
               <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
                 <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Modifier la description</h2>
+                    <h2 className="text-xl font-bold text-gray-900">Modifier la compétition</h2>
                     <p className="text-sm text-gray-500 mt-1">{editingCompetition.name}</p>
                   </div>
                   <button
@@ -478,20 +514,35 @@ export default function AdminCustomCompetitionsPage() {
                   </button>
                 </div>
 
-                <div className="p-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description affichée aux utilisateurs
-                  </label>
-                  <textarea
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Ex: Les plus belles affiches de la semaine - Sélection des meilleurs matchs de toutes les compétitions"
-                    rows={4}
-                    className="admin-input resize-none"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Cette description sera visible par les utilisateurs sur la page de sélection des compétitions.
-                  </p>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Saison
+                    </label>
+                    <input
+                      type="text"
+                      value={editSeason}
+                      onChange={(e) => setEditSeason(e.target.value)}
+                      placeholder="ex: 2025-2026"
+                      className="admin-input"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Saison football sur laquelle s'appuie cette compétition (ex : 2025-2026).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description affichée aux utilisateurs
+                    </label>
+                    <textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="Ex: Les plus belles affiches de la semaine - Sélection des meilleurs matchs de toutes les compétitions"
+                      rows={4}
+                      className="admin-input resize-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
@@ -502,7 +553,7 @@ export default function AdminCustomCompetitionsPage() {
                     Annuler
                   </button>
                   <button
-                    onClick={saveDescription}
+                    onClick={saveCompetitionEdit}
                     disabled={saving}
                     className="btn-admin-primary"
                   >
