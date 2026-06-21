@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { extractFootballDataScores, deriveLiveMinute } from '@/lib/football-data-score'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
+// Statuts considérés "en direct" (inclut les phases KO : prolongations + tirs au but).
+const LIVE_STATUSES = 'IN_PLAY,PAUSED,EXTRA_TIME,PENALTY_SHOOTOUT'
 
 export const dynamic = 'force-dynamic'
 // Mode cycles=2 : un poll, pause 30s, un second poll → cadence 30s depuis un cron 1 min.
@@ -11,35 +13,36 @@ export const maxDuration = 60
 /**
  * Poller LIVE léger et dédié.
  *
- * UN seul appel football-data `/matches?status=IN_PLAY,PAUSED` renvoie TOUS les matchs
- * en direct de notre abonnement (toutes compétitions, CDM incluse) — le nombre d'appels
- * ne dépend donc PAS du nombre de matchs. Met à jour uniquement les matchs live
- * (score, score à 90', minute, statut, vainqueur). Ne fait PAS de full-sync ni de
- * finalisation : c'est le rôle d'auto-update (cadence lente).
+ * UN seul appel football-data `/matches?status=IN_PLAY,PAUSED,EXTRA_TIME,PENALTY_SHOOTOUT`
+ * renvoie TOUS les matchs en direct de notre abonnement (toutes compétitions, CDM incluse)
+ * — le nombre d'appels ne dépend donc PAS du nombre de matchs. Met à jour les matchs live
+ * (score, score à 90', minute, statut, vainqueur) ET finalise ceux qui viennent de se
+ * terminer (sinon le dernier match d'une fenêtre reste figé "en direct").
  *
  * Auth cron (Bearer CRON_SECRET). Service role (bypass RLS).
  */
 async function pollOnce(
   supabase: ReturnType<typeof createAdminClient>,
   apiKey: string
-): Promise<{ live: number; updated: number; sample: string[]; errors: string[] }> {
+): Promise<{ ok: boolean; live: number; updated: number; sample: string[]; errors: string[]; liveIds: number[] }> {
   const errors: string[] = []
   const sample: string[] = []
 
   let res: Response
   try {
-    res = await fetch(`${FOOTBALL_DATA_API}/matches?status=IN_PLAY,PAUSED`, {
+    res = await fetch(`${FOOTBALL_DATA_API}/matches?status=${LIVE_STATUSES}`, {
       headers: { 'X-Auth-Token': apiKey },
     })
   } catch (e: any) {
-    return { live: 0, updated: 0, sample, errors: [`fetch: ${e.message}`] }
+    return { ok: false, live: 0, updated: 0, sample, errors: [`fetch: ${e.message}`], liveIds: [] }
   }
   if (!res.ok) {
-    return { live: 0, updated: 0, sample, errors: [`http ${res.status}`] }
+    return { ok: false, live: 0, updated: 0, sample, errors: [`http ${res.status}`], liveIds: [] }
   }
 
   const json = await res.json()
   const matches: any[] = json.matches || []
+  const liveIds: number[] = matches.map((m) => m.id)
   let updated = 0
 
   for (const m of matches) {
@@ -78,7 +81,41 @@ async function pollOnce(
     }
   }
 
-  return { live: matches.length, updated, sample, errors }
+  return { ok: true, live: matches.length, updated, sample, errors, liveIds }
+}
+
+/**
+ * Finalise les matchs restés "en direct" en base mais qui ne sont PLUS dans le live football-data
+ * (donc terminés). Sans ce filet, le dernier match d'une fenêtre reste figé "En direct" : le poller
+ * ne le voit plus une fois passé FINISHED côté football-data, et le dispatcher arrête d'appeler
+ * auto-update une fois la fenêtre close. Garde anti-transitoire : on ne finalise qu'un match
+ * clairement avancé (minute ≥ 85 ou coup d'envoi > 2h15) — un match qui vient de démarrer et
+ * disparaît brièvement du live n'est jamais finalisé à tort.
+ */
+async function finalizeEnded(
+  supabase: ReturnType<typeof createAdminClient>,
+  liveIds: Set<number>
+): Promise<number> {
+  const { data: ours } = await supabase
+    .from('imported_matches')
+    .select('id, football_data_match_id, live_minute, utc_date')
+    .in('status', ['IN_PLAY', 'PAUSED', 'EXTRA_TIME', 'PENALTY_SHOOTOUT'])
+
+  const now = Date.now()
+  const MATCH_MAX_MS = 2 * 60 * 60 * 1000 + 15 * 60 * 1000 // 2h15
+  let finalized = 0
+
+  for (const m of ours || []) {
+    if (m.football_data_match_id != null && liveIds.has(m.football_data_match_id)) continue // toujours en direct
+    const looksOver = (m.live_minute ?? 0) >= 85 || now - new Date(m.utc_date).getTime() > MATCH_MAX_MS
+    if (!looksOver) continue
+    const { error } = await supabase
+      .from('imported_matches')
+      .update({ status: 'FINISHED', finished: true, live_minute: null, last_updated_at: new Date().toISOString() })
+      .eq('id', m.id)
+    if (!error) finalized++
+  }
+  return finalized
 }
 
 export async function GET(request: Request) {
@@ -105,11 +142,19 @@ export async function GET(request: Request) {
   }
 
   const last = results[results.length - 1]
+  // Finalisation : uniquement si le dernier fetch a réussi (sinon liveIds partiel → on risquerait
+  // de finaliser à tort pendant une panne football-data).
+  let finalized = 0
+  if (last.ok) {
+    finalized = await finalizeEnded(supabase, new Set(last.liveIds))
+  }
+
   return NextResponse.json({
     success: results.every((r) => r.errors.length === 0),
     cycles,
     live: last.live,
     updated: results.reduce((a, r) => a + r.updated, 0),
+    finalized,
     sample: last.sample,
     errors: results.flatMap((r) => r.errors),
   })
