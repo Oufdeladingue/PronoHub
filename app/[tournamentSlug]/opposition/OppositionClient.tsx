@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
+import { isCapacitor } from '@/lib/capacitor'
 import { useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
 import TournamentRankings from '@/components/TournamentRankings'
@@ -1727,8 +1728,21 @@ export default function OppositionClient({
         })
         .filter(Boolean)
       if (preds.length === 0) return
+      const payload = JSON.stringify({ tournamentId: tournament.id, predictions: preds })
+      // Capacitor (Android) : sendBeacon ne peut pas porter le token Bearer et les cookies ne
+      // sont pas envoyés → la route renverrait 401 et la modif serait perdue. On utilise un fetch
+      // keepalive (survit au passage en arrière-plan) avec le Bearer ajouté par fetchWithAuth.
+      if (isCapacitor()) {
+        fetchWithAuth('/api/predictions/save', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        }).catch(() => { /* best-effort */ })
+        return
+      }
+      // Web : sendBeacon s'authentifie via les cookies et survit à l'unload.
       try {
-        const payload = JSON.stringify({ tournamentId: tournament.id, predictions: preds })
         navigator.sendBeacon('/api/predictions/save', new Blob([payload], { type: 'application/json' }))
       } catch {
         // best-effort

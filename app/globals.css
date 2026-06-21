@@ -1529,6 +1529,9 @@ input[type="number"] {
 .competition-badge {
   width: 280px;
   height: 280px;
+  /* Ne jamais déborder du conteneur sur les petits écrans (~320px) : la carte rétrécit
+     pour rester dans la largeur dispo (inchangé sur les écrans >= ~340px). */
+  max-width: 100%;
   border: 2px solid #ff9900;
   border-radius: 1rem;
   padding: 0.75rem;

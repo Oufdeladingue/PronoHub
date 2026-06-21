@@ -103,12 +103,20 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   }, [currentImageUrl, downloadName])
 
   const handleWhatsApp = useCallback(() => {
-    window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank')
+    const url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`
+    // Capacitor : le plugin Browser (Custom Tab) ouvre l'URL https → propose d'ouvrir WhatsApp.
+    // window.open('_blank') n'échappe pas fiablement la WebView.
+    if (isCapacitor()) { void openExternalUrl(url); return }
+    window.open(url, '_blank')
   }, [shareText, shareUrl])
 
   const handleMessenger = useCallback(() => {
-    const appUrl = `fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`
     const webUrl = `https://www.facebook.com/dialog/send?app_id=0&link=${encodeURIComponent(shareUrl)}&redirect_uri=${encodeURIComponent(shareUrl)}`
+    // Capacitor : ouvrir la fallback web Facebook via le plugin Browser. On évite le schéma natif
+    // fb-messenger:// qui nécessiterait une déclaration <queries> dans AndroidManifest (= rebuild).
+    if (isCapacitor()) { void openExternalUrl(webUrl); return }
+    // Web : tenter l'app Messenger via fb-messenger://, sinon fallback dialog web.
+    const appUrl = `fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`
     const iframe = document.createElement('iframe')
     iframe.style.display = 'none'
     iframe.src = appUrl

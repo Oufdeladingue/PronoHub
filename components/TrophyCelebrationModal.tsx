@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
 // Couleurs du thème (gold premium en dark)
 const THEME_COLORS = {
@@ -284,6 +285,17 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   // Download
   const handleDownload = async () => {
     if (isDownloading) return
+
+    // Capacitor : impossible de sauver un blob canvas local (pas d'URL ; plugins Filesystem/Share
+    // absents de l'APK = rebuild). On ouvre l'image serveur du trophée (route OG badge-unlocked)
+    // dans le navigateur système → appui long pour l'enregistrer. Plugin Browser déjà présent
+    // dans l'APK → aucun rebuild nécessaire.
+    if (isCapacitor()) {
+      const ogUrl = `https://www.pronohub.club/api/og/badge-unlocked?badgeName=${encodeURIComponent(trophy.name)}&badgeDescription=${encodeURIComponent(trophy.description)}&badgeImage=${encodeURIComponent(trophy.imagePath)}`
+      void openExternalUrl(ogUrl)
+      return
+    }
+
     setIsDownloading(true)
 
     try {
@@ -334,6 +346,22 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   // Share
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'messenger') => {
     const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n\n${trophy.description}\n\nMerci le talent ou la chatte à Dédé ? 😏\n\n👉 Rejoins-moi sur pronohub.club`
+
+    // Capacitor : Web Share API fichier indispo (canShare false) et window.open('_blank')
+    // n'échappe pas fiablement la WebView → on ouvre l'URL https de partage via le plugin
+    // Browser. Messenger passe par la fallback web Facebook (pas le schéma natif fb-messenger://
+    // qui nécessiterait une déclaration <queries> dans AndroidManifest = rebuild).
+    if (isCapacitor()) {
+      const site = 'https://www.pronohub.club'
+      const url =
+        platform === 'facebook'
+          ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(site)}&quote=${encodeURIComponent(text)}`
+          : platform === 'whatsapp'
+            ? `https://wa.me/?text=${encodeURIComponent(text)}`
+            : `https://www.facebook.com/dialog/send?link=${encodeURIComponent(site)}&app_id=0&redirect_uri=${encodeURIComponent(site)}`
+      void openExternalUrl(url)
+      return
+    }
 
     // Try Web Share API with file first
     if (navigator.share && navigator.canShare) {
