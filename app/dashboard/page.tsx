@@ -151,7 +151,7 @@ export default async function DashboardPage() {
   // ========== GROUPE 4: Requêtes compétitions en parallèle ==========
   // OPTIMISATION: Récupérer emblèmes ET is_event en une seule requête
   let competitionsMap: Record<number, { emblem: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
-  let customCompetitionsMap: Record<string, { name: string, custom_emblem_white: string | null, custom_emblem_color: string | null }> = {}
+  let customCompetitionsMap: Record<string, { name: string, custom_emblem_white: string | null, custom_emblem_color: string | null, is_active: boolean }> = {}
   let eventCompetitionIds: string[] = []
 
   const competitionPromises: PromiseLike<any>[] = []
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
     competitionPromises.push(
       adminSupabase
         .from('custom_competitions')
-        .select('id, name, custom_emblem_white, custom_emblem_color')
+        .select('id, name, custom_emblem_white, custom_emblem_color, is_active')
         .in('id', customCompetitionIds)
         .then(({ data: customCompetitions }) => {
           if (customCompetitions) {
@@ -197,7 +197,8 @@ export default async function DashboardPage() {
               acc[comp.id] = {
                 name: comp.name,
                 custom_emblem_white: comp.custom_emblem_white,
-                custom_emblem_color: comp.custom_emblem_color
+                custom_emblem_color: comp.custom_emblem_color,
+                is_active: comp.is_active
               }
               return acc
             }, {})
@@ -634,11 +635,15 @@ export default async function DashboardPage() {
       totalParticipants: tournamentRankings[t.id]?.totalParticipants || 0,
       // Demandes d'équipe en attente (pour le capitaine)
       pendingTeamRequests: pendingTeamRequests[t.id] || 0,
-      // Mort-né : jamais démarré (pending/warmup/draft) ET plus aucun match à venir alors que des
-      // journées existent (compétition terminée). À masquer côté user (aucun historique).
+      // Mort-né : jamais démarré (pending/warmup/draft) ET (a) plus aucun match à venir alors que
+      // des journées existent (compétition terminée), OU (b) sa compétition custom est clôturée
+      // (is_active=false). À masquer côté user (aucun historique). Le cas (b) couvre les tournois
+      // custom sans plage de journées (starting/ending_matchday null) où journeyInfo est vide.
       isDead: (t.status === 'pending' || t.status === 'warmup' || t.status === 'draft')
-        && !nextMatchDates[t.id]
-        && !!journeyInfo[t.id] && journeyInfo[t.id].total > 0
+        && (
+          (!nextMatchDates[t.id] && !!journeyInfo[t.id] && journeyInfo[t.id].total > 0)
+          || (customCompetitionData != null && customCompetitionData.is_active === false)
+        )
     }
 
     return tournamentData
