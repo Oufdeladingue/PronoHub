@@ -121,6 +121,13 @@ export async function runLivePoll(): Promise<LivePollResult> {
 
   const supabase = createAdminClient()
 
+  // Heartbeat : preuve de vie de la boucle interne, lisible à tout moment (monitoring) sans logs
+  // ni match live. Doit avancer ~toutes les 30 s tant que le serveur tourne.
+  await supabase
+    .from('admin_settings')
+    .update({ setting_value: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('setting_key', 'live_poll_heartbeat')
+
   if (!(await shouldPoll(supabase))) {
     return { ok: true, skipped: 'no-window', live: 0, updated: 0, finalized: 0, sample: [], errors: [] }
   }
