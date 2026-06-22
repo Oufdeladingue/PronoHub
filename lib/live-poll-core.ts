@@ -2,8 +2,11 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { extractFootballDataScores, deriveLiveMinute } from '@/lib/football-data-score'
 
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
-// Statuts "en direct" (inclut les phases KO : prolongations + tirs au but).
-const LIVE_STATUSES = 'IN_PLAY,PAUSED,EXTRA_TIME,PENALTY_SHOOTOUT'
+// Statuts acceptés par football-data dans /matches?status= : UNIQUEMENT IN_PLAY et PAUSED (mi-temps).
+// ⚠️ EXTRA_TIME / PENALTY_SHOOTOUT N'EXISTENT PAS dans l'enum football-data (les prolongations/TAB
+// restent en IN_PLAY) → les mettre dans le filtre renvoie HTTP 400 et casse TOUT le live.
+const FETCH_LIVE_STATUSES = 'IN_PLAY,PAUSED'
+// Statuts "en direct" stockés en base (peut contenir EXTRA_TIME/PENALTY_SHOOTOUT venus d'autres sources).
 const LIVE_STATUS_LIST = ['IN_PLAY', 'PAUSED', 'EXTRA_TIME', 'PENALTY_SHOOTOUT']
 const MATCH_MAX_MS = 2 * 60 * 60 * 1000 + 15 * 60 * 1000 // 2h15 (temps réglementaire large)
 const KNOCKOUT_MAX_MS = 3.5 * 60 * 60 * 1000 // 3h30 : couvre prolongations + tirs au but
@@ -134,7 +137,7 @@ export async function runLivePoll(): Promise<LivePollResult> {
 
   let matches: any[] = []
   try {
-    const res = await fetch(`${FOOTBALL_DATA_API}/matches?status=${LIVE_STATUSES}`, {
+    const res = await fetch(`${FOOTBALL_DATA_API}/matches?status=${FETCH_LIVE_STATUSES}`, {
       headers: { 'X-Auth-Token': apiKey },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
