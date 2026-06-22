@@ -12,6 +12,7 @@ import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, type StageType } from '@/lib/stage-formatter'
+import { deriveMatchPhase, MATCH_PHASE_LABELS } from '@/lib/football-data-score'
 import ShareImageModal from '@/components/ShareImageModal'
 import { translateTeamName } from '@/lib/translations'
 import Footer from '@/components/Footer'
@@ -127,21 +128,29 @@ const isMatchFinished = (match: Match): boolean => {
   return match.status === 'FINISHED' || match.finished === true
 }
 
-// Libellé de la minute de jeu en direct (ex: "48'", "MT" à la mi-temps). Vide si non pertinent.
-// Interpole la minute localement entre deux mises à jour serveur (cron ~5 min) pour qu'elle
-// reste juste et "tourne" toute seule. `nowMs` permet de re-render via un timer.
+// Libellé de la minute + période de jeu en direct (ex: "2e MT · 67'", "Mi-temps", "Prolong. · 105'",
+// "TAB"). Interpole la minute localement entre deux mises à jour serveur (cron ~5 min) pour qu'elle
+// "tourne" toute seule, en la PLAFONNANT par période (45 / 90 / 120) avec un "+" pour le temps
+// additionnel — évite les valeurs incohérentes (ex. 115') si un statut reste bloqué. `nowMs`
+// permet de re-render via un timer.
 const liveMinuteLabel = (match: Match, nowMs: number): string => {
   if (isMatchFinished(match)) return ''
-  if (match.status === 'PAUSED') return 'MT'          // mi-temps
-  if (match.status === 'PENALTY_SHOOTOUT') return 'TAB'
-  if (match.live_minute == null) return ''
+  const phase = deriveMatchPhase(match.status, match.live_minute)
+  // Pas de minute pertinente : mi-temps et TAB n'ont pas de chrono
+  if (phase === 'HALF_TIME') return MATCH_PHASE_LABELS.HALF_TIME // "Mi-temps"
+  if (phase === 'PENALTIES') return MATCH_PHASE_LABELS.PENALTIES // "TAB"
+  if (match.live_minute == null) return phase ? MATCH_PHASE_LABELS[phase] : ''
+
   const base = match.live_minute
   const updatedAt = match.last_updated_at ? new Date(match.last_updated_at).getTime() : null
   // Minutes écoulées depuis la dernière valeur serveur, plafonnées (évite l'emballement si le cron cale)
   const extra = updatedAt ? Math.min(Math.max(0, Math.floor((nowMs - updatedAt) / 60000)), 6) : 0
-  const m = base + extra
-  if (match.status === 'EXTRA_TIME') return `Prol. ${m}'`  // prolongations
-  return `${m}'`
+  // Plafond par période ; au-delà → temps additionnel ("45+'", "90+'")
+  const cap = phase === 'EXTRA_TIME' ? 120 : phase === 'SECOND_HALF' ? 90 : 45
+  const raw = base + extra
+  const minuteStr = raw >= cap ? `${cap}+'` : `${raw}'`
+  const label = phase ? MATCH_PHASE_LABELS[phase] : ''
+  return label ? `${label} · ${minuteStr}` : minuteStr
 }
 
 // Bandeau "temps restant avant clôture" — ISOLÉ dans son propre composant pour que le

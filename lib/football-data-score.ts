@@ -64,14 +64,17 @@ export function deriveLiveMinute(
   if (status === 'PAUSED') return 45 // mi-temps
   const elapsed = Math.floor((nowMs - kickoffMs) / 60000)
   if (status === 'EXTRA_TIME' || status === 'PENALTY_SHOOTOUT') {
-    return Math.max(91, elapsed - 15) // au-delà du temps réglementaire
+    // Prolongations : entre 91' et 120' (plafonné pour éviter l'emballement si le statut reste figé)
+    return Math.min(Math.max(91, elapsed - 30), 120) // -30 ≈ pause MT (15) + pause avant prolong. (15)
   }
   if (status !== 'IN_PLAY') return null
   // 2e période si la 1re mi-temps est officiellement terminée (halfTime peuplé),
   // ou à défaut si le temps réel dépasse largement 45' (filet).
   const secondHalf = firstHalfDone || elapsed > 60
-  if (!secondHalf) return Math.min(Math.max(1, elapsed), 45) // 1re période (plafonnée)
-  return Math.max(46, elapsed - 15) // 2e période (≈ retirer la pause de 15 min)
+  if (!secondHalf) return Math.min(Math.max(1, elapsed), 45) // 1re période (plafonnée à 45')
+  // 2e période : retirer la pause de 15 min, plafonner à 90' (le "+" du temps additionnel est
+  // géré à l'affichage). Empêche l'emballement (ex. 115') si le statut reste bloqué IN_PLAY.
+  return Math.min(Math.max(46, elapsed - 15), 90)
 }
 
 export type MatchPhase = 'FIRST_HALF' | 'HALF_TIME' | 'SECOND_HALF' | 'EXTRA_TIME' | 'PENALTIES' | null
