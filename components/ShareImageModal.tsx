@@ -27,6 +27,17 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   // Image effective selon le mode sélectionné (sinon l'imageUrl par défaut)
   const currentImageUrl = (modes && modes.find((m) => m.key === activeMode)?.imageUrl) || imageUrl
 
+  // Nom de fichier effectif : insère le mode actif avant l'extension quand un toggle existe
+  // (ex: "pronos-france-iraq.png" → "pronos-france-iraq-classement.png") → chaque mode a un nom
+  // distinct, évite les conflits "remplacer" à l'enregistrement.
+  const effectiveDownloadName = (() => {
+    if (!modes || modes.length < 2 || !activeMode) return downloadName
+    const dot = downloadName.lastIndexOf('.')
+    return dot > 0
+      ? `${downloadName.slice(0, dot)}-${activeMode}${downloadName.slice(dot)}`
+      : `${downloadName}-${activeMode}`
+  })()
+
   useEffect(() => setMounted(true), [])
 
   // Bloquer le scroll du body (y compris WebView Android)
@@ -96,11 +107,11 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
     // (scan antivirus Windows lent, etc.), le PNG sortait tronqué / "endommagé".
     const a = document.createElement('a')
     a.href = currentImageUrl
-    a.download = downloadName
+    a.download = effectiveDownloadName
     document.body.appendChild(a)
     a.click()
     a.remove()
-  }, [currentImageUrl, downloadName])
+  }, [currentImageUrl, effectiveDownloadName])
 
   const handleWhatsApp = useCallback(() => {
     const url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`
@@ -130,12 +141,12 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   const handleNativeShare = useCallback(async () => {
     if (!blob) return
     try {
-      const file = new File([blob], downloadName, { type: 'image/png' })
+      const file = new File([blob], effectiveDownloadName, { type: 'image/png' })
       await (navigator as any).share({ files: [file], title: 'PronoHub', text: shareText })
     } catch (e: any) {
       if (e?.name !== 'AbortError') console.error('Partage natif échoué:', e)
     }
-  }, [blob, shareText, downloadName])
+  }, [blob, shareText, effectiveDownloadName])
 
   if (!mounted) return null
 

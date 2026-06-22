@@ -15,6 +15,7 @@ import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, typ
 import { deriveMatchPhase, MATCH_PHASE_LABELS } from '@/lib/football-data-score'
 import ShareImageModal from '@/components/ShareImageModal'
 import { translateTeamName } from '@/lib/translations'
+import { slugify } from '@/lib/slug'
 import Footer from '@/components/Footer'
 import { trackPredictionSubmitted } from '@/lib/analytics'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
@@ -2696,30 +2697,27 @@ export default function OppositionClient({
                                           </span>
                                         </div>
                                       ) : match.home_score !== null && match.away_score !== null && isMatchInProgress ? (
-                                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded ${
+                                        <div className={`flex flex-col items-center px-2 py-0.5 rounded ${
                                           isMatchFinished(match)
                                             ? 'bg-green-100 dark:bg-green-900/30'
                                             : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
                                         }`}>
-                                          <span className={`text-[9px] font-semibold ${
-                                            isMatchFinished(match)
-                                              ? 'text-green-700 dark:text-green-400'
-                                              : 'text-orange-700 dark:text-orange-400'
-                                          }`}>
-                                            {isMatchFinished(match) ? 'Final' : 'Live'}
-                                          </span>
-                                          <span className={`text-xs font-bold ${
+                                          {/* Ligne 1 : le SCORE seul, jamais coupé */}
+                                          <span className={`text-xs font-bold whitespace-nowrap leading-none ${
                                             isMatchFinished(match)
                                               ? 'text-green-700 dark:text-green-400'
                                               : 'text-orange-700 dark:text-orange-400'
                                           }`}>
                                             {match.home_score} - {match.away_score}
                                           </span>
-                                          {liveMinuteLabel(match, liveNowMs) && (
-                                            <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-400">
-                                              {liveMinuteLabel(match, liveNowMs)}
-                                            </span>
-                                          )}
+                                          {/* Ligne 2 : timing + période en live (ou "Terminé"), sous le score */}
+                                          <span className={`text-[9px] font-semibold whitespace-nowrap leading-none mt-0.5 ${
+                                            isMatchFinished(match)
+                                              ? 'text-green-700 dark:text-green-400'
+                                              : 'text-orange-700 dark:text-orange-400'
+                                          }`}>
+                                            {isMatchFinished(match) ? 'Terminé' : (liveMinuteLabel(match, liveNowMs) || 'Live')}
+                                          </span>
                                         </div>
                                       ) : (
                                         <div className="h-5"></div>
@@ -3090,7 +3088,7 @@ export default function OppositionClient({
                                         )}
                                         {/* Badge SCORE FINAL ou EN DIRECT */}
                                         {match.status !== 'POSTPONED' && match.home_score !== null && match.away_score !== null && isMatchInProgress && (
-                                          <div className={`flex items-center gap-2 px-3 py-1 rounded ${
+                                          <div className={`flex items-center gap-2 px-3 py-1 rounded whitespace-nowrap ${
                                             isMatchFinished(match)
                                               ? 'bg-green-100 dark:bg-green-900/30'
                                               : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
@@ -3984,7 +3982,7 @@ export default function OppositionClient({
             ]}
             shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
             shareText={`Les pronos de ${translateTeamName(shareModalMatch.home_team_name)} - ${translateTeamName(shareModalMatch.away_team_name)} sur PronoHub 👀`}
-            downloadName="pronos-pronohub.png"
+            downloadName={`pronos-${slugify(tournament.name)}-${slugify(translateTeamName(shareModalMatch.home_team_name))}-${slugify(translateTeamName(shareModalMatch.away_team_name))}.png`}
             title="Partager les pronos"
             onClose={() => setShareModalMatch(null)}
           />
