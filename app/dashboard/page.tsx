@@ -643,6 +643,10 @@ export default async function DashboardPage() {
 
     return tournamentData
   })
+  // Exclure les tournois mort-nés DÈS LE SERVEUR (pas seulement côté client) : ainsi ils
+  // n'arrivent jamais dans les données, quelle que soit la version du bundle client (utile pour
+  // l'app Android dont la WebView peut servir un ancien JS qui ne filtrerait pas isDead).
+  .filter((t: any) => !t.isDead)
 
   // Formater les tournois quittés (créateur original mais plus participant)
   const leftTournamentsList = (leftTournaments || []).map((t: any) => {
