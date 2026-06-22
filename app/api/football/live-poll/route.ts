@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     updated: results.reduce((a, r) => a + r.updated, 0),
     finalized: results.reduce((a, r) => a + r.finalized, 0),
     skipped: last.skipped,
+    sample: last.sample,
     errors: results.flatMap((r) => r.errors),
   })
 }
