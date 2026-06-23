@@ -14,3 +14,14 @@ export function slugify(input: string | null | undefined, maxLen = 50): string {
     .replace(/-+$/g, '')
   return s || 'pronohub'
 }
+
+/**
+ * Horodatage pour nom de fichier export : "YYYY-MM-DD" (date locale) ou "YYYY-MM-DD-HHhMM"
+ * si withTime. Sert à dater un export (snapshot d'un classement/pronos à un instant donné)
+ * pour que chaque téléchargement ait un nom unique et contextualisé.
+ */
+export function fileDateStamp(withTime = false, d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  const date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  return withTime ? `${date}-${p(d.getHours())}h${p(d.getMinutes())}` : date
+}

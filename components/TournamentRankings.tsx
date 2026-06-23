@@ -6,7 +6,7 @@ import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 import ShareImageModal from '@/components/ShareImageModal'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
-import { slugify } from '@/lib/slug'
+import { slugify, fileDateStamp } from '@/lib/slug'
 
 interface PlayerStats {
   playerId: string
@@ -741,7 +741,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             imageUrl={`/api/og/ranking?tournamentId=${tournamentId}&mode=${mode}${mdParam}`}
             shareUrl={`https://www.pronohub.club/share/ranking/${tournamentId}?mode=${mode}${mdParam}`}
             shareText={`Classement ${ctx}${tournamentName ? ' de ' + tournamentName : ''} sur PronoHub 👀`}
-            downloadName={`classement-${slugify(tournamentName)}-${slugify(ctx)}.png`}
+            downloadName={`classement-${slugify(tournamentName)}-${slugify(ctx)}-${fileDateStamp()}.png`}
             title="Partager le classement"
             onClose={() => setShareOpen(false)}
           />

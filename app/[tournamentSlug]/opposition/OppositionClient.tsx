@@ -15,7 +15,7 @@ import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, typ
 import { deriveMatchPhase, MATCH_PHASE_LABELS } from '@/lib/football-data-score'
 import ShareImageModal from '@/components/ShareImageModal'
 import { translateTeamName } from '@/lib/translations'
-import { slugify } from '@/lib/slug'
+import { slugify, fileDateStamp } from '@/lib/slug'
 import Footer from '@/components/Footer'
 import { trackPredictionSubmitted } from '@/lib/analytics'
 import { DurationExtensionBanner } from '@/components/DurationExtensionBanner'
@@ -3982,7 +3982,7 @@ export default function OppositionClient({
             ]}
             shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
             shareText={`Les pronos de ${translateTeamName(shareModalMatch.home_team_name)} - ${translateTeamName(shareModalMatch.away_team_name)} sur PronoHub 👀`}
-            downloadName={`pronos-${slugify(tournament.name)}-${slugify(translateTeamName(shareModalMatch.home_team_name))}-${slugify(translateTeamName(shareModalMatch.away_team_name))}.png`}
+            downloadName={`pronos-${slugify(tournament.name)}-${slugify(translateTeamName(shareModalMatch.home_team_name))}-${slugify(translateTeamName(shareModalMatch.away_team_name))}${shareModalMatch.utc_date ? '-' + fileDateStamp(false, new Date(shareModalMatch.utc_date)) : ''}.png`}
             title="Partager les pronos"
             onClose={() => setShareModalMatch(null)}
           />
