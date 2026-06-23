@@ -1,10 +1,12 @@
 import resend, { EMAIL_CONFIG } from './resend'
 import { sendViaZeptoMail } from './zeptomail'
+import { sendViaBrevo } from './brevo'
 import { getUnsubscribeUrl } from './unsubscribe'
 
-// Fournisseur d'envoi actif (zeptomail par défaut ; 'resend' pour repli). Pilotable sans redeploy
-// de code via la variable d'env EMAIL_PROVIDER.
-const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER || 'zeptomail').toLowerCase()
+// Fournisseur d'envoi actif. Défaut : 'brevo' (autorise transactionnel ET marketing — ZeptoMail
+// refusait le promotionnel). Valeurs possibles : 'brevo' | 'zeptomail' | 'resend'. Pilotable
+// sans redeploy de code via la variable d'env EMAIL_PROVIDER.
+const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER || 'brevo').toLowerCase()
 
 // Retente un envoi sur erreur transitoire (429 / 5xx / réseau) avec backoff exponentiel.
 // Indispensable pour les rafales de crons (rappels/résultats à tous les participants).
@@ -113,9 +115,26 @@ export async function sendEmail(
       return { success: true, messageId: data?.id }
     }
 
-    // Défaut : ZeptoMail (avec retry/backoff sur erreurs transitoires)
+    // Repli ZeptoMail si EMAIL_PROVIDER=zeptomail (transactionnel uniquement)
+    if (EMAIL_PROVIDER === 'zeptomail') {
+      const { id } = await withRetry(() =>
+        sendViaZeptoMail({
+          fromAddress: EMAIL_CONFIG.fromAddress,
+          fromName: EMAIL_CONFIG.fromName,
+          to,
+          subject,
+          html,
+          text,
+          replyTo: EMAIL_CONFIG.replyTo,
+          headers: unsubHeaders,
+        })
+      )
+      return { success: true, messageId: id }
+    }
+
+    // Défaut : Brevo (transactionnel + marketing, avec retry/backoff sur erreurs transitoires)
     const { id } = await withRetry(() =>
-      sendViaZeptoMail({
+      sendViaBrevo({
         fromAddress: EMAIL_CONFIG.fromAddress,
         fromName: EMAIL_CONFIG.fromName,
         to,
