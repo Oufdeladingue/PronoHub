@@ -864,7 +864,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
   } = props
 
   const baseUrl = 'https://www.pronohub.club'
-  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+  const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
 
   // Texte de la compétition (custom = explication détaillée)
   const competitionDisplay = isCustomCompetition
@@ -1034,10 +1034,10 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
 
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
-                <a href="${tournamentUrl}/opposition" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                <a href="${tournamentUrl}" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
                   🎯 Pronostiquer
                 </a>
-                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background-color: #1e293b; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                <a href="${tournamentUrl}?tab=classement" style="display: inline-block; padding: 14px 28px; background-color: #1e293b; color: #fff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
                   🏆 Classement
                 </a>
               </div>
@@ -1046,7 +1046,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
               <div style="background-color: #0f172a; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
                 <table role="presentation" style="width: 100%; border-collapse: collapse;">
                   <tr>
-                    <td style="padding: 8px 0;"><a href="${tournamentUrl}/tchat" style="color: #94a3b8; text-decoration: none; font-size: 13px;">💬 Tchat du tournoi</a></td>
+                    <td style="padding: 8px 0;"><a href="${tournamentUrl}?tab=tchat" style="color: #94a3b8; text-decoration: none; font-size: 13px;">💬 Tchat du tournoi</a></td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0;"><a href="${baseUrl}/profile" style="color: #94a3b8; text-decoration: none; font-size: 13px;">⚙️ Gérer mes alertes</a></td>
@@ -1138,9 +1138,9 @@ Configure tes alertes pour recevoir des rappels :
 - 📱 Notifications push : alertes instantanées sur ton mobile
 👉 Gérer mes alertes : ${baseUrl}/profile
 
-🎯 Pronostiquer : ${tournamentUrl}/opposition
-🏆 Classement : ${tournamentUrl}/classement
-💬 Tchat : ${tournamentUrl}/tchat
+🎯 Pronostiquer : ${tournamentUrl}
+🏆 Classement : ${tournamentUrl}?tab=classement
+💬 Tchat : ${tournamentUrl}?tab=tchat
 ⭐ Passer Premium : ${baseUrl}/pricing
 
 Tu participes à ${userActiveTournaments} tournoi${userActiveTournaments > 1 ? 's' : ''} actif${userActiveTournaments > 1 ? 's' : ''}.
@@ -1174,7 +1174,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
   } = props
 
   const baseUrl = 'https://www.pronohub.club'
-  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+  const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
 
   // Classement de la journée HTML
   const matchdayRankingHtml = matchdayRanking.slice(0, 10).map(p => `
@@ -1423,7 +1423,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
 
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
-                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px;">
+                <a href="${tournamentUrl}?tab=classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px;">
                   Voir le classement complet
                 </a>
               </div>
@@ -1478,7 +1478,7 @@ ${matchdayRankingText}
 🏆 CLASSEMENT GÉNÉRAL
 ${generalRankingText}
 
-👉 Voir le classement complet : ${tournamentUrl}/classement
+👉 Voir le classement complet : ${tournamentUrl}?tab=classement
 
 ---
 © ${new Date().getFullYear()} PronoHub. Tous droits réservés.
@@ -1505,7 +1505,7 @@ export function getTournamentEndTemplate(props: TournamentEndEmailProps) {
   } = props
 
   const baseUrl = 'https://www.pronohub.club'
-  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+  const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
 
   const isWinner = winner.username === username
   const headerGradient = isWinner ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' : 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)'
@@ -1615,7 +1615,7 @@ export function getTournamentEndTemplate(props: TournamentEndEmailProps) {
 
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
-                <a href="${tournamentUrl}/classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                <a href="${tournamentUrl}?tab=classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
                   Voir les détails
                 </a>
                 <a href="${baseUrl}/vestiaire/create" style="display: inline-block; padding: 14px 28px; background-color: #22c55e; color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
@@ -1674,7 +1674,7 @@ ${trophiesText}
 🏆 CLASSEMENT FINAL
 ${finalRankingText}
 
-👉 Voir les détails : ${tournamentUrl}/classement
+👉 Voir les détails : ${tournamentUrl}?tab=classement
 🎯 Créer un nouveau tournoi : ${baseUrl}/vestiaire/create
 
 Merci d'avoir participé ! À bientôt !
@@ -1874,7 +1874,7 @@ export function getNewPlayerJoinedTemplate(props: NewPlayerJoinedEmailProps) {
   } = props
 
   const baseUrl = 'https://www.pronohub.club'
-  const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}`
+  const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
   const spotsLeft = maxParticipants - currentParticipants
   const isFull = spotsLeft <= 0
 
@@ -1953,7 +1953,7 @@ export function getNewPlayerJoinedTemplate(props: NewPlayerJoinedEmailProps) {
               <!-- Boutons d'action -->
               <div style="text-align: center; margin: 32px 0;">
                 ${isFull || canLaunchTournament ? `
-                <a href="${tournamentUrl}/settings" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
+                <a href="${tournamentUrl}" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; margin: 6px;">
                   🚀 Lancer le tournoi
                 </a>
                 ` : ''}
@@ -2014,7 +2014,7 @@ ${participantsText}
 
 ${isFull ? '🎯 Ton tournoi est complet ! Tu peux maintenant le lancer.' : canLaunchTournament ? '💡 Tu peux lancer le tournoi avant que toutes les places soient prises.' : ''}
 
-${isFull || canLaunchTournament ? `🚀 Lancer le tournoi : ${tournamentUrl}/settings` : ''}
+${isFull || canLaunchTournament ? `🚀 Lancer le tournoi : ${tournamentUrl}` : ''}
 👉 Voir le tournoi : ${tournamentUrl}
 ⭐ Passer Premium : ${baseUrl}/pricing
 
