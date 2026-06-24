@@ -31,7 +31,10 @@ export interface TrophyResult {
 export async function calculateTrophiesForTournament(
   supabase: any,
   tournament: any,
-  allParticipantIds: string[]
+  allParticipantIds: string[],
+  // Si true, ignore les trophées déjà en BDD et renvoie l'ENSEMBLE des trophées mérités dans
+  // ce tournoi (utilisé par le recalcul/audit "vraie situation"). Sinon, ne renvoie que les NOUVEAUX.
+  ignoreExisting: boolean = false
 ): Promise<Map<string, TrophyResult>> {
   const results = new Map<string, TrophyResult>()
 
@@ -157,9 +160,11 @@ export async function calculateTrophiesForTournament(
   for (const userId of allParticipantIds) {
     existingTrophiesByUser[userId] = new Set()
   }
-  for (const t of allExistingTrophies) {
-    if (existingTrophiesByUser[t.user_id]) {
-      existingTrophiesByUser[t.user_id].add(t.trophy_type)
+  if (!ignoreExisting) {
+    for (const t of allExistingTrophies) {
+      if (existingTrophiesByUser[t.user_id]) {
+        existingTrophiesByUser[t.user_id].add(t.trophy_type)
+      }
     }
   }
 
@@ -392,7 +397,10 @@ export async function calculateTrophiesForTournament(
 
       const myPoints = ranking[userId] || 0
       const isFirst = myPoints === meta.maxPoints
-      const isSoleLeader = isFirst && (meta.maxPoints > 0 || meta.usersWithMax === 1)
+      // SEUL premier (sans égalité) ET avec des points (≠ 0) — critères "king_of_day"/"double_king".
+      // Avant : `isFirst && (maxPoints > 0 || usersWithMax === 1)` acceptait à tort les égalités en
+      // tête dès que maxPoints > 0 → trophées attribués à plusieurs joueurs ex-æquo.
+      const isSoleLeader = isFirst && meta.usersWithMax === 1 && meta.maxPoints > 0
       const isLast = myPoints === meta.minPoints
       const isSoleLast = isLast && meta.usersWithMin === 1 && allParticipantIds.length > 1
 
