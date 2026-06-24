@@ -322,6 +322,36 @@ export async function calculateTrophiesForTournament(
     }
   }
 
+  // Stats tournoi par user (journées TERMINÉES) pour le classement FINAL avec le tie-break officiel
+  // (cf. calculateRankings de scoring.ts) : points, puis scores exacts, puis bons résultats.
+  // Évite les faux positifs/négatifs de l'ancien tri "par points seuls" pour winner/legend/abyssal.
+  type FinalStat = { points: number, exact: number, correct: number }
+  const tournamentStats: Record<string, FinalStat> = {}
+  for (const uid of allParticipantIds) tournamentStats[uid] = { points: 0, exact: 0, correct: 0 }
+  for (const key of Object.keys(journeyRankings)) {
+    for (const [uid, pts] of Object.entries(journeyRankings[key])) {
+      if (tournamentStats[uid]) tournamentStats[uid].points += pts
+    }
+    for (const pred of (predictionsByJourney[key] || [])) {
+      const m = getMatch(pred.imported_matches)
+      if (!m || (m.status !== 'FINISHED' && m.finished !== true)) continue
+      if (m.home_score === null || m.away_score === null) continue
+      const st = tournamentStats[pred.user_id]
+      if (!st) continue
+      if (pred.predicted_home_score === m.home_score && pred.predicted_away_score === m.away_score) st.exact++
+      const pr = pred.predicted_home_score > pred.predicted_away_score ? 'H' : pred.predicted_home_score < pred.predicted_away_score ? 'A' : 'D'
+      const ar = m.home_score > m.away_score ? 'H' : m.home_score < m.away_score ? 'A' : 'D'
+      if (pr === ar) st.correct++
+    }
+  }
+  const finalSorted = Object.entries(tournamentStats).sort((a, b) =>
+    b[1].points !== a[1].points ? b[1].points - a[1].points :
+    b[1].exact !== a[1].exact ? b[1].exact - a[1].exact :
+    b[1].correct - a[1].correct
+  )
+  const perfectTie = (x?: [string, FinalStat], y?: [string, FinalStat]) =>
+    !!x && !!y && x[1].points === y[1].points && x[1].exact === y[1].exact && x[1].correct === y[1].correct
+
   const isTournamentFinished = tournament.status === 'finished' || tournament.status === 'completed'
   const totalJourneys = endMatchday - startMatchday + 1
 
@@ -502,7 +532,9 @@ export async function calculateTrophiesForTournament(
         triggerMatches['nostradamus'] = buildTriggerMatch(lastExactPred.pred, lastExactPred.match)
         hasNostradamus = true
       }
-      if (!hasCursed && myJourneyPredictions.length > 0 && correctResults === 0) {
+      // "Le Maudit" exige d'avoir réellement joué la journée : au moins 1 prono NON par défaut
+      const realJourneyPredictions = myJourneyPredictions.filter((p: any) => !p.is_default_prediction)
+      if (!hasCursed && realJourneyPredictions.length > 0 && correctResults === 0) {
         trophiesToUnlock['cursed'] = meta.latestDate
         const trigger = getLastMatchTrigger(key, userId)
         if (trigger) triggerMatches['cursed'] = trigger
@@ -547,46 +579,36 @@ export async function calculateTrophiesForTournament(
         }
 
         if (allMatchesComplete) {
-          // Calculer les points totaux
-          const totalPointsByUser: Record<string, number> = {}
-          for (const uid of allParticipantIds) {
-            totalPointsByUser[uid] = 0
-          }
+          // Classement final avec tie-break officiel (points → exacts → bons résultats).
+          // "Sans égalité" = rang 1 (ou dernier) UNIQUE = pas d'égalité PARFAITE avec le voisin.
+          const firstEntry = finalSorted[0]
+          const secondEntry = finalSorted[1]
+          const lastEntry = finalSorted[finalSorted.length - 1]
+          const secondLastEntry = finalSorted[finalSorted.length - 2]
 
-          for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
-            const ranking = journeyRankings[`${matchday}`]
-            if (!ranking) continue
-            for (const [uid, pts] of Object.entries(ranking)) {
-              totalPointsByUser[uid] = (totalPointsByUser[uid] || 0) + pts
-            }
-          }
-
-          const sortedByPoints = Object.entries(totalPointsByUser)
-            .sort(([, a], [, b]) => b - a)
-
-          const [firstUserId, firstPoints] = sortedByPoints[0] || []
-          const [, secondPoints] = sortedByPoints[1] || [null, -1]
-          const [lastUserId, lastPoints] = sortedByPoints[sortedByPoints.length - 1] || []
-          const [, secondLastPoints] = sortedByPoints[sortedByPoints.length - 2] || [null, Infinity]
+          const firstUserId = firstEntry?.[0]
+          const lastUserId = lastEntry?.[0]
+          const isSoleWinner = !!firstEntry && !perfectTie(firstEntry, secondEntry)
+          const isSoleLast = !!lastEntry && finalSorted.length > 1 && !perfectTie(lastEntry, secondLastEntry)
 
           const lastKey = `${endMatchday}`
           const latestDate = journeyMeta[lastKey]?.latestDate || new Date().toISOString()
           const lastTrigger = getLastMatchTrigger(lastKey, userId)
 
-          // Tournament Winner
-          if (!hasTournamentWinner && firstUserId === userId && firstPoints > secondPoints) {
+          // Tournament Winner — 1er au classement final (sans égalité)
+          if (!hasTournamentWinner && firstUserId === userId && isSoleWinner) {
             trophiesToUnlock['tournament_winner'] = latestDate
             if (lastTrigger) triggerMatches['tournament_winner'] = lastTrigger
           }
 
-          // Legend
-          if (!hasLegend && firstUserId === userId && firstPoints > secondPoints && allParticipantIds.length > 10) {
+          // Legend — vainqueur d'un tournoi à plus de 10 participants
+          if (!hasLegend && firstUserId === userId && isSoleWinner && allParticipantIds.length > 10) {
             trophiesToUnlock['legend'] = latestDate
             if (lastTrigger) triggerMatches['legend'] = lastTrigger
           }
 
-          // Abyssal
-          if (!hasAbyssal && lastUserId === userId && lastPoints < secondLastPoints && allParticipantIds.length > 1) {
+          // Abyssal — dernier au classement final (sans égalité)
+          if (!hasAbyssal && lastUserId === userId && isSoleLast && allParticipantIds.length > 1) {
             trophiesToUnlock['abyssal'] = latestDate
             if (lastTrigger) triggerMatches['abyssal'] = lastTrigger
           }
