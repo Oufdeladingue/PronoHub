@@ -249,15 +249,17 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
     }
   }
 
-  // Calculer les meilleurs scores exacts et bons résultats
-  const getBestStats = () => {
+  // Meilleurs scores exacts/bons résultats — mémoïsé (évite un O(n²) : avant, recalculé 2× par
+  // ligne dans le map du tableau). Mêmes valeurs (étoiles ★ identiques).
+  const bestStats = useMemo(() => {
     if (!rankingsData || rankingsData.rankings.length === 0) {
       return { maxExactScores: 0, maxCorrectResults: 0 }
     }
-    const maxExactScores = Math.max(...rankingsData.rankings.map(p => p.exactScores))
-    const maxCorrectResults = Math.max(...rankingsData.rankings.map(p => p.correctResults))
-    return { maxExactScores, maxCorrectResults }
-  }
+    return {
+      maxExactScores: Math.max(...rankingsData.rankings.map(p => p.exactScores)),
+      maxCorrectResults: Math.max(...rankingsData.rankings.map(p => p.correctResults)),
+    }
+  }, [rankingsData])
 
   const getRankChangeIcon = (rankChange?: 'up' | 'down' | 'same') => {
     if (!rankChange) return null
@@ -686,7 +688,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                       <div className="flex items-center justify-center">
                         <span className="text-right">{player.correctResults}</span>
                         <span className="w-3 md:w-4 text-left">
-                          {player.correctResults === getBestStats().maxCorrectResults && player.correctResults > 0 && (
+                          {player.correctResults === bestStats.maxCorrectResults && player.correctResults > 0 && (
                             <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>
@@ -698,7 +700,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                       <div className="flex items-center justify-center">
                         <span className="text-right">{player.exactScores}</span>
                         <span className="w-3 md:w-4 text-left">
-                          {player.exactScores === getBestStats().maxExactScores && player.exactScores > 0 && (
+                          {player.exactScores === bestStats.maxExactScores && player.exactScores > 0 && (
                             <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>

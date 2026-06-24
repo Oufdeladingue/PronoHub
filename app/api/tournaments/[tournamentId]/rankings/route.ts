@@ -19,6 +19,9 @@ export async function GET(
     // Utilisé par le partage d'un match précis → classement figé à ce moment-là.
     const asOf = searchParams.get('asOf')
     const asOfDate = asOf ? new Date(asOf) : null
+    // skipPrevious : ne pas calculer le classement de la journée précédente (flèches de progression).
+    // Utilisé par la route "par équipes" qui n'a pas besoin des flèches → évite ~2× le scoring.
+    const skipPrevious = searchParams.get('skipPrevious') === '1'
 
     const { tournamentId } = await params
 
@@ -224,7 +227,7 @@ export async function GET(
         // gère GROUP_STAGE, LAST_32, THIRD_PLACE… (pas seulement le format Ligue des Champions).
         const { data: allComp } = await supabase
           .from('imported_matches')
-          .select('*')
+          .select('id, matchday, stage, status, utc_date, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id')
           .eq('competition_id', tournament.competition_id)
         const all = allComp || []
         const pairKey = (m: any) => `${m.stage || 'REGULAR_SEASON'}__${m.matchday ?? 1}`
@@ -246,7 +249,7 @@ export async function GET(
         // Compétition classique (ligue): filtre par matchday standard
         const { data: matchesData, error: mError } = await supabase
           .from('imported_matches')
-          .select('*')
+          .select('id, matchday, stage, status, utc_date, home_score, away_score, home_score_90, away_score_90, winner_team_id, home_team_id, away_team_id')
           .eq('competition_id', tournament.competition_id)
           .in('matchday', matchdaysToCalculate)
           .not('home_score', 'is', null)
@@ -527,7 +530,7 @@ export async function GET(
           // Vérifier si l'utilisateur a des pronostics par défaut pour cette journée
           let hasDefaultPrediction = false
           for (const matchId of matchIdsForDay) {
-            const pred = predictions.find(p => p.match_id === matchId)
+            const pred = predictionsMap.get(matchId)
             if (!pred || pred.is_default_prediction) {
               hasDefaultPrediction = true
               break
@@ -562,7 +565,7 @@ export async function GET(
     // Si on demande le classement général, calculer aussi le classement de la journée précédente
     // (inutile pour un instantané asOf : l'appelant calcule lui-même l'incidence du match)
     let previousRankings: PlayerStats[] | undefined
-    if (!matchday && !asOfDate) {
+    if (!matchday && !asOfDate && !skipPrevious) {
       // Trouver la dernière journée terminée (tous les matchs terminés)
       const journeysFinished: number[] = []
       for (const md of matchdaysToCalculate) {
@@ -655,7 +658,7 @@ export async function GET(
 
               let hasDefaultPrediction = false
               for (const matchId of matchIdsForDay) {
-                const pred = predictions.find(p => p.match_id === matchId)
+                const pred = predictionsMap.get(matchId)
                 if (!pred || pred.is_default_prediction) {
                   hasDefaultPrediction = true
                   break
@@ -694,6 +697,13 @@ export async function GET(
     const matchdaysWithMatches = new Set(allMatches?.map(m => m.matchday) || [])
     const hasPendingMatchdays = matchdaysToCalculate.some(md => !matchdaysWithMatches.has(md))
 
+    // Cache HTTP côté navigateur (privé : données par utilisateur). Rend le changement
+    // d'onglet/vue quasi instantané sans recalcul serveur. Court pendant un match en direct
+    // (les points bougent), plus long sinon. stale-while-revalidate : sert l'ancien puis revalide.
+    const cacheControl = hasInProgressMatches
+      ? 'private, max-age=10, stale-while-revalidate=30'
+      : 'private, max-age=30, stale-while-revalidate=120'
+
     return NextResponse.json({
       rankings,
       matchday: matchday ? parseInt(matchday) : null,
@@ -702,7 +712,7 @@ export async function GET(
       matchesTotal: allMatches?.length || 0,
       hasInProgressMatches,
       hasPendingMatchdays // true si des journées futures n'ont pas encore de matchs
-    })
+    }, { headers: { 'Cache-Control': cacheControl } })
 
   } catch (error: any) {
     console.error('[Rankings API] Erreur lors du calcul du classement:', error)

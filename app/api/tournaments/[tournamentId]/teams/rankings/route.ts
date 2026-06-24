@@ -85,7 +85,9 @@ export async function GET(
     const playerPointsMap = new Map<string, { points: number; exactScores: number; correctResults: number }>()
     try {
       const res = await rankingsGET(
-        new Request(`http://internal/api/tournaments/${tournamentId}/rankings`) as any,
+        // skipPrevious=1 : les équipes n'utilisent que les totaux (points/exacts/bons) — pas les
+        // flèches de progression → on évite le calcul du classement de la journée précédente (~2× plus rapide).
+        new Request(`http://internal/api/tournaments/${tournamentId}/rankings?skipPrevious=1`) as any,
         { params: Promise.resolve({ tournamentId }) } as any,
       )
       if (res.ok) {
@@ -176,7 +178,10 @@ export async function GET(
       team.rank = currentRank
     })
 
-    return NextResponse.json({ rankings: teamStats })
+    return NextResponse.json(
+      { rankings: teamStats },
+      { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } }
+    )
 
   } catch (error) {
     console.error('[Team Rankings] Error:', error)
