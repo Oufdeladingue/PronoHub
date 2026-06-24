@@ -68,24 +68,34 @@ export async function calculateTrophiesForTournament(
   // ÉTAPE 1 : Charger toutes les données en parallèle (partagées)
   // ============================================
 
+  // Pronos : pagination obligatoire (Supabase plafonne à 1000 lignes/requête ; un gros tournoi
+  // dépasse → pronos tronqués → trophées faussés). On récupère TOUS les pronos par lots de 1000.
+  const allPredictions: any[] = []
+  {
+    const PAGE = 1000
+    for (let from = 0; ; from += PAGE) {
+      const { data: chunk, error: chunkErr } = await supabase
+        .from('predictions')
+        .select(`
+          user_id, tournament_id, match_id,
+          predicted_home_score, predicted_away_score, is_default_prediction,
+          imported_matches!inner(
+            id, football_data_match_id, matchday, status, finished, home_score, away_score, utc_date, competition_id,
+            home_team_name, away_team_name, home_team_crest, away_team_crest
+          )
+        `)
+        .eq('tournament_id', tournament.id)
+        .range(from, from + PAGE - 1)
+      if (chunkErr || !chunk || chunk.length === 0) break
+      allPredictions.push(...chunk)
+      if (chunk.length < PAGE) break
+    }
+  }
+
   const [
-    predictionsResult,
     existingTrophiesResult,
     bonusMatchesResult
   ] = await Promise.all([
-    // Toutes les prédictions du tournoi (tous les participants) avec infos équipes
-    supabase
-      .from('predictions')
-      .select(`
-        user_id, tournament_id, match_id,
-        predicted_home_score, predicted_away_score, is_default_prediction,
-        imported_matches!inner(
-          id, football_data_match_id, matchday, status, finished, home_score, away_score, utc_date, competition_id,
-          home_team_name, away_team_name, home_team_crest, away_team_crest
-        )
-      `)
-      .eq('tournament_id', tournament.id),
-
     // Trophées existants de tous les participants
     supabase
       .from('user_trophies')
@@ -98,8 +108,6 @@ export async function calculateTrophiesForTournament(
       .select('tournament_id, match_id')
       .eq('tournament_id', tournament.id)
   ])
-
-  const allPredictions = predictionsResult.data || []
   const allExistingTrophies = existingTrophiesResult.data || []
   const bonusMatches = bonusMatchesResult.data || []
 

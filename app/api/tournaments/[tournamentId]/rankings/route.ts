@@ -355,11 +355,25 @@ export async function GET(
     const allMatchIds = allMatches?.map(m => m.id) || []
     const matchIdsToQuery = allMatchIds.length > 0 ? allMatchIds : (finishedMatches?.map(m => m.id) || [])
 
-    const { data: allPredictionsData } = await supabase
-      .from('predictions')
-      .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier, created_at')
-      .eq('tournament_id', tournamentId)
-      .in('match_id', matchIdsToQuery.length > 0 ? matchIdsToQuery : ['00000000-0000-0000-0000-000000000000'])
+    // IMPORTANT: pagination obligatoire — Supabase plafonne une requête à 1000 lignes. Au-delà
+    // (gros tournoi : 17 joueurs × ~60 matchs > 1000), le classement perdait des pronos → points
+    // faux et "pronos placés" sous-évalués. On récupère donc TOUS les pronos par lots de 1000.
+    const matchIdsForQuery = matchIdsToQuery.length > 0 ? matchIdsToQuery : ['00000000-0000-0000-0000-000000000000']
+    const allPredictionsData: any[] = []
+    {
+      const PAGE = 1000
+      for (let from = 0; ; from += PAGE) {
+        const { data: chunk, error: chunkErr } = await supabase
+          .from('predictions')
+          .select('user_id, match_id, predicted_home_score, predicted_away_score, is_default_prediction, predicted_qualifier, created_at')
+          .eq('tournament_id', tournamentId)
+          .in('match_id', matchIdsForQuery)
+          .range(from, from + PAGE - 1)
+        if (chunkErr || !chunk || chunk.length === 0) break
+        allPredictionsData.push(...chunk)
+        if (chunk.length < PAGE) break
+      }
+    }
 
     // Créer une Map des prédictions par utilisateur pour un accès O(1)
     const predictionsByUser = new Map<string, any[]>()
