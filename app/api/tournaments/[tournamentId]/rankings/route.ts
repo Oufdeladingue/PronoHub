@@ -330,6 +330,31 @@ export async function GET(
       drawWithDefaultPrediction: tournament.scoring_draw_with_default_prediction || 1
     }
 
+    // Helper de scoring UNIFIÉ (knockout-aware) : utilisé par le classement courant ET par le
+    // classement de référence des flèches → garantit le MÊME calcul (score 90', bonus qualifié,
+    // bonus match, prono par défaut) partout. Corrige l'ancienne incohérence où le classement de
+    // référence ignorait la logique knockout.
+    const scorePrediction = (prediction: any, match: any) => {
+      const isBonusMatch = bonusMatchIds.has(match.id)
+      const isDefaultPrediction = prediction.is_default_prediction || false
+      const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
+      const pred = {
+        predictedHomeScore: prediction.predicted_home_score,
+        predictedAwayScore: prediction.predicted_away_score,
+      }
+      if (isKnockout && tournament.bonus_qualified) {
+        const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
+        const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
+        const actualWinnerSide = getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
+        return calculateKnockoutPoints(pred, { homeScore: score90Home, awayScore: score90Away }, prediction.predicted_qualifier || null, actualWinnerSide, pointsSettings, isBonusMatch, isDefaultPrediction, true)
+      } else if (isKnockout) {
+        const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
+        const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
+        return calculatePoints(pred, { homeScore: score90Home, awayScore: score90Away }, pointsSettings, isBonusMatch, isDefaultPrediction)
+      }
+      return calculatePoints(pred, { homeScore: match.home_score, awayScore: match.away_score }, pointsSettings, isBonusMatch, isDefaultPrediction)
+    }
+
     // 8. Préparer les données pour le bonus "Prime d'avant-match"
     // Créer une map: journée -> premier match (date la plus tôt)
     const firstMatchByMatchday: Record<number, Date> = {}
@@ -436,70 +461,8 @@ export async function GET(
 
           if (!isValidPrediction) continue
 
-          const isBonusMatch = bonusMatchIds.has(match.id)
           const isDefaultPrediction = prediction.is_default_prediction || false
-          const isKnockout = match.stage && isKnockoutStage(match.stage as StageType)
-
-          let points: number
-          let isExactScore: boolean
-          let isCorrectResult: boolean
-
-          if (isKnockout && tournament.bonus_qualified) {
-            // Match éliminatoire avec bonus qualifié activé
-            const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
-            const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
-            const actualWinnerSide = getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
-
-            const result = calculateKnockoutPoints(
-              {
-                predictedHomeScore: prediction.predicted_home_score,
-                predictedAwayScore: prediction.predicted_away_score
-              },
-              { homeScore: score90Home, awayScore: score90Away },
-              prediction.predicted_qualifier || null,
-              actualWinnerSide,
-              pointsSettings,
-              isBonusMatch,
-              isDefaultPrediction,
-              true // bonusQualifiedEnabled
-            )
-            points = result.points
-            isExactScore = result.isExactScore
-            isCorrectResult = result.isCorrectResult
-          } else if (isKnockout) {
-            // Match éliminatoire sans bonus qualifié — utiliser le score 90min quand même
-            const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
-            const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
-
-            const result = calculatePoints(
-              {
-                predictedHomeScore: prediction.predicted_home_score,
-                predictedAwayScore: prediction.predicted_away_score
-              },
-              { homeScore: score90Home, awayScore: score90Away },
-              pointsSettings,
-              isBonusMatch,
-              isDefaultPrediction
-            )
-            points = result.points
-            isExactScore = result.isExactScore
-            isCorrectResult = result.isCorrectResult
-          } else {
-            // Match classique (ligue) — calcul standard
-            const result = calculatePoints(
-              {
-                predictedHomeScore: prediction.predicted_home_score,
-                predictedAwayScore: prediction.predicted_away_score
-              },
-              { homeScore: match.home_score, awayScore: match.away_score },
-              pointsSettings,
-              isBonusMatch,
-              isDefaultPrediction
-            )
-            points = result.points
-            isExactScore = result.isExactScore
-            isCorrectResult = result.isCorrectResult
-          }
+          const { points, isExactScore, isCorrectResult } = scorePrediction(prediction, match)
 
           // Incrémenter les stats uniquement pour les pronostics non par défaut
           if (!isDefaultPrediction) {
@@ -566,26 +529,19 @@ export async function GET(
     // (inutile pour un instantané asOf : l'appelant calcule lui-même l'incidence du match)
     let previousRankings: PlayerStats[] | undefined
     if (!matchday && !asOfDate && !skipPrevious) {
-      // Trouver la dernière journée terminée (tous les matchs terminés)
-      const journeysFinished: number[] = []
-      for (const md of matchdaysToCalculate) {
-        const matchesForDay = (allMatches || []).filter(m => m.matchday === md)
-        const allFinished = matchesForDay.length > 0 && matchesForDay.every(m =>
-          finishedMatchesMap.has(m.id)
-        )
-        if (allFinished) {
-          journeysFinished.push(md)
-        }
-      }
+      // Flèches PAR MATCH : la référence est le classement AVANT le dernier match terminé.
+      // On exclut le(s) match(s) au coup d'envoi le plus récent (= dernier match joué) — la flèche
+      // reflète donc l'impact du tout dernier match terminé.
+      const lastMatchTime = (finishedMatches || []).reduce((mx, m) => {
+        const t = new Date(m.utc_date).getTime()
+        return t > mx ? t : mx
+      }, -Infinity)
+      const previousFinishedMatches = (finishedMatches || []).filter(
+        m => new Date(m.utc_date).getTime() < lastMatchTime
+      )
 
-      // S'il y a au moins 2 journées terminées, calculer le classement de l'avant-dernière
-      if (journeysFinished.length >= 2) {
-        const previousMatchday = journeysFinished[journeysFinished.length - 2]
-
-        // Récupérer les matchs terminés jusqu'à la journée précédente (incluse)
-        const previousFinishedMatches = (finishedMatches || []).filter(m =>
-          m.matchday <= previousMatchday
-        )
+      // Pas de flèche tant qu'aucun match n'a été joué AVANT le dernier
+      if (previousFinishedMatches.length > 0) {
 
         // Créer une map pour un accès rapide
         const prevFinishedMatchesMap = new Map(previousFinishedMatches.map(m => [m.id, m]))
@@ -627,32 +583,25 @@ export async function GET(
                                      prediction.predicted_away_score !== null
             if (!isValidPrediction) continue
 
-            const isBonusMatch = bonusMatchIds.has(match.id)
-            const isDefaultPrediction = prediction.is_default_prediction || false
-
-            const result = calculatePoints(
-              { predictedHomeScore: prediction.predicted_home_score, predictedAwayScore: prediction.predicted_away_score },
-              { homeScore: match.home_score, awayScore: match.away_score },
-              pointsSettings,
-              isBonusMatch,
-              isDefaultPrediction
-            )
+            const result = scorePrediction(prediction, match)
 
             totalPoints += result.points
-            if (result.isExactScore) exactScores++
-            if (result.isCorrectResult) correctResults++
-            matchesPlayed++
+            if (!prediction.is_default_prediction) {
+              if (result.isExactScore) exactScores++
+              if (result.isCorrectResult) correctResults++
+              matchesPlayed++
+            }
           }
 
           // Calculer le bonus "Prime d'avant-match" si activé pour la journée précédente
           let earlyPredictionBonusPoints = 0
           if (tournament.early_prediction_bonus && predictions.length > 0) {
             for (const md of matchdaysToCalculate) {
-              if (md > previousMatchday) break // Seulement jusqu'à la journée précédente
-
               const matchIdsForDay = matchIdsByMatchday[md] || []
               if (matchIdsForDay.length === 0) continue
 
+              // Journée comptée comme "complète AVANT le dernier match" seulement si TOUS ses
+              // matchs sont dans la référence (sinon le dernier match l'a complétée → bonus exclu ici)
               const allMatchesFinished = matchIdsForDay.every(mId => prevFinishedMatchesMap.has(mId))
               if (!allMatchesFinished) continue
 
