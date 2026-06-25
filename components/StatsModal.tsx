@@ -152,7 +152,7 @@ function MatchDetailCard({
               />
             )}
             <span className="text-xs theme-text truncate">
-              {match.isHome ? 'vs' : '@'} {match.opponentName}
+              {match.isHome ? 'vs' : '@'} {translateTeamName(match.opponentName)}
             </span>
           </div>
           <span className="text-sm font-bold theme-text ml-2">
