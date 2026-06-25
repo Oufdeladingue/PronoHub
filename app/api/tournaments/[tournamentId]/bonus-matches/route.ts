@@ -1,80 +1,99 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generateBonusMatch } from '@/lib/scoring'
+import { getStageOrder } from '@/lib/stage-formatter'
 
-// Fonction helper pour créer un bonus match pour une journée donnée
-async function createBonusMatchForMatchday(
-  supabase: any,
+/**
+ * Construit la map { journée_virtuelle -> ids imported_matches } pour un tournoi STANDARD.
+ *
+ * Réplique EXACTEMENT la logique d'affichage (app/api/tournament/data) : certaines compétitions
+ * (Coupe du Monde, Euro, CL, coupes) redémarrent le `matchday` à 1 à chaque phase et distinguent
+ * les tours par `stage`. On ordonne donc les paires (stage, matchday) par ordre de phase puis
+ * matchday, et la Nème paire = journée N. Pour une ligue classique, virtual_matchday == matchday ;
+ * pour une coupe : J1/J2/J3 = poules, J4 = 16es (LAST_32), J5 = 8es, J6 = quarts, etc.
+ *
+ * Sans ça, la génération bonus cherchait `matchday=4` → 0 match (les phases finales sont en
+ * matchday=1) → aucun bonus en phase finale ; et la J1 ratissait à tort les 24 poules + 32 finales.
+ */
+async function buildStandardVirtualMatchdayMap(
+  supabase: ReturnType<typeof createAdminClient>,
+  tournament: any
+): Promise<Map<number, string[]>> {
+  const { data: allCompMatches } = await supabase
+    .from('imported_matches')
+    .select('id, stage, matchday, utc_date')
+    .eq('competition_id', tournament.competition_id)
+
+  // Borne saison (mêmes marges que la page opposition) : éviter la collision des numéros de journée
+  // avec une autre saison ré-importée sous le même competition_id.
+  const SEASON_MARGIN_MS = 21 * 24 * 60 * 60 * 1000
+  const seasonStartMs = tournament.start_date ? new Date(tournament.start_date).getTime() - SEASON_MARGIN_MS : null
+  const seasonEndMs = tournament.ending_date ? new Date(tournament.ending_date).getTime() + SEASON_MARGIN_MS : null
+  const allMatches = (allCompMatches || []).filter((m: any) => {
+    const t = new Date(m.utc_date).getTime()
+    if (seasonStartMs != null && t < seasonStartMs) return false
+    if (seasonEndMs != null && t > seasonEndMs) return false
+    return true
+  })
+
+  const pairKey = (m: any) => `${m.stage || 'REGULAR_SEASON'}__${m.matchday ?? 1}`
+  const pairs = new Map<string, { stage: string | null; matchday: number; order: number }>()
+  for (const m of allMatches) {
+    const key = pairKey(m)
+    if (!pairs.has(key)) {
+      pairs.set(key, { stage: m.stage || null, matchday: m.matchday ?? 1, order: getStageOrder((m.stage || null) as any) })
+    }
+  }
+  const sortedPairs = Array.from(pairs.values()).sort((a, b) =>
+    a.order !== b.order ? a.order - b.order : a.matchday - b.matchday
+  )
+  const virtualByKey = new Map<string, number>()
+  sortedPairs.forEach((p, i) => virtualByKey.set(`${p.stage || 'REGULAR_SEASON'}__${p.matchday}`, i + 1))
+
+  // Ordre stable (date puis id) → tirage bonus reproductible.
+  const sorted = [...allMatches].sort((a: any, b: any) => {
+    const ta = new Date(a.utc_date).getTime()
+    const tb = new Date(b.utc_date).getTime()
+    return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id))
+  })
+  const map = new Map<number, string[]>()
+  for (const m of sorted) {
+    const vmd = virtualByKey.get(pairKey(m)) || (m.matchday ?? 1)
+    if (!map.has(vmd)) map.set(vmd, [])
+    map.get(vmd)!.push(m.id)
+  }
+  return map
+}
+
+/** ids des matchs d'une journée pour un tournoi CUSTOM (les journées sont définies explicitement). */
+async function getCustomMatchIdsForMatchday(
+  supabase: ReturnType<typeof createAdminClient>,
   tournament: any,
   matchday: number
-): Promise<string | null> {
-  const isCustomCompetition = !!tournament.custom_competition_id
-  let matchIds: string[] = []
-
-  if (isCustomCompetition) {
-    // TOURNOI CUSTOM - Récupérer les matchs via custom_competition_matches
-    const { data: matchdayData } = await supabase
-      .from('custom_competition_matchdays')
-      .select('id')
-      .eq('custom_competition_id', tournament.custom_competition_id)
-      .eq('matchday_number', matchday)
-      .single()
-
-    if (!matchdayData) return null
-
-    const { data: customMatches } = await supabase
-      .from('custom_competition_matches')
-      .select('football_data_match_id')
-      .eq('custom_matchday_id', matchdayData.id)
-
-    if (!customMatches || customMatches.length === 0) return null
-
-    const footballDataIds = customMatches
-      .map((m: any) => m.football_data_match_id)
-      .filter((id: any) => id !== null)
-
-    if (footballDataIds.length === 0) return null
-
-    const { data: importedMatches } = await supabase
-      .from('imported_matches')
-      .select('id')
-      .in('football_data_match_id', footballDataIds)
-
-    if (!importedMatches || importedMatches.length === 0) return null
-
-    matchIds = importedMatches.map((m: any) => m.id)
-  } else {
-    // TOURNOI STANDARD
-    const { data: matchesOfDay } = await supabase
-      .from('imported_matches')
-      .select('id')
-      .eq('competition_id', tournament.competition_id)
-      .eq('matchday', matchday)
-
-    if (!matchesOfDay || matchesOfDay.length === 0) return null
-
-    matchIds = matchesOfDay.map((m: any) => m.id)
-  }
-
-  // Générer et insérer le match bonus
-  const selectedMatchId = generateBonusMatch(tournament.id, matchday, matchIds)
-
-  const { data: bonusMatch, error } = await supabase
-    .from('tournament_bonus_matches')
-    .insert({
-      tournament_id: tournament.id,
-      matchday,
-      match_id: selectedMatchId
-    })
-    .select()
+): Promise<string[]> {
+  const { data: matchdayData } = await supabase
+    .from('custom_competition_matchdays')
+    .select('id')
+    .eq('custom_competition_id', tournament.custom_competition_id)
+    .eq('matchday_number', matchday)
     .single()
+  if (!matchdayData) return []
 
-  if (error) {
-    console.error(`Erreur création bonus match J${matchday}:`, error)
-    return null
-  }
+  const { data: customMatches } = await supabase
+    .from('custom_competition_matches')
+    .select('football_data_match_id')
+    .eq('custom_matchday_id', matchdayData.id)
 
-  return bonusMatch?.match_id || null
+  const footballDataIds = (customMatches || [])
+    .map((m: any) => m.football_data_match_id)
+    .filter((id: any) => id !== null)
+  if (footballDataIds.length === 0) return []
+
+  const { data: importedMatches } = await supabase
+    .from('imported_matches')
+    .select('id')
+    .in('football_data_match_id', footballDataIds)
+  return (importedMatches || []).map((m: any) => m.id)
 }
 
 export async function GET(
@@ -114,6 +133,7 @@ export async function GET(
 
     if (bonusError) console.error('[BONUS API] Error fetching bonus matches:', bonusError)
 
+    // ⚠️ On ne TOUCHE JAMAIS aux journées déjà créées (bonus validés/comptés) — on n'insère que les manquantes.
     const existingMatchdays = new Set(existingBonusMatches?.map((bm: any) => bm.matchday) || [])
 
     // Déterminer les journées du tournoi
@@ -121,7 +141,6 @@ export async function GET(
     const isCustomCompetition = !!tournament.custom_competition_id
 
     if (isCustomCompetition) {
-      // Récupérer les journées de la compétition custom
       const { data: customMatchdays } = await supabase
         .from('custom_competition_matchdays')
         .select('matchday_number')
@@ -130,7 +149,6 @@ export async function GET(
 
       matchdaysToCheck = customMatchdays?.map((md: any) => md.matchday_number) || []
     } else {
-      // Générer les journées basées sur starting/ending matchday ou num_matchdays
       const startMatchday = tournament.starting_matchday || 1
       const endMatchday = tournament.ending_matchday || (tournament.num_matchdays || 10)
       matchdaysToCheck = Array.from(
@@ -139,15 +157,28 @@ export async function GET(
       )
     }
 
+    // Source des matchs par journée : map virtuelle (standard) calculée une seule fois, ou lookup custom.
+    const standardMap = isCustomCompetition ? null : await buildStandardVirtualMatchdayMap(supabaseAdmin, tournament)
+
     // Créer les bonus matches manquants (avec client admin pour bypass RLS)
     const newBonusMatches: any[] = []
     for (const md of matchdaysToCheck) {
-      if (!existingMatchdays.has(md)) {
-        const matchId = await createBonusMatchForMatchday(supabaseAdmin, tournament, md)
-        if (matchId) {
-          newBonusMatches.push({ tournament_id: tournamentId, matchday: md, match_id: matchId })
-        }
-      }
+      if (existingMatchdays.has(md)) continue
+
+      const matchIds = isCustomCompetition
+        ? await getCustomMatchIdsForMatchday(supabaseAdmin, tournament, md)
+        : (standardMap!.get(md) || [])
+      if (matchIds.length === 0) continue
+
+      const selectedMatchId = generateBonusMatch(tournament.id, md, matchIds)
+      const { data: bonusMatch, error } = await supabaseAdmin
+        .from('tournament_bonus_matches')
+        .insert({ tournament_id: tournament.id, matchday: md, match_id: selectedMatchId })
+        .select()
+        .single()
+
+      if (error) console.error(`Erreur création bonus match J${md}:`, error)
+      else if (bonusMatch) newBonusMatches.push(bonusMatch)
     }
 
     // Combiner existants et nouveaux
@@ -201,7 +232,7 @@ export async function POST(
       return NextResponse.json({ error: 'Les matchs bonus ne sont pas activés pour ce tournoi' }, { status: 400 })
     }
 
-    // Vérifier si un match bonus existe déjà pour cette journée (avec client admin)
+    // Ne JAMAIS recréer un bonus existant (déjà validé/compté)
     const { data: existingBonus } = await supabaseAdmin
       .from('tournament_bonus_matches')
       .select('*')
@@ -213,66 +244,19 @@ export async function POST(
       return NextResponse.json({ bonusMatch: existingBonus })
     }
 
-    // Récupérer tous les matchs de cette journée
-    let matchIds: string[] = []
+    // Récupérer les matchs de cette journée (même mapping que l'affichage : par stage en phase finale)
     const isCustomCompetition = !!tournament.custom_competition_id
+    let matchIds: string[] = []
 
     if (isCustomCompetition) {
-      // TOURNOI CUSTOM - Récupérer les matchs via custom_competition_matches
-      // D'abord récupérer l'ID du matchday custom
-      const { data: matchdayData } = await supabase
-        .from('custom_competition_matchdays')
-        .select('id')
-        .eq('custom_competition_id', tournament.custom_competition_id)
-        .eq('matchday_number', matchday)
-        .single()
-
-      if (!matchdayData) {
-        return NextResponse.json({ error: 'Journée non trouvée pour cette compétition custom' }, { status: 404 })
-      }
-
-      // Récupérer les matchs custom de cette journée
-      const { data: customMatches, error: customMatchesError } = await supabase
-        .from('custom_competition_matches')
-        .select('football_data_match_id')
-        .eq('custom_matchday_id', matchdayData.id)
-
-      if (customMatchesError || !customMatches || customMatches.length === 0) {
-        return NextResponse.json({ error: 'Aucun match trouvé pour cette journée' }, { status: 404 })
-      }
-
-      // Récupérer les IDs de imported_matches via football_data_match_id
-      const footballDataIds = customMatches
-        .map(m => m.football_data_match_id)
-        .filter(id => id !== null)
-
-      if (footballDataIds.length === 0) {
-        return NextResponse.json({ error: 'Aucun match importé trouvé pour cette journée' }, { status: 404 })
-      }
-
-      const { data: importedMatches, error: importedError } = await supabase
-        .from('imported_matches')
-        .select('id')
-        .in('football_data_match_id', footballDataIds)
-
-      if (importedError || !importedMatches || importedMatches.length === 0) {
-        return NextResponse.json({ error: 'Aucun match importé trouvé pour cette journée' }, { status: 404 })
-      }
-
-      matchIds = importedMatches.map(m => m.id)
+      matchIds = await getCustomMatchIdsForMatchday(supabaseAdmin, tournament, matchday)
     } else {
-      // TOURNOI STANDARD - Récupérer les matchs depuis imported_matches
-      const { data: matchesOfDay, error: matchesError } = await supabase
-        .from('imported_matches')
-        .select('id')
-        .eq('competition_id', tournament.competition_id)
-        .eq('matchday', matchday)
+      const standardMap = await buildStandardVirtualMatchdayMap(supabaseAdmin, tournament)
+      matchIds = standardMap.get(Number(matchday)) || []
+    }
 
-      if (matchesError || !matchesOfDay || matchesOfDay.length === 0) {
-        return NextResponse.json({ error: 'Aucun match trouvé pour cette journée' }, { status: 404 })
-      }
-
-      matchIds = matchesOfDay.map(m => m.id)
+    if (matchIds.length === 0) {
+      return NextResponse.json({ error: 'Aucun match trouvé pour cette journée' }, { status: 404 })
     }
 
     // Générer un match bonus aléatoire (mais reproductible)
