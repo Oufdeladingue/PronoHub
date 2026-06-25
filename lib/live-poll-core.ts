@@ -24,6 +24,50 @@ export interface LivePollResult {
 
 type Supa = ReturnType<typeof createAdminClient>
 
+// --- Ancrage de la minute live (en mémoire, process unique) ---
+// football-data ne fournit PAS la minute (cf. football-data-score.ts) : seulement le statut + le
+// score halfTime. La 1re période s'estime correctement depuis le coup d'envoi ; le vrai problème,
+// c'est la 2e période (pause ~15 min + arrêts de jeu décalent l'estimation théorique). On ANCRE
+// donc la 2e période sur sa reprise RÉELLEMENT observée au poll (transition PAUSED→IN_PLAY) →
+// précision ~±30s (l'intervalle de poll). Repli sur deriveLiveMinute si la reprise n'a pas été
+// observée (conteneur redémarré en pleine 2e MT, trou de feed). Clés = id football-data du match.
+//
+// NB : on ne poll QUE les statuts IN_PLAY/PAUSED → on ne voit jamais un match en TIMED, donc on ne
+// peut pas ancrer le coup d'envoi sur transition ; la 1re MT reste estimée (suffisant), seule la
+// 2e MT (le point sensible) est ancrée.
+const secondHalfStartMs = new Map<number, number>()
+const prevStatusById = new Map<number, string>()
+
+/** Oublie les ancres des matchs qui ne sont plus dans le flux live (anti-fuite mémoire). */
+function pruneAnchors(liveIds: Set<number>) {
+  for (const id of prevStatusById.keys()) if (!liveIds.has(id)) prevStatusById.delete(id)
+  for (const id of secondHalfStartMs.keys()) if (!liveIds.has(id)) secondHalfStartMs.delete(id)
+}
+
+/** Minute live : 2e période ancrée sur la reprise observée ; sinon estimation (deriveLiveMinute). */
+function computeLiveMinute(m: any): number | null {
+  const id: number = m.id
+  const now = Date.now()
+  const kickoffMs = new Date(m.utcDate).getTime()
+  const prev = prevStatusById.get(id)
+  // "Collant" : une fois la 2e MT ancrée, un trou de feed (halfTime qui redevient null) ne la défait pas.
+  const inSecondHalf = m.score?.halfTime?.home != null || secondHalfStartMs.has(id)
+
+  // Ancre la reprise réelle de la 2e période (mi-temps observée au poll précédent).
+  if (m.status === 'IN_PLAY' && inSecondHalf && prev === 'PAUSED' && !secondHalfStartMs.has(id)) {
+    secondHalfStartMs.set(id, now)
+  }
+  prevStatusById.set(id, m.status)
+
+  if (m.status === 'PAUSED') return 45 // mi-temps
+  if (m.status === 'IN_PLAY' && secondHalfStartMs.has(id)) {
+    // Démarre à 46 (cohérent avec deriveMatchPhase `> 45` ⇒ "2e MT", et avec le repli max(46,…)).
+    return Math.min(46 + Math.floor((now - secondHalfStartMs.get(id)!) / 60000), 90)
+  }
+  // Repli : 1re période estimée depuis le coup d'envoi, ou 2e MT non observée (restart/feed gap).
+  return deriveLiveMinute(kickoffMs, m.status, m.minute, inSecondHalf)
+}
+
 /** Faut-il faire tourner le poll ? Vrai si (a) un match a son coup d'envoi récent/imminent
  *  OU (b) un match est resté "en direct" en base (à mettre à jour / finaliser). Sans (b),
  *  un match coincé hors de la fenêtre temps ne serait jamais finalisé. */
@@ -57,8 +101,7 @@ async function updateLive(supabase: Supa, matches: any[]): Promise<{ updated: nu
       sc.winnerSide === 'home' ? (m.homeTeam?.id ?? null)
       : sc.winnerSide === 'away' ? (m.awayTeam?.id ?? null)
       : null
-    const firstHalfDone = m.score?.halfTime?.home != null
-    const minute = deriveLiveMinute(new Date(m.utcDate).getTime(), m.status, m.minute, firstHalfDone)
+    const minute = computeLiveMinute(m)
 
     const update: Record<string, any> = {
       status: m.status,
@@ -148,7 +191,9 @@ export async function runLivePoll(): Promise<LivePollResult> {
     return { ok: false, skipped: 'fetch-error', live: 0, updated: 0, finalized: 0, sample: [], errors: [`fetch: ${e?.message || e}`] }
   }
 
+  const liveIds = new Set<number>(matches.map((m) => m.id))
   const { updated, sample, errors } = await updateLive(supabase, matches)
-  const finalized = await finalizeEnded(supabase, new Set(matches.map((m) => m.id)))
+  const finalized = await finalizeEnded(supabase, liveIds)
+  pruneAnchors(liveIds) // libère les ancres des matchs qui ne sont plus live
   return { ok: true, live: matches.length, updated, finalized, sample, errors }
 }

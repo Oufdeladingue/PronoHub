@@ -251,6 +251,11 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
             }
           }
 
+          // Minute live + last_updated_at = ressort du POLLER INTERNE (source unique de la minute
+          // ancrée). On ne bumpe last_updated_at que pour un match terminé, sinon on gèlerait
+          // l'interpolation client de la minute (last_updated_at frais mais live_minute inchangé).
+          if (updateData && !updateData.finished) delete (updateData as any).last_updated_at
+
           const { error: updateError } = await supabase
             .from('imported_matches')
             .update(updateData)
@@ -410,6 +415,9 @@ async function updateMatchesIndividually(
           last_updated_at: new Date().toISOString(),
         }
       }
+
+      // Idem : poller interne = source unique de la minute live ; ne bumper last_updated_at que si terminé.
+      if (updateData && !updateData.finished) delete (updateData as any).last_updated_at
 
       const { error: updateError } = await supabase
         .from('imported_matches')
