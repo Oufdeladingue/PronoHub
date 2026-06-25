@@ -49,3 +49,4 @@ nul
 android/keystore.properties
 *.jks
 *.keystore
+dev-server.log

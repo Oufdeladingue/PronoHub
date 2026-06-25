@@ -7,6 +7,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import ShareImageModal from '@/components/ShareImageModal'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 import { slugify, fileDateStamp } from '@/lib/slug'
+import RankingEvolution from './RankingEvolution'
 
 interface PlayerStats {
   playerId: string
@@ -65,6 +66,7 @@ interface TournamentRankingsProps {
 
 export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition, matchdayDisplayMap }: TournamentRankingsProps) {
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
+  const [showEvolution, setShowEvolution] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [rankingsData, setRankingsData] = useState<RankingsData | null>(null)
   const [teamRankings, setTeamRankings] = useState<TeamStats[]>([])
@@ -94,7 +96,10 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       return false // Par défaut, considérer comme NON commencé si pas de données
     }
 
-    const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
+    // Journée VIRTUELLE (comme dans Pronostics) : les compétitions à phases (WC/Euro/CL) redémarrent
+    // le matchday brut à 1 à chaque phase → les matchs « À déterminer » de la phase à élimination ont
+    // matchday=1 mais appartiennent aux journées finales, PAS à J1. On filtre donc sur virtual_matchday.
+    const matchesForDay = allMatches.filter((m: any) => ((m.virtual_matchday || m.matchday) === matchday))
     if (matchesForDay.length === 0) {
       return false // Pas de matchs = pas encore commencé
     }
@@ -110,7 +115,10 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   const isMatchdayFinished = (matchday: number): boolean => {
     if (!allMatches) return false
 
-    const matchesForDay = allMatches.filter((m: any) => m.matchday === matchday)
+    // Journée VIRTUELLE (comme dans Pronostics) : les compétitions à phases (WC/Euro/CL) redémarrent
+    // le matchday brut à 1 à chaque phase → les matchs « À déterminer » de la phase à élimination ont
+    // matchday=1 mais appartiennent aux journées finales, PAS à J1. On filtre donc sur virtual_matchday.
+    const matchesForDay = allMatches.filter((m: any) => ((m.virtual_matchday || m.matchday) === matchday))
     if (matchesForDay.length === 0) return false
 
     // Tous les matchs doivent être terminés (status === 'FINISHED' ou finished === true)
@@ -292,7 +300,25 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
 
   return (
     <div className="theme-card">
-      <h2 className="text-xl md:text-2xl font-bold theme-text mb-4 md:mb-6">Classement</h2>
+      <div className="flex items-center justify-between mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold theme-text">Classement</h2>
+        {!isCustomCompetition && (
+          <button
+            onClick={() => setShowEvolution(v => !v)}
+            className={`px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition ${
+              showEvolution ? 'bg-[#ff9900] text-[#111]' : 'bg-gray-100 dark:bg-gray-700 theme-text-secondary hover:bg-[#ff9900] hover:text-[#111]'
+            }`}
+          >
+            📈 Évolution
+          </button>
+        )}
+      </div>
+
+      {showEvolution && (
+        <div className="mb-5 md:mb-6">
+          <RankingEvolution tournamentId={tournamentId} tournamentName={tournamentName} />
+        </div>
+      )}
 
       {/* Navigation des vues */}
       <div className="mb-4 md:mb-6 pb-3 md:pb-4 border-b theme-border">
