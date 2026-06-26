@@ -146,10 +146,10 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
   const VW = 1000
   const padL = 70, padR = 130, padT = 30, rowH = 38
   const VH = padT * 2 + (N - 1) * rowH
-  // Hauteur RENDUE fixe (px) garantissant ~38px entre chaque ligne, quelle que soit la largeur
-  // d'écran (sinon l'aspectRatio écrasait la hauteur sur mobile → avatars tassés).
-  const ROW_PX = 38
-  const chartHeightPx = Math.round(VH * ROW_PX / rowH)
+  // Hauteur du graphe : responsive à la HAUTEUR de l'écran (vh) → tient sur un seul écran et
+  // s'adapte à la rotation (portrait/paysage). Bornée : assez haut pour être lisible (min),
+  // sans trop s'étirer quand il y a peu de joueurs (max ∝ nb de joueurs).
+  const chartHeight = `clamp(260px, 48vh, ${Math.max(360, N * 40)}px)`
   const xOf = (stepIdx: number) => padL + (maxPos === 0 ? 0 : (stepIdx / maxPos)) * (VW - padL - padR)
   const yOf = (rank: number) => padT + (N === 1 ? 0 : (rank - 1) * (VH - padT * 2) / (N - 1))
 
@@ -394,7 +394,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
         className="w-full mb-3 accent-[#ff9900]" />
 
       {/* Graphe */}
-      <div className="relative w-full" style={{ height: `${chartHeightPx}px` }}>
+      <div className="relative w-full" style={{ height: chartHeight }}>
         <svg viewBox={`0 0 ${VW} ${VH}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
           {/* lignes de rang (repères) */}
           {Array.from({ length: N }, (_, i) => (
@@ -438,7 +438,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
               onMouseEnter={() => setHoveredUser(u.id)} onMouseLeave={() => setHoveredUser(null)}
               onClick={() => setSelectedUser(s => (s === u.id ? null : u.id))}>
               <img src={getAvatarUrl(u.avatar)} alt={u.name}
-                className="block w-6 h-6 md:w-7 md:h-7 rounded-full border-2 object-cover bg-slate-700"
+                className="block w-5 h-5 md:w-6 md:h-6 rounded-full border-2 object-cover bg-slate-700"
                 style={{ borderColor: COLORS[ui % COLORS.length],
                          transform: focusUid === u.id ? 'scale(1.25)' : undefined, transition: 'transform 0.15s' }} />
             </div>
