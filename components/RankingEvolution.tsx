@@ -146,6 +146,10 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
   const VW = 1000
   const padL = 70, padR = 130, padT = 30, rowH = 38
   const VH = padT * 2 + (N - 1) * rowH
+  // Hauteur RENDUE fixe (px) garantissant ~38px entre chaque ligne, quelle que soit la largeur
+  // d'écran (sinon l'aspectRatio écrasait la hauteur sur mobile → avatars tassés).
+  const ROW_PX = 38
+  const chartHeightPx = Math.round(VH * ROW_PX / rowH)
   const xOf = (stepIdx: number) => padL + (maxPos === 0 ? 0 : (stepIdx / maxPos)) * (VW - padL - padR)
   const yOf = (rank: number) => padT + (N === 1 ? 0 : (rank - 1) * (VH - padT * 2) / (N - 1))
 
@@ -390,7 +394,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
         className="w-full mb-3 accent-[#ff9900]" />
 
       {/* Graphe */}
-      <div className="relative w-full" style={{ aspectRatio: `${VW} / ${VH}` }}>
+      <div className="relative w-full" style={{ height: `${chartHeightPx}px` }}>
         <svg viewBox={`0 0 ${VW} ${VH}`} className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
           {/* lignes de rang (repères) */}
           {Array.from({ length: N }, (_, i) => (
