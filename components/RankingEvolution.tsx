@@ -44,7 +44,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isolateMe, setIsolateMe] = useState(false)
   const [hoveredUser, setHoveredUser] = useState<string | null>(null)   // survol souris (desktop, transitoire)
-  const [selectedUser, setSelectedUser] = useState<string | null>(null) // tap (mobile/desktop, persistant)
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]) // clics (persistant, MULTIPLE pour comparer)
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null))
@@ -191,8 +191,8 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     const upTo = Math.floor(p)
     data!.users.forEach((u, ui) => {
       const arr = ranksByUser[u.id]
-      ctx.globalAlpha = (focusUid != null && u.id !== focusUid) ? 0.08 : 1
-      ctx.strokeStyle = COLORS[ui % COLORS.length]; ctx.lineWidth = focusUid === u.id ? 4.5 : 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath()
+      ctx.globalAlpha = (pinned.size > 0 && !pinned.has(u.id)) ? 0.08 : 1
+      ctx.strokeStyle = COLORS[ui % COLORS.length]; ctx.lineWidth = pinned.has(u.id) ? 4.5 : 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.beginPath()
       for (let i = 0; i <= upTo; i++) { const X = cxOf(i), Y = cyOf(arr[i]); i === 0 ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y) }
       ctx.lineTo(cxOf(p), cyOf(interpRankAt(u.id, p))); ctx.stroke()
     })
@@ -208,11 +208,11 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     data!.users.forEach((u, ui) => {
       const grp = byR[step?.ranks[u.id]?.rank ?? -1] || [u.id]
       const k = grp.indexOf(u.id); const fan = (k - (grp.length - 1) / 2) * 20
-      const isFocus = focusUid === u.id
+      const isFocus = pinned.has(u.id)
       const rr = isFocus ? R + 3 : R
       const X = cxOf(p) + fan, Y = cyOf(interpRankAt(u.id, p))
       const img = avatarsRef.current.get(getAvatarUrl(u.avatar))
-      ctx.globalAlpha = (focusUid != null && !isFocus) ? 0.18 : 1
+      ctx.globalAlpha = (pinned.size > 0 && !isFocus) ? 0.18 : 1
       ctx.save(); ctx.beginPath(); ctx.arc(X, Y, rr, 0, Math.PI * 2); ctx.closePath(); ctx.clip()
       if (img && img.complete && img.naturalWidth) ctx.drawImage(img, X - rr, Y - rr, 2 * rr, 2 * rr)
       else { ctx.fillStyle = '#334155'; ctx.fillRect(X - rr, Y - rr, 2 * rr, 2 * rr) }
@@ -224,7 +224,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     Object.entries(byR).forEach(([rs, uids]) => {
       const avg = uids.reduce((s, id) => s + interpRankAt(id, p), 0) / uids.length
       const rightFan = ((uids.length - 1) / 2) * 20
-      ctx.globalAlpha = (focusUid != null && !uids.includes(focusUid)) ? 0.18 : 1
+      ctx.globalAlpha = (pinned.size > 0 && !uids.some(id => pinned.has(id))) ? 0.18 : 1
       ctx.fillStyle = podium(Number(rs))
       ctx.fillText(uids.map(nameOf).join(' / '), cxOf(p) + rightFan + R + 8, cyOf(avg))
     })
@@ -325,8 +325,13 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     : ''
 
   // User mis en avant : survol souris > tap sélectionné > case "m'isoler". null = personne (tout normal).
-  const focusUid = hoveredUser ?? selectedUser ?? (isolateMe ? currentUserId : null)
-  const isDimmed = (uid: string) => focusUid != null && uid !== focusUid
+  // Sélection MULTIPLE : on épingle plusieurs avatars (clic) pour comparer leurs parcours.
+  const pinned = new Set<string>(selectedUsers)             // clics persistants + case "m'isoler"
+  if (isolateMe && currentUserId) pinned.add(currentUserId)
+  const activeSet = new Set<string>(pinned)                 // + survol souris (transitoire, desktop)
+  if (hoveredUser) activeSet.add(hoveredUser)
+  const isActive = (uid: string) => activeSet.has(uid)
+  const isDimmed = (uid: string) => activeSet.size > 0 && !activeSet.has(uid)
 
   return (
     <div className="theme-secondary-bg border theme-border rounded-xl p-3 md:p-4">
@@ -359,10 +364,16 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
           className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-700 text-white disabled:opacity-60">
           {exporting ? `⏺ Export… ${exportPct}%` : '⬇ Exporter (vidéo)'}
         </button>
-        {selectedUser && (
-          <button onClick={() => setSelectedUser(null)}
+        {selectedUsers.map(uid => (
+          <button key={`chip-${uid}`} onClick={() => setSelectedUsers(arr => arr.filter(x => x !== uid))}
             className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold bg-[#ff9900]/20 text-[#ff9900]">
-            👁 {nameById[selectedUser] ?? ''} <span className="opacity-70">✕</span>
+            {nameById[uid] ?? ''} <span className="opacity-70">✕</span>
+          </button>
+        ))}
+        {selectedUsers.length > 1 && (
+          <button onClick={() => setSelectedUsers([])}
+            className="text-xs px-2 py-1 rounded-full theme-text-secondary underline">
+            tout effacer
           </button>
         )}
         <span className="text-xs theme-text-secondary ml-auto">
@@ -410,7 +421,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
             pts.push(`${xOf(pos)},${yOf(interpRank(u.id))}`)
             const dim = isDimmed(u.id)
             return <polyline key={u.id} points={pts.join(' ')} fill="none"
-              stroke={COLORS[ui % COLORS.length]} strokeWidth={focusUid === u.id ? 4 : 2.5}
+              stroke={COLORS[ui % COLORS.length]} strokeWidth={isActive(u.id) ? 4 : 2.5}
               strokeLinejoin="round" strokeLinecap="round" opacity={dim ? 0.07 : 0.85}
               style={{ transition: 'opacity 0.15s' }} />
           })}
@@ -434,13 +445,13 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
           return (
             <div key={u.id} className="absolute cursor-pointer"
               style={{ left: `${(x / VW) * 100}%`, top: `${(y / VH) * 100}%`, transform: 'translate(-50%, -50%)',
-                       opacity: dim ? 0.18 : 1, zIndex: focusUid === u.id ? 20 : 2, transition: 'opacity 0.15s' }}
+                       opacity: dim ? 0.18 : 1, zIndex: isActive(u.id) ? 20 : 2, transition: 'opacity 0.15s' }}
               onMouseEnter={() => setHoveredUser(u.id)} onMouseLeave={() => setHoveredUser(null)}
-              onClick={() => setSelectedUser(s => (s === u.id ? null : u.id))}>
+              onClick={() => setSelectedUsers(arr => arr.includes(u.id) ? arr.filter(x => x !== u.id) : [...arr, u.id])}>
               <img src={getAvatarUrl(u.avatar)} alt={u.name}
                 className="block w-5 h-5 md:w-6 md:h-6 rounded-full border-2 object-cover bg-slate-700"
                 style={{ borderColor: COLORS[ui % COLORS.length],
-                         transform: focusUid === u.id ? 'scale(1.25)' : undefined, transition: 'transform 0.15s' }} />
+                         transform: isActive(u.id) ? 'scale(1.25)' : undefined, transition: 'transform 0.15s' }} />
             </div>
           )
         })}
@@ -451,7 +462,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
           const rightFan = ((uids.length - 1) / 2) * 16
           const x = xOf(pos) + rightFan, y = yOf(avg)
           const label = uids.map(id => nameById[id]).join(' / ')
-          const dimLbl = focusUid != null && !uids.includes(focusUid)
+          const dimLbl = activeSet.size > 0 && !uids.some(id => activeSet.has(id))
           return (
             <div key={`lbl-${rankStr}`} className="absolute"
               style={{ left: `${(x / VW) * 100}%`, top: `${(y / VH) * 100}%`, transform: 'translateY(-50%)',
