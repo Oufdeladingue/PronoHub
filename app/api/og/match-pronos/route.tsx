@@ -134,7 +134,7 @@ const COLORS = {
   red: '#ef4444',
 }
 
-type Row = { uid: string; name: string; avatar: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null; isDefault: boolean; rank: number | null; totalPoints: number | null; rankDelta: number | null }
+type Row = { uid: string; name: string; avatar: string; ph: number; pa: number; status: 'exact' | 'correct' | 'wrong' | 'neutral'; points: number | null; isDefault: boolean; rank: number | null; totalPoints: number | null; rankDelta: number | null; predictedQualifier: 'home' | 'away' | null }
 
 export async function GET(request: NextRequest) {
   try {
@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
         const ph = hasPred ? (p!.predicted_home_score ?? 0) : 0
         const pa = hasPred ? (p!.predicted_away_score ?? 0) : 0
         const rk = rankByUser.get(uid)
-        const base: Row = { uid, name: nameById.get(uid) || 'Joueur', avatar: avatarById.get(uid) || 'avatar1', ph, pa, status: 'neutral', points: null, isDefault, rank: rk?.rank ?? null, totalPoints: rk?.totalPoints ?? null, rankDelta: null }
+        const base: Row = { uid, name: nameById.get(uid) || 'Joueur', avatar: avatarById.get(uid) || 'avatar1', ph, pa, status: 'neutral', points: null, isDefault, rank: rk?.rank ?? null, totalPoints: rk?.totalPoints ?? null, rankDelta: null, predictedQualifier: hasPred ? ((p!.predicted_qualifier as 'home' | 'away' | null) ?? null) : null }
 
         if (isFinished && settings) {
           const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
@@ -411,6 +411,10 @@ export async function GET(request: NextRequest) {
           txt('-', { fontSize: '15px', color: COLORS.sub }),
           txt(`${p.pa}`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
         ]),
+        // Équipe pronostiquée qualifiée (phases finales + bonus qualifié) : drapeau/logo, liseré orange
+        ...(tournament?.bonus_qualified && p.predictedQualifier && (p.predictedQualifier === 'home' ? homeCrest : awayCrest)
+          ? [img((p.predictedQualifier === 'home' ? homeCrest : awayCrest)!, 26, 26, { flexShrink: 0, borderRadius: '4px', objectFit: 'contain', border: `2px solid ${COLORS.orange}` })]
+          : []),
         // Points gagnés sur le match (si terminé)
         ...(p.points !== null
           ? [el('div', { width: '58px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.points > 0 ? '+' : ''}${p.points}`, { fontSize: '17px', fontWeight: 900, color: statusColor(p.status) })])]
