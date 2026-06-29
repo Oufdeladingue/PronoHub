@@ -9,22 +9,27 @@ const FOOTBALL_DATA_API = 'https://api.football-data.org/v4'
 // calendrier intra-saison) : la nouvelle date de début doit être au moins 60 jours après celle
 // qu'on a importée.
 const NEW_SEASON_MIN_GAP_MS = 60 * 24 * 60 * 60 * 1000
-const SETTING_KEY = 'new_season_alerts_notified'
-const MAX_CHECKS = 12 // borne le temps total (×6s) bien sous le timeout proxy ~100s
-const DELAY_MS = 6000 // respect du rate limit football-data (10 req/min)
+const SETTING_KEY = 'new_season_alerts_notified'            // { [competitionId]: 'YYYY-MM-DD' }
+const COMP_SETTING_KEY = 'known_plan_competitions'           // [id, id, ...] baseline des compétitions du plan
 
 function escapeHtml(v: unknown): string {
   return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /**
- * Cron de surveillance des nouvelles saisons des compétitions sources.
+ * Cron de surveillance des compétitions sources (football-data).
  *
- * Pour chaque compétition importée (table `competitions`), interroge football-data et compare
- * la saison COURANTE de la source à celle qu'on a importée (`current_season_start_date`).
- * Si la source a basculé sur une nouvelle saison (début > 60 j après le nôtre), envoie UN email
- * à l'admin. Anti-spam : on mémorise la dernière saison signalée par compétition (admin_settings)
- * pour ne pas ré-emailer chaque jour.
+ * Un SEUL appel à `/v4/competitions` (qui contient déjà `currentSeason` pour chaque compétition
+ * du plan) sert aux deux vérifications :
+ *
+ *  1. NOUVELLE SAISON d'une compétition DÉJÀ importée (table `competitions`) : si la saison
+ *     courante côté source débute ≥ 60 j après celle qu'on a importée → email admin.
+ *     Anti-spam : on mémorise la dernière saison signalée par compétition (`new_season_alerts_notified`).
+ *
+ *  2. NOUVELLE COMPÉTITION ajoutée au plan football-data et absente de notre DB → email admin.
+ *     Baseline : au 1er run on enregistre la liste actuelle SANS alerter (les compétitions déjà
+ *     dispo mais non importées ne sont pas « nouvelles »). Ensuite, tout ID inédit déclenche l'alerte.
+ *     Mémoire : `known_plan_competitions`.
  *
  * Auth : Bearer CRON_SECRET.
  */
@@ -39,113 +44,142 @@ export async function GET(request: Request) {
 
   const supabase = createAdminClient()
 
-  // Compétitions à surveiller : ligues importées (id = id football-data), avec une saison connue
+  // --- Liste complète des compétitions du plan (1 appel, contient currentSeason) ---
+  const listRes = await fetch(`${FOOTBALL_DATA_API}/competitions`, { headers: { 'X-Auth-Token': apiKey } })
+  if (!listRes.ok) {
+    return NextResponse.json({ error: `football-data /competitions http ${listRes.status}` }, { status: 502 })
+  }
+  const listJson = await listRes.json()
+  const planComps: any[] = listJson?.competitions || []
+  const planById = new Map<number, any>(planComps.map((c) => [c.id, c]))
+
+  // --- Nos compétitions ---
   const { data: comps, error: compErr } = await supabase
     .from('competitions')
     .select('id, name, current_season_start_date')
-    .not('current_season_start_date', 'is', null)
-    .order('id', { ascending: true })
-    .limit(MAX_CHECKS)
-
   if (compErr) {
     return NextResponse.json({ error: compErr.message }, { status: 500 })
   }
+  const dbIds = new Set<number>((comps || []).map((c) => c.id))
 
-  // État des alertes déjà envoyées { [competitionId]: 'YYYY-MM-DD' }
-  const { data: settingRow } = await supabase
-    .from('admin_settings')
-    .select('setting_value')
-    .eq('setting_key', SETTING_KEY)
-    .maybeSingle()
+  // ========== 1. Nouvelles saisons des compétitions connues ==========
+  const { data: seasonRow } = await supabase
+    .from('admin_settings').select('setting_value').eq('setting_key', SETTING_KEY).maybeSingle()
   let notified: Record<string, string> = {}
-  try { notified = settingRow?.setting_value ? JSON.parse(settingRow.setting_value) : {} } catch { notified = {} }
+  try { notified = seasonRow?.setting_value ? JSON.parse(seasonRow.setting_value) : {} } catch { notified = {} }
 
   const newSeasons: { id: number; name: string; importedStart: string; sourceStart: string; sourceEnd: string }[] = []
-  const checked: number[] = []
-  const errors: string[] = []
-
-  for (let i = 0; i < (comps || []).length; i++) {
-    const comp = comps![i]
-    if (i > 0) await new Promise((r) => setTimeout(r, DELAY_MS))
-    try {
-      const res = await fetch(`${FOOTBALL_DATA_API}/competitions/${comp.id}`, {
-        headers: { 'X-Auth-Token': apiKey },
+  for (const comp of comps || []) {
+    if (!comp.current_season_start_date) continue
+    const src = planById.get(comp.id)
+    const sourceStart: string | undefined = src?.currentSeason?.startDate
+    const sourceEnd: string | undefined = src?.currentSeason?.endDate
+    if (!sourceStart) continue
+    const gap = new Date(sourceStart).getTime() - new Date(comp.current_season_start_date).getTime()
+    if (gap >= NEW_SEASON_MIN_GAP_MS) {
+      if (notified[String(comp.id)] === sourceStart) continue // déjà signalé
+      newSeasons.push({
+        id: comp.id,
+        name: comp.name,
+        importedStart: new Date(comp.current_season_start_date).toISOString().slice(0, 10),
+        sourceStart,
+        sourceEnd: sourceEnd || '?',
       })
-      checked.push(comp.id)
-      if (!res.ok) {
-        if (res.status !== 404) errors.push(`${comp.id}: http ${res.status}`)
-        continue
-      }
-      const j = await res.json()
-      const sourceStart: string | undefined = j?.currentSeason?.startDate
-      const sourceEnd: string | undefined = j?.currentSeason?.endDate
-      if (!sourceStart) continue
-
-      const importedStartMs = new Date(comp.current_season_start_date).getTime()
-      const sourceStartMs = new Date(sourceStart).getTime()
-
-      // Nouvelle saison disponible côté source ?
-      if (sourceStartMs - importedStartMs >= NEW_SEASON_MIN_GAP_MS) {
-        // Anti-spam : déjà signalé pour cette même saison ?
-        if (notified[String(comp.id)] === sourceStart) continue
-        newSeasons.push({
-          id: comp.id,
-          name: comp.name,
-          importedStart: new Date(comp.current_season_start_date).toISOString().slice(0, 10),
-          sourceStart,
-          sourceEnd: sourceEnd || '?',
-        })
-      }
-    } catch (e: any) {
-      errors.push(`${comp.id}: ${e.message}`)
     }
   }
 
-  // Envoi de l'email si nouvelles saisons détectées (non encore signalées)
+  // ========== 2. Nouvelles compétitions du plan absentes de la DB ==========
+  const { data: compRow } = await supabase
+    .from('admin_settings').select('setting_value').eq('setting_key', COMP_SETTING_KEY).maybeSingle()
+  let knownPlanIds: number[] | null = null
+  if (compRow?.setting_value) {
+    try { knownPlanIds = JSON.parse(compRow.setting_value) } catch { knownPlanIds = null }
+  }
+  const planIds = planComps.map((c) => c.id)
+  const isFirstRun = knownPlanIds === null
+  const knownSet = new Set<number>(knownPlanIds || [])
+
+  // « Nouvelle » = présente dans le plan, absente de notre DB, et ID jamais vu auparavant.
+  // Au 1er run on ne signale rien (baseline) : les compétitions déjà dispo ne sont pas nouvelles.
+  const newCompetitions = isFirstRun
+    ? []
+    : planComps.filter((c) => !dbIds.has(c.id) && !knownSet.has(c.id))
+
+  // ========== Email (sections combinées) ==========
   let emailed = false
-  if (newSeasons.length > 0) {
-    const rows = newSeasons.map((s) => `
-      <tr>
-        <td style="padding:8px;border-bottom:1px solid #eee;"><strong>${escapeHtml(s.name)}</strong> <span style="color:#888;">(#${s.id})</span></td>
-        <td style="padding:8px;border-bottom:1px solid #eee;color:#16a34a;font-weight:bold;">${escapeHtml(s.sourceStart)} → ${escapeHtml(s.sourceEnd)}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;color:#888;">${escapeHtml(s.importedStart)}</td>
-      </tr>`).join('')
-    const html = `
-      <div style="font-family:sans-serif;max-width:640px;margin:0 auto;">
-        <h2 style="color:#ff9900;">⚽ Nouvelle(s) saison(s) disponible(s) sur football-data</h2>
-        <p>Les compétitions suivantes ont une nouvelle saison publiée à la source, plus récente que celle importée dans PronoHub :</p>
+  if (newSeasons.length > 0 || newCompetitions.length > 0) {
+    let html = `<div style="font-family:sans-serif;max-width:660px;margin:0 auto;">`
+    let text = ''
+
+    if (newSeasons.length > 0) {
+      const rows = newSeasons.map((s) => `
+        <tr>
+          <td style="padding:8px;border-bottom:1px solid #eee;"><strong>${escapeHtml(s.name)}</strong> <span style="color:#888;">(#${s.id})</span></td>
+          <td style="padding:8px;border-bottom:1px solid #eee;color:#16a34a;font-weight:bold;">${escapeHtml(s.sourceStart)} → ${escapeHtml(s.sourceEnd)}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee;color:#888;">${escapeHtml(s.importedStart)}</td>
+        </tr>`).join('')
+      html += `
+        <h2 style="color:#ff9900;">⚽ Nouvelle(s) saison(s) disponible(s)</h2>
+        <p>Compétitions <strong>déjà dans PronoHub</strong> dont la source a publié une saison plus récente :</p>
         <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <tr style="text-align:left;color:#555;">
-            <th style="padding:8px;">Compétition</th>
-            <th style="padding:8px;">Nouvelle saison (source)</th>
-            <th style="padding:8px;">Saison importée</th>
-          </tr>
+          <tr style="text-align:left;color:#555;"><th style="padding:8px;">Compétition</th><th style="padding:8px;">Nouvelle saison (source)</th><th style="padding:8px;">Saison importée</th></tr>
           ${rows}
         </table>
-        <p style="margin-top:16px;">👉 Tu peux maintenant <strong>ré-importer</strong> ces compétitions depuis le panel admin (Données / Compétitions) pour activer la nouvelle saison, puis créer les nouvelles journées Best of Week associées.</p>
-        <p style="color:#888;font-size:12px;">Cet email n'est envoyé qu'une fois par nouvelle saison détectée (anti-doublon).</p>
-      </div>`
-    const text = `Nouvelle(s) saison(s) disponible(s) sur football-data :\n` +
-      newSeasons.map((s) => `- ${s.name} (#${s.id}) : ${s.sourceStart} → ${s.sourceEnd} (importé : ${s.importedStart})`).join('\n') +
-      `\n\nRé-importe ces compétitions depuis le panel admin pour activer la nouvelle saison.`
+        <p style="margin-top:12px;">👉 <strong>Ré-importe</strong> ces compétitions depuis le panel admin (Données / Compétitions) pour activer la nouvelle saison, puis crée les journées Best of Week associées.</p>`
+      text += `Nouvelle(s) saison(s) disponible(s) :\n` +
+        newSeasons.map((s) => `- ${s.name} (#${s.id}) : ${s.sourceStart} → ${s.sourceEnd} (importé : ${s.importedStart})`).join('\n') + `\n\n`
+    }
 
-    const result = await sendEmail(ADMIN_EMAIL, `⚽ ${newSeasons.length} nouvelle(s) saison(s) disponible(s) — PronoHub`, html, text)
+    if (newCompetitions.length > 0) {
+      const rows = newCompetitions.map((c) => `
+        <tr>
+          <td style="padding:8px;border-bottom:1px solid #eee;"><strong>${escapeHtml(c.name)}</strong> <span style="color:#888;">(#${c.id} · ${escapeHtml(c.code || '?')})</span></td>
+          <td style="padding:8px;border-bottom:1px solid #eee;color:#888;">${escapeHtml(c.area?.name || '?')}</td>
+          <td style="padding:8px;border-bottom:1px solid #eee;color:#16a34a;">${escapeHtml(c.currentSeason?.startDate || '?')} → ${escapeHtml(c.currentSeason?.endDate || '?')}</td>
+        </tr>`).join('')
+      html += `
+        <h2 style="color:#ff9900;margin-top:24px;">🆕 Nouvelle(s) compétition(s) disponible(s) dans le plan</h2>
+        <p>Compétitions exposées par football-data <strong>mais absentes de PronoHub</strong> :</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <tr style="text-align:left;color:#555;"><th style="padding:8px;">Compétition</th><th style="padding:8px;">Zone</th><th style="padding:8px;">Saison source</th></tr>
+          ${rows}
+        </table>
+        <p style="margin-top:12px;">👉 Tu peux les <strong>importer</strong> depuis le panel admin si tu veux les proposer.</p>`
+      text += `Nouvelle(s) compétition(s) dispo dans le plan :\n` +
+        newCompetitions.map((c) => `- ${c.name} (#${c.id} ${c.code}) : ${c.currentSeason?.startDate} → ${c.currentSeason?.endDate}`).join('\n') + `\n\n`
+    }
+
+    html += `<p style="color:#888;font-size:12px;margin-top:16px;">Email envoyé une seule fois par nouveauté détectée (anti-doublon).</p></div>`
+
+    const subjectBits: string[] = []
+    if (newSeasons.length) subjectBits.push(`${newSeasons.length} saison(s)`)
+    if (newCompetitions.length) subjectBits.push(`${newCompetitions.length} compétition(s)`)
+    const result = await sendEmail(ADMIN_EMAIL, `⚽ Nouveautés football-data : ${subjectBits.join(' + ')} — PronoHub`, html, text)
     emailed = result.success
 
-    // Mémoriser pour ne pas ré-emailer la même saison
     if (result.success) {
-      for (const s of newSeasons) notified[String(s.id)] = s.sourceStart
-      await supabase
-        .from('admin_settings')
-        .upsert({ setting_key: SETTING_KEY, setting_value: JSON.stringify(notified) }, { onConflict: 'setting_key' })
+      // Mémoriser les saisons signalées
+      if (newSeasons.length > 0) {
+        for (const s of newSeasons) notified[String(s.id)] = s.sourceStart
+        await supabase.from('admin_settings')
+          .upsert({ setting_key: SETTING_KEY, setting_value: JSON.stringify(notified) }, { onConflict: 'setting_key' })
+      }
     }
   }
+
+  // Mettre à jour la baseline des compétitions du plan (toujours, même sans email) : on enregistre
+  // l'union des IDs connus + ceux du plan actuel → les « nouvelles » alertées ne re-déclenchent plus.
+  const updatedKnown = Array.from(new Set<number>([...(knownPlanIds || []), ...planIds])).sort((a, b) => a - b)
+  await supabase.from('admin_settings')
+    .upsert({ setting_key: COMP_SETTING_KEY, setting_value: JSON.stringify(updatedKnown) }, { onConflict: 'setting_key' })
 
   return NextResponse.json({
     success: true,
-    checked: checked.length,
+    planCompetitions: planComps.length,
+    dbCompetitions: dbIds.size,
     newSeasons,
+    newCompetitions: newCompetitions.map((c) => ({ id: c.id, name: c.name })),
+    baselineSeeded: isFirstRun,
     emailed,
-    errors: errors.length ? errors : undefined,
   })
 }
