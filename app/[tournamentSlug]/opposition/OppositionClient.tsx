@@ -3105,7 +3105,7 @@ export default function OppositionClient({
                                                 ? 'text-green-700 dark:text-green-400'
                                                 : 'text-orange-700 dark:text-orange-400'
                                             }`}>
-                                              {match.home_score} - {match.away_score}
+                                              {isMatchFinished(match) ? (match.home_score_90 ?? match.home_score) : match.home_score} - {isMatchFinished(match) ? (match.away_score_90 ?? match.away_score) : match.away_score}
                                             </span>
                                             {liveMinuteLabel(match, liveNowMs) && (
                                               <span className="text-xs font-semibold text-orange-700 dark:text-orange-400">

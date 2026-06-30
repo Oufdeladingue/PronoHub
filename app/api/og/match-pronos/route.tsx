@@ -312,8 +312,11 @@ export async function GET(request: NextRequest) {
     const avatarSrcById = new Map<string, string | null>()
     await Promise.all(shown.map(async (p) => { avatarSrcById.set(p.uid, await loadAvatar(p.avatar)) }))
 
-    // En-tête : score final / live / heure de coup d'envoi
-    const scoreLabel = isFinished || isLive ? `${match.home_score ?? 0} - ${match.away_score ?? 0}` : 'VS'
+    // En-tête : score final / live / heure de coup d'envoi.
+    // Terminé → score à 90' (hors prolong./TAB), cohérent avec le calcul des points ; live → score courant.
+    const scoreLabel = isFinished
+      ? `${match.home_score_90 ?? match.home_score ?? 0} - ${match.away_score_90 ?? match.away_score ?? 0}`
+      : isLive ? `${match.home_score ?? 0} - ${match.away_score ?? 0}` : 'VS'
     const stateTag = isFinished ? 'Terminé' : isLive ? '● En direct' : 'À venir'
     const stateColor = isFinished ? COLORS.sub : isLive ? COLORS.red : COLORS.sub
 

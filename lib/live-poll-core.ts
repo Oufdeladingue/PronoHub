@@ -129,7 +129,7 @@ async function updateLive(supabase: Supa, matches: any[]): Promise<{ updated: nu
  *  (prolongations / tirs au but) ne sont JAMAIS finalisées sur une simple disparition du feed —
  *  uniquement via un plafond temps très large (3h30) — pour ne pas couper un suivi de TAB sur un
  *  trou réseau ponctuel de la source. */
-async function finalizeEnded(supabase: Supa, liveIds: Set<number>): Promise<number> {
+async function finalizeEnded(supabase: Supa, liveIds: Set<number>, apiKey: string): Promise<number> {
   const { data: ours } = await supabase
     .from('imported_matches')
     .select('id, football_data_match_id, live_minute, utc_date, status')
@@ -144,10 +144,42 @@ async function finalizeEnded(supabase: Supa, liveIds: Set<number>): Promise<numb
       ? koAge > KNOCKOUT_MAX_MS
       : (m.live_minute ?? 0) >= 85 || koAge > MATCH_MAX_MS
     if (!looksOver) continue
-    const { error } = await supabase
-      .from('imported_matches')
-      .update({ status: 'FINISHED', finished: true, live_minute: null, last_updated_at: new Date().toISOString() })
-      .eq('id', m.id)
+
+    // Récupère les données FINALES du match (score + vainqueur) AVANT de finaliser. Indispensable
+    // pour les phases KO décidées en prolongation / tirs au but : le vainqueur n'est connu qu'à la
+    // toute fin, APRÈS que le match a quitté le flux live → sans ce fetch, winner_team_id resterait
+    // vide/faux jusqu'au refresh complet quotidien (= classements faux toute la nuit).
+    const update: Record<string, any> = { status: 'FINISHED', finished: true, live_minute: null, last_updated_at: new Date().toISOString() }
+    if (m.football_data_match_id != null) {
+      try {
+        const res = await fetch(`${FOOTBALL_DATA_API}/matches/${m.football_data_match_id}`, {
+          headers: { 'X-Auth-Token': apiKey },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        })
+        if (res.ok) {
+          const md = await res.json()
+          // Si la source ne dit PAS encore FINISHED (trou de feed ponctuel, match en réalité encore
+          // en cours), on NE finalise PAS prématurément → réessai au prochain tick (toutes les 30s).
+          // Garde anti-blocage : passé le plafond dur (3h30), on finalise quand même au temps.
+          if (md.status && md.status !== 'FINISHED' && md.status !== 'AWARDED' && koAge < KNOCKOUT_MAX_MS) continue
+          const sc = extractFootballDataScores(md.score)
+          const winnerTeamId =
+            sc.winnerSide === 'home' ? (md.homeTeam?.id ?? null)
+            : sc.winnerSide === 'away' ? (md.awayTeam?.id ?? null)
+            : null
+          if (sc.home_score != null) update.home_score = sc.home_score
+          if (sc.away_score != null) update.away_score = sc.away_score
+          if (sc.home_score_90 != null) update.home_score_90 = sc.home_score_90
+          if (sc.away_score_90 != null) update.away_score_90 = sc.away_score_90
+          if (winnerTeamId != null) update.winner_team_id = winnerTeamId
+        }
+        // res non-ok (rate limit / erreur) → on finalise quand même au temps (filet) ; le vainqueur
+        // sera corrigé au refresh complet. Mieux vaut un match FINISHED qu'un live coincé.
+      } catch {
+        // réseau KO → finalisation au temps, sans vainqueur (corrigé au refresh complet quotidien).
+      }
+    }
+    const { error } = await supabase.from('imported_matches').update(update).eq('id', m.id)
     if (!error) finalized++
   }
   return finalized
@@ -193,7 +225,7 @@ export async function runLivePoll(): Promise<LivePollResult> {
 
   const liveIds = new Set<number>(matches.map((m) => m.id))
   const { updated, sample, errors } = await updateLive(supabase, matches)
-  const finalized = await finalizeEnded(supabase, liveIds)
+  const finalized = await finalizeEnded(supabase, liveIds, apiKey)
   pruneAnchors(liveIds) // libère les ancres des matchs qui ne sont plus live
   return { ok: true, live: matches.length, updated, finalized, sample, errors }
 }
