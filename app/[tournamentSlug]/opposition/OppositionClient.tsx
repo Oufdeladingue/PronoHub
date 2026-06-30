@@ -3114,6 +3114,20 @@ export default function OppositionClient({
                                             )}
                                           </div>
                                         )}
+                                        {/* Équipe RÉELLEMENT qualifiée (phase finale terminée) — à côté du score final */}
+                                        {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
+                                          const side = match.winner_team_id === match.home_team_id ? 'home'
+                                            : match.winner_team_id === match.away_team_id ? 'away' : null
+                                          if (!side) return null
+                                          const qName = side === 'home' ? match.home_team_name : match.away_team_name
+                                          const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
+                                          return (
+                                            <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 whitespace-nowrap">
+                                              {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
+                                              <span className="text-xs font-semibold text-green-700 dark:text-green-400">{translateTeamName(qName)} qualifié</span>
+                                            </div>
+                                          )
+                                        })()}
                                       </div>
 
                                       {/* Affichage du match avec axe de centrage sur les scores */}
