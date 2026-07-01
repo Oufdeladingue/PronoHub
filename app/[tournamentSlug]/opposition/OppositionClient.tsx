@@ -2759,13 +2759,10 @@ export default function OppositionClient({
                                             className="px-2 py-0.5 rounded font-bold text-xs whitespace-nowrap"
                                             style={getPointsColorStyle(matchPoints[match.id])}
                                           >
-                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                            {qualifierBonusPoints[match.id] > 0
+                                              ? `${matchPoints[match.id] - qualifierBonusPoints[match.id]}+${qualifierBonusPoints[match.id]} = ${matchPoints[match.id]} pts`
+                                              : `${matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts`}
                                           </div>
-                                          {qualifierBonusPoints[match.id] > 0 && (
-                                            <div className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-[#ff9900]/10 border border-orange-300 dark:border-[#ff9900]/50 text-[9px] font-semibold text-orange-700 dark:text-[#ff9900] whitespace-nowrap">
-                                              +1 Qualifié
-                                            </div>
-                                          )}
                                         </div>
                                       ) : (
                                         <div className="h-4"></div>
@@ -2985,6 +2982,23 @@ export default function OppositionClient({
                                     {/* Spacer droit pour équilibrer */}
                                     <div className="flex-1" />
                                   </div>
+
+                                  {/* Équipe RÉELLEMENT qualifiée (Mobile) — phase finale terminée (miroir du desktop) */}
+                                  {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
+                                    const side = match.winner_team_id === match.home_team_id ? 'home'
+                                      : match.winner_team_id === match.away_team_id ? 'away' : null
+                                    if (!side) return null
+                                    const qName = side === 'home' ? match.home_team_name : match.away_team_name
+                                    const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
+                                    return (
+                                      <div className="flex justify-center mt-3">
+                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 whitespace-nowrap">
+                                          {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
+                                          <span className="text-[11px] font-semibold text-green-700 dark:text-green-400">{translateTeamName(qName)} qualifié</span>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
 
                                   {/* Badge choix du qualifié (Mobile) */}
                                   {tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id] && (
@@ -3298,16 +3312,13 @@ export default function OppositionClient({
                                       {!isGuessMode && isClosed && (hasFirstMatchStarted() || matchPoints[match.id] !== undefined) && matchPoints[match.id] !== undefined && (
                                         <>
                                           <div
-                                            className="px-2 py-1 rounded-lg font-bold text-xs"
+                                            className="px-2 py-1 rounded-lg font-bold text-xs whitespace-nowrap"
                                             style={getPointsColorStyle(matchPoints[match.id])}
                                           >
-                                            {matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts
+                                            {qualifierBonusPoints[match.id] > 0
+                                              ? `${matchPoints[match.id] - qualifierBonusPoints[match.id]}+${qualifierBonusPoints[match.id]} = ${matchPoints[match.id]} pts`
+                                              : `${matchPoints[match.id] > 0 ? `+${matchPoints[match.id]}` : '0'} pts`}
                                           </div>
-                                          {qualifierBonusPoints[match.id] > 0 && (
-                                            <div className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-[#ff9900]/10 border border-orange-300 dark:border-[#ff9900]/50 text-[9px] font-semibold text-orange-700 dark:text-[#ff9900] whitespace-nowrap">
-                                              +1 Qualifié
-                                            </div>
-                                          )}
                                         </>
                                       )}
 
