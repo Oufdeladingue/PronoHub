@@ -2702,30 +2702,29 @@ export default function OppositionClient({
                                             ? 'bg-green-100 dark:bg-green-900/30'
                                             : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
                                         }`}>
-                                          {/* Ligne 1 : le SCORE + le drapeau de l'équipe réellement qualifiée (+ Q) à droite si KO terminé */}
-                                          <span className="flex items-center gap-1 whitespace-nowrap leading-none">
-                                            <span className={`text-xs font-bold ${
-                                              isMatchFinished(match)
-                                                ? 'text-green-700 dark:text-green-400'
-                                                : 'text-orange-700 dark:text-orange-400'
-                                            }`}>
-                                              {match.home_score} - {match.away_score}
-                                            </span>
-                                            {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
-                                              const side = match.winner_team_id === match.home_team_id ? 'home'
-                                                : match.winner_team_id === match.away_team_id ? 'away' : null
-                                              if (!side) return null
-                                              const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
-                                              const qName = side === 'home' ? match.home_team_name : match.away_team_name
-                                              return (
-                                                <span className="flex items-center gap-0.5" title={`${translateTeamName(qName)} qualifié`}>
-                                                  {qCrest && <img src={qCrest} alt="" className="w-3.5 h-3.5 object-contain" />}
-                                                  <span className="text-[9px] font-extrabold text-green-700 dark:text-green-400">Q</span>
-                                                </span>
-                                              )
-                                            })()}
+                                          {/* Ligne 1 : le SCORE seul, jamais coupé */}
+                                          <span className={`text-xs font-bold whitespace-nowrap leading-none ${
+                                            isMatchFinished(match)
+                                              ? 'text-green-700 dark:text-green-400'
+                                              : 'text-orange-700 dark:text-orange-400'
+                                          }`}>
+                                            {match.home_score} - {match.away_score}
                                           </span>
-                                          {/* Ligne 2 : timing + période en live (ou "Terminé"), sous le score */}
+                                          {/* Ligne 2 : drapeau + Q de l'équipe réellement qualifiée (KO terminé), entre le score et "Terminé" */}
+                                          {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
+                                            const side = match.winner_team_id === match.home_team_id ? 'home'
+                                              : match.winner_team_id === match.away_team_id ? 'away' : null
+                                            if (!side) return null
+                                            const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
+                                            const qName = side === 'home' ? match.home_team_name : match.away_team_name
+                                            return (
+                                              <span className="flex items-center gap-0.5 mt-0.5" title={`${translateTeamName(qName)} qualifié`}>
+                                                {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
+                                                <span className="text-[10px] font-extrabold text-green-700 dark:text-green-400">Q</span>
+                                              </span>
+                                            )
+                                          })()}
+                                          {/* Ligne 3 : timing + période en live (ou "Terminé"), sous l'équipe qualifiée */}
                                           <span className={`text-[9px] font-semibold whitespace-nowrap leading-none mt-0.5 ${
                                             isMatchFinished(match)
                                               ? 'text-green-700 dark:text-green-400'
