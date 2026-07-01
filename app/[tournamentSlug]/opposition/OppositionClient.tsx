@@ -2702,13 +2702,28 @@ export default function OppositionClient({
                                             ? 'bg-green-100 dark:bg-green-900/30'
                                             : 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
                                         }`}>
-                                          {/* Ligne 1 : le SCORE seul, jamais coupé */}
-                                          <span className={`text-xs font-bold whitespace-nowrap leading-none ${
-                                            isMatchFinished(match)
-                                              ? 'text-green-700 dark:text-green-400'
-                                              : 'text-orange-700 dark:text-orange-400'
-                                          }`}>
-                                            {match.home_score} - {match.away_score}
+                                          {/* Ligne 1 : le SCORE + le drapeau de l'équipe réellement qualifiée (+ Q) à droite si KO terminé */}
+                                          <span className="flex items-center gap-1 whitespace-nowrap leading-none">
+                                            <span className={`text-xs font-bold ${
+                                              isMatchFinished(match)
+                                                ? 'text-green-700 dark:text-green-400'
+                                                : 'text-orange-700 dark:text-orange-400'
+                                            }`}>
+                                              {match.home_score} - {match.away_score}
+                                            </span>
+                                            {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
+                                              const side = match.winner_team_id === match.home_team_id ? 'home'
+                                                : match.winner_team_id === match.away_team_id ? 'away' : null
+                                              if (!side) return null
+                                              const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
+                                              const qName = side === 'home' ? match.home_team_name : match.away_team_name
+                                              return (
+                                                <span className="flex items-center gap-0.5" title={`${translateTeamName(qName)} qualifié`}>
+                                                  {qCrest && <img src={qCrest} alt="" className="w-3.5 h-3.5 object-contain" />}
+                                                  <span className="text-[9px] font-extrabold text-green-700 dark:text-green-400">Q</span>
+                                                </span>
+                                              )
+                                            })()}
                                           </span>
                                           {/* Ligne 2 : timing + période en live (ou "Terminé"), sous le score */}
                                           <span className={`text-[9px] font-semibold whitespace-nowrap leading-none mt-0.5 ${
@@ -2982,23 +2997,6 @@ export default function OppositionClient({
                                     {/* Spacer droit pour équilibrer */}
                                     <div className="flex-1" />
                                   </div>
-
-                                  {/* Équipe RÉELLEMENT qualifiée (Mobile) — phase finale terminée (miroir du desktop) */}
-                                  {isMatchFinished(match) && match.stage && isKnockoutStage(match.stage as StageType) && match.winner_team_id && (() => {
-                                    const side = match.winner_team_id === match.home_team_id ? 'home'
-                                      : match.winner_team_id === match.away_team_id ? 'away' : null
-                                    if (!side) return null
-                                    const qName = side === 'home' ? match.home_team_name : match.away_team_name
-                                    const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
-                                    return (
-                                      <div className="flex justify-center mt-3">
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 whitespace-nowrap">
-                                          {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
-                                          <span className="text-[11px] font-semibold text-green-700 dark:text-green-400">{translateTeamName(qName)} qualifié</span>
-                                        </div>
-                                      </div>
-                                    )
-                                  })()}
 
                                   {/* Badge choix du qualifié (Mobile) */}
                                   {tournament.bonus_qualified && shouldShowQualifierChoice(match, matchdayStages) && savedPredictions[match.id] && (
