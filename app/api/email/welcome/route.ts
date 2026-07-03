@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail, sendEmail } from '@/lib/email'
 import { getNewUserAlertTemplate, ADMIN_EMAIL } from '@/lib/email/admin-templates'
 
@@ -32,6 +32,22 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Email non disponible' },
         { status: 400 }
       )
+    }
+
+    // IDEMPOTENCE : garantir un envoi UNIQUE par utilisateur. Le client appelle cette route en
+    // "fire-and-forget" et peut la rappeler plusieurs fois (re-clic / retry pendant le délai
+    // anti-bot) → sinon N emails (bienvenue ET alerte admin). admin_settings.setting_key est UNIQUE :
+    // l'INSERT sert de verrou atomique — le 1er appel gagne, les suivants sont bloqués (23505).
+    const admin = createAdminClient()
+    const { error: claimError } = await admin
+      .from('admin_settings')
+      .insert({ setting_key: `welcome_sent:${user.id}`, setting_value: new Date().toISOString() })
+    if (claimError?.code === '23505') {
+      return NextResponse.json({ success: true, message: 'Email de bienvenue déjà envoyé (idempotent)' })
+    }
+    if (claimError) {
+      // Erreur non-liée au doublon → on envoie quand même (mieux vaut l'email que rien).
+      console.error('[welcome] verrou idempotence échoué (envoi quand même):', claimError.message)
     }
 
     // Envoyer l'email de bienvenue
