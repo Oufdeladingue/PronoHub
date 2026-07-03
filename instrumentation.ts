@@ -46,8 +46,8 @@ export async function register() {
     running = true
     try {
       const r = await runLivePoll()
-      if (r.updated || r.finalized) {
-        console.log(`[live-poll] ${r.updated} MAJ, ${r.finalized} finalisé(s) (${r.live} live)`)
+      if (r.updated || r.finalized || r.backfilled) {
+        console.log(`[live-poll] ${r.updated} MAJ, ${r.finalized} finalisé(s), ${r.backfilled || 0} vainqueur(s) rattrapé(s) (${r.live} live)`)
       }
     } catch (e: any) {
       console.error('[live-poll] erreur tick:', e?.message || e)

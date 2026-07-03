@@ -11,6 +11,9 @@ const LIVE_STATUS_LIST = ['IN_PLAY', 'PAUSED', 'EXTRA_TIME', 'PENALTY_SHOOTOUT']
 const MATCH_MAX_MS = 2 * 60 * 60 * 1000 + 15 * 60 * 1000 // 2h15 (temps réglementaire large)
 const KNOCKOUT_MAX_MS = 3.5 * 60 * 60 * 1000 // 3h30 : couvre prolongations + tirs au but
 const FETCH_TIMEOUT_MS = 15_000 // < intervalle 30s → un tick reste borné
+const PENDING_WINNER_WINDOW_MS = 12 * 60 * 60 * 1000 // fenêtre de rattrapage du vainqueur d'un KO
+// Phases à élimination : un match terminé y a TOUJOURS un vainqueur (winner_team_id non null attendu).
+const KNOCKOUT_STAGES = ['PLAYOFFS', 'LAST_32', 'LAST_16', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL']
 
 export interface LivePollResult {
   ok: boolean
@@ -18,6 +21,7 @@ export interface LivePollResult {
   live: number
   updated: number
   finalized: number
+  backfilled?: number
   sample: string[]
   errors: string[]
 }
@@ -87,7 +91,18 @@ async function shouldPoll(supabase: Supa): Promise<boolean> {
     .select('id')
     .in('status', LIVE_STATUS_LIST)
     .limit(1)
-  return !!(stuck && stuck.length)
+  if (stuck && stuck.length) return true
+  // Filet : un match KO terminé sans vainqueur publié (TAB, la source publie le vainqueur en différé)
+  // → rester actif pour rattraper le vainqueur.
+  const { data: pendingKo } = await supabase
+    .from('imported_matches')
+    .select('id')
+    .eq('finished', true)
+    .is('winner_team_id', null)
+    .in('stage', KNOCKOUT_STAGES)
+    .gte('utc_date', new Date(Date.now() - PENDING_WINNER_WINDOW_MS).toISOString())
+    .limit(1)
+  return !!(pendingKo && pendingKo.length)
 }
 
 /** Met à jour les matchs en direct (score, score 90', minute dérivée, statut, vainqueur). */
@@ -185,6 +200,50 @@ async function finalizeEnded(supabase: Supa, liveIds: Set<number>, apiKey: strin
 }
 
 /**
+ * Rattrape le vainqueur des matchs KO terminés en tirs au but. La source finalise parfois le match
+ * (score nul à 90'/prolongation) AVANT de publier le vainqueur des TAB → winner_team_id reste null,
+ * et comme le match est FINISHED, plus rien ne le re-vérifie (sauf le refresh complet quotidien).
+ * Ici on re-interroge les matchs KO terminés RÉCENTS sans vainqueur, jusqu'à ce que la source publie.
+ */
+async function backfillKnockoutWinners(supabase: Supa, apiKey: string): Promise<number> {
+  const { data: pending } = await supabase
+    .from('imported_matches')
+    .select('id, football_data_match_id')
+    .eq('finished', true)
+    .is('winner_team_id', null)
+    .in('stage', KNOCKOUT_STAGES)
+    .gte('utc_date', new Date(Date.now() - PENDING_WINNER_WINDOW_MS).toISOString())
+    .not('football_data_match_id', 'is', null)
+  let fixed = 0
+  for (const m of pending || []) {
+    try {
+      const res = await fetch(`${FOOTBALL_DATA_API}/matches/${m.football_data_match_id}`, {
+        headers: { 'X-Auth-Token': apiKey },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+      if (!res.ok) continue
+      const md = await res.json()
+      const sc = extractFootballDataScores(md.score)
+      const winnerTeamId =
+        sc.winnerSide === 'home' ? (md.homeTeam?.id ?? null)
+        : sc.winnerSide === 'away' ? (md.awayTeam?.id ?? null)
+        : null
+      if (winnerTeamId == null) continue // vainqueur pas encore publié par la source → réessai au prochain tick
+      const update: Record<string, any> = { winner_team_id: winnerTeamId, last_updated_at: new Date().toISOString() }
+      if (sc.home_score != null) update.home_score = sc.home_score
+      if (sc.away_score != null) update.away_score = sc.away_score
+      if (sc.home_score_90 != null) update.home_score_90 = sc.home_score_90
+      if (sc.away_score_90 != null) update.away_score_90 = sc.away_score_90
+      const { error } = await supabase.from('imported_matches').update(update).eq('id', m.id)
+      if (!error) fixed++
+    } catch {
+      // réseau KO → réessai au prochain tick
+    }
+  }
+  return fixed
+}
+
+/**
  * UN passage du poller live : 1 appel football-data `/matches?status=...` (tous les matchs live)
  * → met à jour les matchs en direct + finalise ceux qui viennent de se terminer.
  * Gardé léger : ne fait rien si aucun match n'est en cours / coincé. Le fetch est borné (15s).
@@ -225,6 +284,7 @@ export async function runLivePoll(): Promise<LivePollResult> {
   const liveIds = new Set<number>(matches.map((m) => m.id))
   const { updated, sample, errors } = await updateLive(supabase, matches)
   const finalized = await finalizeEnded(supabase, liveIds, apiKey)
+  const backfilled = await backfillKnockoutWinners(supabase, apiKey)
   pruneAnchors(liveIds) // libère les ancres des matchs qui ne sont plus live
-  return { ok: true, live: matches.length, updated, finalized, sample, errors }
+  return { ok: true, live: matches.length, updated, finalized, backfilled, sample, errors }
 }
