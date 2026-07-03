@@ -689,7 +689,7 @@ export default function OppositionClient({
     const supabase = createClient()
     const { data } = await supabase
       .from('imported_matches')
-      .select('id, status, home_score, away_score, home_score_90, away_score_90, live_minute, last_updated_at, finished')
+      .select('id, status, home_score, away_score, home_score_90, away_score_90, winner_team_id, live_minute, last_updated_at, finished')
       .in('id', matchIds)
 
     if (data) {
@@ -705,6 +705,7 @@ export default function OppositionClient({
             m.home_score !== fresh.home_score ||
             m.away_score !== fresh.away_score ||
             (m as any).home_score_90 !== (fresh as any).home_score_90 ||
+            (m as any).winner_team_id !== (fresh as any).winner_team_id ||
             (m as any).live_minute !== (fresh as any).live_minute ||
             m.finished !== fresh.finished
           ) {
@@ -716,6 +717,7 @@ export default function OppositionClient({
               away_score: fresh.away_score,
               home_score_90: (fresh as any).home_score_90 ?? m.home_score_90,
               away_score_90: (fresh as any).away_score_90 ?? m.away_score_90,
+              winner_team_id: (fresh as any).winner_team_id ?? (m as any).winner_team_id ?? null,
               live_minute: (fresh as any).live_minute ?? null,
               last_updated_at: (fresh as any).last_updated_at ?? (m as any).last_updated_at,
               finished: fresh.finished,
