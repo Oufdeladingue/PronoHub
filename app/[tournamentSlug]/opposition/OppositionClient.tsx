@@ -125,7 +125,7 @@ const shouldShowQualifierChoice = (match: Match, matchdayStages: Record<number, 
 }
 
 // Helper function pour déterminer si un match est terminé
-const isMatchFinished = (match: Match): boolean => {
+const isMatchFinished = (match: { status?: string | null; finished?: boolean | null }): boolean => {
   return match.status === 'FINISHED' || match.finished === true
 }
 
@@ -1176,8 +1176,9 @@ export default function OppositionClient({
           }
         }
 
-        // Bonus qualifié (+1 si la prédiction du qualifié est correcte)
-        if (tournament.bonus_qualified && isKnockout && match.winner_team_id && existingPrediction?.predicted_qualifier) {
+        // Bonus qualifié (+1 si la prédiction du qualifié est correcte) — UNIQUEMENT match terminé :
+        // pas d'attribution/affichage du point qualifié pendant le live (qualifié pas encore définitif).
+        if (isMatchFinished(match) && tournament.bonus_qualified && isKnockout && match.winner_team_id && existingPrediction?.predicted_qualifier) {
           const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
             : match.winner_team_id === match.away_team_id ? 'away'
             : null
@@ -1343,8 +1344,8 @@ export default function OppositionClient({
               }
             }
 
-            // Bonus qualifié pour les autres joueurs aussi
-            if (tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
+            // Bonus qualifié pour les autres joueurs aussi — UNIQUEMENT match terminé (pas en live)
+            if (isMatchFinished(match) && tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
               const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
                 : match.winner_team_id === match.away_team_id ? 'away'
                 : null
@@ -1486,8 +1487,8 @@ export default function OppositionClient({
                 }
               }
 
-              // Bonus qualifié pour les autres joueurs aussi
-              if (tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
+              // Bonus qualifié pour les autres joueurs aussi — UNIQUEMENT match terminé (pas en live)
+              if (isMatchFinished(match) && tournament.bonus_qualified && isKnockout && match.winner_team_id && prediction.predicted_qualifier) {
                 const actualWinnerSide = match.winner_team_id === match.home_team_id ? 'home'
                   : match.winner_team_id === match.away_team_id ? 'away'
                   : null

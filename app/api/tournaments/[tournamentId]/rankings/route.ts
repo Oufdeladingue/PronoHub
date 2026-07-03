@@ -345,7 +345,12 @@ export async function GET(
       if (isKnockout && tournament.bonus_qualified) {
         const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score
         const score90Away = match.away_score_90 != null ? match.away_score_90 : match.away_score
-        const actualWinnerSide = getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
+        // Le point du qualifié n'est attribué QUE match terminé (le qualifié n'est définitif qu'à
+        // la fin complète : prolongations + TAB). En live → actualWinnerSide null → pas de bonus,
+        // mais les points du score restent calculés (provisoires).
+        const actualWinnerSide = match.status === 'FINISHED'
+          ? getWinnerSide(match.winner_team_id, match.home_team_id, match.away_team_id)
+          : null
         return calculateKnockoutPoints(pred, { homeScore: score90Home, awayScore: score90Away }, prediction.predicted_qualifier || null, actualWinnerSide, pointsSettings, isBonusMatch, isDefaultPrediction, true)
       } else if (isKnockout) {
         const score90Home = match.home_score_90 != null ? match.home_score_90 : match.home_score

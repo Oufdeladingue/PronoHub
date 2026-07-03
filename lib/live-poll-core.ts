@@ -97,10 +97,6 @@ async function updateLive(supabase: Supa, matches: any[]): Promise<{ updated: nu
   let updated = 0
   for (const m of matches) {
     const sc = extractFootballDataScores(m.score)
-    const winnerTeamId =
-      sc.winnerSide === 'home' ? (m.homeTeam?.id ?? null)
-      : sc.winnerSide === 'away' ? (m.awayTeam?.id ?? null)
-      : null
     const minute = computeLiveMinute(m)
 
     const update: Record<string, any> = {
@@ -112,7 +108,10 @@ async function updateLive(supabase: Supa, matches: any[]): Promise<{ updated: nu
     if (sc.away_score != null) update.away_score = sc.away_score
     if (sc.home_score_90 != null) update.home_score_90 = sc.home_score_90
     if (sc.away_score_90 != null) update.away_score_90 = sc.away_score_90
-    if (winnerTeamId != null) update.winner_team_id = winnerTeamId
+    // ⚠️ On ne pose JAMAIS winner_team_id pendant le live : le qualifié n'est réel/définitif qu'à la
+    // fin COMPLÈTE du match (prolongations + TAB inclus). football-data peut renvoyer un `winner`
+    // provisoire (équipe menant) pendant IN_PLAY → l'appliquer attribuerait un point qualifié
+    // temporaire aux users. winner_team_id n'est donc posé qu'à la finalisation (finalizeEnded).
 
     const { error } = await supabase.from('imported_matches').update(update).eq('football_data_match_id', m.id)
     if (error) errors.push(`${m.id}: ${error.message}`)

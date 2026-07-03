@@ -245,8 +245,10 @@ export async function executeRealtimeUpdate(): Promise<RealtimeUpdateResult> {
               away_score: scR.away_score,
               home_score_90: scR.home_score_90,
               away_score_90: scR.away_score_90,
-              winner_team_id: scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null)
-                : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null,
+              // Qualifié posé UNIQUEMENT si la source dit FINISHED (jamais provisoire en live)
+              winner_team_id: matchData.status === 'FINISHED'
+                ? (scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null) : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null)
+                : null,
               last_updated_at: new Date().toISOString(),
             }
           }
@@ -410,8 +412,10 @@ async function updateMatchesIndividually(
           away_score: scR.away_score,
           home_score_90: scR.home_score_90,
           away_score_90: scR.away_score_90,
-          winner_team_id: scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null)
-            : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null,
+          // Qualifié posé UNIQUEMENT si la source dit FINISHED (jamais provisoire en live)
+          winner_team_id: matchData.status === 'FINISHED'
+            ? (scR.winnerSide === 'home' ? (matchData.homeTeam?.id ?? null) : scR.winnerSide === 'away' ? (matchData.awayTeam?.id ?? null) : null)
+            : null,
           last_updated_at: new Date().toISOString(),
         }
       }
