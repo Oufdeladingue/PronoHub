@@ -11,11 +11,12 @@ on:
 jobs:
   send-day-recaps:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: 📊 Trigger send-day-recaps cron
         run: |
-          response=$(curl -X GET \
+          response=$(curl -X GET --max-time 200 --connect-timeout 20 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -w "\n%{http_code}" \
             -s \

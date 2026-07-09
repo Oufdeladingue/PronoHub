@@ -9,10 +9,11 @@ on:
 jobs:
   check-new-seasons:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 📅 Trigger check-new-seasons cron
         run: |
-          response=$(curl -X GET \
+          response=$(curl -X GET --max-time 200 --connect-timeout 20 \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -w "\n%{http_code}" \
             -s \
