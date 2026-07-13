@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: ⚽ Trigger update-matches cron
         run: |
-          response=$(curl -X GET --max-time 200 --connect-timeout 20 \
+          response=$(curl -X GET --max-time 200 --connect-timeout 20 --retry 2 --retry-delay 20 --retry-all-errors \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -w "\n%{http_code}" \
             -s \
