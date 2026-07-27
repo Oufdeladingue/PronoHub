@@ -89,6 +89,34 @@ function computeGroupStandings(compId: number, matches: GroupMatchRow[]) {
 }
 
 /**
+ * Fetch des classements football-data avec timeout + 1 retry sur erreur réseau/transitoire.
+ * Un `fetch failed` (réseau) ou un 5xx/429 est retenté une fois (backoff 2s) ; un 404 (coupe sans
+ * classement) ou un 4xx définitif (ex. 403 hors plan) est renvoyé tel quel sans retry.
+ * Le timeout borne chaque tentative → jamais de job bloqué.
+ */
+async function fetchStandingsWithRetry(compId: number, apiKey: string): Promise<Response> {
+  const TIMEOUT_MS = 8000
+  const RETRIES = 1
+  let lastErr: any
+  for (let attempt = 0; attempt <= RETRIES; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 2000))
+    try {
+      const res = await fetch(`${FOOTBALL_DATA_API}/competitions/${compId}/standings`, {
+        headers: { 'X-Auth-Token': apiKey },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      })
+      // 2xx, 404 (coupe) ou 4xx définitif (hors 429) → réponse finale, pas de retry.
+      if (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 429)) return res
+      // 5xx / 429 → transitoire → retry
+      lastErr = new Error(`http ${res.status}`)
+    } catch (e: any) {
+      lastErr = e // "fetch failed" / timeout (AbortError) → retry
+    }
+  }
+  throw lastErr || new Error('fetch failed')
+}
+
+/**
  * API pour synchroniser les classements des compétitions
  *
  * Usage:
@@ -182,13 +210,8 @@ export async function GET(request: Request) {
           continue // pas d'appel football-data pour les compétitions à poules
         }
 
-        // Récupérer les classements depuis l'API
-        const standingsResponse = await fetch(
-          `${FOOTBALL_DATA_API}/competitions/${compId}/standings`,
-          {
-            headers: { 'X-Auth-Token': apiKey },
-          }
-        )
+        // Récupérer les classements depuis l'API (timeout + retry sur erreur transitoire)
+        const standingsResponse = await fetchStandingsWithRetry(compId, apiKey)
 
         // Log rate limit info
         console.log(`[STANDINGS] Rate limit - Available: ${standingsResponse.headers.get('X-Requests-Available-Minute')}/min`)
@@ -268,16 +291,18 @@ export async function GET(request: Request) {
       }
     }
 
-    // Si au moins une compétition a échoué (ex: RLS, rate limit, API down), renvoyer 500
-    // pour que le job GitHub Actions passe au ROUGE au lieu de rester vert à tort.
+    // Best-effort : on n'échoue le job (500) QUE si RIEN n'a pu être synchronisé (vrai problème :
+    // auth, RLS, panne totale de la source). Un échec PARTIEL (hoquet réseau sur des ligues
+    // secondaires, alors que la CDM et d'autres passent) reste un 200 avec les erreurs en warnings
+    // → plus de fausse alerte GitHub Actions, et le run suivant rattrape les ligues manquées.
     return NextResponse.json({
-      success: errors.length === 0,
-      message: `Synced standings for ${totalSynced} competition(s)`,
+      success: totalSynced > 0,
+      message: `Synced standings for ${totalSynced}/${competitionsToSync.length} competition(s)`,
       syncedCompetitions: totalSynced,
       totalTeams,
       details: syncedDetails,
       errors: errors.length > 0 ? errors : undefined
-    }, { status: errors.length > 0 ? 500 : 200 })
+    }, { status: totalSynced > 0 ? 200 : 500 })
 
   } catch (error: any) {
     console.error('[STANDINGS] Error in sync-standings:', error)
