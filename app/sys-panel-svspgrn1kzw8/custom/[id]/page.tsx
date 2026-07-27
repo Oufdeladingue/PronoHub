@@ -78,6 +78,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
   const [previewMatchday, setPreviewMatchday] = useState<Matchday | null>(null)
   const [previewMatches, setPreviewMatches] = useState<any[]>([])
   const [loadingPreview, setLoadingPreview] = useState(false)
+  const [previewView, setPreviewView] = useState<'list' | 'calendar'>('list')
 
   // Créer une date locale à midi pour éviter les décalages UTC/timezone
   function parseLocalDate(dateStr: string | Date): Date {
@@ -189,6 +190,25 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // --- Helpers vue calendrier (aperçu) ---
+  // Les 7 jours (lun→dim) de la semaine d'une journée, à partir de son week_start.
+  function weekDays(weekStart: string): Date[] {
+    const start = parseLocalDate(weekStart)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      return d
+    })
+  }
+  // Le match (utc_date) tombe-t-il ce jour-là (en heure locale, comme l'affichage) ?
+  function isSameLocalDay(iso: string, day: Date): boolean {
+    const d = new Date(iso)
+    return d.getFullYear() === day.getFullYear() && d.getMonth() === day.getMonth() && d.getDate() === day.getDate()
+  }
+  function timeHM(iso: string): string {
+    return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   }
 
   const fetchCompetition = async () => {
@@ -371,6 +391,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
   // Ouvrir le popup de prévisualisation des matchs
   const openPreviewModal = async (matchday: Matchday) => {
     setPreviewMatchday(matchday)
+    setPreviewView('list')
     setShowPreviewModal(true)
     setLoadingPreview(true)
 
@@ -868,7 +889,7 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
           {/* Modal de prévisualisation des matchs */}
           {showPreviewModal && previewMatchday && (
             <div className="modal-backdrop">
-              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+              <div className={`bg-white rounded-xl shadow-xl w-full max-h-[85vh] flex flex-col transition-[max-width] ${previewView === 'calendar' ? 'max-w-3xl' : 'max-w-lg'}`}>
                 <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-purple-100">
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">
@@ -886,6 +907,24 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                   </button>
                 </div>
 
+                {/* Onglets Liste / Calendrier */}
+                {!loadingPreview && previewMatches.length > 0 && (
+                  <div className="flex gap-2 px-4 pt-3">
+                    <button
+                      onClick={() => setPreviewView('list')}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${previewView === 'list' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Liste
+                    </button>
+                    <button
+                      onClick={() => setPreviewView('calendar')}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${previewView === 'calendar' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                      Calendrier
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex-1 overflow-y-auto p-4">
                   {loadingPreview ? (
                     <div className="text-center text-gray-500 py-8">
@@ -894,6 +933,57 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                   ) : previewMatches.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                       <p>Aucun match sélectionné pour cette journée</p>
+                    </div>
+                  ) : previewView === 'calendar' ? (
+                    /* Vue calendrier : 7 colonnes (lun→dim), matchs placés sur leur jour + heure.
+                       Icônes des clubs ; détails au survol via tooltip (title). */
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {weekDays(previewMatchday.week_start).map((day, di) => {
+                        const dayMatches = previewMatches.filter(m => isSameLocalDay(m.utc_date, day))
+                        return (
+                          <div key={di} className="min-w-0">
+                            <div className="text-center mb-1.5 pb-1 border-b border-gray-100">
+                              <div className="text-[11px] font-semibold text-gray-700 capitalize leading-tight">
+                                {day.toLocaleDateString('fr-FR', { weekday: 'short' })}
+                              </div>
+                              <div className="text-[10px] text-gray-400 leading-tight">{day.getDate()}</div>
+                            </div>
+                            <div className="space-y-1.5 min-h-[2.5rem]">
+                              {dayMatches.length === 0 ? (
+                                <div className="text-center text-[11px] text-gray-300 py-2">—</div>
+                              ) : dayMatches.map(m => (
+                                <div
+                                  key={m.id}
+                                  title={`${m.home_team} vs ${m.away_team}\n${formatDateTime(m.utc_date)}${m.competition_name ? '\n' + m.competition_name : ''}`}
+                                  className="rounded-lg border border-gray-200 bg-gray-50 hover:bg-purple-50 hover:border-purple-300 hover:shadow-sm p-1.5 cursor-default transition"
+                                >
+                                  <div className="text-[9px] text-center text-purple-700 font-semibold mb-1 leading-none">
+                                    {m.status === 'FINISHED' ? `${m.home_score ?? '-'}-${m.away_score ?? '-'}` : timeHM(m.utc_date)}
+                                  </div>
+                                  <div className="flex items-center justify-center gap-1">
+                                    {m.home_logo ? (
+                                      <img src={m.home_logo} alt={m.home_team} className="w-4 h-4 object-contain flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-4 h-4 bg-gray-200 rounded-full flex-shrink-0" />
+                                    )}
+                                    <span className="text-[9px] text-gray-400">-</span>
+                                    {m.away_logo ? (
+                                      <img src={m.away_logo} alt={m.away_team} className="w-4 h-4 object-contain flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-4 h-4 bg-gray-200 rounded-full flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  {m.competition_emblem && (
+                                    <div className="flex justify-center mt-1">
+                                      <img src={m.competition_emblem} alt="" className="w-3 h-3 object-contain opacity-60" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="space-y-3">
