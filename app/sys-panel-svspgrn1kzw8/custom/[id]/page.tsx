@@ -62,6 +62,8 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
     start: getMonday(new Date()).toISOString().split('T')[0],
     end: getSunday(new Date()).toISOString().split('T')[0]
   })
+  // Nb de matchs de la semaine sélectionnée dans le modal (null = en cours de chargement)
+  const [weekMatchCount, setWeekMatchCount] = useState<number | null>(null)
 
   // Modal de sélection de matchs
   const [showMatchesModal, setShowMatchesModal] = useState(false)
@@ -138,24 +140,36 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
     }
   }
 
-  // Ouvrir le modal de création avec la bonne semaine par défaut
-  async function openCreateModal() {
-    let availableWeek = getFirstAvailableWeek()
-    // 1re journée : proposer la première semaine qui contient des matchs dans les compétitions
-    // sources (au lieu de la semaine courante, souvent sans match en intersaison).
-    if (matchdays.length === 0) {
-      try {
-        const res = await fetch('/api/admin/custom-competitions/available-matches?earliest=true')
-        const data = await res.json()
-        if (res.ok && data.earliestDate) {
-          const monday = getMonday(new Date(data.earliestDate))
-          availableWeek = { start: formatLocalDate(monday), end: formatLocalDate(getSunday(monday)) }
-        }
-      } catch {
-        // fallback silencieux : on garde la semaine courante
+  // Propose la prochaine semaine RÉELLEMENT jouée (saute les trêves/semaines vides) : on repart du
+  // 1er match à partir de `afterISO` (ou de maintenant), et on prend SA semaine. Repli : semaine +7.
+  async function proposeNextWeek(afterISO?: string): Promise<{ start: string; end: string }> {
+    try {
+      const params = new URLSearchParams({ earliest: 'true' })
+      if (afterISO) params.set('after', afterISO)
+      const res = await fetch(`/api/admin/custom-competitions/available-matches?${params.toString()}`)
+      const data = await res.json()
+      if (res.ok && data.earliestDate) {
+        const monday = getMonday(new Date(data.earliestDate))
+        return { start: formatLocalDate(monday), end: formatLocalDate(getSunday(monday)) }
       }
+    } catch {
+      // fallback silencieux
     }
-    setSelectedWeek(availableWeek)
+    return getFirstAvailableWeek() // repli : semaine +7 après la dernière (ou semaine courante)
+  }
+
+  // Ouvrir le modal de création sur la prochaine semaine jouée (saute les semaines sans match)
+  async function openCreateModal() {
+    let afterISO: string | undefined
+    if (matchdays.length > 0) {
+      const sorted = [...matchdays].sort((a, b) =>
+        parseLocalDate(b.week_end).getTime() - parseLocalDate(a.week_end).getTime()
+      )
+      const nextDay = parseLocalDate(sorted[0].week_end)
+      nextDay.setDate(nextDay.getDate() + 1)
+      afterISO = nextDay.toISOString()
+    }
+    setSelectedWeek(await proposeNextWeek(afterISO))
     setShowCreateModal(true)
   }
 
@@ -223,13 +237,10 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
       setShowCreateModal(false)
       await fetchMatchdays()
 
-      // Avancer à la semaine suivante
-      const nextMonday = parseLocalDate(selectedWeek.start)
-      nextMonday.setDate(nextMonday.getDate() + 7)
-      setSelectedWeek({
-        start: formatLocalDate(nextMonday),
-        end: formatLocalDate(getSunday(nextMonday))
-      })
+      // Avancer à la PROCHAINE SEMAINE JOUÉE (saute les trêves) après celle qu'on vient de créer
+      const afterDay = parseLocalDate(selectedWeek.end)
+      afterDay.setDate(afterDay.getDate() + 1)
+      setSelectedWeek(await proposeNextWeek(afterDay.toISOString()))
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -407,6 +418,22 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
     fetchCompetition()
     fetchMatchdays()
   }, [id])
+
+  // Nombre de matchs de la semaine sélectionnée (badge du modal) — recalculé à chaque changement
+  // de semaine tant que le modal de création est ouvert.
+  useEffect(() => {
+    if (!showCreateModal || !selectedWeek.start || !selectedWeek.end) {
+      setWeekMatchCount(null)
+      return
+    }
+    let cancelled = false
+    setWeekMatchCount(null) // état "chargement"
+    fetch(`/api/admin/custom-competitions/available-matches?week_start=${selectedWeek.start}&week_end=${selectedWeek.end}`)
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setWeekMatchCount(typeof d.totalMatches === 'number' ? d.totalMatches : 0) })
+      .catch(() => { if (!cancelled) setWeekMatchCount(0) })
+    return () => { cancelled = true }
+  }, [showCreateModal, selectedWeek.start, selectedWeek.end])
 
   useEffect(() => {
     if (success) {
@@ -605,9 +632,22 @@ export default function CustomCompetitionMatchdaysPage({ params }: { params: Pro
                       </p>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 text-center">
-                      Cette journée sera la <strong>Journée {matchdays.length + 1}</strong>
-                    </p>
+                    <div className="text-center space-y-2">
+                      {weekMatchCount === null ? (
+                        <p className="text-sm text-gray-400">Chargement des matchs…</p>
+                      ) : weekMatchCount > 0 ? (
+                        <span className="inline-block px-2.5 py-1 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                          {weekMatchCount} match{weekMatchCount > 1 ? 's' : ''} cette semaine
+                        </span>
+                      ) : (
+                        <span className="inline-block px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700 text-sm font-medium">
+                          Aucun match cette semaine (trêve ?)
+                        </span>
+                      )}
+                      <p className="text-sm text-gray-500">
+                        Cette journée sera la <strong>Journée {matchdays.length + 1}</strong>
+                      </p>
+                    </div>
                   )}
                 </div>
 

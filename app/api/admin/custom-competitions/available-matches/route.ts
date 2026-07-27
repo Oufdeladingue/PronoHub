@@ -26,10 +26,13 @@ export async function GET(request: Request) {
     const weekStart = searchParams.get('week_start')
     const weekEnd = searchParams.get('week_end')
 
-    // Mode "earliest" : renvoie la date du 1er match À VENIR dans les compétitions actives,
-    // en EXCLUANT les compétitions "événement" (ex. Coupe du Monde) — Best of Week s'appuie sur
-    // les championnats réguliers. Sert à proposer la bonne semaine pour la 1re journée.
+    // Mode "earliest" : renvoie la date du 1er match dans les compétitions actives, en EXCLUANT les
+    // compétitions "événement" (ex. Coupe du Monde) — Best of Week s'appuie sur les championnats
+    // réguliers. Sert à proposer la bonne semaine SUIVANTE en SAUTANT les semaines sans match
+    // (trêves internationales) : on repart du 1er match à partir de `after` (ou de maintenant).
+    // → la semaine de ce match est la prochaine semaine réellement jouée.
     if (searchParams.get('earliest') === 'true') {
+      const after = searchParams.get('after') // ISO date optionnelle ; défaut = maintenant
       const { data: comps } = await supabase
         .from('competitions')
         .select('id')
@@ -41,7 +44,7 @@ export async function GET(request: Request) {
         .from('imported_matches')
         .select('utc_date')
         .in('competition_id', ids)
-        .gte('utc_date', new Date().toISOString())
+        .gte('utc_date', after || new Date().toISOString())
         .order('utc_date', { ascending: true })
         .limit(1)
       return NextResponse.json({ earliestDate: first?.[0]?.utc_date || null })
