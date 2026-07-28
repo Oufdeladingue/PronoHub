@@ -1,0 +1,31 @@
+name: Cleanup Pending Tournaments
+
+on:
+  schedule:
+    # Tous les jours à 03:30 UTC — supprime les tournois jamais lancés dont la compétition est finie
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup-pending-tournaments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 🧹 Trigger cleanup-pending-tournaments cron
+        run: |
+          response=$(curl -X GET --max-time 200 --connect-timeout 20 --retry 2 --retry-delay 20 --retry-all-errors \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}" \
+            -s \
+            https://www.pronohub.club/api/cron/cleanup-pending-tournaments)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+          echo "✅ Nettoyage des tournois zombies effectué"
