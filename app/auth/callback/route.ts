@@ -2,7 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { checkCountryAllowed } from '@/lib/geo'
-import { checkRateLimit, RATE_LIMITS, getClientIP } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/server'
 import { safePath } from '@/lib/safe-redirect'
 
@@ -50,13 +49,12 @@ export async function GET(request: Request) {
   const source = requestUrl.searchParams.get('source')
   const isCapacitor = source === 'capacitor'
 
-  // Rate limit par IP sur le callback OAuth
-  const clientIP = getClientIP(request)
-  const rateCheck = checkRateLimit(`oauth-callback:${clientIP}`, RATE_LIMITS.oauthCallback)
-  if (!rateCheck.success) {
-    console.warn('[OAuth Callback] Rate limited:', clientIP)
-    return NextResponse.redirect(new URL('/auth/login?error=Trop+de+tentatives.+R%C3%A9essayez+plus+tard.', request.url))
-  }
+  // ⚠️ PAS de rate-limit par IP sur le callback OAuth. Un plafond par IP (5/h) bloquait ici la
+  // majorité des inscrits Google : sur mobile (94% du trafic), les opérateurs partagent les IP
+  // (CGNAT) → plusieurs users sur la même IP dépassaient la limite → redirigés vers login sans
+  // session (comptes « fantômes »). Complétion Google tombée de ~98% (mars) à ~15% (avril→) après
+  // l'ajout de ce rate-limit. L'anti-abus reste couvert par Turnstile (inscription) + les limites
+  // intégrées de Supabase Auth. Ne PAS réintroduire de limite par IP sur ce endpoint.
 
   // Origin publique (important derrière un reverse proxy Coolify/Traefik)
   const forwardedHost = request.headers.get('x-forwarded-host')
