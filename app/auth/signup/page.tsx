@@ -11,6 +11,7 @@ import TurnstileWidget from '@/components/TurnstileWidget'
 import AgeGate from '@/components/AgeGate'
 import { trackSignup } from '@/lib/analytics'
 import { isDisposableEmail } from '@/lib/disposable-emails'
+import { detectInAppBrowser } from '@/lib/inapp-browser'
 
 function SignUpForm() {
   const [email, setEmail] = useState('')
@@ -24,6 +25,8 @@ function SignUpForm() {
   const [acceptCGU, setAcceptCGU] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const [titleFontSize, setTitleFontSize] = useState(16)
+  // Navigateur intégré (Instagram/Facebook/TikTok…) : la connexion Google y échoue au retour.
+  const [inApp, setInApp] = useState<{ isInApp: boolean; app: string | null }>({ isInApp: false, app: null })
   const pageLoadTime = useRef(Date.now())
   const titleRef = useRef<HTMLHeadingElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -32,6 +35,12 @@ function SignUpForm() {
   const redirectTo = searchParams.get('redirectTo')
   const urlError = searchParams.get('error')
   const supabase = createClient()
+
+  // Détecter un navigateur intégré (in-app) au montage → guider vers un chemin qui marche.
+  useEffect(() => {
+    const d = detectInAppBrowser()
+    if (d.isInApp) setInApp({ isInApp: true, app: d.app })
+  }, [])
 
   // Afficher l'erreur passée en paramètre URL (ex: blocage pays OAuth)
   useEffect(() => {
@@ -403,6 +412,20 @@ function SignUpForm() {
         {error && (
           <div className="mb-4 p-3 bg-red-900/50 border border-red-600/50 text-red-200 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {/* Navigateur intégré (Instagram/Facebook/TikTok…) : la connexion Google y échoue au retour.
+            On guide vers l'email (qui marche ici) ou l'ouverture dans le vrai navigateur. Non bloquant. */}
+        {inApp.isInApp && (
+          <div className="mb-4 p-3 bg-amber-900/40 border border-amber-600/50 text-amber-100 rounded-lg text-sm">
+            <p className="font-semibold mb-1">⚠️ Tu es dans le navigateur intégré{inApp.app ? ` de ${inApp.app}` : ''}</p>
+            <p className="mb-2 opacity-90">La connexion Google n'y fonctionne pas. Inscris-toi <b>par email</b> ci-dessous — ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b> → « Ouvrir dans le navigateur »).</p>
+            <button type="button"
+              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/signup') } catch {} setError('Lien copié — colle-le dans Chrome ou Safari pour continuer avec Google.') }}
+              className="text-amber-200 underline font-medium">
+              Copier le lien du site
+            </button>
           </div>
         )}
 

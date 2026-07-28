@@ -10,6 +10,7 @@ import { isCapacitor, isNativeGoogleAuthAvailable, openExternalUrl, saveSessionT
 import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import AgeGate from '@/components/AgeGate'
 import { trackLogin } from '@/lib/analytics'
+import { detectInAppBrowser } from '@/lib/inapp-browser'
 
 function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -23,11 +24,18 @@ function LoginForm() {
   const oauthDone = searchParams.get('oauthDone') === '1'
   const continueUrl = searchParams.get('continue')
   const pageLoadTime = useRef(Date.now())
+  const [inApp, setInApp] = useState<{ isInApp: boolean; app: string | null }>({ isInApp: false, app: null })
   const [redirecting, setRedirecting] = useState(oauthDone)
   const [loadingPercent, setLoadingPercent] = useState(0)
   const [loadingMessage, setLoadingMessage] = useState('')
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
   const supabase = createClient()
+
+  // Détecter un navigateur intégré (in-app) au montage → guider (la connexion Google y échoue).
+  useEffect(() => {
+    const d = detectInAppBrowser()
+    if (d.isInApp) setInApp({ isInApp: true, app: d.app })
+  }, [])
 
   // Phrases de chargement aléatoires
   const loadingMessages = [
@@ -437,6 +445,19 @@ function LoginForm() {
         {error && (
           <div className="mb-4 p-3 bg-red-900/50 border border-red-600/50 text-red-200 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {/* Navigateur intégré : la connexion Google y échoue → guider vers email / vrai navigateur. */}
+        {inApp.isInApp && (
+          <div className="mb-4 p-3 bg-amber-900/40 border border-amber-600/50 text-amber-100 rounded-lg text-sm">
+            <p className="font-semibold mb-1">⚠️ Navigateur intégré{inApp.app ? ` de ${inApp.app}` : ''} détecté</p>
+            <p className="mb-2 opacity-90">La connexion Google n'y fonctionne pas. Connecte-toi <b>par email</b> ci-dessous, ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b>).</p>
+            <button type="button"
+              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/login') } catch {} setError('Lien copié — colle-le dans Chrome ou Safari pour continuer avec Google.') }}
+              className="text-amber-200 underline font-medium">
+              Copier le lien du site
+            </button>
           </div>
         )}
 
