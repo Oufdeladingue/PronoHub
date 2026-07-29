@@ -110,10 +110,19 @@ export default function RootLayout({
               '@graph': [
                 {
                   '@type': 'Organization',
+                  '@id': 'https://www.pronohub.club/#organization',
                   name: 'PronoHub',
                   url: 'https://www.pronohub.club',
                   logo: 'https://www.pronohub.club/images/logo.svg',
                   description: 'Application de tournois de pronostics football entre amis',
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': 'https://www.pronohub.club/#website',
+                  name: 'PronoHub',
+                  url: 'https://www.pronohub.club',
+                  inLanguage: 'fr-FR',
+                  publisher: { '@id': 'https://www.pronohub.club/#organization' },
                 },
                 {
                   '@type': 'WebApplication',

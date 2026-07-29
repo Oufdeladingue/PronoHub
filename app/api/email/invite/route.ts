@@ -48,11 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que l'utilisateur est le créateur du tournoi
+    // (la colonne créateur de `tournaments` est `creator_id`, PAS `created_by` → 403 systématique avant ce fix)
     const { data: isCreator } = await supabase
       .from('tournaments')
       .select('id')
       .eq('id', tournamentId)
-      .eq('created_by', user.id)
+      .eq('creator_id', user.id)
       .single()
 
     if (!isCreator) {
