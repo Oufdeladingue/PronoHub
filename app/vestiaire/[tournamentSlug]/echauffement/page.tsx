@@ -1021,7 +1021,9 @@ function EchauffementPageContent() {
     setShareModal(true)
   }
 
-  const getInviteUrl = () => `${window.location.origin}/vestiaire/rejoindre?code=${tournamentCode}`
+  // Landing publique avec aperçu riche (OG) quand partagée sur WhatsApp/réseaux → meilleur taux de clic.
+  // Le QR code et l'entrée manuelle du code continuent d'utiliser le flux /vestiaire/rejoindre.
+  const getInviteUrl = () => `${window.location.origin}/share/invite/${tournamentCode}`
 
   const copyShareUrl = () => {
     navigator.clipboard.writeText(getInviteUrl())
