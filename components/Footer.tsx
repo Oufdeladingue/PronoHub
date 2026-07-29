@@ -43,6 +43,9 @@ export default function Footer({ variant = 'full' }: FooterProps) {
             <span>© {currentYear} PronoHub</span>
             <span className="hidden sm:inline">•</span>
             <div className="flex items-center gap-3">
+              <Link href="/pronostics" className="hover:text-[#ff9900] transition">
+                Pronostics
+              </Link>
               <Link href="/cgv" className="hover:text-[#ff9900] transition">
                 CGU
               </Link>
@@ -80,6 +83,12 @@ export default function Footer({ variant = 'full' }: FooterProps) {
 
             {/* Liens */}
             <nav className="flex items-center gap-3 text-[10px]">
+              <Link
+                href="/pronostics"
+                className="text-gray-400 hover:text-[#ff9900] transition"
+              >
+                Pronostics
+              </Link>
               <Link
                 href="/about"
                 className="text-gray-400 hover:text-[#ff9900] transition"
@@ -135,6 +144,12 @@ export default function Footer({ variant = 'full' }: FooterProps) {
 
             {/* Liens */}
             <nav className="flex items-center gap-4 text-xs">
+              <Link
+                href="/pronostics"
+                className="text-gray-400 hover:text-[#ff9900] transition"
+              >
+                Pronostics
+              </Link>
               <Link
                 href="/about"
                 className="text-gray-400 hover:text-[#ff9900] transition"

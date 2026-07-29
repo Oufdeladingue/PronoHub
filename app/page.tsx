@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
+import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
 import './landing.css'
 
 export const metadata = {
@@ -640,11 +641,27 @@ function CTAFooter() {
               <span className="text-sm text-[#94a3b8]">PronoHub &copy; {new Date().getFullYear()}</span>
             </div>
             <nav className="flex flex-wrap justify-center gap-6 text-sm text-[#94a3b8]">
+              <Link href="/pronostics" className="hover:text-[#ff9900] transition-colors">Pronostics</Link>
               <Link href="/about" className="hover:text-[#ff9900] transition-colors">À propos</Link>
               <Link href="/pricing" className="hover:text-[#ff9900] transition-colors">Tarifs</Link>
               <Link href="/contact" className="hover:text-[#ff9900] transition-colors">Contact</Link>
               <Link href="/cgv" className="hover:text-[#ff9900] transition-colors">CGU</Link>
               <Link href="/privacy" className="hover:text-[#ff9900] transition-colors">Confidentialité</Link>
+            </nav>
+          </div>
+
+          {/* Maillage interne SEO : pronostics par compétition */}
+          <div className="mt-6 pt-5 border-t border-white/[0.06]">
+            <p className="text-xs text-[#64748b] mb-2 text-center md:text-left">Pronostics par compétition</p>
+            <nav className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 text-xs text-[#64748b]">
+              {COMPETITIONS_SEO.map((c) => (
+                <Link key={c.slug} href={`/pronostics/${c.slug}`} className="hover:text-[#ff9900] transition-colors">
+                  {c.short}
+                </Link>
+              ))}
+              <Link href="/pronostics" className="text-[#94a3b8] hover:text-[#ff9900] transition-colors">
+                Toutes les compétitions →
+              </Link>
             </nav>
           </div>
         </div>
