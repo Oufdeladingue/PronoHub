@@ -105,6 +105,7 @@ export function SeoFooter() {
         <img src="/images/logo.png" alt="PronoHub" className="h-7 w-auto opacity-80" />
         <nav className="flex flex-wrap gap-x-5 gap-y-2 justify-center">
           <Link href="/pronostics" className="hover:text-slate-300">Compétitions</Link>
+          <Link href="/guides" className="hover:text-slate-300">Guides</Link>
           <Link href="/pricing" className="hover:text-slate-300">Formules</Link>
           <Link href="/about" className="hover:text-slate-300">À propos</Link>
           <Link href="/auth/login" className="hover:text-slate-300">Connexion</Link>

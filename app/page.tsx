@@ -642,6 +642,7 @@ function CTAFooter() {
             </div>
             <nav className="flex flex-wrap justify-center gap-6 text-sm text-[#94a3b8]">
               <Link href="/pronostics" className="hover:text-[#ff9900] transition-colors">Pronostics</Link>
+              <Link href="/guides" className="hover:text-[#ff9900] transition-colors">Guides</Link>
               <Link href="/about" className="hover:text-[#ff9900] transition-colors">À propos</Link>
               <Link href="/pricing" className="hover:text-[#ff9900] transition-colors">Tarifs</Link>
               <Link href="/contact" className="hover:text-[#ff9900] transition-colors">Contact</Link>

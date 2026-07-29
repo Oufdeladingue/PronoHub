@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next'
 import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
+import { GUIDES } from '@/lib/seo/guides-content'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.pronohub.club'
   const now = new Date().toISOString()
 
-  // Pages de contenu SEO (hub + une page par compétition)
+  // Pages de contenu SEO (hub + une page par compétition + guides)
   const pronostics: MetadataRoute.Sitemap = [
     { url: `${baseUrl}/pronostics`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     ...COMPETITIONS_SEO.map((c) => ({
@@ -13,6 +14,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
+    })),
+    { url: `${baseUrl}/guides`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    ...GUIDES.map((g) => ({
+      url: `${baseUrl}/guides/${g.slug}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
     })),
   ]
 
