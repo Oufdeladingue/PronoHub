@@ -1,0 +1,31 @@
+name: Cleanup Ghost Accounts
+
+on:
+  schedule:
+    # Tous les jours à 04:00 UTC — supprime les comptes fantômes (jamais connectés, sans tournoi, > 3j)
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup-ghost-accounts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 🧹 Trigger cleanup-ghost-accounts cron
+        run: |
+          response=$(curl -X GET --max-time 200 --connect-timeout 20 --retry 2 --retry-delay 20 --retry-all-errors \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\n%{http_code}" \
+            -s \
+            https://www.pronohub.club/api/cron/cleanup-ghost-accounts)
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+          echo "✅ Nettoyage des comptes fantômes effectué"

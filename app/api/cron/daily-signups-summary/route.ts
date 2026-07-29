@@ -36,11 +36,14 @@ export async function GET(request: NextRequest) {
 
     console.log('[Daily Signups] Scanning signups since:', startTime.toISOString())
 
-    // Récupérer les nouveaux inscrits depuis startTime
+    // Récupérer les nouveaux inscrits depuis startTime.
+    // On EXCLUT les comptes fantômes (créés via un retour OAuth d'un pays hors zones ouvertes, jamais
+    // entrés dans l'app → last_seen_at NULL) : ils n'ont pas d'intérêt à être notifiés.
     const { data: newUsers, error } = await supabase
       .from('profiles')
       .select('id, username, email, created_at')
       .gte('created_at', startTime.toISOString())
+      .not('last_seen_at', 'is', null)
       .order('created_at', { ascending: false })
 
     if (error) {
