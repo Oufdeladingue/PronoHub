@@ -337,10 +337,10 @@ export default function TableauNoirPage() {
         return
       }
 
-      // Rediriger vers la page d'echauffement
-      trackTournamentCreated({ type: selectedTournamentType, competition: competition?.name || '' })
+      // Rediriger vers la page d'echauffement (?created=1 → ouvre auto la modale d'invitation)
+      trackTournamentCreated({ type: selectedTournamentType, competition: competition?.name || '', tournamentId: data.tournament?.id || data.tournamentId })
       const slug = `${tournamentName.toLowerCase().replace(/\s+/g, '_')}_${tournamentSlug}`
-      router.push(`/vestiaire/${slug}/echauffement`)
+      router.push(`/vestiaire/${slug}/echauffement?created=1`)
     } catch (error) {
       console.error('Error creating tournament:', error)
       showAlert('Erreur', 'Une erreur est survenue lors de la création du tournoi', 'error')

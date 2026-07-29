@@ -41,14 +41,24 @@ export function trackUsernameChosen() {
 
 // === Tournois ===
 
-export function trackTournamentCreated(props: { type: string, competition: string }) {
+export function trackTournamentCreated(props: { type: string, competition: string, tournamentId?: string }) {
   if (!isPostHogReady()) return
   posthog.capture('tournament_created', props)
 }
 
-export function trackTournamentJoined(props: { method: 'code' | 'link' }) {
+export function trackTournamentJoined(props: { method: 'code' | 'link', tournamentId?: string }) {
   if (!isPostHogReady()) return
   posthog.capture('tournament_joined', props)
+}
+
+// === Viralité (invitation / partage) ===
+
+export type ShareMethod = 'whatsapp' | 'messenger' | 'telegram' | 'sms' | 'email' | 'copy' | 'qr' | 'native'
+
+/** Une invitation a été partagée (mesure du K-factor : invitations → joins par canal). */
+export function trackInviteShared(props: { method: ShareMethod, tournamentId?: string, context?: string }) {
+  if (!isPostHogReady()) return
+  posthog.capture('invite_shared', props)
 }
 
 // === Pronostics ===

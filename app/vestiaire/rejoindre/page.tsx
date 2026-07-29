@@ -141,7 +141,8 @@ function RejoindreContent() {
 
       // Rediriger vers la page d'échauffement du tournoi
       if (data.tournament?.slug) {
-        trackTournamentJoined({ method: 'code' })
+        // 'link' si arrivé via un lien d'invitation (?code=), 'code' si code saisi à la main
+        trackTournamentJoined({ method: codeFromUrl ? 'link' : 'code', tournamentId: data.tournament?.id })
         // Le slug complet est déjà construit côté serveur
         router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
       }

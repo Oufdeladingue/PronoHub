@@ -16,6 +16,7 @@ import { TOURNAMENT_RULES, PRICES, TournamentType } from '@/types/monetization'
 import { useIncentiveModals } from '@/lib/hooks/use-incentive-modals'
 import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
 import { useSearchParams } from 'next/navigation'
+import { trackInviteShared, type ShareMethod } from '@/lib/analytics'
 
 interface Tournament {
   id: string
@@ -990,9 +991,29 @@ function EchauffementPageContent() {
     }
   }
 
+  // Viralité : ouvre automatiquement la modale d'invitation à l'arrivée sur un tournoi
+  // fraîchement créé (redirection avec ?created=1), pour ne pas laisser le créateur seul.
+  useEffect(() => {
+    if (
+      tournament &&
+      currentUserId &&
+      tournament.creator_id === currentUserId &&
+      searchParams.get('created') === '1'
+    ) {
+      setShareModal(true)
+      trackInviteShared({ method: 'copy', tournamentId: tournament.id, context: 'auto_open_post_create' })
+      // Nettoyer l'URL pour ne pas rouvrir au refresh
+      window.history.replaceState({}, '', `/vestiaire/${tournamentSlug}/echauffement`)
+    }
+  }, [tournament, currentUserId, searchParams, tournamentSlug])
+
+  const track = (method: ShareMethod) =>
+    trackInviteShared({ method, tournamentId: tournament?.id })
+
   const copyInviteCode = () => {
     navigator.clipboard.writeText(tournamentCode)
     setCopySuccess(true)
+    track('copy')
     setTimeout(() => setCopySuccess(false), 2000)
   }
 
@@ -1005,37 +1026,44 @@ function EchauffementPageContent() {
   const copyShareUrl = () => {
     navigator.clipboard.writeText(getInviteUrl())
     setCopySuccess(true)
+    track('copy')
     setTimeout(() => setCopySuccess(false), 2000)
   }
 
   const shareViaEmail = () => {
+    track('email')
     const subject = encodeURIComponent(`Rejoins mon tournoi ${tournament?.name} sur PronoHub !`)
     const body = encodeURIComponent(`Salut !\n\nJe t'invite à rejoindre mon tournoi de pronostics "${tournament?.name}" sur PronoHub.\n\nClique sur ce lien pour rejoindre :\n${getInviteUrl()}\n\nOu utilise le code : ${tournamentCode}\n\nÀ bientôt sur le terrain !`)
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank')
   }
 
   const shareViaWhatsApp = () => {
+    track('whatsapp')
     const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! 🏆\n\n${getInviteUrl()}\n\nCode : ${tournamentCode}`)
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }
 
   const shareViaMessenger = () => {
+    track('messenger')
     const url = encodeURIComponent(getInviteUrl())
     window.open(`https://www.facebook.com/dialog/send?link=${url}&app_id=966242223397117&redirect_uri=${encodeURIComponent(window.location.href)}`, '_blank')
   }
 
   const shareViaSMS = () => {
+    track('sms')
     const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! Code: ${tournamentCode} - ${getInviteUrl()}`)
     window.open(`sms:?body=${text}`, '_blank')
   }
 
   const shareViaTelegram = () => {
+    track('telegram')
     const text = encodeURIComponent(`Rejoins mon tournoi "${tournament?.name}" sur PronoHub ! 🏆`)
     const url = encodeURIComponent(getInviteUrl())
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank')
   }
 
   const downloadQRCode = async () => {
+    track('qr')
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(getInviteUrl())}`
     try {
       const response = await fetch(qrUrl)
@@ -1056,6 +1084,7 @@ function EchauffementPageContent() {
   const useNativeShare = async () => {
     if (navigator.share) {
       try {
+        track('native')
         await navigator.share({
           title: `Rejoins mon tournoi ${tournament?.name} sur PronoHub`,
           text: `Je t'invite à rejoindre mon tournoi de pronostics ! Code: ${tournamentCode}`,
