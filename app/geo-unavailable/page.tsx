@@ -23,7 +23,7 @@ export default async function GeoUnavailablePage({
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center px-6 py-12">
       <div className="w-full max-w-md text-center">
         <img
-          src="/images/logo-white.svg"
+          src="/images/logo.png"
           alt="PronoHub"
           className="h-12 mx-auto mb-10 opacity-90"
         />

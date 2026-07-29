@@ -10,6 +10,7 @@ interface Preview {
   name: string
   creator: string
   competition: string | null
+  emblem: string | null
   current: number
   max: number
   status: string
@@ -33,18 +34,22 @@ async function getPreview(code: string): Promise<Preview | null> {
     ])
 
     let competition: string | null = null
+    let emblem: string | null = null
     if (t.custom_competition_id) {
-      const { data: cc } = await s.from('custom_competitions').select('name').eq('id', t.custom_competition_id).maybeSingle()
+      const { data: cc } = await s.from('custom_competitions').select('name, custom_emblem_white, custom_emblem_color').eq('id', t.custom_competition_id).maybeSingle()
       competition = cc?.name || null
+      emblem = cc?.custom_emblem_white || cc?.custom_emblem_color || null // logo blanc en priorité
     } else if (t.competition_id) {
-      const { data: comp } = await s.from('competitions').select('name').eq('id', t.competition_id).maybeSingle()
+      const { data: comp } = await s.from('competitions').select('name, emblem').eq('id', t.competition_id).maybeSingle()
       competition = comp?.name || null
+      emblem = comp?.emblem || null
     }
 
     return {
       name: t.name,
       creator: creator?.username || 'Un ami',
       competition,
+      emblem,
       current: count || 0,
       max: t.max_players,
       status: t.status,
@@ -57,6 +62,7 @@ async function getPreview(code: string): Promise<Preview | null> {
 function ogUrl(p: Preview): string {
   const q = new URLSearchParams({ name: p.name, creator: p.creator, players: `${p.current}/${p.max}` })
   if (p.competition) q.set('competition', p.competition)
+  if (p.emblem) q.set('emblem', p.emblem)
   return `${BASE}/api/og/invite?${q.toString()}`
 }
 
@@ -86,8 +92,9 @@ export default async function ShareInvitePage({ params }: { params: Promise<Para
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-5 py-12" style={{ background: '#0f172a' }}>
-      <a href="/" className="flex items-center gap-2 text-2xl font-black text-white">
-        <span>⚽ Prono</span><span style={{ color: '#ff9900' }}>Hub</span>
+      <a href="/">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo.png" alt="PronoHub" className="h-11 w-auto" />
       </a>
 
       {p ? (
