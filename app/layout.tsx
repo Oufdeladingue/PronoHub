@@ -65,6 +65,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://www.pronohub.club',
   },
+  verification: {
+    google: 'YxdZzPQhmS94lQs6REKEJA6J6chP2bGEeQ3Zf5bgmjs',
+  },
 };
 
 export default function RootLayout({
