@@ -60,13 +60,13 @@ export async function GET(request: Request) {
           justifyContent: 'center',
           background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 55%, #0a0a0a 100%)',
           fontFamily: 'Inter',
-          padding: '44px 60px',
+          padding: '40px 60px',
         }}
       >
         <div
           style={{
             position: 'absolute',
-            top: '46%',
+            top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 620,
@@ -79,19 +79,19 @@ export async function GET(request: Request) {
 
         {/* Logo PronoHub */}
         {logo ? (
-          <img src={logo} height={52} style={{ height: 52, marginBottom: 16 }} alt="" />
+          <img src={logo} height={46} style={{ height: 46, marginBottom: 14 }} alt="" />
         ) : (
-          <div style={{ display: 'flex', fontSize: 30, fontWeight: 700, marginBottom: 16 }}>
+          <div style={{ display: 'flex', fontSize: 28, fontWeight: 700, marginBottom: 14 }}>
             <span style={{ color: '#ffffff' }}>Prono</span>
             <span style={{ color: '#ff9900' }}>Hub</span>
           </div>
         )}
 
         {/* Accroche */}
-        <div style={{ display: 'flex', fontSize: 40, color: '#94a3b8', marginBottom: 4 }}>
+        <div style={{ display: 'flex', fontSize: 36, color: '#94a3b8', marginBottom: 2 }}>
           {creator} t'invite à
         </div>
-        <div style={{ display: 'flex', fontSize: 28, color: '#94a3b8', marginBottom: 18 }}>
+        <div style={{ display: 'flex', fontSize: 26, color: '#94a3b8', marginBottom: 16 }}>
           son tournoi de pronos 🏆
         </div>
 
@@ -101,21 +101,21 @@ export async function GET(request: Request) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: 12,
+            gap: 10,
             background: 'rgba(30, 41, 59, 0.65)',
             border: '2px solid #ff9900',
-            borderRadius: 24,
-            padding: '26px 48px',
-            maxWidth: 980,
+            borderRadius: 22,
+            padding: '22px 46px',
+            maxWidth: 1000,
           }}
         >
           {emblemImg ? (
-            <img src={emblemImg} width={92} height={92} style={{ objectFit: 'contain' }} alt="" />
+            <img src={emblemImg} width={72} height={72} style={{ objectFit: 'contain' }} alt="" />
           ) : null}
-          <div style={{ display: 'flex', fontSize: 58, fontWeight: 700, color: '#ffffff', textAlign: 'center' }}>
+          <div style={{ display: 'flex', fontSize: 52, fontWeight: 700, color: '#ffffff', textAlign: 'center' }}>
             {name}
           </div>
-          <div style={{ display: 'flex', gap: 26, alignItems: 'center', fontSize: 27, color: '#e0e0e0' }}>
+          <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 26, color: '#e0e0e0' }}>
             {competition ? <span style={{ display: 'flex', color: '#ff9900' }}>{competition}</span> : null}
             {players ? <span style={{ display: 'flex' }}>👥 {players} joueurs</span> : null}
           </div>
@@ -125,19 +125,19 @@ export async function GET(request: Request) {
         <div
           style={{
             display: 'flex',
-            marginTop: 26,
+            marginTop: 22,
             background: '#ff9900',
             color: '#111827',
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: 700,
-            padding: '16px 44px',
+            padding: '14px 42px',
             borderRadius: 16,
           }}
         >
           Rejoins le tournoi →
         </div>
 
-        <div style={{ position: 'absolute', bottom: 26, fontSize: 20, color: '#64748b', display: 'flex' }}>
+        <div style={{ display: 'flex', marginTop: 20, fontSize: 18, color: '#64748b' }}>
           pronohub.club — pronos foot entre potes, gratuit
         </div>
       </div>

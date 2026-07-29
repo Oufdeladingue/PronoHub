@@ -40,9 +40,9 @@ async function getPreview(code: string): Promise<Preview | null> {
       competition = cc?.name || null
       emblem = cc?.custom_emblem_white || cc?.custom_emblem_color || null // logo blanc en priorité
     } else if (t.competition_id) {
-      const { data: comp } = await s.from('competitions').select('name, emblem').eq('id', t.competition_id).maybeSingle()
+      const { data: comp } = await s.from('competitions').select('name, emblem, custom_emblem_white').eq('id', t.competition_id).maybeSingle()
       competition = comp?.name || null
-      emblem = comp?.emblem || null
+      emblem = comp?.custom_emblem_white || comp?.emblem || null // logo blanc en priorité (fond sombre)
     }
 
     return {
@@ -103,9 +103,13 @@ export default async function ShareInvitePage({ params }: { params: Promise<Para
             <strong className="text-white">{p.creator}</strong> t'invite à rejoindre son tournoi de pronos 🏆
           </p>
           <div className="w-full max-w-md rounded-2xl border-2 border-[#ff9900]/70 bg-[#111827] p-6 text-center">
+            {p.emblem && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.emblem} alt={p.competition || ''} className="h-14 w-auto object-contain mx-auto mb-3" />
+            )}
             <h1 className="text-2xl font-bold text-white mb-2">{p.name}</h1>
             <div className="flex items-center justify-center gap-4 text-sm text-slate-300">
-              {p.competition && <span className="text-[#ff9900]">🏟️ {p.competition}</span>}
+              {p.competition && <span className="text-[#ff9900]">{p.competition}</span>}
               <span>👥 {p.current}/{p.max} joueurs</span>
             </div>
           </div>

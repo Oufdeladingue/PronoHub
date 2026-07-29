@@ -28,12 +28,14 @@ export default async function GeoUnavailablePage({
           className="h-12 mx-auto mb-10 opacity-90"
         />
 
-        <div className="text-6xl mb-6">
-          {country?.flag || '🌍'}<span className="mx-1">⚽</span>
-        </div>
+        <div className="text-6xl mb-4">🌍<span className="mx-1">⚽</span></div>
+
+        {country && (
+          <p className="text-lg font-semibold text-white/85 mb-2">{country.name}</p>
+        )}
 
         <h1 className="text-2xl font-bold text-[#ff9900] mb-4 leading-snug">
-          On n'a pas encore sifflé le coup d'envoi {country ? `${country.flag} ${country.name}` : 'dans ton pays'}
+          On n'a pas encore sifflé le coup d'envoi chez toi
         </h1>
 
         <p className="text-slate-300 text-[15px] leading-relaxed mb-3">
