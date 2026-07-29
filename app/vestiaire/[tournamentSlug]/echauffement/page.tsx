@@ -1476,6 +1476,31 @@ function EchauffementPageContent() {
 
             {/* Content */}
             <div className="p-6 space-y-6">
+              {/* Récompense virale : débloque les Stats avancées quand 2 potes ont rejoint (créateur d'un tournoi gratuit) */}
+              {tournament && currentUserId === tournament.creator_id && (!tournament.tournament_type || tournament.tournament_type === 'free') && (() => {
+                const othersJoined = Math.max(0, players.length - 1)
+                const unlocked = othersJoined >= 2
+                return (
+                  <div className="rounded-lg border border-[#ff9900]/40 bg-[#ff9900]/10 p-3">
+                    {unlocked ? (
+                      <p className="text-sm font-semibold theme-text text-center">🔓 Stats avancées débloquées sur ce tournoi ! 🎉</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold theme-text text-center mb-2">
+                          🔓 Invite 2 potes → débloque les <span className="theme-accent-text-always">Stats avancées</span> sur ce tournoi
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 rounded-full bg-black/20 overflow-hidden">
+                            <div className="h-full bg-[#ff9900] transition-all" style={{ width: `${(othersJoined / 2) * 100}%` }} />
+                          </div>
+                          <span className="text-xs font-bold theme-text-secondary">{othersJoined}/2</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Lien et code */}
               <div className="text-center">
                 <p className="text-sm theme-text-secondary mb-2">Code d'invitation</p>

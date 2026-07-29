@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { TournamentType, PRICES, InviteType } from '@/types/monetization'
 import { sendNewPlayerJoinedEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
@@ -596,6 +596,46 @@ export async function POST(request: NextRequest) {
         { error: 'Erreur lors de l\'ajout au tournoi' },
         { status: 500 }
       )
+    }
+
+    // RÉCOMPENSE VIRALE : quand un tournoi GRATUIT atteint 3 participants (créateur + 2 invités),
+    // débloque les Stats avancées pour le CRÉATEUR, sur CE tournoi uniquement. Coût nul (feature
+    // déjà gérée par /api/stats/access via une ligne stats_access_tournament). Insert via service
+    // role car il concerne le créateur (≠ le joueur qui rejoint) → hors RLS de l'utilisateur.
+    try {
+      const isFree = !tournament.tournament_type || tournament.tournament_type === 'free'
+      if (isFree) {
+        const admin = createAdminClient()
+        const { count: partCount } = await admin
+          .from('tournament_participants')
+          .select('*', { count: 'exact', head: true })
+          .eq('tournament_id', tournament.id)
+        if ((partCount || 0) >= 3) {
+          // Idempotent : ne débloquer qu'une seule fois
+          const { data: existing } = await admin
+            .from('tournament_purchases')
+            .select('id')
+            .eq('user_id', tournament.creator_id)
+            .eq('tournament_id', tournament.id)
+            .eq('purchase_type', 'stats_access_tournament')
+            .eq('status', 'completed')
+            .limit(1)
+          if (!existing || existing.length === 0) {
+            await admin.from('tournament_purchases').insert({
+              user_id: tournament.creator_id,
+              tournament_id: tournament.id,
+              purchase_type: 'stats_access_tournament',
+              amount: 0,
+              currency: 'eur',
+              status: 'completed',
+              stripe_checkout_session_id: 'referral_reward',
+            })
+            console.log(`[JOIN] Stats débloquées (récompense invitation) — créateur ${tournament.creator_id}, tournoi ${tournament.id}`)
+          }
+        }
+      }
+    } catch (rewardError) {
+      console.error('[JOIN] Erreur récompense stats:', rewardError)
     }
 
     // Envoyer un email au capitaine pour l'informer du nouveau joueur
