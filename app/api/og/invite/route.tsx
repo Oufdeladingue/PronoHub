@@ -1,15 +1,15 @@
 import { ImageResponse } from 'next/og'
-import fs from 'fs/promises'
-import path from 'path'
 
 export const runtime = 'nodejs'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
 
-/** Logo PronoHub lu sur disque → data URI (fiable, pas de réseau). */
+/** Logo PronoHub → data URI (fetch de l'URL absolue : robuste même en build standalone). */
 async function logoDataUri(): Promise<string | null> {
   try {
-    const buf = await fs.readFile(path.join(process.cwd(), 'public', 'images', 'logo.png'))
+    const r = await fetch(`${BASE}/images/logo.png`)
+    if (!r.ok) return null
+    const buf = Buffer.from(await r.arrayBuffer())
     return `data:image/png;base64,${buf.toString('base64')}`
   } catch {
     return null
