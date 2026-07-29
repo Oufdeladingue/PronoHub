@@ -125,16 +125,19 @@ export async function GET(request: Request) {
         <div
           style={{
             display: 'flex',
-            marginTop: 22,
-            background: '#ff9900',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: 24,
+            background: 'linear-gradient(180deg, #ffb43d 0%, #ff9900 100%)',
             color: '#111827',
-            fontSize: 28,
-            fontWeight: 700,
-            padding: '14px 42px',
-            borderRadius: 16,
+            fontSize: 30,
+            fontWeight: 800,
+            padding: '18px 54px',
+            borderRadius: 999,
+            boxShadow: '0 10px 30px rgba(255,153,0,0.45)',
           }}
         >
-          Rejoins le tournoi →
+          Rejoins le tournoi  →
         </div>
 
         <div style={{ display: 'flex', marginTop: 20, fontSize: 18, color: '#64748b' }}>
