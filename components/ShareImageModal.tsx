@@ -12,10 +12,12 @@ interface ShareImageModalProps {
   title?: string
   // Optionnel : toggle de modes (ex: Alphabétique / Classement). Chaque mode a sa propre image.
   modes?: { key: string; label: string; imageUrl: string }[]
+  // Optionnel : appelé quand l'utilisateur déclenche un partage (whatsapp/messenger/native/download)
+  onShared?: (method: 'whatsapp' | 'messenger' | 'native' | 'download') => void
   onClose: () => void
 }
 
-export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title = 'Partager', modes, onClose }: ShareImageModalProps) {
+export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title = 'Partager', modes, onShared, onClose }: ShareImageModalProps) {
   const [mounted, setMounted] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -93,6 +95,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   }, [currentImageUrl, downloadName])
 
   const handleDownload = useCallback(async () => {
+    onShared?.('download')
     // Sur l'app Android (WebView Capacitor), le téléchargement via lien <a download> + blob URL
     // ne déclenche rien. On ouvre l'image (publique) dans le navigateur système où l'utilisateur
     // peut l'enregistrer (appui long / menu). Le plugin Browser est déjà présent dans l'APK.
@@ -114,6 +117,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   }, [currentImageUrl, effectiveDownloadName])
 
   const handleWhatsApp = useCallback(() => {
+    onShared?.('whatsapp')
     const url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`
     // Capacitor : le plugin Browser (Custom Tab) ouvre l'URL https → propose d'ouvrir WhatsApp.
     // window.open('_blank') n'échappe pas fiablement la WebView.
@@ -122,6 +126,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
   }, [shareText, shareUrl])
 
   const handleMessenger = useCallback(() => {
+    onShared?.('messenger')
     const webUrl = `https://www.facebook.com/dialog/send?app_id=0&link=${encodeURIComponent(shareUrl)}&redirect_uri=${encodeURIComponent(shareUrl)}`
     // Capacitor : ouvrir la fallback web Facebook via le plugin Browser. On évite le schéma natif
     // fb-messenger:// qui nécessiterait une déclaration <queries> dans AndroidManifest (= rebuild).
@@ -140,6 +145,7 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
 
   const handleNativeShare = useCallback(async () => {
     if (!blob) return
+    onShared?.('native')
     try {
       const file = new File([blob], effectiveDownloadName, { type: 'image/png' })
       await (navigator as any).share({ files: [file], title: 'PronoHub', text: shareText })

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 import ShareImageModal from '@/components/ShareImageModal'
+import { trackRankingShared } from '@/lib/analytics'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 import { slugify, fileDateStamp } from '@/lib/slug'
 import RankingEvolution from './RankingEvolution'
@@ -89,6 +90,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   const viewsContainerRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+
+  // Auto-ouverture du partage via deep-link (?share=1 depuis la notif de récap de journée)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const sp = new URLSearchParams(window.location.search)
+    if (sp.get('share')) {
+      setShareOpen(true)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('share')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   // Fonction pour vérifier si une journée a déjà commencé
   const hasMatchdayStarted = (matchday: number): boolean => {
@@ -771,6 +784,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             shareText={`Classement ${ctx}${tournamentName ? ' de ' + tournamentName : ''} sur PronoHub 👀`}
             downloadName={`classement-${slugify(tournamentName)}-${slugify(ctx)}-${fileDateStamp()}.png`}
             title="Partager le classement"
+            onShared={(m) => trackRankingShared({ method: m, tournamentId, mode })}
             onClose={() => setShareOpen(false)}
           />
         )

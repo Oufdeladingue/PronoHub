@@ -1426,6 +1426,10 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
                 <a href="${tournamentUrl}?tab=classement" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ff9900 0%, #ff6600 100%); color: #000; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px;">
                   Voir le classement complet
                 </a>
+                <br>
+                <a href="${tournamentUrl}?tab=classement&share=1" style="display: inline-block; margin-top: 12px; padding: 12px 24px; background: #1e293b; border: 1px solid #ff9900; color: #ff9900; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 8px;">
+                  📲 Partager le classement à ton groupe
+                </a>
               </div>
             </td>
           </tr>

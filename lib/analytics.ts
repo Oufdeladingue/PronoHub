@@ -61,6 +61,12 @@ export function trackInviteShared(props: { method: ShareMethod, tournamentId?: s
   posthog.capture('invite_shared', props)
 }
 
+/** Un classement / résultat a été partagé (viralité sortante : WhatsApp, Messenger, natif…). */
+export function trackRankingShared(props: { method: ShareMethod | 'download' | 'messenger', tournamentId?: string, mode?: string }) {
+  if (!isPostHogReady()) return
+  posthog.capture('ranking_shared', props)
+}
+
 // === Pronostics ===
 
 export function trackPredictionSubmitted(props: { tournamentId: string, matchday: number }) {
