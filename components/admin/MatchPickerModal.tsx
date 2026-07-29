@@ -141,7 +141,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
               type="date"
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm text-gray-900 bg-white scheme-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
           <div className="flex-1">
@@ -150,7 +150,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
               type="date"
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-3 py-1.5 text-sm text-gray-900 bg-white scheme-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             />
           </div>
           <button
@@ -193,7 +193,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
                   />
                 )}
                 <span className="text-sm font-semibold text-gray-800">{compName}</span>
-                <span className="text-xs text-gray-400">({matchesByCompetition[compName].length})</span>
+                <span className="text-xs text-gray-500">({matchesByCompetition[compName].length})</span>
               </div>
 
               {/* Matchs */}
@@ -242,7 +242,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
 
                       {/* Date/heure */}
                       <div className="flex-shrink-0 text-center px-2">
-                        <div className="text-[10px] text-gray-400 leading-tight">{formatDate(match.utc_date)}</div>
+                        <div className="text-[10px] text-gray-500 leading-tight">{formatDate(match.utc_date)}</div>
                         <div className="text-xs font-medium text-orange-600">{formatTime(match.utc_date)}</div>
                       </div>
 
@@ -271,7 +271,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-500">
             {selected.size > 0
               ? `${selected.size} match${selected.size > 1 ? 's' : ''} sélectionné${selected.size > 1 ? 's' : ''}`
               : searched && totalMatches > 0
