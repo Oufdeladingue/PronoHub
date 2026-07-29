@@ -59,6 +59,16 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
   const [error, setError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
   const [selected, setSelected] = useState<Map<string, string>>(new Map()) // id -> utc_date
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()) // championnats repliés
+
+  const toggleCollapse = useCallback((name: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }, [])
 
   // Recherche automatique à l'ouverture
   useEffect(() => {
@@ -83,6 +93,7 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
       setMatchesByCompetition(data.matchesByCompetition || {})
       setTotalMatches(data.totalMatches || 0)
       setSearched(true)
+      setCollapsed(new Set())
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -165,6 +176,18 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
 
         {/* Résultats */}
         <div className="flex-1 overflow-y-auto px-5 py-3">
+          {!loading && competitions.length > 1 && (
+            <div className="flex justify-end mb-1">
+              <button
+                type="button"
+                onClick={() => setCollapsed(competitions.every(c => collapsed.has(c)) ? new Set() : new Set(competitions))}
+                className="text-xs font-medium text-orange-600 hover:text-orange-700"
+              >
+                {competitions.every(c => collapsed.has(c)) ? 'Tout déplier' : 'Tout réduire'}
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="text-red-600 text-sm text-center py-4">{error}</div>
           )}
@@ -179,10 +202,17 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
             </div>
           )}
 
-          {!loading && competitions.map(compName => (
+          {!loading && competitions.map(compName => {
+            const isCollapsed = collapsed.has(compName)
+            return (
             <div key={compName} className="mb-4">
-              {/* Compétition header */}
-              <div className="flex items-center gap-2 mb-2 sticky top-0 bg-white py-1">
+              {/* Compétition header (cliquable pour replier/déplier) */}
+              <button
+                type="button"
+                onClick={() => toggleCollapse(compName)}
+                aria-expanded={!isCollapsed}
+                className="w-full flex items-center gap-2 mb-2 sticky top-0 bg-white py-1 text-left rounded hover:bg-gray-50"
+              >
                 {matchesByCompetition[compName][0]?.competition_emblem && (
                   <img
                     src={`/api/proxy-image?url=${encodeURIComponent(matchesByCompetition[compName][0].competition_emblem!)}`}
@@ -194,9 +224,16 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
                 )}
                 <span className="text-sm font-semibold text-gray-800">{compName}</span>
                 <span className="text-xs text-gray-500">({matchesByCompetition[compName].length})</span>
-              </div>
+                <svg
+                  className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
               {/* Matchs */}
+              {!isCollapsed && (
               <div className="space-y-1">
                 {matchesByCompetition[compName].map(match => {
                   const isSelected = selected.has(match.id)
@@ -265,8 +302,9 @@ export default function MatchPickerModal({ isOpen, onClose, onSelectMatches }: M
                   )
                 })}
               </div>
+              )}
             </div>
-          ))}
+          )})}
         </div>
 
         {/* Footer */}
