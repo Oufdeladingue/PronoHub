@@ -162,9 +162,10 @@ export async function GET(request: Request) {
             `pronohub://auth/callback?error=${encodeURIComponent(msg)}`
           )
         }
-        return NextResponse.redirect(
-          `${origin}/auth/signup?error=${encodeURIComponent(msg)}`
-        )
+        // Écran dédié « bientôt chez toi » (pas un redirect brutal vers signup?error)
+        const geoUrl = new URL(`${origin}/geo-unavailable`)
+        if (countryCheck.countryCode) geoUrl.searchParams.set('c', countryCheck.countryCode)
+        return NextResponse.redirect(geoUrl.toString())
       }
 
       // Déterminer la page de redirection

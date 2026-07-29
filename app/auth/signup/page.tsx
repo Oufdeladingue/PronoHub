@@ -139,8 +139,7 @@ function SignUpForm() {
         const countryCheck = await fetch('/api/auth/check-country')
         const countryData = await countryCheck.json()
         if (!countryData.allowed) {
-          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
-          setGoogleLoading(false)
+          window.location.href = `/geo-unavailable${countryData.countryCode ? `?c=${countryData.countryCode}` : ''}`
           return
         }
       } catch {
@@ -278,8 +277,7 @@ function SignUpForm() {
         const countryCheck = await fetch('/api/auth/check-country')
         const countryData = await countryCheck.json()
         if (!countryData.allowed) {
-          setError(countryData.message || "PronoHub n'est pas encore disponible dans votre pays.")
-          setLoading(false)
+          window.location.href = `/geo-unavailable${countryData.countryCode ? `?c=${countryData.countryCode}` : ''}`
           return
         }
       } catch {
