@@ -5,6 +5,7 @@ import { sendNewPlayerJoinedEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NOTIFICATION_CONFIG } from '@/lib/notifications'
+import { postDiscordEmbed } from '@/lib/integrations/discord'
 
 // =====================================================
 // Système de join tournoi v2
@@ -742,6 +743,27 @@ export async function POST(request: NextRequest) {
           )
           console.log(`[JOIN] Push sent to captain ${captain.username} for new player ${playerUsername}`)
         }
+      }
+
+      // Discord : poster l'arrivée du joueur dans le salon connecté (best-effort).
+      // Lecture séparée + résiliente : si la colonne n'existe pas encore (migration non lancée),
+      // la requête renvoie une erreur silencieuse et on n' envoie rien — le join reste OK.
+      const { data: discordRow } = await supabase
+        .from('tournaments')
+        .select('discord_webhook_url')
+        .eq('id', tournament.id)
+        .maybeSingle()
+      if (discordRow?.discord_webhook_url) {
+        const playerUsername = newPlayer?.username || 'Nouveau joueur'
+        const playerAvatar = getAvatarUrl((newPlayer as any)?.avatar || 'avatar1')
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+        const ogImage = `${baseUrl}/api/og/player-joined?${new URLSearchParams({ tournament: tournament.name, username: playerUsername, avatar: playerAvatar }).toString()}`
+        const inviteUrl = `${baseUrl}/share/invite/${tournament.invite_code || tournament.slug}`
+        await postDiscordEmbed(discordRow.discord_webhook_url, {
+          title: `🙌 ${playerUsername} a rejoint « ${tournament.name} »`,
+          description: `${currentCount ? `Ils sont maintenant ${currentCount} dans le vestiaire.\n` : ''}[Rejoindre le tournoi](${inviteUrl})`,
+          imageUrl: ogImage,
+        })
       }
     } catch (emailError) {
       // Ne pas bloquer le join si l'email/push échoue

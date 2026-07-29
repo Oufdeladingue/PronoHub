@@ -17,6 +17,7 @@ import { useIncentiveModals } from '@/lib/hooks/use-incentive-modals'
 import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer'
 import { useSearchParams } from 'next/navigation'
 import { trackInviteShared, type ShareMethod } from '@/lib/analytics'
+import DiscordConnect from '@/components/DiscordConnect'
 
 interface Tournament {
   id: string
@@ -1641,6 +1642,13 @@ function EchauffementPageContent() {
                   </div>
                 </div>
               </div>
+
+              {/* Intégration Discord (créateur uniquement) */}
+              {tournament && currentUserId === tournament.creator_id && (
+                <div className="border-t theme-border pt-6">
+                  <DiscordConnect tournamentId={tournament.id} />
+                </div>
+              )}
             </div>
           </div>
         </div>
