@@ -13,15 +13,28 @@
 -- À exécuter dans le SQL Editor Supabase.
 -- ============================================================================
 
--- 1) CRITIQUE — empêcher toute modification de `role` par les rôles publics.
---    Les opérations admin légitimes passent par la service_role (createAdminClient),
---    qui n'est PAS affectée par ce REVOKE.
-REVOKE UPDATE (role) ON public.profiles FROM anon, authenticated;
+-- 1) CRITIQUE — empêcher toute modification de `role` par les utilisateurs.
+--    ⚠️ Un `REVOKE UPDATE (role)` au niveau colonne NE FONCTIONNE PAS : Supabase pose un
+--    GRANT UPDATE au niveau TABLE sur `authenticated`, qui couvre déjà toutes les colonnes
+--    (testé : l'escalade passait toujours). La parade propre et non-cassante = un TRIGGER qui
+--    interdit le changement de `role`, sauf pour la service_role (ops admin légitimes) et le
+--    superuser (SQL Editor / promotions manuelles).
+CREATE OR REPLACE FUNCTION public.prevent_profile_role_change()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.role IS DISTINCT FROM OLD.role
+     AND coalesce(current_setting('request.jwt.claims', true)::jsonb ->> 'role', '') <> 'service_role'
+     AND current_user NOT IN ('postgres', 'supabase_admin', 'service_role') THEN
+    RAISE EXCEPTION 'Modification du rôle non autorisée';
+  END IF;
+  RETURN NEW;
+END;
+$$;
 
--- (Optionnel, défense en profondeur — décommenter si aucun flux client ne les écrit)
--- REVOKE UPDATE (id, created_at) ON public.profiles FROM anon, authenticated;
--- NB : NE PAS révoquer username / email / has_chosen_username / last_seen_at /
---      updated_at : le flux légitime choose-username (upsert client) en a besoin.
+DROP TRIGGER IF EXISTS trg_prevent_profile_role_change ON public.profiles;
+CREATE TRIGGER trg_prevent_profile_role_change
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_profile_role_change();
 
 -- 2) Valider le format du username au niveau base (barrière même si le client
 --    est contourné). NOT VALID = n'affecte pas les lignes existantes, seulement
