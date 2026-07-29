@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendTournamentStartedEmail, sendTournamentStartedAdminAlert } from '@/lib/email'
 import { sendTournamentStarted } from '@/lib/notifications'
+import { postDiscordEmbed } from '@/lib/integrations/discord'
 import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
 
 interface StartTournamentRequest {
@@ -639,6 +640,20 @@ async function sendTournamentLaunchNotifications(
       console.log('[START] Admin alert sent')
     } catch (err) {
       console.error('[START] Error sending admin alert:', err)
+    }
+
+    // 7bis. Discord : annoncer le lancement dans le salon connecté (best-effort)
+    try {
+      const { data: dRow } = await supabase.from('tournaments').select('discord_webhook_url').eq('id', tournament.id).maybeSingle()
+      if (dRow?.discord_webhook_url) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+        await postDiscordEmbed(dRow.discord_webhook_url, {
+          title: `🚀 « ${tournament.name} » est lancé !`,
+          description: `La compétition démarre sur ${competition.name}.\n**Premier match :** ${firstMatchDate}${firstMatchDeadline ? ` — clôture des pronos ${firstMatchDeadline}` : ''}\n\n${participants.length} joueurs sur la ligne de départ. Bonne chance à tous ! ⚽`,
+        })
+      }
+    } catch (err) {
+      console.error('[START] Discord post failed:', err)
     }
 
     // 8. Envoyer les notifications push

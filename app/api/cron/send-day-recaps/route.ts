@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendMatchdayRecapEmail } from '@/lib/email/send'
 import { calculatePoints, type PointsSettings } from '@/lib/scoring'
+import { postDiscordEmbed } from '@/lib/integrations/discord'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -145,6 +146,25 @@ export async function GET(request: NextRequest) {
         // 6. Pour chaque journée terminée, envoyer les récaps
         for (const matchday of finishedMatchdays) {
           console.log(`[DAY-RECAP] Processing tournament "${tournament.name}" J${matchday}`)
+
+          // Discord : un seul post de classement par (tournoi, journée). Verrou atomique via
+          // admin_settings.setting_key (UNIQUE) → l'INSERT gagnant poste, les suivants sont bloqués (23505).
+          if (tournament.discord_webhook_url) {
+            const lockKey = `discord_recap:${tournament.id}:${matchday}`
+            const { error: lockErr } = await supabase
+              .from('admin_settings')
+              .insert({ setting_key: lockKey, setting_value: now.toISOString() })
+            if (!lockErr) {
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
+              const ogImage = `${baseUrl}/api/og/ranking?tournamentId=${tournament.id}&mode=matchday&matchday=${matchday}`
+              const link = `${baseUrl}/share/ranking/${tournament.id}?mode=matchday&matchday=${matchday}`
+              await postDiscordEmbed(tournament.discord_webhook_url, {
+                title: `📊 Classement — Journée ${matchday}`,
+                description: `Les résultats de la J${matchday} de « ${tournament.name} » sont tombés !\n[Voir le classement complet](${link})`,
+                imageUrl: ogImage,
+              })
+            }
+          }
 
           // 7. Calculer les classements pour cette journée
           const pointsSettings: PointsSettings = {

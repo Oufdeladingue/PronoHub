@@ -4,6 +4,7 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 import { sendTournamentEndEmail } from '@/lib/email/send'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NOTIFICATION_CONFIG } from '@/lib/notifications'
+import { postDiscordEmbed } from '@/lib/integrations/discord'
 
 // Adresses email de test à ne pas inclure (économie quota Resend)
 const EMAIL_BLACKLIST = new Set([
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     const cutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()
     const { data: tournaments, error: fetchError } = await supabase
       .from('tournaments')
-      .select('id, name, slug, competition_id, custom_competition_id')
+      .select('id, name, slug, competition_id, custom_competition_id, discord_webhook_url')
       .eq('status', 'completed')
       .gte('updated_at', cutoff)
 
@@ -131,6 +132,29 @@ export async function GET(request: NextRequest) {
 
       const config = NOTIFICATION_CONFIG.tournament_end
       const totalPlayers = participants.length
+
+      // Discord : classement final, une seule fois par tournoi (verrou admin_settings)
+      if ((tournament as any).discord_webhook_url) {
+        const lockKey = `discord_end:${tournament.id}`
+        const { error: lockErr } = await supabase
+          .from('admin_settings')
+          .insert({ setting_key: lockKey, setting_value: new Date().toISOString() })
+        if (!lockErr) {
+          const ogParams = new URLSearchParams({
+            tournament: tournament.name,
+            username: winner.username,
+            avatar: getAvatarUrl((rankings[0] as any)?.avatar || 'avatar1'),
+            rank: '1',
+            totalPlayers: String(totalPlayers),
+          })
+          const link = `${baseUrl}/share/ranking/${tournament.id}?mode=general`
+          await postDiscordEmbed((tournament as any).discord_webhook_url, {
+            title: `🏆 « ${tournament.name} » — c'est terminé !`,
+            description: `Vainqueur : **${winner.username}** avec **${winner.totalPoints} pts** 🥇\n${totalPlayers} joueurs au classement.\n[Voir le classement final](${link})`,
+            imageUrl: `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`,
+          })
+        }
+      }
 
       for (const participant of participants) {
         const profile = participant.profiles as any
