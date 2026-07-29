@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/email'
 import { ADMIN_EMAIL } from '@/lib/email/admin-templates'
+import { escapeHtml } from '@/lib/email/escape'
 import { assertCron } from '@/lib/cron-auth'
 
 // Cron job qui s'exécute à 12h et 20h pour récapituler les nouvelles inscriptions
@@ -114,10 +115,10 @@ function generateDailySignupEmail(users: any[], timeRange: string) {
     return `
       <tr>
         <td style="padding: 12px; border-bottom: 1px solid #2d2d3d;">
-          <span style="color: #fff; font-size: 15px; font-weight: 600;">${user.username}</span>
+          <span style="color: #fff; font-size: 15px; font-weight: 600;">${escapeHtml(user.username)}</span>
         </td>
         <td style="padding: 12px; border-bottom: 1px solid #2d2d3d;">
-          <span style="color: #888; font-size: 14px;">${user.email}</span>
+          <span style="color: #888; font-size: 14px;">${escapeHtml(user.email)}</span>
         </td>
         <td style="padding: 12px; border-bottom: 1px solid #2d2d3d;">
           <span style="color: #ff9900; font-size: 14px;">${providerEmoji} ${providerLabel}</span>

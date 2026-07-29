@@ -1,4 +1,5 @@
 // Templates d'emails pour alertes administrateur
+import { escapeHtml } from './escape'
 
 const ADMIN_EMAIL = 'kochroman6@gmail.com'
 
@@ -57,14 +58,14 @@ export function getNewUserAlertTemplate(props: NewUserAlertProps) {
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
                     <span style="color: #888; font-size: 14px;">Email</span><br>
-                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${email}</span>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${escapeHtml(email)}</span>
                   </td>
                 </tr>
                 ${username ? `
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
                     <span style="color: #888; font-size: 14px;">Username</span><br>
-                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${username}</span>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${escapeHtml(username)}</span>
                   </td>
                 </tr>
                 ` : ''}
@@ -214,8 +215,8 @@ export function getNewTournamentAlertTemplate(props: NewTournamentAlertProps) {
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
                     <span style="color: #888; font-size: 14px;">Créateur</span><br>
-                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${creatorUsername}</span>
-                    <br><span style="color: #888; font-size: 13px;">${creatorEmail}</span>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${escapeHtml(creatorUsername)}</span>
+                    <br><span style="color: #888; font-size: 13px;">${escapeHtml(creatorEmail)}</span>
                   </td>
                 </tr>
                 <tr>
@@ -342,8 +343,8 @@ export function getTransactionAlertTemplate(props: TransactionAlertProps) {
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
                     <span style="color: #888; font-size: 14px;">Utilisateur</span><br>
-                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${userEmail}</span>
-                    ${username ? `<br><span style="color: #ff9900; font-size: 14px;">@${username}</span>` : ''}
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${escapeHtml(userEmail)}</span>
+                    ${username ? `<br><span style="color: #ff9900; font-size: 14px;">@${escapeHtml(username)}</span>` : ''}
                   </td>
                 </tr>
                 <tr>
@@ -452,7 +453,7 @@ export function getTournamentStartedAlertTemplate(props: TournamentStartedAlertP
   const typeLabel = typeLabels[tournamentType] || tournamentType
 
   const participantsHtml = participants.map(p =>
-    `<span style="display: inline-block; background-color: ${p.isCaptain ? '#ff9900' : '#1e293b'}; color: ${p.isCaptain ? '#000' : '#e0e0e0'}; padding: 4px 10px; border-radius: 16px; margin: 3px; font-size: 12px;">${p.username}${p.isCaptain ? ' (cap.)' : ''}</span>`
+    `<span style="display: inline-block; background-color: ${p.isCaptain ? '#ff9900' : '#1e293b'}; color: ${p.isCaptain ? '#000' : '#e0e0e0'}; padding: 4px 10px; border-radius: 16px; margin: 3px; font-size: 12px;">${escapeHtml(p.username)}${p.isCaptain ? ' (cap.)' : ''}</span>`
   ).join('')
 
   const html = `
@@ -499,8 +500,8 @@ export function getTournamentStartedAlertTemplate(props: TournamentStartedAlertP
                 <tr>
                   <td style="padding: 10px 0; border-bottom: 1px solid #2d2d3d;">
                     <span style="color: #888; font-size: 14px;">Capitaine</span><br>
-                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${captainUsername}</span>
-                    <br><span style="color: #888; font-size: 13px;">${captainEmail}</span>
+                    <span style="color: #fff; font-size: 16px; font-weight: 600;">${escapeHtml(captainUsername)}</span>
+                    <br><span style="color: #888; font-size: 13px;">${escapeHtml(captainEmail)}</span>
                   </td>
                 </tr>
                 <tr>

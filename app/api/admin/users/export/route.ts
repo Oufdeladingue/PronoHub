@@ -106,6 +106,8 @@ export async function GET(request: NextRequest) {
     }
 
     const escapeCsv = (val: string) => {
+      // Neutralise l'injection de formule (Excel/Sheets exécutent = + - @ TAB CR)
+      if (/^[=+\-@\t\r]/.test(val)) val = "'" + val
       if (val.includes(',') || val.includes('"') || val.includes('\n')) {
         return `"${val.replace(/"/g, '""')}"`
       }

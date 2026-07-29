@@ -6,14 +6,17 @@ import { sendEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
 import { calculateRecipients } from '@/lib/admin/targeting'
 import { replaceMatchShortcodes } from '@/lib/admin/match-shortcodes'
+import { escapeHtml } from '@/lib/email/escape'
 
 /**
  * Remplace les variables utilisateur dans un texte
  */
-function replaceUserVariables(text: string, user: { username: string; email: string }): string {
+function replaceUserVariables(text: string, user: { username: string; email: string }, htmlEscape = false): string {
+  const u = htmlEscape ? escapeHtml(user.username || 'Utilisateur') : (user.username || 'Utilisateur')
+  const e = htmlEscape ? escapeHtml(user.email || '') : (user.email || '')
   return text
-    .replace(/\[username\]/gi, user.username || 'Utilisateur')
-    .replace(/\[email\]/gi, user.email || '')
+    .replace(/\[username\]/gi, u)
+    .replace(/\[email\]/gi, e)
 }
 
 /**
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
         try {
           // Remplacer les variables utilisateur et CTA
           const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
-          let personalizedBody = replaceUserVariables(preProcessedBody, recipient)
+          let personalizedBody = replaceUserVariables(preProcessedBody, recipient, true)
           personalizedBody = personalizedBody
             .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
             .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')

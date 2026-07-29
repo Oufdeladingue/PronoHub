@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { calculateRecipients } from '@/lib/admin/targeting'
+import { csvCell } from '@/lib/email/escape'
 
 /**
  * API POST /api/admin/communications/export-recipients
@@ -40,9 +41,9 @@ export async function POST(request: NextRequest) {
       const csv = [
         // Header
         'ID,Username,Email,FCM Token',
-        // Rows
+        // Rows — csvCell neutralise l'injection de formule + les caractères de cassure
         ...recipients.map(r =>
-          `${r.id},${r.username},"${r.email}",${r.fcm_token ? 'Oui' : 'Non'}`
+          [csvCell(r.id), csvCell(r.username), csvCell(r.email), r.fcm_token ? 'Oui' : 'Non'].join(',')
         )
       ].join('\n')
 
