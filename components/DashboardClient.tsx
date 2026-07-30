@@ -12,7 +12,6 @@ import { useTrophyNotifications } from '@/hooks/useTrophyNotifications'
 import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
 import AndroidAppPromotionModal from '@/components/AndroidAppPromotionModal'
 import WelcomeModal from '@/components/WelcomeModal'
-import ShareImageModal from '@/components/ShareImageModal'
 // Les icônes des formules sont maintenant des SVG custom dans /images/icons/
 
 // Fonction pour formater la date au format "dd/mm à hhhmm"
@@ -115,7 +114,6 @@ function DashboardContent({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [showJoinInput, setShowJoinInput] = useState(false)
-  const [sharePublic, setSharePublic] = useState<any | null>(null) // tournoi public à partager (invitation)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
   const [isJoining, setIsJoining] = useState(false)
@@ -626,22 +624,6 @@ function DashboardContent({
               ))}
             </div>
           )}
-
-          {/* Tournois publics auxquels JE participe → inviter des amis (partage du lien public) */}
-          {tournaments.filter((t: any) => t.is_public).map((pt: any) => (
-            <div key={`invite-${pt.id}`} className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-[#ff9900]/40 bg-[#ff9900]/[0.06] px-4 py-3">
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wide theme-accent-text-always">🌍 Tu joues au tournoi public</div>
-                <div className="font-semibold theme-text truncate">{pt.name} — invite tes amis !</div>
-              </div>
-              <button
-                onClick={() => setSharePublic(pt)}
-                className="shrink-0 px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:brightness-110"
-              >
-                👥 Inviter
-              </button>
-            </div>
-          ))}
 
           {activeTournaments.length === 0 ? (
             <div className="py-6 px-4">
@@ -1883,17 +1865,6 @@ function DashboardContent({
         <WelcomeModal onDismiss={handleDismissWelcome} />
       )}
 
-      {/* Partage / invitation d'un tournoi public */}
-      {sharePublic && (
-        <ShareImageModal
-          imageUrl={`/api/og/ranking?tournamentId=${sharePublic.id}&mode=general`}
-          shareUrl={`https://www.pronohub.club/tournoi-public/${sharePublic.code}`}
-          shareText={`Rejoins « ${sharePublic.name} » sur PronoHub — le tournoi de pronos ouvert à tous, gratuit ! 🏆`}
-          downloadName={`tournoi-public-${sharePublic.code}.png`}
-          title="Inviter des amis"
-          onClose={() => setSharePublic(null)}
-        />
-      )}
     </div>
   )
 }

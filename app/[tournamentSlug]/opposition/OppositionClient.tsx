@@ -49,6 +49,8 @@ interface Tournament {
   tournament_type?: string
   teams_enabled?: boolean
   early_prediction_bonus?: boolean
+  is_public?: boolean
+  invite_code?: string
 }
 
 interface Match {
@@ -323,6 +325,7 @@ export default function OppositionClient({
   const [competitionLogo, setCompetitionLogo] = useState<string | null>(serverCompetitionLogo)
   const [competitionLogoWhite, setCompetitionLogoWhite] = useState<string | null>(serverCompetitionLogoWhite)
   const [activeTab, setActiveTab] = useState<'pronostics' | 'classement' | 'equipes' | 'regles' | 'tchat'>(initialTab)
+  const [showInviteModal, setShowInviteModal] = useState(false) // partage d'un tournoi public
   const [username, setUsername] = useState<string>(serverUser.username)
   const [userAvatar, setUserAvatar] = useState<string>(serverUser.avatar)
   const [userId, setUserId] = useState<string>(serverUser.id)
@@ -2299,6 +2302,16 @@ export default function OppositionClient({
               />
               <span className="hidden md:inline">Règles</span>
             </button>
+            {/* Onglet Inviter — uniquement pour les tournois publics (partage du lien public) */}
+            {tournament.is_public && (
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 theme-slate-text hover:theme-text"
+              >
+                <img src="/images/icons/share.svg" alt="Inviter" className="w-7 h-7 md:w-5 md:h-5 icon-filter-slate" />
+                <span className="hidden md:inline">Inviter</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -4010,6 +4023,18 @@ export default function OppositionClient({
             downloadName={`pronos-${slugify(tournament.name)}-${slugify(translateTeamName(shareModalMatch.home_team_name))}-${slugify(translateTeamName(shareModalMatch.away_team_name))}${shareModalMatch.utc_date ? '-' + fileDateStamp(false, new Date(shareModalMatch.utc_date)) : ''}.png`}
             title="Partager les pronos"
             onClose={() => setShareModalMatch(null)}
+          />
+        )}
+
+        {/* Modale d'invitation au tournoi public (onglet Inviter) */}
+        {showInviteModal && (
+          <ShareImageModal
+            imageUrl={`/api/og/ranking?tournamentId=${tournament.id}&mode=general`}
+            shareUrl={`https://www.pronohub.club/tournoi-public/${tournament.invite_code || tournament.slug}`}
+            shareText={`Rejoins « ${tournament.name} » sur PronoHub — le tournoi de pronos ouvert à tous, gratuit ! 🏆`}
+            downloadName={`tournoi-public-${tournament.invite_code || tournament.slug}.png`}
+            title="Inviter des amis"
+            onClose={() => setShowInviteModal(false)}
           />
         )}
 
