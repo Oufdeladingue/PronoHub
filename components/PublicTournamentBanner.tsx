@@ -8,7 +8,6 @@ export default function PublicTournamentBanner({ t }: { t: FeaturedPublicTournam
   return (
     <Link href={`/tournoi-public/${t.slug}`} className="block group">
       <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 px-4 py-2 text-center text-[13px] bg-[#0b1220]/80 backdrop-blur-sm border-b border-white/[0.06]">
-        <span className="text-[#ff9900]">🌍</span>
         <span className="text-slate-300">
           Tournoi public ouvert à tous — <strong className="text-white font-semibold">{t.name}</strong>{players}
         </span>
