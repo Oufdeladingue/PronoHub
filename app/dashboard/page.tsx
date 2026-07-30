@@ -116,7 +116,8 @@ export default async function DashboardPage() {
   const [
     { data: participatedTournaments },
     { data: userTournaments },
-    { data: leftTournaments }
+    { data: leftTournaments },
+    { data: publicRaw }
   ] = await Promise.all([
     // QUOTAS GRATUIT: Compter les PARTICIPATIONS aux tournois gratuits actifs
     supabase
@@ -135,8 +136,21 @@ export default async function DashboardPage() {
       .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type')
       .eq('original_creator_id', user.id)
       .neq('status', 'completed')
-      .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`)
+      .not('id', 'in', `(${tournamentIds.length > 0 ? tournamentIds.join(',') : '00000000-0000-0000-0000-000000000000'})`),
+    // Tournois PUBLICS ouverts à tous (rejoignables sans amis)
+    supabase
+      .from('tournaments')
+      .select('id, name, slug, invite_code, competition_name')
+      .eq('is_public', true)
+      .in('status', ['pending', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(5)
   ])
+
+  // Tournois publics que l'utilisateur n'a PAS encore rejoints
+  const joinablePublic = (publicRaw || [])
+    .filter((t: any) => !tournamentIds.includes(t.id))
+    .map((t: any) => ({ id: t.id, name: t.name, code: t.slug || t.invite_code, competition_name: t.competition_name }))
 
   // Récupérer les IDs de compétitions (inclure les tournois quittés aussi)
   const allTournamentsForCompetitions = [...(userTournaments || []), ...(leftTournaments || [])]
@@ -722,6 +736,7 @@ export default async function DashboardPage() {
           credits={credits}
           tournaments={tournaments}
           leftTournaments={leftTournamentsList}
+          publicTournaments={joinablePublic}
           adminPath={getAdminPath()}
         />
       </Suspense>

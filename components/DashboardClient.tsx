@@ -92,6 +92,7 @@ interface DashboardClientProps {
   credits?: UserCredits
   tournaments: any[]
   leftTournaments?: LeftTournament[]
+  publicTournaments?: { id: string; name: string; code: string; competition_name: string | null }[]
   adminPath?: string
 }
 
@@ -107,6 +108,7 @@ function DashboardContent({
   credits,
   tournaments,
   leftTournaments = [],
+  publicTournaments = [],
   adminPath = 'admin'
 }: DashboardClientProps) {
   const router = useRouter()
@@ -601,6 +603,28 @@ function DashboardContent({
               )}
             </div>
           </div>
+
+          {/* Tournoi(s) public(s) ouverts à tous — rejoignables sans amis */}
+          {publicTournaments.length > 0 && (
+            <div className="mb-5 space-y-2">
+              {publicTournaments.map((pt) => (
+                <a
+                  key={pt.id}
+                  href={`/vestiaire/rejoindre?code=${pt.code}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[#ff9900]/40 bg-[#ff9900]/[0.06] px-4 py-3 hover:bg-[#ff9900]/10 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold uppercase tracking-wide theme-accent-text-always">🌍 Tournoi public ouvert à tous</div>
+                    <div className="font-semibold theme-text truncate">
+                      {pt.name}{pt.competition_name ? <span className="theme-text-secondary font-normal"> · {pt.competition_name}</span> : null}
+                    </div>
+                  </div>
+                  <span className="shrink-0 px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm">Rejoindre</span>
+                </a>
+              ))}
+            </div>
+          )}
+
           {activeTournaments.length === 0 ? (
             <div className="py-6 px-4">
               {/* Two-column layout centered: text left, referee right */}
