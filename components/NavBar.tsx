@@ -49,6 +49,7 @@ export default function NavBar({
       { name: 'Général', href: `/${adminPath}`, icon: 'home' },
       { name: 'Compétitions', href: `/${adminPath}/data`, icon: 'import' },
       { name: 'Custom', href: `/${adminPath}/custom`, icon: 'star' },
+      { name: 'Tournoi public', href: `/${adminPath}/tournoi-public`, icon: 'trophy' },
       { name: 'Logos', href: `/${adminPath}/logos`, icon: 'image' },
       { name: 'Données', href: `/${adminPath}/usage`, icon: 'trophy' },
       { name: 'Communications', href: `/${adminPath}/communications`, icon: 'mail' },
