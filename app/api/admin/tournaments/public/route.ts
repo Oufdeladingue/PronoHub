@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       creator_id: user.id,
       original_creator_id: user.id,
       status: 'pending',
-      current_participants: 1,
+      current_participants: 0, // l'admin est propriétaire, PAS joueur → 0 participant au départ
       scoring_exact_score: 3,
       scoring_correct_winner: 1,
       scoring_correct_goal_difference: 2,
@@ -119,12 +119,8 @@ export async function POST(request: NextRequest) {
     .single()
   if (tErr || !tournament) return NextResponse.json({ error: tErr?.message || 'Création échouée' }, { status: 500 })
 
-  await admin.from('tournament_participants').insert({
-    tournament_id: tournament.id,
-    user_id: user.id,
-    participant_role: 'captain',
-    invite_type: 'free',
-  })
+  // NB : on n'ajoute PAS l'admin comme participant — il est propriétaire (creator_id), pas joueur.
+  // Le 1er vrai visiteur qui rejoint devient participant #1.
 
   return NextResponse.json({ success: true, tournament, publicUrl: `/tournoi-public/${tournament.slug}` })
 }
