@@ -348,8 +348,17 @@ export async function POST(request: NextRequest) {
 
     console.log('[JOIN] Tournament found:', { id: tournament.id, name: tournament.name, invite_code: tournament.invite_code, slug: tournament.slug, hasCompetition: !!competitionInfo })
 
-    // Vérifier que le tournoi est en attente ou warmup
-    if (!['pending', 'warmup'].includes(tournament.status)) {
+    // Tournoi PUBLIC : lecture résiliente (colonne is_public, peut ne pas exister avant migration).
+    // Un tournoi public bypasse toutes les restrictions : rejoindre même en cours, capacité illimitée,
+    // aucun quota/paiement, et pas de notif "capitaine" (sinon spam à chaque arrivée).
+    let isPublic = false
+    try {
+      const { data: pub } = await supabase.from('tournaments').select('is_public').eq('id', tournament.id).maybeSingle()
+      isPublic = !!(pub as any)?.is_public
+    } catch { isPublic = false }
+
+    // Vérifier que le tournoi est en attente ou warmup (un tournoi public reste joignable même démarré)
+    if (!isPublic && !['pending', 'warmup'].includes(tournament.status)) {
       return NextResponse.json(
         { error: 'Ce tournoi a déjà commencé ou est terminé' },
         { status: 400 }
@@ -382,7 +391,7 @@ export async function POST(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('tournament_id', tournament.id)
 
-    if (participantCount && participantCount >= tournament.max_players) {
+    if (!isPublic && participantCount && participantCount >= tournament.max_players) {
       return NextResponse.json(
         { error: 'Ce tournoi est complet' },
         { status: 400 }
@@ -393,9 +402,11 @@ export async function POST(request: NextRequest) {
     const isEventTournament = tournament.competitions?.is_event === true
 
     // Vérifier l'éligibilité selon le type de tournoi
-    const eligibility = isEventTournament
-      ? await checkEventJoinEligibility(supabase, user.id, tournament.id)
-      : await checkJoinEligibility(supabase, user.id, tournament)
+    const eligibility = isPublic
+      ? ({ canJoin: true, requiresPayment: false, inviteType: 'free' as InviteType } as any)
+      : isEventTournament
+        ? await checkEventJoinEligibility(supabase, user.id, tournament.id)
+        : await checkJoinEligibility(supabase, user.id, tournament)
 
     if (!eligibility.canJoin) {
       return NextResponse.json(
@@ -640,7 +651,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Envoyer un email au capitaine pour l'informer du nouveau joueur
-    try {
+    // (sauté pour un tournoi public : éviterait un spam de notifs à chaque arrivée)
+    if (!isPublic) try {
       // Récupérer les infos du capitaine (créateur du tournoi)
       const { data: captain } = await supabase
         .from('profiles')

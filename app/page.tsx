@@ -6,6 +6,8 @@ import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
 import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
+import { getFeaturedPublicTournament } from '@/lib/public-tournament'
+import PublicTournamentBanner from '@/components/PublicTournamentBanner'
 import './landing.css'
 
 export const metadata = {
@@ -682,8 +684,11 @@ export default async function Home() {
     redirect('/dashboard')
   }
 
+  const featuredPublic = await getFeaturedPublicTournament()
+
   return (
     <ClientShell>
+      {featuredPublic && <PublicTournamentBanner t={featuredPublic} />}
       <HeroSection />
       <HowItWorksSection />
       <FeaturesSection />
