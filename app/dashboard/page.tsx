@@ -128,7 +128,7 @@ export default async function DashboardPage() {
     // Récupérer les détails des tournois où l'utilisateur participe
     supabase
       .from('tournaments')
-      .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays')
+      .select('id, name, slug, invite_code, competition_id, custom_competition_id, competition_name, creator_id, status, max_participants, max_players, starting_matchday, ending_matchday, tournament_type, num_matchdays, actual_matchdays, is_public')
       .in('id', tournamentIds),
     // Récupérer les tournois où l'utilisateur est le créateur original mais a quitté
     supabase
@@ -643,6 +643,7 @@ export default async function DashboardPage() {
       lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés
       tournament_type: t.tournament_type || 'free',
       is_event: isEventTournament, // Tournoi sur une compétition événement
+      is_public: t.is_public === true, // Tournoi public (ouvert à tous)
       // Infos de classement pour tournois terminés
       winner: tournamentRankings[t.id]?.winner || null,
       userRank: tournamentRankings[t.id]?.userRank || null,
