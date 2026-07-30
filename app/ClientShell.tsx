@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import PublicTournamentBanner from '@/components/PublicTournamentBanner'
+import type { FeaturedPublicTournament } from '@/lib/public-tournament'
 
 const SECTIONS = [
   { id: 'hero', label: 'Accueil' },
@@ -16,7 +18,7 @@ const SECTIONS = [
 
 const NAV_LINKS = SECTIONS.filter(s => ['how', 'features'].includes(s.id))
 
-export function ClientShell({ children }: { children: ReactNode }) {
+export function ClientShell({ children, featured }: { children: ReactNode; featured?: FeaturedPublicTournament | null }) {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState('hero')
@@ -222,11 +224,13 @@ export function ClientShell({ children }: { children: ReactNode }) {
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           headerCompact
-            ? 'py-1.5 bg-[#020617]/85 backdrop-blur-md shadow-lg shadow-black/30'
-            : 'py-3 bg-transparent'
+            ? 'bg-[#020617]/85 backdrop-blur-md shadow-lg shadow-black/30'
+            : 'bg-transparent'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
+        {/* Bannière tournoi public (au-dessus de la nav, dans le header fixe → plus de chevauchement) */}
+        {featured && <PublicTournamentBanner t={featured} />}
+        <div className={`max-w-6xl mx-auto px-4 flex items-center justify-between ${headerCompact ? 'py-1.5' : 'py-3'}`}>
           {/* Logo */}
           <a
             href="#hero"
