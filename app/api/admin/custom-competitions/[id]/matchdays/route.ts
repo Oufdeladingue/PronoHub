@@ -34,6 +34,38 @@ async function resequenceMatchdays(admin: ReturnType<typeof createAdminClient>, 
   }
 }
 
+/**
+ * Resynchronise la PLAGE de journées des tournois PUBLICS d'une compétition custom avec les journées
+ * réellement présentes → quand l'admin ajoute/supprime une journée, elle apparaît/disparaît côté users.
+ * (Ne touche PAS les tournois privés : leur plage est choisie par le créateur au lancement.)
+ */
+async function syncPublicTournamentsRange(admin: ReturnType<typeof createAdminClient>, customCompetitionId: string) {
+  const { data: mds } = await admin
+    .from('custom_competition_matchdays')
+    .select('matchday_number')
+    .eq('custom_competition_id', customCompetitionId)
+    .order('matchday_number', { ascending: true })
+  const nums = (mds || []).map((m: any) => m.matchday_number)
+  if (nums.length === 0) return
+  const start = nums[0]
+  const end = nums[nums.length - 1]
+  const count = end - start + 1
+  const snapshot = Array.from({ length: count }, (_, i) => start + i)
+  await admin
+    .from('tournaments')
+    .update({
+      starting_matchday: start,
+      ending_matchday: end,
+      num_matchdays: count,
+      matchdays_count: count,
+      actual_matchdays: count,
+      matchday_snapshot: snapshot,
+    })
+    .eq('custom_competition_id', customCompetitionId)
+    .eq('is_public', true)
+    .neq('status', 'completed')
+}
+
 // GET - Récupérer les journées d'une compétition custom
 export async function GET(
   request: Request,
@@ -211,6 +243,8 @@ export async function POST(
     // Renumérotation contiguë par date (gère l'insertion d'une semaine entre deux journées)
     const adminSupabase = createAdminClient()
     await resequenceMatchdays(adminSupabase, id)
+    // Répercuter sur les tournois publics (nouvelle journée visible côté users)
+    await syncPublicTournamentsRange(adminSupabase, id)
 
     return NextResponse.json({
       success: true,
@@ -274,6 +308,8 @@ export async function DELETE(
 
     // Renumérotation contiguë par date après suppression (J1, J3 → J1, J2…)
     await resequenceMatchdays(adminSupabase, competitionId)
+    // Répercuter sur les tournois publics
+    await syncPublicTournamentsRange(adminSupabase, competitionId)
 
     return NextResponse.json({
       success: true,
