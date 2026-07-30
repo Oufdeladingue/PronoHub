@@ -1,16 +1,20 @@
 import Link from 'next/link'
 import type { FeaturedPublicTournament } from '@/lib/public-tournament'
 
-/** Bandeau « rejoins le tournoi public » — à surfacer sur la home / les pages marketing. */
+/** Bandeau discret « rejoins le tournoi public » — intégré au header sombre de la landing. */
 export default function PublicTournamentBanner({ t }: { t: FeaturedPublicTournament }) {
+  const players =
+    t.players > 1 ? ` · ${t.players} joueurs` : ''
   return (
-    <Link
-      href={`/tournoi-public/${t.slug}`}
-      className="block group"
-    >
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2.5 text-center text-sm bg-[#ff9900] text-[#111827] font-semibold">
-        <span>🌍 Tournoi public ouvert à tous — <strong>{t.name}</strong>{t.players > 0 ? ` · ${t.players} joueurs` : ''}</span>
-        <span className="underline underline-offset-2 group-hover:no-underline">Rejoindre gratuitement →</span>
+    <Link href={`/tournoi-public/${t.slug}`} className="block group">
+      <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-0.5 px-4 py-2 text-center text-[13px] bg-[#0b1220]/80 backdrop-blur-sm border-b border-white/[0.06]">
+        <span className="text-[#ff9900]">🌍</span>
+        <span className="text-slate-300">
+          Tournoi public ouvert à tous — <strong className="text-white font-semibold">{t.name}</strong>{players}
+        </span>
+        <span className="text-[#ff9900] font-semibold group-hover:underline underline-offset-2 whitespace-nowrap">
+          Rejoindre →
+        </span>
       </div>
     </Link>
   )
