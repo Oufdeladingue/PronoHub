@@ -18,6 +18,7 @@ interface DashboardData {
   credits: any
   tournaments: any[]
   leftTournaments: any[]
+  publicTournaments?: any[]
 }
 
 /**
@@ -180,6 +181,7 @@ export default function DashboardCapacitorWrapper() {
         credits={dashboardData.credits}
         tournaments={dashboardData.tournaments}
         leftTournaments={dashboardData.leftTournaments}
+        publicTournaments={dashboardData.publicTournaments}
         adminPath={getAdminPath()}
       />
     </div>
