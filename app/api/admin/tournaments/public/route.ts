@@ -4,51 +4,85 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 
 /**
- * POST /api/admin/tournaments/public — crée un TOURNOI PUBLIC (super_admin only).
- * Basé sur une compétition custom. is_public=true, capacité illimitée (type enterprise + bypass
- * dans le join), rejoignable même en cours. Le créateur (admin) est ajouté comme premier participant.
- * Body : { name, customCompetitionId }
+ * Gestion des TOURNOIS PUBLICS (super_admin only).
+ * is_public est porté par le TOURNOI : une compétition (normale ou custom) peut héberger en parallèle
+ * un tournoi public ET des tournois privés — aucune duplication ni conflit.
+ *  - POST   { name, competitionId? , customCompetitionId?, numMatchdays? } → crée le tournoi public
+ *  - GET    → liste les tournois publics
+ *  - DELETE ?id=... → supprime un tournoi public
  */
 function genSlug(): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
   let s = ''
-  for (let i = 0; i < 8; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)]
+  for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]
   return s
 }
 
-export async function POST(request: NextRequest) {
+async function requireSuperAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
+  if (!user) return { error: NextResponse.json({ error: 'Non authentifié' }, { status: 401 }) }
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
   if (!isSuperAdmin(profile?.role as UserRole)) {
-    return NextResponse.json({ error: 'Réservé au super admin' }, { status: 403 })
+    return { error: NextResponse.json({ error: 'Réservé au super admin' }, { status: 403 }) }
+  }
+  return { user, admin: createAdminClient() }
+}
+
+export async function GET() {
+  const ctx = await requireSuperAdmin()
+  if (ctx.error) return ctx.error
+  const { data: tournaments } = await ctx.admin
+    .from('tournaments')
+    .select('id, name, slug, status, competition_name, created_at')
+    .eq('is_public', true)
+    .order('created_at', { ascending: false })
+  // Compter les joueurs
+  const withCounts = await Promise.all(
+    (tournaments || []).map(async (t) => {
+      const { count } = await ctx.admin
+        .from('tournament_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', t.id)
+      return { ...t, players: count || 0, url: `/tournoi-public/${t.slug}` }
+    })
+  )
+  return NextResponse.json({ success: true, tournaments: withCounts })
+}
+
+export async function POST(request: NextRequest) {
+  const ctx = await requireSuperAdmin()
+  if (ctx.error) return ctx.error
+  const { user, admin } = ctx
+
+  const { name, competitionId, customCompetitionId, numMatchdays } = await request.json().catch(() => ({}))
+  if (!name || (!competitionId && !customCompetitionId)) {
+    return NextResponse.json({ error: 'name + (competitionId OU customCompetitionId) requis' }, { status: 400 })
   }
 
-  const { name, customCompetitionId } = await request.json().catch(() => ({}))
-  if (!name || !customCompetitionId) {
-    return NextResponse.json({ error: 'name et customCompetitionId requis' }, { status: 400 })
+  // Résoudre le nom de compétition + le nombre de journées
+  let competitionName = 'Compétition'
+  let mdCount = numMatchdays || null
+  if (customCompetitionId) {
+    const { data: c } = await admin.from('custom_competitions').select('name, total_matchdays').eq('id', customCompetitionId).maybeSingle()
+    if (!c) return NextResponse.json({ error: 'Compétition custom introuvable' }, { status: 404 })
+    competitionName = c.name
+    mdCount = mdCount || c.total_matchdays || 1
+  } else {
+    const { data: c } = await admin.from('competitions').select('name, total_matchdays').eq('id', competitionId).maybeSingle()
+    if (!c) return NextResponse.json({ error: 'Compétition introuvable' }, { status: 404 })
+    competitionName = c.name
+    mdCount = mdCount || c.total_matchdays || 38
   }
 
-  const admin = createAdminClient()
-
-  // Compétition custom (nom + nb de journées)
-  const { data: comp } = await admin
-    .from('custom_competitions')
-    .select('name, total_matchdays')
-    .eq('id', customCompetitionId)
-    .maybeSingle()
-  if (!comp) return NextResponse.json({ error: 'Compétition custom introuvable' }, { status: 404 })
-
-  // Slug unique (8 maj)
+  // Slug unique
   let slug = ''
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const candidate = genSlug()
-    const { data: exists } = await admin.from('tournaments').select('id').eq('slug', candidate).maybeSingle()
-    if (!exists) { slug = candidate; break }
+  for (let i = 0; i < 10; i++) {
+    const cand = genSlug()
+    const { data: exists } = await admin.from('tournaments').select('id').eq('slug', cand).maybeSingle()
+    if (!exists) { slug = cand; break }
   }
-  if (!slug) return NextResponse.json({ error: 'Impossible de générer un slug' }, { status: 500 })
+  if (!slug) return NextResponse.json({ error: 'Slug indisponible' }, { status: 500 })
 
   const { data: tournament, error: tErr } = await admin
     .from('tournaments')
@@ -56,15 +90,15 @@ export async function POST(request: NextRequest) {
       name,
       slug,
       invite_code: slug,
-      competition_name: comp.name,
-      custom_competition_id: customCompetitionId,
-      competition_id: null,
+      competition_name: competitionName,
+      competition_id: customCompetitionId ? null : competitionId,
+      custom_competition_id: customCompetitionId || null,
       is_public: true,
       tournament_type: 'enterprise',
-      max_players: 1000000, // illimité en pratique (le join bypasse ce plafond pour is_public)
+      max_players: 1000000,
       max_participants: 1000000,
-      num_matchdays: comp.total_matchdays || 1,
-      matchdays_count: comp.total_matchdays || 1,
+      num_matchdays: mdCount,
+      matchdays_count: mdCount,
       all_matchdays: true,
       bonus_match: false,
       early_prediction_bonus: false,
@@ -83,12 +117,8 @@ export async function POST(request: NextRequest) {
     })
     .select('id, slug')
     .single()
+  if (tErr || !tournament) return NextResponse.json({ error: tErr?.message || 'Création échouée' }, { status: 500 })
 
-  if (tErr || !tournament) {
-    return NextResponse.json({ error: tErr?.message || 'Création échouée' }, { status: 500 })
-  }
-
-  // Admin = premier participant (capitaine)
   await admin.from('tournament_participants').insert({
     tournament_id: tournament.id,
     user_id: user.id,
@@ -96,9 +126,18 @@ export async function POST(request: NextRequest) {
     invite_type: 'free',
   })
 
-  return NextResponse.json({
-    success: true,
-    tournament: { id: tournament.id, slug: tournament.slug },
-    publicUrl: `/tournoi-public/${tournament.slug}`,
-  })
+  return NextResponse.json({ success: true, tournament, publicUrl: `/tournoi-public/${tournament.slug}` })
+}
+
+export async function DELETE(request: NextRequest) {
+  const ctx = await requireSuperAdmin()
+  if (ctx.error) return ctx.error
+  const id = new URL(request.url).searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 })
+  // Sécurité : ne supprimer que si c'est bien un tournoi public
+  const { data: t } = await ctx.admin.from('tournaments').select('id, is_public').eq('id', id).maybeSingle()
+  if (!t || !t.is_public) return NextResponse.json({ error: 'Tournoi public introuvable' }, { status: 404 })
+  const { error } = await ctx.admin.from('tournaments').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true })
 }
