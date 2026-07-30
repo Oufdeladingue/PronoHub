@@ -139,12 +139,16 @@ function RejoindreContent() {
         return
       }
 
-      // Rediriger vers la page d'échauffement du tournoi
+      // Rediriger : un tournoi public/actif est directement jouable → page de jeu (opposition),
+      // pas la salle d'échauffement (qui est le lobby d'avant-lancement d'un tournoi privé).
       if (data.tournament?.slug) {
-        // 'link' si arrivé via un lien d'invitation (?code=), 'code' si code saisi à la main
         trackTournamentJoined({ method: codeFromUrl ? 'link' : 'code', tournamentId: data.tournament?.id })
-        // Le slug complet est déjà construit côté serveur
-        router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
+        const t = data.tournament
+        if (t.isPublic || t.status === 'active') {
+          router.push(`/${t.slug}/opposition`)
+        } else {
+          router.push(`/vestiaire/${t.slug}/echauffement`)
+        }
       }
     } catch (err) {
       setError('Erreur de connexion au serveur')

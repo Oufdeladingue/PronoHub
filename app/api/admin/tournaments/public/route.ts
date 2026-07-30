@@ -60,20 +60,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name + (competitionId OU customCompetitionId) requis' }, { status: 400 })
   }
 
-  // Résoudre le nom de compétition + le nombre de journées
+  // Résoudre le nom de compétition + la PLAGE de journées (pour un tournoi directement JOUABLE).
   let competitionName = 'Compétition'
-  let mdCount = numMatchdays || null
+  let startingMatchday = 1
+  let endingMatchday = 1
   if (customCompetitionId) {
-    const { data: c } = await admin.from('custom_competitions').select('name, total_matchdays').eq('id', customCompetitionId).maybeSingle()
+    const { data: c } = await admin.from('custom_competitions').select('name').eq('id', customCompetitionId).maybeSingle()
     if (!c) return NextResponse.json({ error: 'Compétition custom introuvable' }, { status: 404 })
     competitionName = c.name
-    mdCount = mdCount || c.total_matchdays || 1
+    // Bornes = min→max des numéros de journées réellement créées
+    const { data: mds } = await admin
+      .from('custom_competition_matchdays')
+      .select('matchday_number')
+      .eq('custom_competition_id', customCompetitionId)
+      .order('matchday_number', { ascending: true })
+    const nums = (mds || []).map((m: any) => m.matchday_number)
+    if (nums.length === 0) return NextResponse.json({ error: 'La compétition custom n\'a aucune journée créée' }, { status: 400 })
+    startingMatchday = nums[0]
+    endingMatchday = nums[nums.length - 1]
   } else {
-    const { data: c } = await admin.from('competitions').select('name, total_matchdays').eq('id', competitionId).maybeSingle()
+    const { data: c } = await admin.from('competitions').select('name, current_matchday, total_matchdays').eq('id', competitionId).maybeSingle()
     if (!c) return NextResponse.json({ error: 'Compétition introuvable' }, { status: 404 })
     competitionName = c.name
-    mdCount = mdCount || c.total_matchdays || 38
+    startingMatchday = (c.current_matchday || 0) + 1
+    endingMatchday = numMatchdays ? startingMatchday + numMatchdays - 1 : (c.total_matchdays || 38)
   }
+  const actualMatchdays = Math.max(1, endingMatchday - startingMatchday + 1)
+  const matchdaySnapshot = Array.from({ length: actualMatchdays }, (_, i) => startingMatchday + i)
 
   // Slug unique
   let slug = ''
@@ -97,15 +110,20 @@ export async function POST(request: NextRequest) {
       tournament_type: 'enterprise',
       max_players: 1000000,
       max_participants: 1000000,
-      num_matchdays: mdCount,
-      matchdays_count: mdCount,
+      num_matchdays: actualMatchdays,
+      matchdays_count: actualMatchdays,
+      actual_matchdays: actualMatchdays,
+      starting_matchday: startingMatchday,
+      ending_matchday: endingMatchday,
+      matchday_snapshot: matchdaySnapshot,
       all_matchdays: true,
       bonus_match: false,
       early_prediction_bonus: false,
       bonus_qualified: false,
       creator_id: user.id,
       original_creator_id: user.id,
-      status: 'pending',
+      status: 'active', // directement jouable (pas de lobby/lancement pour un tournoi public)
+      start_date: new Date().toISOString(),
       current_participants: 0, // l'admin est propriétaire, PAS joueur → 0 participant au départ
       scoring_exact_score: 3,
       scoring_correct_winner: 1,

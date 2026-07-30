@@ -790,7 +790,9 @@ export async function POST(request: NextRequest) {
       message: 'Vous avez rejoint le tournoi avec succès',
       tournament: {
         id: tournament.id,
-        slug: tournamentSlug
+        slug: tournamentSlug,
+        isPublic,
+        status: tournament.status
       },
       inviteType: eligibility.inviteType
     })
