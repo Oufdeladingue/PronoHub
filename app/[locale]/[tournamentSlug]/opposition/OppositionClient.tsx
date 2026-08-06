@@ -3677,7 +3677,7 @@ export default function OppositionClient({
                         <div>
                           <h3 className="font-bold theme-text text-lg">{team.name}</h3>
                           <p className="text-xs theme-text-secondary">
-                            {team.members.length} {team.members.length > 1 ? 'membres' : 'membre'}
+                            {t('teamsTab.members', { n: team.members.length })}
                           </p>
                         </div>
                       </div>
@@ -3705,7 +3705,7 @@ export default function OppositionClient({
                               }`}>
                                 {member.username}
                                 {isCurrentUser && (
-                                  <span className="ml-2 text-xs theme-text-secondary">(vous)</span>
+                                  <span className="ml-2 text-xs theme-text-secondary">{t('teamsTab.you')}</span>
                                 )}
                               </span>
                             </div>
@@ -3721,21 +3721,21 @@ export default function OppositionClient({
 
           {activeTab === 'regles' && (
             <div className="theme-card">
-              <h2 className="text-2xl font-bold theme-accent-text mb-2">Règles du tournoi</h2>
+              <h2 className="text-2xl font-bold theme-accent-text mb-2">{t('rules.title')}</h2>
               {captainUsername && (
                 <p className="theme-text-secondary mb-4">
-                  Capitaine du tournoi : <span className="font-semibold theme-text">{captainUsername}</span>
+                  {t.rich('rules.captain', { name: captainUsername, b: (c) => <span className="font-semibold theme-text">{c}</span> })}
                 </p>
               )}
               <div className="space-y-4 theme-text-secondary">
                 <div>
-                  <h3 className="font-semibold theme-text mb-2">Système de points</h3>
+                  <h3 className="font-semibold theme-text mb-2">{t('rules.pointsSystem')}</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Score exact : {pointsSettings.exactScore} {pointsSettings.exactScore > 1 ? 'points' : 'point'}</li>
-                    <li>Bon résultat (victoire/nul/défaite) : {pointsSettings.correctResult} {pointsSettings.correctResult > 1 ? 'points' : 'point'}</li>
-                    <li>Mauvais pronostic : {pointsSettings.incorrectResult} point</li>
+                    <li>{t('rules.exactScore', { n: pointsSettings.exactScore })}</li>
+                    <li>{t('rules.correctResult', { n: pointsSettings.correctResult })}</li>
+                    <li>{t('rules.wrongResult', { n: pointsSettings.incorrectResult })}</li>
                     {tournament?.bonus_qualified && (
-                      <li>Bon qualifié pour le prochain tour : <span className="text-[#ff9900] font-semibold">1 point</span></li>
+                      <li>{t.rich('rules.goodQualifier', { o: (c) => <span className="text-[#ff9900] font-semibold">{c}</span> })}</li>
                     )}
                   </ul>
                 </div>
@@ -3747,11 +3747,9 @@ export default function OppositionClient({
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       <div>
-                        <h3 className="font-semibold theme-text mb-2">Match Bonus activé</h3>
+                        <h3 className="font-semibold theme-text mb-2">{t('rules.bonusMatchTitle')}</h3>
                         <p className="text-sm">
-                          Un <span className="font-semibold theme-text">match bonus</span> est désigné à chaque journée.
-                          Les points gagnés sur ce match sont <span className="font-semibold theme-text">doublés</span> !
-                          Le match bonus est identifié par un badge {' '}
+                          {t.rich('rules.bonusMatchDesc', { b: (c) => <span className="font-semibold theme-text">{c}</span> })}{' '}
                           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded text-[9px] font-bold text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
                               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -3772,9 +3770,9 @@ export default function OppositionClient({
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                       </svg>
                       <div>
-                        <h3 className="font-semibold theme-text mb-2">Prime d'avant-match activée</h3>
+                        <h3 className="font-semibold theme-text mb-2">{t('rules.earlyBonusTitle')}</h3>
                         <p className="text-sm">
-                          Un point bonus par journée si toutes les rencontres sont pronostiquées avant l'horaire limite (30 minutes du coup d'envoi). Un seul oubli entraîne la perte de ce point : aide à lutter contre les forfaits.
+                          {t('rules.earlyBonusDesc')}
                         </p>
                       </div>
                     </div>
@@ -3789,9 +3787,9 @@ export default function OppositionClient({
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                       <div>
-                        <h3 className="font-semibold theme-text mb-2">Phases éliminatoires</h3>
+                        <h3 className="font-semibold theme-text mb-2">{t('rules.knockoutTitle')}</h3>
                         <p className="text-sm">
-                          Les pronostics des matchs éliminatoires sont comptabilisés sur le <span className="font-semibold theme-text">score à 90 minutes</span>, hors prolongations et éventuels tirs au but.
+                          {t.rich('rules.knockoutDesc', { b: (c) => <span className="font-semibold theme-text">{c}</span> })}
                         </p>
                       </div>
                     </div>
@@ -3806,14 +3804,13 @@ export default function OppositionClient({
                         <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                       <div>
-                        <h3 className="font-semibold theme-text mb-2">Bonus du qualifié activé</h3>
+                        <h3 className="font-semibold theme-text mb-2">{t('rules.qualifierBonusTitle')}</h3>
                         <p className="text-sm">
-                          Pour chaque match éliminatoire, vous pouvez prédire l'équipe qui se qualifie pour le prochain tour.
-                          Rapporte{' '}
+                          {t('rules.qualifierBonusDesc1')}{' '}
                           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#ff9900]/20 border border-[#ff9900]/40 rounded text-[10px] font-bold text-[#ff9900]">
                             +1 pt
                           </span>
-                          {' '}supplémentaire si votre prédiction est exacte.
+                          {' '}{t('rules.qualifierBonusDesc2')}
                         </p>
                       </div>
                     </div>
@@ -3825,15 +3822,13 @@ export default function OppositionClient({
                     <div className="flex items-start gap-2">
                       <img
                         src="/images/icons/team.svg"
-                        alt="Équipes"
+                        alt={t('tabs.teams')}
                         className="w-5 h-5 flex-shrink-0 mt-0.5 icon-filter-orange"
                       />
                       <div>
-                        <h3 className="font-semibold theme-text mb-2">Classement par équipes activé</h3>
+                        <h3 className="font-semibold theme-text mb-2">{t('rules.teamsTitle')}</h3>
                         <p className="text-sm">
-                          En plus du classement individuel, un <span className="font-semibold theme-text">classement par équipes</span> est disponible.
-                          Le score d'une équipe correspond à la <span className="font-semibold theme-text">moyenne des points</span> de ses membres.
-                          Consultez l'onglet "Équipes" pour voir la composition des équipes.
+                          {t.rich('rules.teamsDesc', { b: (c) => <span className="font-semibold theme-text">{c}</span> })}
                         </p>
                       </div>
                     </div>
@@ -3841,42 +3836,26 @@ export default function OppositionClient({
                 )}
 
                 <div>
-                  <h3 className="font-semibold theme-text mb-2">Configuration du tournoi</h3>
+                  <h3 className="font-semibold theme-text mb-2">{t('rules.configTitle')}</h3>
                   <p>
-                    Pour ce tournoi, vous avez opté pour{' '}
-                    {tournament?.all_matchdays ? (
-                      <span className="font-semibold theme-text">toutes les journées de compétition</span>
-                    ) : (
-                      <>
-                        <span className="font-semibold theme-text">{tournament?.num_matchdays || 0}</span>{' '}
-                        {tournament?.num_matchdays && tournament.num_matchdays > 1 ? 'journées' : 'journée'} de compétition
-                      </>
-                    )}
-                    {!tournament?.all_matchdays && availableMatchdays.length > 0 && tournament?.num_matchdays && availableMatchdays.length < tournament.num_matchdays && (
-                      <>
-                        . Il se déroule finalement sur{' '}
-                        <span className="font-semibold theme-text">{availableMatchdays.length}</span>{' '}
-                        {availableMatchdays.length > 1 ? 'journées' : 'journée'}
-                      </>
-                    )}
-                    .
+                    {tournament?.all_matchdays
+                      ? t.rich('rules.configAll', { b: (c) => <span className="font-semibold theme-text">{c}</span> })
+                      : t.rich('rules.configN', { n: tournament?.num_matchdays || 0, b: (c) => <span className="font-semibold theme-text">{c}</span> })
+                    }
+                    {!tournament?.all_matchdays && availableMatchdays.length > 0 && tournament?.num_matchdays && availableMatchdays.length < tournament.num_matchdays &&
+                      t.rich('rules.configFinal', { n: availableMatchdays.length, b: (c) => <span className="font-semibold theme-text">{c}</span> })
+                    }
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold theme-text mb-2">Délais de pronostic</h3>
+                  <h3 className="font-semibold theme-text mb-2">{t('rules.deadlineTitle')}</h3>
                   <p>
-                    Les pronostics doivent être saisis au minimum 30 minutes avant le coup d'envoi du match.{' '}
-                    <span className="font-semibold theme-text">
-                      Si ce délai venait à ne pas être respecté, c'est le score de 0-0 qui sera retenu et ne pourra pas donner plus de{' '}
-                      {tournament?.scoring_default_prediction_max || 1}{' '}
-                      {(tournament?.scoring_default_prediction_max || 1) > 1 ? 'points' : 'point'}{' '}
-                      en cas de bon résultat ou de score exact.
-                    </span>
+                    {t.rich('rules.deadlineDesc', { n: tournament?.scoring_default_prediction_max || 1, b: (c) => <span className="font-semibold theme-text">{c}</span> })}
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold theme-text mb-2">Classement</h3>
-                  <p>Le classement est mis à jour après chaque journée de matchs. En cas d'égalité, le nombre de scores exacts départage les joueurs.</p>
+                  <h3 className="font-semibold theme-text mb-2">{t('rules.rankingTitle')}</h3>
+                  <p>{t('rules.rankingDesc')}</p>
                 </div>
               </div>
             </div>
@@ -3900,12 +3879,11 @@ export default function OppositionClient({
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div className="theme-card w-full max-w-md rounded-xl shadow-xl p-6">
               <h3 className="text-xl font-bold theme-text mb-4 text-center">
-                Étendre le tournoi
+                {t('extendModal.title')}
               </h3>
 
               <p className="theme-text-secondary text-center mb-6">
-                De nouvelles journées sont disponibles dans cette compétition.
-                Combien de journées souhaitez-vous ajouter ?
+                {t('extendModal.desc')}
               </p>
 
               {/* Sélecteur +/- */}
@@ -3930,7 +3908,7 @@ export default function OppositionClient({
               </div>
 
               <p className="text-sm theme-text-secondary text-center mb-6">
-                {availableToAdd} journée{availableToAdd > 1 ? 's' : ''} disponible{availableToAdd > 1 ? 's' : ''}
+                {t('extendModal.available', { n: availableToAdd })}
               </p>
 
               {/* Boutons d'action */}
@@ -3943,7 +3921,7 @@ export default function OppositionClient({
                   disabled={extendLoading}
                   className="flex-1 px-4 py-3 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-semibold transition-colors disabled:opacity-50"
                 >
-                  Annuler
+                  {t('extendModal.cancel')}
                 </button>
                 <button
                   onClick={extendTournament}
@@ -3953,11 +3931,11 @@ export default function OppositionClient({
                   {extendLoading ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      En cours...
+                      {t('extendModal.loading')}
                     </>
                   ) : (
                     <>
-                      Confirmer
+                      {t('extendModal.confirm')}
                     </>
                   )}
                 </button>
@@ -3977,13 +3955,13 @@ export default function OppositionClient({
           <ShareImageModal
             imageUrl={`/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}`}
             modes={[
-              { key: 'alpha', label: 'Alphabétique', imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}` },
-              { key: 'classement', label: 'Classement', imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&sort=classement` },
+              { key: 'alpha', label: t('shareModeAlpha'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}` },
+              { key: 'classement', label: t('shareModeRanking'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&sort=classement` },
             ]}
             shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
-            shareText={`Les pronos de ${translateTeamName(shareModalMatch.home_team_name)} - ${translateTeamName(shareModalMatch.away_team_name)} sur PronoHub 👀`}
+            shareText={t('shareTextMatch', { home: translateTeamName(shareModalMatch.home_team_name), away: translateTeamName(shareModalMatch.away_team_name) })}
             downloadName={`pronos-${slugify(tournament.name)}-${slugify(translateTeamName(shareModalMatch.home_team_name))}-${slugify(translateTeamName(shareModalMatch.away_team_name))}${shareModalMatch.utc_date ? '-' + fileDateStamp(false, new Date(shareModalMatch.utc_date)) : ''}.png`}
-            title="Partager les pronos"
+            title={t('shareMatchTitle')}
             onClose={() => setShareModalMatch(null)}
           />
         )}
@@ -3993,9 +3971,9 @@ export default function OppositionClient({
           <ShareImageModal
             imageUrl={`/api/og/ranking?tournamentId=${tournament.id}&mode=general`}
             shareUrl={`https://www.pronohub.club/tournoi-public/${tournament.invite_code || tournament.slug}`}
-            shareText={`Rejoins « ${tournament.name} » sur PronoHub — le tournoi de pronos ouvert à tous, gratuit ! 🏆`}
+            shareText={t('shareTextInvite', { name: tournament.name })}
             downloadName={`tournoi-public-${tournament.invite_code || tournament.slug}.png`}
-            title="Inviter des amis"
+            title={t('shareInviteTitle')}
             onClose={() => setShowInviteModal(false)}
           />
         )}

@@ -723,6 +723,52 @@
       "matchesInProgress": "Not all matches of this matchday are finished",
       "closedSoon": "Predictions closed: matches start soon",
       "timeLeft": "Time left to submit your predictions: {time}"
+    },
+    "teamsTab": {
+      "members": "{n, plural, one {# member} other {# members}}",
+      "you": "(you)"
+    },
+    "extendModal": {
+      "title": "Extend the tournament",
+      "desc": "New matchdays are available in this competition. How many matchdays do you want to add?",
+      "available": "{n, plural, one {# matchday available} other {# matchdays available}}",
+      "cancel": "Cancel",
+      "loading": "Processing...",
+      "confirm": "Confirm"
+    },
+    "shareMatchTitle": "Share the predictions",
+    "shareInviteTitle": "Invite friends",
+    "shareModeAlpha": "Alphabetical",
+    "shareModeRanking": "Ranking",
+    "shareTextMatch": "The predictions for {home} - {away} on PronoHub 👀",
+    "shareTextInvite": "Join \"{name}\" on PronoHub — the free prediction tournament open to all! 🏆",
+    "rules": {
+      "title": "Tournament rules",
+      "captain": "Tournament captain: <b>{name}</b>",
+      "pointsSystem": "Points system",
+      "exactScore": "Exact score: {n, plural, one {# point} other {# points}}",
+      "correctResult": "Correct result (win/draw/loss): {n, plural, one {# point} other {# points}}",
+      "wrongResult": "Wrong prediction: {n} point",
+      "goodQualifier": "Correct qualifier for the next round: <o>1 point</o>",
+      "bonusMatchTitle": "Bonus Match enabled",
+      "bonusMatchDesc": "A <b>bonus match</b> is picked each matchday. Points earned on this match are <b>doubled</b>! The bonus match is marked with a badge",
+      "earlyBonusTitle": "Pre-match bonus enabled",
+      "earlyBonusDesc": "One bonus point per matchday if all fixtures are predicted before the deadline (30 minutes before kick-off). A single miss loses this point: helps fight no-shows.",
+      "knockoutTitle": "Knockout stages",
+      "knockoutDesc": "Predictions for knockout matches are scored on the <b>90-minute score</b>, excluding extra time and any penalty shootouts.",
+      "qualifierBonusTitle": "Qualifier bonus enabled",
+      "qualifierBonusDesc1": "For each knockout match, you can predict the team that qualifies for the next round. Earns",
+      "qualifierBonusDesc2": "extra if your prediction is correct.",
+      "teamsTitle": "Team ranking enabled",
+      "teamsDesc": "On top of the individual ranking, a <b>team ranking</b> is available. A team's score is the <b>average of the points</b> of its members. Check the \"Teams\" tab to see the team compositions.",
+      "configTitle": "Tournament setup",
+      "configAll": "For this tournament, you chose <b>all competition matchdays</b>.",
+      "configN": "For this tournament, you chose <b>{n}</b> competition {n, plural, one {matchday} other {matchdays}}.",
+      "configFinal": " It ends up running over <b>{n}</b> {n, plural, one {matchday} other {matchdays}}.",
+      "deadlineTitle": "Prediction deadlines",
+      "deadlineDesc": "Predictions must be entered at least 30 minutes before kick-off. <b>If this deadline isn't met, a 0-0 score is used and cannot earn more than {n, plural, one {# point} other {# points}} for a correct result or exact score.</b>",
+      "rankingTitle": "Ranking",
+      "rankingDesc": "The ranking is updated after each matchday. In case of a tie, the number of exact scores separates players."
     }
   }
 }
