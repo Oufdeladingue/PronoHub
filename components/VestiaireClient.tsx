@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations, useLocale } from 'next-intl'
 import Footer from '@/components/Footer'
 import { Trophy, Users, Award, Check, Star, Sparkles } from 'lucide-react'
 import { fetchWithAuth } from '@/lib/supabase/client'
@@ -111,6 +112,9 @@ const formatSeason = (startDate: string, endDate: string): string => {
 }
 
 export default function VestiaireClient() {
+  const t = useTranslations('Vestiaire')
+  const locale = useLocale()
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-GB'
   const router = useRouter()
   const searchParams = useSearchParams()
   const [competitions, setCompetitions] = useState<Competition[]>([])
@@ -131,7 +135,7 @@ export default function VestiaireClient() {
     setError(null)
     try {
       const response = await fetchWithAuth('/api/competitions/active')
-      if (!response.ok) throw new Error('Erreur lors du chargement des compétitions')
+      if (!response.ok) throw new Error(t('loadError'))
 
       const data = await response.json()
       setCompetitions(data.competitions || [])
@@ -147,7 +151,7 @@ export default function VestiaireClient() {
       <div className="theme-bg flex flex-col flex-1">
         <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-20 w-full flex-1">
           <div className="text-center py-12">
-            <div className="text-gray-400">Chargement des compétitions...</div>
+            <div className="text-gray-400">{t('loading')}</div>
           </div>
         </main>
         <Footer variant="full" />
@@ -160,7 +164,7 @@ export default function VestiaireClient() {
       <div className="theme-bg flex flex-col flex-1">
         <main className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-20 w-full flex-1">
           <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4 text-red-200 mb-6">
-            <strong>Erreur :</strong> {error}
+            <strong>{t('errorLabel')}</strong> {error}
           </div>
         </main>
         <Footer variant="full" />
@@ -180,10 +184,10 @@ export default function VestiaireClient() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-green-500" />
-                <span className="font-semibold text-green-400">Votre credit One-Shot est pret a etre utilise !</span>
+                <span className="font-semibold text-green-400">{t('creditReadyOneShot')}</span>
               </div>
               <p className="text-sm text-gray-400 mt-1">
-                Selectionnez une competition pour creer votre tournoi One-Shot
+                {t('selectOneShot')}
               </p>
             </div>
           </div>
@@ -196,10 +200,10 @@ export default function VestiaireClient() {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-orange-500" />
-                <span className="font-semibold text-orange-400">Votre credit Elite Team est pret a etre utilise !</span>
+                <span className="font-semibold text-orange-400">{t('creditReadyElite')}</span>
               </div>
               <p className="text-sm text-gray-400 mt-1">
-                Selectionnez une competition pour creer votre tournoi Elite Team
+                {t('selectElite')}
               </p>
             </div>
           </div>
@@ -214,13 +218,13 @@ export default function VestiaireClient() {
                 <Check className="w-5 h-5 text-yellow-500" />
                 <span className="font-semibold text-yellow-400">
                   {selectedSlots > 1
-                    ? `Vos ${selectedSlots} crédits Platinium sont prêts à être utilisés !`
-                    : 'Votre crédit Platinium est prêt à être utilisé !'
+                    ? t('creditsReadyPlatinium', { n: selectedSlots })
+                    : t('creditReadyPlatinium')
                   }
                 </span>
               </div>
               <p className="text-sm text-gray-400 mt-1">
-                Sélectionnez une compétition pour créer votre tournoi Platinium
+                {t('selectPlatinium')}
               </p>
             </div>
           </div>
@@ -228,9 +232,9 @@ export default function VestiaireClient() {
 
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-[#ff9900] mb-4">Le Vestiaire</h1>
+          <h1 className="text-4xl font-bold text-[#ff9900] mb-4">{t('title')}</h1>
           <p className="text-lg text-gray-400">
-            Choisissez une compétition pour créer votre tournoi de pronostics
+            {t('subtitle')}
           </p>
         </div>
 
@@ -238,10 +242,10 @@ export default function VestiaireClient() {
         {competitions.length === 0 ? (
           <div className="bg-[#0a0f1a] border border-gray-800 rounded-lg p-8 text-center">
             <div className="text-gray-400 mb-4">
-              Aucune compétition disponible pour le moment.
+              {t('noneAvailable')}
             </div>
             <p className="text-sm text-gray-500">
-              Les compétitions doivent être activées par un administrateur.
+              {t('noneAvailableHint')}
             </p>
           </div>
         ) : (
@@ -282,13 +286,13 @@ export default function VestiaireClient() {
                 {comp.is_most_popular && !comp.is_event && (
                   <div
                     className="popular-star absolute bottom-3 left-3 z-20 rounded-full p-2 shadow-lg group/star transition-colors duration-300"
-                    title="Compétition la plus populaire"
+                    title={t('mostPopular')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 transition-colors duration-300" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                     <span className="popular-tooltip absolute -top-9 left-0 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover/star:opacity-100 transition-opacity pointer-events-none">
-                      Compétition la plus populaire
+                      {t('mostPopular')}
                     </span>
                   </div>
                 )}
@@ -297,17 +301,17 @@ export default function VestiaireClient() {
                 {comp.is_event && (
                   <div
                     className="event-badge absolute bottom-3 right-3 z-20 flex flex-col items-center gap-1 group/event"
-                    title="Compétition événementielle"
+                    title={t('eventTitle')}
                   >
                     <div className="event-icon-container rounded-full p-2 shadow-lg animate-pulse-subtle">
                       <img
                         src="/images/icons/event.svg"
-                        alt="Événement"
+                        alt={t('event')}
                         className="w-5 h-5 event-icon"
                       />
                     </div>
                     <span className="event-label text-[10px] font-bold uppercase tracking-wide">
-                      Événement
+                      {t('event')}
                     </span>
                   </div>
                 )}
@@ -315,9 +319,9 @@ export default function VestiaireClient() {
                 {/* Journées restantes (compétition réellement en cours) - haut à droite, 2 lignes */}
                 {comp.has_started && !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                   <div className="absolute top-3 right-3 z-20 text-right leading-none">
-                    <div className="text-sm font-extrabold text-orange-400">Reste {comp.remaining_matchdays}</div>
+                    <div className="text-sm font-extrabold text-orange-400">{t('remaining', { n: comp.remaining_matchdays })}</div>
                     <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                      {comp.remaining_matchdays > 1 ? 'journées' : 'journée'}
+                      {t('matchdaysLabel', { n: comp.remaining_matchdays })}
                     </div>
                   </div>
                 )}
@@ -334,15 +338,15 @@ export default function VestiaireClient() {
                   <div className="text-left mb-2 min-h-[26px]">
                     {isFinished ? (
                       <span className="finished-badge inline-block text-xs font-semibold px-3 py-1 rounded-full bg-gray-600/50 text-gray-400">
-                        Saison terminée
+                        {t('seasonEnded')}
                       </span>
                     ) : !comp.hide_matchdays_badge && comp.remaining_matchdays !== undefined && comp.remaining_matchdays > 0 && (
                       <span className="matchdays-badge inline-block text-xs font-semibold px-3 py-1 rounded-full transition-colors duration-300">
                         {comp.has_started
-                          ? 'En cours'
+                          ? t('inProgress')
                           : (comp.start_date || (!comp.is_custom && comp.current_season_start_date))
-                            ? `Débute le ${new Date(comp.start_date || comp.current_season_start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
-                            : 'Prochainement'
+                            ? t('startsOn', { date: new Date(comp.start_date || comp.current_season_start_date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long' }) })
+                            : t('soon')
                         }
                       </span>
                     )}
@@ -391,8 +395,8 @@ export default function VestiaireClient() {
                     {/* Saison */}
                     <p className="badge-text text-xs mb-0.5 transition-colors duration-300">
                       {comp.is_custom
-                        ? `Saison ${comp.season || new Date().getFullYear()}`
-                        : `Saison ${formatSeason(comp.current_season_start_date, comp.current_season_end_date)}`
+                        ? t('season', { s: comp.season || new Date().getFullYear() })
+                        : t('season', { s: formatSeason(comp.current_season_start_date, comp.current_season_end_date) })
                       }
                     </p>
 
@@ -400,7 +404,7 @@ export default function VestiaireClient() {
                     <p className="badge-text text-xs mb-1 transition-colors duration-300 line-clamp-2" title={comp.is_custom && comp.description ? comp.description : undefined}>
                       {comp.is_custom
                         ? (comp.description || (comp.competition_type === 'best_of_week' ? 'Best of Week' : 'Custom'))
-                        : translateCountryName(comp.area_name)
+                        : (locale === 'fr' ? translateCountryName(comp.area_name) : comp.area_name)
                       }
                     </p>
                   </div>

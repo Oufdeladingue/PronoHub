@@ -432,5 +432,31 @@
     "typePlatinium": "Tournoi Platinium",
     "typeEnterprise": "Tournoi Entreprise",
     "maxPlayers": "Max {n} joueurs"
+  },
+  "Vestiaire": {
+    "loading": "Chargement des compétitions...",
+    "errorLabel": "Erreur :",
+    "loadError": "Erreur lors du chargement des compétitions",
+    "creditReadyOneShot": "Votre crédit One-Shot est prêt à être utilisé !",
+    "selectOneShot": "Sélectionnez une compétition pour créer votre tournoi One-Shot",
+    "creditReadyElite": "Votre crédit Elite Team est prêt à être utilisé !",
+    "selectElite": "Sélectionnez une compétition pour créer votre tournoi Elite Team",
+    "creditReadyPlatinium": "Votre crédit Platinium est prêt à être utilisé !",
+    "creditsReadyPlatinium": "Vos {n} crédits Platinium sont prêts à être utilisés !",
+    "selectPlatinium": "Sélectionnez une compétition pour créer votre tournoi Platinium",
+    "title": "Le Vestiaire",
+    "subtitle": "Choisissez une compétition pour créer votre tournoi de pronostics",
+    "noneAvailable": "Aucune compétition disponible pour le moment.",
+    "noneAvailableHint": "Les compétitions doivent être activées par un administrateur.",
+    "mostPopular": "Compétition la plus populaire",
+    "eventTitle": "Compétition événementielle",
+    "event": "Événement",
+    "remaining": "Reste {n}",
+    "matchdaysLabel": "{n, plural, one {journée} other {journées}}",
+    "seasonEnded": "Saison terminée",
+    "inProgress": "En cours",
+    "startsOn": "Débute le {date}",
+    "soon": "Prochainement",
+    "season": "Saison {s}"
   }
 }

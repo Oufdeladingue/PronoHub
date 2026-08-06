@@ -432,5 +432,31 @@
     "typePlatinium": "Platinium tournament",
     "typeEnterprise": "Enterprise tournament",
     "maxPlayers": "Max {n} players"
+  },
+  "Vestiaire": {
+    "loading": "Loading competitions...",
+    "errorLabel": "Error:",
+    "loadError": "Error loading competitions",
+    "creditReadyOneShot": "Your One-Shot credit is ready to use!",
+    "selectOneShot": "Select a competition to create your One-Shot tournament",
+    "creditReadyElite": "Your Elite Team credit is ready to use!",
+    "selectElite": "Select a competition to create your Elite Team tournament",
+    "creditReadyPlatinium": "Your Platinium credit is ready to use!",
+    "creditsReadyPlatinium": "Your {n} Platinium credits are ready to use!",
+    "selectPlatinium": "Select a competition to create your Platinium tournament",
+    "title": "The Locker Room",
+    "subtitle": "Choose a competition to create your prediction tournament",
+    "noneAvailable": "No competition available right now.",
+    "noneAvailableHint": "Competitions must be enabled by an administrator.",
+    "mostPopular": "Most popular competition",
+    "eventTitle": "Special event competition",
+    "event": "Event",
+    "remaining": "{n} left",
+    "matchdaysLabel": "{n, plural, one {matchday} other {matchdays}}",
+    "seasonEnded": "Season ended",
+    "inProgress": "In progress",
+    "startsOn": "Starts on {date}",
+    "soon": "Coming soon",
+    "season": "Season {s}"
   }
 }
