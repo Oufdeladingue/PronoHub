@@ -35,6 +35,34 @@
     "players": "{n} players",
     "join": "Join →"
   },
+  "AndroidApp": {
+    "title": "PronoHub is now on Android!",
+    "subtitle": "Enjoy the best experience with the app:",
+    "feat1": "Real-time push notifications",
+    "feat2": "Ultra-fast loading",
+    "feat3": "Smooth native experience",
+    "feat4": "Quick access from your home screen",
+    "download": "Download on the Play Store",
+    "later": "Later"
+  },
+  "Welcome": {
+    "skip": "Skip",
+    "create": {
+      "title": "Create your tournament for free",
+      "description": "In just seconds, launch a prediction tournament on your favourite competition. It's free, fast, and you can invite up to 5 friends!",
+      "cta": "Create my first tournament"
+    },
+    "join": {
+      "title": "Join your mates",
+      "description": "A friend already created a tournament? Join it with their invite code and show them who the real prediction king is!",
+      "cta": "Join a tournament"
+    },
+    "predict": {
+      "title": "Predict and dominate",
+      "description": "Score points on every good prediction, stack up bonuses, climb the leaderboard, unlock badges and tease your mates in the chat!",
+      "cta": "Let's go!"
+    }
+  },
   "TournamentBadge": {
     "free": "Free-Kick tournament",
     "oneshot": "One-Shot tournament",
@@ -360,5 +388,49 @@
       "saving": "Saving...",
       "submit": "Confirm"
     }
+  },
+  "UpgradeBanner": {
+    "close": "Close",
+    "goPro": "Go Pro",
+    "goPremium": "Go Premium",
+    "create": "Create",
+    "use": "Use",
+    "choose": "Choose",
+    "compactFree": "Free tournament - Max {n} players",
+    "compactOneshot": "One-Shot tournament - Max {n} players",
+    "compactElite": "Elite tournament - Max {n} players",
+    "compactPlatinium": "Platinium tournament - Max {n} players",
+    "compactUpsell": "Go Premium to invite up to 20 players",
+    "doubleTitle": "Great double!",
+    "doubleSubMobile": "You've hit the limit of {max} free tournaments!\nGo Pro to create another one...",
+    "doubleSubDesktop": "You've hit the limit of {max} active free tournaments! Sign your first Pro contract to keep your career going...",
+    "creditsTitle": "Credits available",
+    "creditsSubDesktop": "Limit of {max} Free-Kick tournaments reached · Credits available: {list}",
+    "oneshotTitle": "One-Shot tournament available",
+    "eliteTitle": "Elite Team tournament available",
+    "platiniumTitle": "Platinium tournament available",
+    "creditsSubMobileOneshot": "Free-Kick limit reached · {n, plural, one {# One-Shot credit} other {# One-Shot credits}}",
+    "creditsSubMobileElite": "Free-Kick limit reached · {n, plural, one {# Elite credit} other {# Elite credits}}",
+    "creditsSubMobilePlatinium": "Free-Kick limit reached · {n, plural, one {# Platinium credit} other {# Platinium credits}}",
+    "oneshotSubDesktop": "Limit of {max} Free-Kick tournaments reached · You have a One-Shot credit available for a tournament of up to 10 players",
+    "eliteSubDesktop": "Limit of {max} Free-Kick tournaments reached · You have an Elite Team credit available for a tournament of up to 20 players",
+    "platiniumSubDesktop": "Limit of {max} Free-Kick tournaments reached · You have a Platinium credit available for a tournament of up to 30 players",
+    "oneshotSubMobile1": "Free-Kick limit reached · 1 One-Shot credit",
+    "eliteSubMobile1": "Free-Kick limit reached · 1 Elite credit",
+    "platiniumSubMobile1": "Free-Kick limit reached · 1 Platinium credit",
+    "eliteSubDesktopMax": "Limit of {max} Free-Kick tournaments reached · You have an Elite Team credit available for a tournament of up to {players} players",
+    "freeCountTitle": "Free tournaments: {a}/{b}",
+    "buySlotMobile": "Buy a slot to join another tournament",
+    "buySlotDesktop": "You've reached the free limit. Buy a slot to join another Free-Kick tournament.",
+    "maxPlayersPerTournament": "Max {n} players per tournament",
+    "cantCreate": "Can't create a tournament",
+    "quotaReached": "Quota reached",
+    "unlockMore": "Unlock more tournaments",
+    "typeFree": "Free tournament",
+    "typeOneshot": "One-Shot tournament",
+    "typeElite": "Elite tournament",
+    "typePlatinium": "Platinium tournament",
+    "typeEnterprise": "Enterprise tournament",
+    "maxPlayers": "Max {n} players"
   }
 }

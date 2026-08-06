@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface AndroidAppPromotionModalProps {
   onClose: () => void
@@ -9,6 +10,7 @@ interface AndroidAppPromotionModalProps {
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=club.pronohub.app'
 
 export default function AndroidAppPromotionModal({ onClose }: AndroidAppPromotionModalProps) {
+  const t = useTranslations('AndroidApp')
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -55,31 +57,31 @@ export default function AndroidAppPromotionModal({ onClose }: AndroidAppPromotio
 
         {/* Titre */}
         <h2 className="text-xl font-bold text-white text-center mb-2">
-          PronoHub est dispo sur Android !
+          {t('title')}
         </h2>
 
         {/* Description */}
         <p className="text-gray-400 text-center text-sm mb-4">
-          Profite d'une expérience optimale avec l'app :
+          {t('subtitle')}
         </p>
 
         {/* Liste des avantages */}
         <ul className="space-y-2 mb-6">
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">🔔</span>
-            <span>Notifications push en temps réel</span>
+            <span>{t('feat1')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">⚡</span>
-            <span>Chargement ultra-rapide</span>
+            <span>{t('feat2')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">📱</span>
-            <span>Expérience native et fluide</span>
+            <span>{t('feat3')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">🏆</span>
-            <span>Accès rapide depuis ton écran d'accueil</span>
+            <span>{t('feat4')}</span>
           </li>
         </ul>
 
@@ -92,13 +94,13 @@ export default function AndroidAppPromotionModal({ onClose }: AndroidAppPromotio
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 20.5v-1h18v1H3Zm9-4.5L7 11l1.4-1.4 2.6 2.575V4h2v8.175L15.6 9.6 17 11l-5 5Z" />
             </svg>
-            Télécharger sur le Play Store
+            {t('download')}
           </button>
           <button
             onClick={handleDismiss}
             className="w-full py-3 px-4 bg-transparent hover:bg-white/5 text-gray-400 font-medium rounded-xl transition-colors"
           >
-            Plus tard
+            {t('later')}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Crown, Sparkles, AlertTriangle, X } from 'lucide-react'
 import { UserQuotas, TournamentTypeResult, ACCOUNT_LIMITS } from '@/types/monetization'
 import { fetchWithAuth } from '@/lib/supabase/client'
@@ -40,6 +41,7 @@ interface BannerProps {
 }
 
 function Banner({ config, isClosing, onDismiss, onAction }: BannerProps) {
+  const t = useTranslations('UpgradeBanner')
   return (
     <div className={`upgrade-banner-wrapper ${isClosing ? 'banner-closing' : ''}`}>
       <div>
@@ -76,7 +78,7 @@ function Banner({ config, isClosing, onDismiss, onAction }: BannerProps) {
           <button
             onClick={onDismiss}
             className="banner-close-btn"
-            title="Fermer"
+            title={t('close')}
           >
             <X className="w-3 h-3" />
           </button>
@@ -113,6 +115,7 @@ interface UpgradeBannerProps {
 
 export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQuotas, serverCredits }: UpgradeBannerProps) {
   const router = useRouter()
+  const t = useTranslations('UpgradeBanner')
   const [quotas, setQuotas] = useState<UserQuotas | null>(serverQuotas ? {
     user_id: '',
     username: '',
@@ -201,14 +204,14 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
             )}
             <div>
               <p className="text-sm font-medium text-gray-200">
-                {currentType === 'free' && `Tournoi gratuit - Max ${maxPlayers} joueurs`}
-                {currentType === 'oneshot' && `Tournoi One-Shot - Max ${maxPlayers} joueurs`}
-                {currentType === 'elite' && `Tournoi Elite - Max ${maxPlayers} joueurs`}
-                {currentType === 'platinium' && `Tournoi Platinium - Max ${maxPlayers} joueurs`}
+                {currentType === 'free' && t('compactFree', { n: maxPlayers })}
+                {currentType === 'oneshot' && t('compactOneshot', { n: maxPlayers })}
+                {currentType === 'elite' && t('compactElite', { n: maxPlayers })}
+                {currentType === 'platinium' && t('compactPlatinium', { n: maxPlayers })}
               </p>
               {currentType === 'free' && (
                 <p className="text-xs text-gray-400">
-                  Passez a Premium pour inviter jusqu'a 20 joueurs
+                  {t('compactUpsell')}
                 </p>
               )}
             </div>
@@ -219,7 +222,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 rounded-lg text-sm font-medium text-white transition-all"
             >
               <Crown className="w-4 h-4" />
-              Passer Premium
+              {t('goPremium')}
             </button>
           )}
         </div>
@@ -237,10 +240,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
         bgColor: 'bg-[#ff9900]',
         btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
         btnText: 'text-orange-400',
-        title: 'Magnifique doublé !',
-        subtitleMobile: `Limite de ${quotas.free_tournaments_max} tournois gratuits atteinte !\nPasse Pro pour créer un autre tournoi...`,
-        subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois gratuits actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...`,
-        buttonText: 'Passer Pro',
+        title: t('doubleTitle'),
+        subtitleMobile: t('doubleSubMobile', { max: quotas.free_tournaments_max }),
+        subtitleDesktop: t('doubleSubDesktop', { max: quotas.free_tournaments_max }),
+        buttonText: t('goPro'),
         buttonIcon: '/images/icons/premium.svg',
         redirectTo: '/pricing'
       }
@@ -263,10 +266,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
           bgColor: 'bg-[#ff9900]',
           btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
           btnText: 'text-orange-400',
-          title: 'Crédits disponibles',
+          title: t('creditsTitle'),
           subtitleMobile: creditsList.join(', '),
-          subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Crédits disponibles : ${creditsList.join(', ')}`,
-          buttonText: 'Choisir',
+          subtitleDesktop: t('creditsSubDesktop', { max: quotas.free_tournaments_max, list: creditsList.join(', ') }),
+          buttonText: t('choose'),
           redirectTo: '/vestiaire'
         }
       }
@@ -279,10 +282,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
           bgColor: 'bg-green-500',
           btnBg: 'bg-green-500/20 hover:bg-green-500/30',
           btnText: 'text-green-400',
-          title: 'Tournoi One-Shot disponible',
-          subtitleMobile: `Limite Free-Kick atteinte · ${credits?.oneshot_credits} crédit${(credits?.oneshot_credits || 0) > 1 ? 's' : ''} One-Shot`,
-          subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit One-Shot disponible pour un tournoi jusqu'à 10 joueurs`,
-          buttonText: 'Utiliser',
+          title: t('oneshotTitle'),
+          subtitleMobile: t('creditsSubMobileOneshot', { n: credits?.oneshot_credits || 0 }),
+          subtitleDesktop: t('oneshotSubDesktop', { max: quotas.free_tournaments_max }),
+          buttonText: t('use'),
           redirectTo: '/vestiaire?type=oneshot'
         }
       }
@@ -294,10 +297,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
           bgColor: 'bg-[#ff9900]',
           btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
           btnText: 'text-orange-400',
-          title: 'Tournoi Elite Team disponible',
-          subtitleMobile: `Limite Free-Kick atteinte · ${credits?.elite_credits} crédit${(credits?.elite_credits || 0) > 1 ? 's' : ''} Elite`,
-          subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit Elite Team disponible pour un tournoi jusqu'à 20 joueurs`,
-          buttonText: 'Utiliser',
+          title: t('eliteTitle'),
+          subtitleMobile: t('creditsSubMobileElite', { n: credits?.elite_credits || 0 }),
+          subtitleDesktop: t('eliteSubDesktop', { max: quotas.free_tournaments_max }),
+          buttonText: t('use'),
           redirectTo: '/vestiaire?type=elite'
         }
       }
@@ -310,10 +313,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
         bgColor: 'bg-yellow-500',
         btnBg: 'bg-yellow-500/20 hover:bg-yellow-500/30',
         btnText: 'text-yellow-400',
-        title: 'Tournoi Platinium disponible',
-        subtitleMobile: `Limite Free-Kick atteinte · ${platTotal} crédit${platTotal > 1 ? 's' : ''} Platinium`,
-        subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit Platinium disponible pour un tournoi jusqu'à 30 joueurs`,
-        buttonText: 'Utiliser',
+        title: t('platiniumTitle'),
+        subtitleMobile: t('creditsSubMobilePlatinium', { n: platTotal }),
+        subtitleDesktop: t('platiniumSubDesktop', { max: quotas.free_tournaments_max }),
+        buttonText: t('use'),
         redirectTo: '/vestiaire?type=platinium'
       }
     }
@@ -327,10 +330,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
           bgColor: 'bg-green-500',
           btnBg: 'bg-green-500/20 hover:bg-green-500/30',
           btnText: 'text-green-400',
-          title: 'Tournoi One-Shot disponible',
-          subtitleMobile: 'Limite Free-Kick atteinte · 1 crédit One-Shot',
-          subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit One-Shot disponible pour un tournoi jusqu'à 10 joueurs`,
-          buttonText: 'Créer',
+          title: t('oneshotTitle'),
+          subtitleMobile: t('oneshotSubMobile1'),
+          subtitleDesktop: t('oneshotSubDesktop', { max: quotas.free_tournaments_max }),
+          buttonText: t('create'),
           redirectTo: '/vestiaire'
         }
       }
@@ -342,10 +345,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
           bgColor: 'bg-[#ff9900]',
           btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
           btnText: 'text-orange-400',
-          title: 'Tournoi Elite Team disponible',
-          subtitleMobile: 'Limite Free-Kick atteinte · 1 crédit Elite',
-          subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit Elite Team disponible pour un tournoi jusqu'à ${maxPlayers} joueurs`,
-          buttonText: 'Créer',
+          title: t('eliteTitle'),
+          subtitleMobile: t('eliteSubMobile1'),
+          subtitleDesktop: t('eliteSubDesktopMax', { max: quotas.free_tournaments_max, players: maxPlayers }),
+          buttonText: t('create'),
           redirectTo: '/vestiaire'
         }
       }
@@ -357,10 +360,10 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
         bgColor: 'bg-yellow-500',
         btnBg: 'bg-yellow-500/20 hover:bg-yellow-500/30',
         btnText: 'text-yellow-400',
-        title: 'Tournoi Platinium disponible',
-        subtitleMobile: 'Limite Free-Kick atteinte · 1 crédit Platinium',
-        subtitleDesktop: `Limite de ${quotas.free_tournaments_max} tournois Free-Kick atteinte · Vous avez un crédit Platinium disponible pour un tournoi jusqu'à 30 joueurs`,
-        buttonText: 'Créer',
+        title: t('platiniumTitle'),
+        subtitleMobile: t('platiniumSubMobile1'),
+        subtitleDesktop: t('platiniumSubDesktop', { max: quotas.free_tournaments_max }),
+        buttonText: t('create'),
         redirectTo: '/vestiaire'
       }
     }
@@ -377,14 +380,14 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
         bgColor: 'bg-[#ff9900]',
         btnBg: 'bg-orange-500/20 hover:bg-orange-500/30',
         btnText: 'text-orange-400',
-        title: `Tournois gratuits: ${displayedActive}/${quotas.free_tournaments_max}`,
+        title: t('freeCountTitle', { a: displayedActive, b: quotas.free_tournaments_max }),
         subtitleMobile: isOverQuota
-          ? 'Achetez un slot pour participer à un autre tournoi'
-          : `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
+          ? t('buySlotMobile')
+          : t('maxPlayersPerTournament', { n: ACCOUNT_LIMITS.free.maxPlayersPerTournament }),
         subtitleDesktop: isOverQuota
-          ? 'Vous avez atteint la limite gratuite. Achetez un slot pour participer à un autre tournoi Free-Kick.'
-          : `Max ${ACCOUNT_LIMITS.free.maxPlayersPerTournament} joueurs par tournoi`,
-        buttonText: 'Passer Pro',
+          ? t('buySlotDesktop')
+          : t('maxPlayersPerTournament', { n: ACCOUNT_LIMITS.free.maxPlayersPerTournament }),
+        buttonText: t('goPro'),
         buttonIcon: '/images/icons/premium.svg',
         redirectTo: '/pricing'
       }
@@ -409,6 +412,7 @@ export function UpgradeBanner({ variant = 'full', context = 'dashboard', serverQ
 // Composant pour afficher le type de tournoi qui sera cree
 export function TournamentTypeIndicator() {
   const router = useRouter()
+  const t = useTranslations('UpgradeBanner')
   const [tournamentType, setTournamentType] = useState<TournamentTypeResult | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -442,15 +446,15 @@ export function TournamentTypeIndicator() {
         <div className="flex items-center gap-3">
           <AlertTriangle className="w-5 h-5 text-red-400" />
           <div>
-            <p className="font-medium text-red-400">Impossible de creer un tournoi</p>
-            <p className="text-sm text-gray-400">{tournamentType?.reason || 'Quota atteint'}</p>
+            <p className="font-medium text-red-400">{t('cantCreate')}</p>
+            <p className="text-sm text-gray-400">{tournamentType?.reason || t('quotaReached')}</p>
           </div>
         </div>
         <button
           onClick={() => router.push('/pricing')}
           className="mt-3 w-full py-2 bg-orange-500 hover:bg-orange-400 rounded-lg text-sm font-medium text-white transition-all"
         >
-          Debloquer plus de tournois
+          {t('unlockMore')}
         </button>
       </div>
     )
@@ -459,23 +463,23 @@ export function TournamentTypeIndicator() {
   const typeConfig: Record<string, { icon: string; label: string }> = {
     free: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi Gratuit',
+      label: t('typeFree'),
     },
     oneshot: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi One-Shot',
+      label: t('typeOneshot'),
     },
     elite: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi Elite',
+      label: t('typeElite'),
     },
     platinium: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi Platinium',
+      label: t('typePlatinium'),
     },
     enterprise: {
       icon: '/images/icons/futebol.svg',
-      label: 'Tournoi Entreprise',
+      label: t('typeEnterprise'),
     },
   }
 
@@ -493,7 +497,7 @@ export function TournamentTypeIndicator() {
               {config.label}
             </p>
             <p className="text-xs md:text-sm upgrade-banner-subtitle">
-              Max {tournamentType.max_players} joueurs
+              {t('maxPlayers', { n: tournamentType.max_players })}
             </p>
           </div>
         </div>
@@ -501,10 +505,10 @@ export function TournamentTypeIndicator() {
           <button
             onClick={() => router.push('/pricing')}
             className="premium-btn-shimmer flex items-center justify-center p-2 md:px-4 md:py-2 md:gap-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg text-sm font-medium text-orange-400 transition-all flex-shrink-0"
-            title="Passer Pro"
+            title={t('goPro')}
           >
             <img src="/images/icons/premium.svg" alt="Premium" className="w-5 h-5 md:w-4 md:h-4 icon-filter-premium" />
-            <span className="hidden md:inline">Passer Pro</span>
+            <span className="hidden md:inline">{t('goPro')}</span>
           </button>
         )}
       </div>

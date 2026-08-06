@@ -35,6 +35,34 @@
     "players": "{n} joueurs",
     "join": "Rejoindre →"
   },
+  "AndroidApp": {
+    "title": "PronoHub est dispo sur Android !",
+    "subtitle": "Profite d'une expérience optimale avec l'app :",
+    "feat1": "Notifications push en temps réel",
+    "feat2": "Chargement ultra-rapide",
+    "feat3": "Expérience native et fluide",
+    "feat4": "Accès rapide depuis ton écran d'accueil",
+    "download": "Télécharger sur le Play Store",
+    "later": "Plus tard"
+  },
+  "Welcome": {
+    "skip": "Passer",
+    "create": {
+      "title": "Crée ton tournoi gratuitement",
+      "description": "En quelques secondes, lance un tournoi de pronostics sur ta compétition préférée. C'est gratuit, rapide, et tu peux inviter jusqu'à 5 amis !",
+      "cta": "Créer mon premier tournoi"
+    },
+    "join": {
+      "title": "Rejoins tes potes",
+      "description": "Un ami a déjà créé un tournoi ? Rejoins-le avec son code d'invitation et montre-leur qui est le vrai roi du prono !",
+      "cta": "Rejoindre un tournoi"
+    },
+    "predict": {
+      "title": "Pronostique et domine",
+      "description": "Marque des points à chaque bon prono, cumule les bonus, grimpe au classement, débloque des badges et chambre tes potes dans le tchat !",
+      "cta": "C'est parti !"
+    }
+  },
   "TournamentBadge": {
     "free": "Tournoi Free-Kick",
     "oneshot": "Tournoi One-Shot",
@@ -360,5 +388,49 @@
       "saving": "Enregistrement...",
       "submit": "Valider"
     }
+  },
+  "UpgradeBanner": {
+    "close": "Fermer",
+    "goPro": "Passer Pro",
+    "goPremium": "Passer Premium",
+    "create": "Créer",
+    "use": "Utiliser",
+    "choose": "Choisir",
+    "compactFree": "Tournoi gratuit - Max {n} joueurs",
+    "compactOneshot": "Tournoi One-Shot - Max {n} joueurs",
+    "compactElite": "Tournoi Elite - Max {n} joueurs",
+    "compactPlatinium": "Tournoi Platinium - Max {n} joueurs",
+    "compactUpsell": "Passez à Premium pour inviter jusqu'à 20 joueurs",
+    "doubleTitle": "Magnifique doublé !",
+    "doubleSubMobile": "Limite de {max} tournois gratuits atteinte !\nPasse Pro pour créer un autre tournoi...",
+    "doubleSubDesktop": "Limite de {max} tournois gratuits actifs atteinte ! Signe ton premier contrat Pro pour poursuivre ta carrière...",
+    "creditsTitle": "Crédits disponibles",
+    "creditsSubDesktop": "Limite de {max} tournois Free-Kick atteinte · Crédits disponibles : {list}",
+    "oneshotTitle": "Tournoi One-Shot disponible",
+    "eliteTitle": "Tournoi Elite Team disponible",
+    "platiniumTitle": "Tournoi Platinium disponible",
+    "creditsSubMobileOneshot": "Limite Free-Kick atteinte · {n, plural, one {# crédit One-Shot} other {# crédits One-Shot}}",
+    "creditsSubMobileElite": "Limite Free-Kick atteinte · {n, plural, one {# crédit Elite} other {# crédits Elite}}",
+    "creditsSubMobilePlatinium": "Limite Free-Kick atteinte · {n, plural, one {# crédit Platinium} other {# crédits Platinium}}",
+    "oneshotSubDesktop": "Limite de {max} tournois Free-Kick atteinte · Vous avez un crédit One-Shot disponible pour un tournoi jusqu'à 10 joueurs",
+    "eliteSubDesktop": "Limite de {max} tournois Free-Kick atteinte · Vous avez un crédit Elite Team disponible pour un tournoi jusqu'à 20 joueurs",
+    "platiniumSubDesktop": "Limite de {max} tournois Free-Kick atteinte · Vous avez un crédit Platinium disponible pour un tournoi jusqu'à 30 joueurs",
+    "oneshotSubMobile1": "Limite Free-Kick atteinte · 1 crédit One-Shot",
+    "eliteSubMobile1": "Limite Free-Kick atteinte · 1 crédit Elite",
+    "platiniumSubMobile1": "Limite Free-Kick atteinte · 1 crédit Platinium",
+    "eliteSubDesktopMax": "Limite de {max} tournois Free-Kick atteinte · Vous avez un crédit Elite Team disponible pour un tournoi jusqu'à {players} joueurs",
+    "freeCountTitle": "Tournois gratuits: {a}/{b}",
+    "buySlotMobile": "Achetez un slot pour participer à un autre tournoi",
+    "buySlotDesktop": "Vous avez atteint la limite gratuite. Achetez un slot pour participer à un autre tournoi Free-Kick.",
+    "maxPlayersPerTournament": "Max {n} joueurs par tournoi",
+    "cantCreate": "Impossible de créer un tournoi",
+    "quotaReached": "Quota atteint",
+    "unlockMore": "Débloquer plus de tournois",
+    "typeFree": "Tournoi Gratuit",
+    "typeOneshot": "Tournoi One-Shot",
+    "typeElite": "Tournoi Elite",
+    "typePlatinium": "Tournoi Platinium",
+    "typeEnterprise": "Tournoi Entreprise",
+    "maxPlayers": "Max {n} joueurs"
   }
 }

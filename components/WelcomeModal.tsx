@@ -2,38 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 
 interface WelcomeModalProps {
   onDismiss: (action: 'create' | 'join' | 'explore' | 'skip') => void
 }
 
 const slides = [
-  {
-    image: '/images/welcome-create.png',
-    title: 'Crée ton tournoi gratuitement',
-    description: 'En quelques secondes, lance un tournoi de pronostics sur ta compétition préférée. C\'est gratuit, rapide, et tu peux inviter jusqu\'à 5 amis !',
-    cta: 'Créer mon premier tournoi',
-    action: 'create' as const,
-  },
-  {
-    image: '/images/welcome-join.png',
-    title: 'Rejoins tes potes',
-    description: 'Un ami a déjà créé un tournoi ? Rejoins-le avec son code d\'invitation et montre-leur qui est le vrai roi du prono !',
-    cta: 'Rejoindre un tournoi',
-    action: 'join' as const,
-  },
-  {
-    image: '/images/welcome-predict.png',
-    title: 'Pronostique et domine',
-    description: 'Marque des points à chaque bon prono, cumule les bonus, grimpe au classement, débloque des badges et chambre tes potes dans le tchat !',
-    cta: 'C\'est parti !',
-    action: 'explore' as const,
-  },
+  { image: '/images/welcome-create.png', key: 'create', action: 'create' as const },
+  { image: '/images/welcome-join.png', key: 'join', action: 'join' as const },
+  { image: '/images/welcome-predict.png', key: 'predict', action: 'explore' as const },
 ]
 
 const AUTO_ADVANCE_MS = 5000
 
 export default function WelcomeModal({ onDismiss }: WelcomeModalProps) {
+  const t = useTranslations('Welcome')
   const [currentSlide, setCurrentSlide] = useState(0)
   const [paused, setPaused] = useState(false)
   const slide = slides[currentSlide]
@@ -68,7 +52,7 @@ export default function WelcomeModal({ onDismiss }: WelcomeModalProps) {
         <div className="relative w-full aspect-[3/2] max-w-[320px] mx-auto px-4">
           <Image
             src={slide.image}
-            alt={slide.title}
+            alt={t(`${slide.key}.title`)}
             fill
             className="object-contain transition-opacity duration-300"
             unoptimized
@@ -78,10 +62,10 @@ export default function WelcomeModal({ onDismiss }: WelcomeModalProps) {
         {/* Texte */}
         <div className="text-center px-6 pb-2 min-h-[110px] flex flex-col justify-center">
           <h2 className="text-lg font-bold theme-text mb-2">
-            {slide.title}
+            {t(`${slide.key}.title`)}
           </h2>
           <p className="text-sm theme-text-secondary leading-relaxed">
-            {slide.description}
+            {t(`${slide.key}.description`)}
           </p>
         </div>
 
@@ -91,7 +75,7 @@ export default function WelcomeModal({ onDismiss }: WelcomeModalProps) {
             onClick={() => onDismiss(slide.action)}
             className="w-full px-6 py-3 rounded-lg bg-[#ff9900] text-black font-semibold text-sm hover:bg-[#e68a00] transition-colors"
           >
-            {slide.cta}
+            {t(`${slide.key}.cta`)}
           </button>
         </div>
 
@@ -114,7 +98,7 @@ export default function WelcomeModal({ onDismiss }: WelcomeModalProps) {
             onClick={() => onDismiss('skip')}
             className="absolute right-6 text-xs theme-text-secondary hover:text-[#ff9900] transition-colors"
           >
-            Passer
+            {t('skip')}
           </button>
         </div>
       </div>
