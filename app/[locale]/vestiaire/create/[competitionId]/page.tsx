@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { fetchWithAuth } from '@/lib/supabase/client'
 import { trackTournamentCreated } from '@/lib/analytics'
+import { useTranslations } from 'next-intl'
 
 interface Competition {
   id: number | string
@@ -42,6 +43,7 @@ interface PricingLimits {
 }
 
 export default function TableauNoirPage() {
+  const t = useTranslations('CreateTournament')
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -131,7 +133,7 @@ export default function TableauNoirPage() {
 
         // 1. Compétition (requis)
         if (!compResponse.ok || !compData.success) {
-          throw new Error(compData.error || 'Compétition non trouvée')
+          throw new Error(compData.error || t('compNotFound'))
         }
         const comp = compData.competition
         setCompetition(comp)
@@ -274,12 +276,12 @@ export default function TableauNoirPage() {
 
   const handleCreateTournament = async () => {
     if (!tournamentName.trim()) {
-      showAlert('Allez champion !', 'Veuillez entrer un nom de tournoi', 'warning')
+      showAlert(t('alerts.champTitle'), t('alerts.enterName'), 'warning')
       return
     }
 
     if (!competition) {
-      showAlert('Erreur', 'Compétition non trouvée', 'error')
+      showAlert(t('alerts.errorTitle'), t('compNotFound'), 'error')
       return
     }
 
@@ -287,7 +289,7 @@ export default function TableauNoirPage() {
     // Si forcedType est défini, l'utilisateur a été redirigé depuis le dashboard avec des crédits
     const hasCreditForType = forcedType === selectedTournamentType || hasCredit(selectedTournamentType)
     if (selectedTournamentType !== 'free' && !hasCreditForType) {
-      showAlert('Crédit requis', `Vous n'avez pas de crédit ${selectedTournamentType}. Achetez-en un sur la page Pricing.`, 'warning')
+      showAlert(t('alerts.creditRequiredTitle'), t('alerts.noCreditType', { type: selectedTournamentType }), 'warning')
       setTimeout(() => router.push('/pricing'), 2000)
       return
     }
@@ -329,11 +331,11 @@ export default function TableauNoirPage() {
 
       if (!data.success) {
         if (data.requiresPayment) {
-          showAlert('Crédit requis', 'Ce type de tournoi nécessite un crédit. Achetez-en un sur la page Pricing.', 'warning')
+          showAlert(t('alerts.creditRequiredTitle'), t('alerts.creditNeeded'), 'warning')
           setTimeout(() => router.push('/pricing'), 2000)
           return
         }
-        showAlert('Erreur', data.error || 'Erreur lors de la création du tournoi', 'error')
+        showAlert(t('alerts.errorTitle'), data.error || t('alerts.createError'), 'error')
         return
       }
 
@@ -343,7 +345,7 @@ export default function TableauNoirPage() {
       router.push(`/vestiaire/${slug}/echauffement?created=1`)
     } catch (error) {
       console.error('Error creating tournament:', error)
-      showAlert('Erreur', 'Une erreur est survenue lors de la création du tournoi', 'error')
+      showAlert(t('alerts.errorTitle'), t('alerts.createErrorGeneric'), 'error')
     }
   }
 
@@ -358,7 +360,7 @@ export default function TableauNoirPage() {
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="theme-text-secondary">Chargement...</div>
+            <div className="theme-text-secondary">{t('loading')}</div>
           </div>
         </main>
         <Footer />
@@ -377,13 +379,13 @@ export default function TableauNoirPage() {
         />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <div className="theme-secondary-bg border theme-border rounded-lg p-4 theme-text mb-6">
-            <strong className="theme-accent-text-always">Erreur :</strong> {error || 'Compétition non trouvée'}
+            <strong className="theme-accent-text-always">{t('errorLabel')}</strong> {error || t('compNotFound')}
           </div>
           <Link
             href="/vestiaire"
             className="inline-block px-4 py-2 theme-secondary-bg theme-text rounded-lg hover:opacity-80"
           >
-            Retour au vestiaire
+            {t('backToVestiaire')}
           </Link>
         </main>
         <Footer />
@@ -408,9 +410,9 @@ export default function TableauNoirPage() {
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* En-tête */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold theme-text mb-2">Le Tableau Noir</h1>
+          <h1 className="text-4xl font-bold theme-text mb-2">{t('title')}</h1>
           <p className="text-lg theme-text-secondary">
-            Configurez les paramètres de votre tournoi
+            {t('subtitle')}
           </p>
         </div>
 
@@ -419,7 +421,7 @@ export default function TableauNoirPage() {
           {/* Selection du type de tournoi */}
           <div className="mb-8">
             <label className="block text-lg font-semibold theme-text mb-4 text-center">
-              Type de tournoi
+              {t('tournamentType')}
             </label>
 
             {/* Message si type force depuis le paiement */}
@@ -427,7 +429,7 @@ export default function TableauNoirPage() {
               <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 flex items-center justify-center gap-2">
                 <Check className="w-4 h-4 text-green-500" />
                 <span className="text-sm text-green-400">
-                  Type de tournoi pré-sélectionné suite à votre achat
+                  {t('typePreselected')}
                 </span>
               </div>
             )}
@@ -458,8 +460,8 @@ export default function TableauNoirPage() {
                   <span className={`font-medium ${selectedTournamentType === 'free' ? 'text-blue-400' : 'text-gray-300'}`}>
                     Free-Kick
                   </span>
-                  <span className="text-xs text-gray-500">Max 5 joueurs</span>
-                  <span className="text-xs text-green-400">Gratuit</span>
+                  <span className="text-xs text-gray-500">{t('maxPlayers', { n: 5 })}</span>
+                  <span className="text-xs text-green-400">{t('free')}</span>
                 </div>
               </button>
 
@@ -492,13 +494,13 @@ export default function TableauNoirPage() {
                   <span className={`font-medium ${selectedTournamentType === 'oneshot' ? 'text-green-400' : 'text-gray-300'}`}>
                     One-Shot
                   </span>
-                  <span className="text-xs text-gray-500">Max {pricingLimits.oneshotMaxPlayers} joueurs</span>
+                  <span className="text-xs text-gray-500">{t('maxPlayers', { n: pricingLimits.oneshotMaxPlayers })}</span>
                   {credits.oneshot_credits > 0 || forcedType === 'oneshot' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'oneshot' ? '1' : credits.oneshot_credits} crédit(s)
+                      <Check className="w-3 h-3" /> {t('credits', { n: forcedType === 'oneshot' ? 1 : credits.oneshot_credits })}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun crédit</span>
+                    <span className="text-xs text-gray-500">{t('noCredit')}</span>
                   )}
                 </div>
               </button>
@@ -532,13 +534,13 @@ export default function TableauNoirPage() {
                   <span className={`font-medium ${selectedTournamentType === 'elite' ? 'text-orange-400' : 'text-gray-300'}`}>
                     Elite Team
                   </span>
-                  <span className="text-xs text-gray-500">Max {pricingLimits.eliteMaxPlayers} joueurs</span>
+                  <span className="text-xs text-gray-500">{t('maxPlayers', { n: pricingLimits.eliteMaxPlayers })}</span>
                   {credits.elite_credits > 0 || forcedType === 'elite' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'elite' ? '1' : credits.elite_credits} crédit(s)
+                      <Check className="w-3 h-3" /> {t('credits', { n: forcedType === 'elite' ? 1 : credits.elite_credits })}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun crédit</span>
+                    <span className="text-xs text-gray-500">{t('noCredit')}</span>
                   )}
                 </div>
               </button>
@@ -572,13 +574,13 @@ export default function TableauNoirPage() {
                   <span className={`font-medium ${selectedTournamentType === 'platinium' ? 'text-yellow-400' : 'text-gray-300'}`}>
                     Platinium
                   </span>
-                  <span className="text-xs text-gray-500">{pricingLimits.platiniumMinPlayers}-{pricingLimits.platiniumMaxPlayers} joueurs</span>
+                  <span className="text-xs text-gray-500">{t('platiniumRange', { min: pricingLimits.platiniumMinPlayers, max: pricingLimits.platiniumMaxPlayers })}</span>
                   {(credits.platinium_solo_credits > 0 || credits.platinium_group_slots > 0) || forcedType === 'platinium' ? (
                     <span className="text-xs text-green-400 flex items-center gap-1">
-                      <Check className="w-3 h-3" /> {forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)} place{(forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits)) > 1 ? 's' : ''}
+                      <Check className="w-3 h-3" /> {t('places', { n: forcedType === 'platinium' ? prepaidSlots : (credits.platinium_group_slots || credits.platinium_solo_credits) })}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">Aucun crédit</span>
+                    <span className="text-xs text-gray-500">{t('noCredit')}</span>
                   )}
                 </div>
               </button>
@@ -588,7 +590,7 @@ export default function TableauNoirPage() {
             {!forcedType && (credits.oneshot_credits === 0 && credits.elite_credits === 0 && credits.platinium_solo_credits === 0 && credits.platinium_group_slots === 0) && (
               <div className="mt-4 text-center">
                 <Link href="/pricing" className="text-sm text-orange-400 hover:text-orange-300 underline">
-                  Acheter des crédits pour débloquer plus d'options
+                  {t('buyCredits')}
                 </Link>
               </div>
             )}
@@ -597,13 +599,13 @@ export default function TableauNoirPage() {
           {/* Nom du tournoi */}
           <div className="mb-8">
             <label className="block text-lg font-semibold theme-text mb-2">
-              Nom du tournoi
+              {t('nameLabel')}
             </label>
             <input
               type="text"
               value={tournamentName}
               onChange={(e) => setTournamentName(e.target.value)}
-              placeholder="Ex: Ligue des champions 2024"
+              placeholder={t('namePlaceholder')}
               className="theme-input theme-dark-bg border-2 creation-input"
             />
           </div>
@@ -613,16 +615,16 @@ export default function TableauNoirPage() {
             {/* Nombre de joueurs */}
             <div>
               <label htmlFor="input-max-players" className="block text-lg font-semibold theme-text mb-2 text-center">
-                Nombre de joueurs
+                {t('playersLabel')}
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center">
-                {selectedTournamentType === 'platinium' && 'Tournoi Platinium : '}
-                {selectedTournamentType === 'elite' && 'Tournoi Elite Team : '}
-                {selectedTournamentType === 'oneshot' && 'Tournoi One-Shot : '}
-                {selectedTournamentType === 'free' && 'Version Free-Kick : '}
+                {selectedTournamentType === 'platinium' && t('typePrefixPlatinium')}
+                {selectedTournamentType === 'elite' && t('typePrefixElite')}
+                {selectedTournamentType === 'oneshot' && t('typePrefixOneShot')}
+                {selectedTournamentType === 'free' && t('typePrefixFree')}
                 {minPlayersLimit === maxPlayersLimit
-                  ? `${maxPlayersLimit} joueurs`
-                  : `${minPlayersLimit} - ${maxPlayersLimit} joueurs`
+                  ? t('playersCount', { n: maxPlayersLimit })
+                  : t('playersRange', { min: minPlayersLimit, max: maxPlayersLimit })
                 }
               </p>
               <div className="flex items-start justify-center gap-3">
@@ -630,7 +632,7 @@ export default function TableauNoirPage() {
                   onClick={() => setMaxPlayers(Math.max(minPlayersLimit, maxPlayers - 1))}
                   disabled={maxPlayers <= minPlayersLimit}
                   className="btn-counter"
-                  aria-label="Diminuer le nombre de joueurs"
+                  aria-label={t('decreasePlayers')}
                 >
                   −
                 </button>
@@ -650,19 +652,19 @@ export default function TableauNoirPage() {
                     }}
                     className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input"
                   />
-                  <span id="max-players-hint" className="text-xs theme-text-secondary mt-1">participants</span>
+                  <span id="max-players-hint" className="text-xs theme-text-secondary mt-1">{t('participants')}</span>
                 </div>
                 <button
                   onClick={() => setMaxPlayers(Math.min(maxPlayersLimit, maxPlayers + 1))}
                   disabled={maxPlayers >= maxPlayersLimit}
                   className="btn-counter"
-                  aria-label="Augmenter le nombre de joueurs"
+                  aria-label={t('increasePlayers')}
                 >
                   +
                 </button>
               </div>
               <p className="text-center text-sm theme-text-secondary mt-2">
-                Min: {minPlayersLimit} | Max: {maxPlayersLimit}
+                {t('minMax', { min: minPlayersLimit, max: maxPlayersLimit })}
               </p>
             </div>
 
@@ -682,17 +684,17 @@ export default function TableauNoirPage() {
                 // Message à afficher
                 let matchdayMessage: string
                 if (isFormulaLimited) {
-                  matchdayMessage = `Limité à ${formulaLimit} journées en Free-Kick`
+                  matchdayMessage = t('matchdaysLimitedFormula', { n: formulaLimit })
                 } else if (isCompetitionLimited) {
-                  matchdayMessage = `Il ne reste que ${competition.remaining_matchdays} journée${competition.remaining_matchdays > 1 ? 's' : ''} dans la compétition`
+                  matchdayMessage = t('matchdaysLimitedComp', { n: competition.remaining_matchdays })
                 } else {
-                  matchdayMessage = 'Le tournoi se déroulera sur :'
+                  matchdayMessage = t('matchdaysDefault')
                 }
 
                 return (
                   <>
                     <label htmlFor="input-num-matchdays" className="block text-lg font-semibold theme-text mb-2 text-center">
-                      Nombre de journées
+                      {t('matchdaysLabel')}
                     </label>
                     <p className="text-sm theme-text-secondary mb-4 text-center">
                       {matchdayMessage}
@@ -702,7 +704,7 @@ export default function TableauNoirPage() {
                         onClick={() => setNumMatchdays(Math.max(1, numMatchdays - 1))}
                         disabled={numMatchdays <= 1 || allMatchdays}
                         className="btn-counter"
-                        aria-label="Diminuer le nombre de journées"
+                        aria-label={t('decreaseMatchdays')}
                       >
                         −
                       </button>
@@ -723,13 +725,13 @@ export default function TableauNoirPage() {
                           disabled={allMatchdays}
                           className="w-16 h-10 text-center text-xl font-bold theme-accent-text-always border-2 theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 theme-input disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <span id="num-matchdays-hint" className="text-xs theme-text-secondary mt-1">journées</span>
+                        <span id="num-matchdays-hint" className="text-xs theme-text-secondary mt-1">{t('matchdaysUnit')}</span>
                       </div>
                       <button
                         onClick={() => setNumMatchdays(Math.min(maxMatchdaysForType, numMatchdays + 1))}
                         disabled={numMatchdays >= maxMatchdaysForType || allMatchdays}
                         className="btn-counter"
-                        aria-label="Augmenter le nombre de journées"
+                        aria-label={t('increaseMatchdays')}
                       >
                         +
                       </button>
@@ -737,15 +739,15 @@ export default function TableauNoirPage() {
                     <div className="flex items-center justify-center gap-2">
                       <label htmlFor="toggle-all-matchdays" className="text-sm theme-text">
                         {isFormulaLimited
-                          ? `Maximum (${maxMatchdaysForType})`
-                          : `Toutes (${maxMatchdaysForType})`
+                          ? t('maximumN', { n: maxMatchdaysForType })
+                          : t('allN', { n: maxMatchdaysForType })
                         }
                       </label>
                       <button
                         type="button"
                         id="toggle-all-matchdays"
                         aria-pressed={allMatchdays}
-                        aria-label={isFormulaLimited ? `Activer maximum ${maxMatchdaysForType} journées` : `Activer toutes les ${maxMatchdaysForType} journées restantes`}
+                        aria-label={isFormulaLimited ? t('ariaMaxMatchdays', { n: maxMatchdaysForType }) : t('ariaAllMatchdays', { n: maxMatchdaysForType })}
                         onClick={() => {
                           setAllMatchdays(!allMatchdays)
                           if (!allMatchdays) {
@@ -769,16 +771,16 @@ export default function TableauNoirPage() {
             {/* Match bonus */}
             <div className="p-4 theme-dark-bg rounded-lg flex flex-col">
               <label className="block text-lg font-semibold theme-text mb-3 text-center">
-                Match bonus
+                {t('bonusMatch')}
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center flex-1">
-                Chaque journée, un match est choisi aléatoirement et rapporte le double de points pour tous les participants.
+                {t('bonusMatchDesc')}
               </p>
               <div className="flex justify-center">
                 <button
                   type="button"
                   aria-pressed={bonusMatchEnabled}
-                  aria-label="Activer le match bonus"
+                  aria-label={t('ariaBonusMatch')}
                   onClick={() => setBonusMatchEnabled(!bonusMatchEnabled)}
                   className={`toggle-switch-lg ${bonusMatchEnabled ? 'active' : ''}`}
                   role="switch"
@@ -791,16 +793,16 @@ export default function TableauNoirPage() {
             {/* Prime d'avant-match */}
             <div className="p-4 theme-dark-bg rounded-lg flex flex-col">
               <label className="block text-lg font-semibold theme-text mb-3 text-center">
-                Prime d'avant-match
+                {t('earlyBonus')}
               </label>
               <p className="text-sm theme-text-secondary mb-4 text-center flex-1">
-                Un point bonus par journée si toutes les rencontres sont pronostiquées avant l'horaire limite (30 minutes du coup d'envoi). Un seul oubli entraîne la perte de ce point : aide à lutter contre les forfaits.
+                {t('earlyBonusDesc')}
               </p>
               <div className="flex justify-center">
                 <button
                   type="button"
                   aria-pressed={earlyPredictionBonus}
-                  aria-label="Activer la prime d'avant-match"
+                  aria-label={t('ariaEarlyBonus')}
                   onClick={() => setEarlyPredictionBonus(!earlyPredictionBonus)}
                   className={`toggle-switch-lg ${earlyPredictionBonus ? 'active' : ''}`}
                   role="switch"
@@ -813,17 +815,17 @@ export default function TableauNoirPage() {
             {/* Points pour match nul avec prono par défaut */}
             <div className="p-4 theme-dark-bg rounded-lg">
               <label htmlFor="input-default-points" className="block text-lg font-semibold theme-text mb-1 text-center">
-                Score vierge
+                {t('blankScore')}
               </label>
               <p id="default-points-description" className="text-sm theme-text-secondary mb-3 text-center">
-                En cas d'oubli et d'absence de pronostic, le 0-0 peut rapporter au mieux :
+                {t('blankScoreDesc')}
               </p>
               <div className="flex items-center justify-center gap-3">
                 <button
                   onClick={() => setDrawWithDefaultPredictionPoints(Math.max(0, drawWithDefaultPredictionPoints - 1))}
                   disabled={drawWithDefaultPredictionPoints <= 0}
                   className="w-10 h-10 flex items-center justify-center theme-secondary-bg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
-                  aria-label="Diminuer les points pour score vierge"
+                  aria-label={t('ariaDecreaseBlank')}
                 >
                   −
                 </button>
@@ -846,13 +848,13 @@ export default function TableauNoirPage() {
                   onClick={() => setDrawWithDefaultPredictionPoints(Math.min(3, drawWithDefaultPredictionPoints + 1))}
                   disabled={drawWithDefaultPredictionPoints >= 3}
                   className="w-10 h-10 flex items-center justify-center theme-secondary-bg hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-xl font-bold theme-text transition"
-                  aria-label="Augmenter les points pour score vierge"
+                  aria-label={t('ariaIncreaseBlank')}
                 >
                   +
                 </button>
               </div>
               <p id="default-points-hint" className="text-center text-sm theme-text-secondary mt-2">
-                Min: 0 | Max: 3 | Recommandé: 1
+                {t('blankScoreHint')}
               </p>
             </div>
           </div>
@@ -862,17 +864,16 @@ export default function TableauNoirPage() {
             <div className="mb-8">
               <div className="p-4 theme-dark-bg rounded-lg flex flex-col items-center max-w-md mx-auto">
                 <label className="block text-lg font-semibold theme-text mb-3 text-center">
-                  Bonus du qualifié
+                  {t('qualifiedBonus')}
                 </label>
                 <p className="text-sm theme-text-secondary mb-4 text-center">
-                  Pour chaque match éliminatoire, les joueurs peuvent choisir l'équipe qui se qualifie.
-                  +1 point bonus par bonne prédiction.
+                  {t('qualifiedBonusDesc')}
                 </p>
                 <div className="flex justify-center">
                   <button
                     type="button"
                     aria-pressed={bonusQualifiedEnabled}
-                    aria-label="Activer le bonus du qualifié"
+                    aria-label={t('ariaQualifiedBonus')}
                     onClick={() => setBonusQualifiedEnabled(!bonusQualifiedEnabled)}
                     className={`toggle-switch-lg ${bonusQualifiedEnabled ? 'active' : ''}`}
                     role="switch"
@@ -887,7 +888,7 @@ export default function TableauNoirPage() {
           {/* Bouton inviter des amis */}
           <div className="mb-8 p-6 theme-secondary-bg theme-border border rounded-lg">
             <p className="text-sm theme-text text-center">
-              Une rencontre ne se joue jamais seul ! Pas d'inquiètude, vous pourrez inviter vos amis à la prochaine étape
+              {t('inviteNote')}
             </p>
           </div>
 
@@ -897,13 +898,13 @@ export default function TableauNoirPage() {
               href="/vestiaire"
               className="flex-1 px-6 py-3 btn-cancel text-center font-semibold"
             >
-              Annuler
+              {t('cancel')}
             </Link>
             <button
               onClick={handleCreateTournament}
               className="flex-1 px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition font-semibold shadow-md"
             >
-              Créer le tournoi
+              {t('create')}
             </button>
           </div>
         </div>
@@ -911,9 +912,7 @@ export default function TableauNoirPage() {
         {/* Informations supplémentaires */}
         <div className="mt-6 p-4 theme-secondary-bg theme-border border rounded-lg">
           <p className="text-sm theme-text">
-            <strong className="theme-accent-text-always">Note :</strong> Les journées de compétition qui auront lieu avant que votre tournoi
-            atteigne le nombre de joueurs requis ne seront pas comptabilisées. Assurez-vous d'inviter
-            rapidement vos amis pour ne pas manquer de journées !
+            <strong className="theme-accent-text-always">{t('noteLabel')}</strong> {t('noteText')}
           </p>
         </div>
       </main>
@@ -977,7 +976,7 @@ export default function TableauNoirPage() {
                   'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
-                Compris
+                {t('gotIt')}
               </button>
             </div>
           </div>
