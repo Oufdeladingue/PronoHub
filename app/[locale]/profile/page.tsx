@@ -9,6 +9,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import Image from 'next/image'
 import Link from 'next/link'
 import ThemeToggle from '@/components/ThemeToggle'
+import LanguageSelector from '@/components/LanguageSelector'
 import UserQuotasCard from '@/components/UserQuotasCard'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
@@ -721,6 +722,7 @@ function ProfileContent() {
                 <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
               </Link>
               <ThemeToggle />
+              <LanguageSelector />
             </div>
 
             {/* COLONNE CENTRALE - "Fiche technique" centré sur mobile, également visible sur desktop */}
