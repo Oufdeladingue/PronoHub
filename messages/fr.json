@@ -686,6 +686,30 @@
       "upcoming": "À venir",
       "finished": "Terminée",
       "inProgress": "En cours"
-    }
+    },
+    "loadingMatches": "Chargement des matchs...",
+    "noMatches": "Aucun match disponible pour cette journée",
+    "hideFinished": "Masquer les {n} matchs terminés",
+    "showFinished": "Afficher les {n} matchs terminés",
+    "matchesOfDate": "Matchs du {date}",
+    "competition": "Compétition",
+    "default": "Défaut",
+    "postponed": "Reporté",
+    "postponedFull": "Match reporté",
+    "matchFinished": "Terminé",
+    "live": "Live",
+    "closed": "Clôturé",
+    "locked": "Verrouillé",
+    "finalScore": "Score final :",
+    "liveScore": "En direct :",
+    "qualified": "{name} qualifié",
+    "editPrediction": "Modifier le pronostic",
+    "sending": "Envoi...",
+    "save": "Enregistrer",
+    "chooseQualifier": "Choisir le qualifié (+1 pt)",
+    "increaseScore": "Augmenter score {team}",
+    "decreaseScore": "Diminuer score {team}",
+    "scoreHome": "Score {team} (domicile)",
+    "scoreAway": "Score {team} (extérieur)"
   }
 }

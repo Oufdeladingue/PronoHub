@@ -8,14 +8,14 @@ import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { isCapacitor } from '@/lib/capacitor'
 import { useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { deriveMatchPhase, MATCH_PHASE_LABELS } from '@/lib/football-data-score'
 import ShareImageModal from '@/components/ShareImageModal'
-import { translateTeamName } from '@/lib/translations'
+import { translateTeamName as translateTeamNameRaw } from '@/lib/translations'
 import { slugify, fileDateStamp } from '@/lib/slug'
 import Footer from '@/components/Footer'
 import { trackPredictionSubmitted } from '@/lib/analytics'
@@ -312,6 +312,10 @@ export default function OppositionClient({
   const searchParams = useSearchParams()
   const { theme } = useTheme()
   const t = useTranslations('Opposition')
+  const locale = useLocale()
+  const dateLocale = locale === 'fr' ? 'fr-FR' : 'en-GB'
+  // Noms d'équipes : API en anglais → traduction FR uniquement (EN affiche l'original)
+  const translateTeamName = (n: string) => (locale === 'fr' ? translateTeamNameRaw(n) : n)
 
   // Lire le paramètre ?tab= de l'URL pour déterminer l'onglet initial
   const tabParam = searchParams.get('tab')
@@ -1928,7 +1932,7 @@ export default function OppositionClient({
   const groupMatchesByDate = (matches: Match[]) => {
     const groups: Record<string, Match[]> = {}
     matches.forEach(match => {
-      const date = new Date(match.utc_date).toLocaleDateString('fr-FR', {
+      const date = new Date(match.utc_date).toLocaleDateString(dateLocale, {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -2439,12 +2443,12 @@ export default function OppositionClient({
                 {loadingMatches ? (
                   <div className="text-center py-12">
                     <div className="loading-spinner-inline"></div>
-                    <p className="mt-4 theme-text-secondary">Chargement des matchs...</p>
+                    <p className="mt-4 theme-text-secondary">{t('loadingMatches')}</p>
                   </div>
                 ) : matches.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="theme-text-secondary">
-                      Aucun match disponible pour cette journée
+                      {t('noMatches')}
                     </p>
                   </div>
                 ) : (
@@ -2477,13 +2481,13 @@ export default function OppositionClient({
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88" />
                           </svg>
                         )}
-                        <span>{showFinishedMatches ? 'Masquer' : 'Afficher'} les {finishedMatchesList.length} matchs terminés</span>
+                        <span>{showFinishedMatches ? t('hideFinished', { n: finishedMatchesList.length }) : t('showFinished', { n: finishedMatchesList.length })}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 flex-shrink-0 transition-transform ${showFinishedMatches ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                       </button>
                     )}
 
                     {Object.entries(groupMatchesByDate(displayedMatches)).map(([date, dateMatches]) => (
-                      <div key={date} role="group" aria-label={`Matchs du ${date}`}>
+                      <div key={date} role="group" aria-label={t('matchesOfDate', { date })}>
                         {/* En-tête de date */}
                         <div className="mb-4">
                           <p className="text-sm font-bold theme-text capitalize text-center">
@@ -2495,7 +2499,7 @@ export default function OppositionClient({
                         <div className="space-y-3">
                           {dateMatches.map(match => {
                             const prediction = predictions[match.id] || { match_id: match.id, predicted_home_score: 0, predicted_away_score: 0 }
-                            const matchTime = new Date(match.utc_date).toLocaleTimeString('fr-FR', {
+                            const matchTime = new Date(match.utc_date).toLocaleTimeString(dateLocale, {
                               hour: '2-digit',
                               minute: '2-digit'
                             })
@@ -2649,13 +2653,13 @@ export default function OppositionClient({
                                       {/* Logo couleur pour thème clair */}
                                       <img
                                         src={match.competition_emblem}
-                                        alt={match.competition_name || 'Compétition'}
+                                        alt={match.competition_name || t('competition')}
                                         className="w-6 h-6 object-contain show-on-light"
                                       />
                                       {/* Logo blanc pour thème sombre */}
                                       <img
                                         src={match.competition_emblem_white || match.competition_emblem}
-                                        alt={match.competition_name || 'Compétition'}
+                                        alt={match.competition_name || t('competition')}
                                         className="w-6 h-6 object-contain show-on-dark"
                                       />
                                     </div>
@@ -2671,7 +2675,7 @@ export default function OppositionClient({
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">{t('default')}</span>
                                           </div>
                                         ) : (
                                           <div className="h-5"></div>
@@ -2711,7 +2715,7 @@ export default function OppositionClient({
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                           </svg>
                                           <span className="text-[9px] font-bold text-orange-700 dark:text-orange-400 uppercase">
-                                            Reporté
+                                            {t('postponed')}
                                           </span>
                                         </div>
                                       ) : match.home_score !== null && match.away_score !== null && isMatchInProgress ? (
@@ -2736,7 +2740,7 @@ export default function OppositionClient({
                                             const qCrest = side === 'home' ? match.home_team_crest : match.away_team_crest
                                             const qName = side === 'home' ? match.home_team_name : match.away_team_name
                                             return (
-                                              <span className="flex items-center gap-0.5 mt-0.5" title={`${translateTeamName(qName)} qualifié`}>
+                                              <span className="flex items-center gap-0.5 mt-0.5" title={t('qualified', { name: translateTeamName(qName) })}>
                                                 {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
                                                 <span className="text-[10px] font-extrabold text-green-700 dark:text-green-400">Q</span>
                                               </span>
@@ -2748,7 +2752,7 @@ export default function OppositionClient({
                                               ? 'text-green-700 dark:text-green-400'
                                               : 'text-orange-700 dark:text-orange-400'
                                           }`}>
-                                            {isMatchFinished(match) ? 'Terminé' : (liveMinuteLabel(match, liveNowMs) || 'Live')}
+                                            {isMatchFinished(match) ? t('matchFinished') : (liveMinuteLabel(match, liveNowMs) || t('live'))}
                                           </span>
                                         </div>
                                       ) : (
@@ -2810,7 +2814,7 @@ export default function OppositionClient({
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">{t('default')}</span>
                                           </div>
                                         ) : (
                                           <div className="h-5"></div>
@@ -2859,7 +2863,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
-                                          aria-label={`Augmenter score ${translateTeamName(match.home_team_name)}`}
+                                          aria-label={t('increaseScore', { team: translateTeamName(match.home_team_name) })}
                                         >
                                           +
                                         </button>
@@ -2870,7 +2874,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
-                                          aria-label={`Diminuer score ${translateTeamName(match.home_team_name)}`}
+                                          aria-label={t('decreaseScore', { team: translateTeamName(match.home_team_name) })}
                                         >
                                           −
                                         </button>
@@ -2889,7 +2893,7 @@ export default function OppositionClient({
                                           }
                                         }}
                                         disabled={isLocked}
-                                        aria-label={`Score ${translateTeamName(match.home_team_name)} (domicile)`}
+                                        aria-label={t('scoreHome', { team: translateTeamName(match.home_team_name) })}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
 
@@ -2908,7 +2912,7 @@ export default function OppositionClient({
                                           }
                                         }}
                                         disabled={isLocked}
-                                        aria-label={`Score ${translateTeamName(match.away_team_name)} (extérieur)`}
+                                        aria-label={t('scoreAway', { team: translateTeamName(match.away_team_name) })}
                                         className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                       />
 
@@ -2928,7 +2932,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
-                                          aria-label={`Augmenter score ${translateTeamName(match.away_team_name)}`}
+                                          aria-label={t('increaseScore', { team: translateTeamName(match.away_team_name) })}
                                         >
                                           +
                                         </button>
@@ -2939,7 +2943,7 @@ export default function OppositionClient({
                                           }}
                                           disabled={isLocked}
                                           className="btn-score-adjust"
-                                          aria-label={`Diminuer score ${translateTeamName(match.away_team_name)}`}
+                                          aria-label={t('decreaseScore', { team: translateTeamName(match.away_team_name) })}
                                         >
                                           −
                                         </button>
@@ -2968,7 +2972,7 @@ export default function OppositionClient({
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                           </svg>
-                                          <span className="text-xs font-medium">Clôturé</span>
+                                          <span className="text-xs font-medium">{t('closed')}</span>
                                         </div>
                                       )
                                     ) : isSaved && !isModified && isLocked ? (
@@ -2981,7 +2985,7 @@ export default function OppositionClient({
                                         <button
                                           onClick={() => unlockPrediction(match.id)}
                                           className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-gray-700 rounded-lg text-blue-600 dark:text-gray-300 hover:bg-blue-200 hover:text-blue-700 dark:hover:bg-gray-600 dark:hover:text-gray-200 transition"
-                                          title="Modifier le pronostic"
+                                          title={t('editPrediction')}
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -3002,10 +3006,10 @@ export default function OppositionClient({
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                               </svg>
-                                              <span>Envoi...</span>
+                                              <span>{t('sending')}</span>
                                             </>
                                           ) : (
-                                            <span>Enregistrer</span>
+                                            <span>{t('save')}</span>
                                           )}
                                         </button>
                                       </div>
@@ -3036,7 +3040,7 @@ export default function OppositionClient({
                                               <>
                                                 {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
                                                 <span className="text-orange-700 dark:text-[#ff9900]">
-                                                  {translateTeamName(name)} qualifié
+                                                  {t('qualified', { name: translateTeamName(name) })}
                                                 </span>
                                                 {!isClosed && (
                                                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
@@ -3055,7 +3059,7 @@ export default function OppositionClient({
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                           </svg>
-                                          Choisir le qualifié (+1 pt)
+                                          {t('chooseQualifier')}
                                         </button>
                                       ) : null}
                                     </div>
@@ -3076,13 +3080,13 @@ export default function OppositionClient({
                                           {/* Logo couleur pour thème clair */}
                                           <img
                                             src={match.competition_emblem}
-                                            alt={match.competition_name || 'Compétition'}
+                                            alt={match.competition_name || t('competition')}
                                             className="w-8 h-8 object-contain show-on-light"
                                           />
                                           {/* Logo blanc pour thème sombre */}
                                           <img
                                             src={match.competition_emblem_white || match.competition_emblem}
-                                            alt={match.competition_name || 'Compétition'}
+                                            alt={match.competition_name || t('competition')}
                                             className="w-8 h-8 object-contain show-on-dark"
                                           />
                                         </div>
@@ -3100,7 +3104,7 @@ export default function OppositionClient({
                                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                                             </svg>
                                             <span className="text-xs font-bold text-orange-700 dark:text-orange-400 uppercase">
-                                              Match reporté
+                                              {t('postponedFull')}
                                             </span>
                                           </div>
                                         )}
@@ -3111,7 +3115,7 @@ export default function OppositionClient({
                                               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                             </svg>
                                             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                              Verrouillé
+                                              {t('locked')}
                                             </span>
                                           </div>
                                         )}
@@ -3127,7 +3131,7 @@ export default function OppositionClient({
                                                 ? 'text-green-700 dark:text-green-400'
                                                 : 'text-orange-700 dark:text-orange-400'
                                             }`}>
-                                              {isMatchFinished(match) ? 'Score final :' : 'En direct :'}
+                                              {isMatchFinished(match) ? t('finalScore') : t('liveScore')}
                                             </span>
                                             <span className={`text-sm font-bold ${
                                               isMatchFinished(match)
@@ -3153,7 +3157,7 @@ export default function OppositionClient({
                                           return (
                                             <div className="flex items-center gap-1 px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 whitespace-nowrap">
                                               {qCrest && <img src={qCrest} alt="" className="w-4 h-4 object-contain" />}
-                                              <span className="text-xs font-semibold text-green-700 dark:text-green-400">{translateTeamName(qName)} qualifié</span>
+                                              <span className="text-xs font-semibold text-green-700 dark:text-green-400">{t('qualified', { name: translateTeamName(qName) })}</span>
                                             </div>
                                           )
                                         })()}
@@ -3200,7 +3204,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
-                                                  aria-label={`Augmenter score ${translateTeamName(match.home_team_name)}`}
+                                                  aria-label={t('increaseScore', { team: translateTeamName(match.home_team_name) })}
                                                 >
                                                   +
                                                 </button>
@@ -3211,7 +3215,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
-                                                  aria-label={`Diminuer score ${translateTeamName(match.home_team_name)}`}
+                                                  aria-label={t('decreaseScore', { team: translateTeamName(match.home_team_name) })}
                                                 >
                                                   −
                                                 </button>
@@ -3229,7 +3233,7 @@ export default function OppositionClient({
                                                 }
                                               }}
                                               disabled={isClosed || isLocked || match.status === 'POSTPONED'}
-                                              aria-label={`Score ${translateTeamName(match.home_team_name)} (domicile)`}
+                                              aria-label={t('scoreHome', { team: translateTeamName(match.home_team_name) })}
                                               className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                           </div>
@@ -3251,7 +3255,7 @@ export default function OppositionClient({
                                                 }
                                               }}
                                               disabled={isClosed || isLocked || match.status === 'POSTPONED'}
-                                              aria-label={`Score ${translateTeamName(match.away_team_name)} (extérieur)`}
+                                              aria-label={t('scoreAway', { team: translateTeamName(match.away_team_name) })}
                                               className="w-12 h-10 text-center text-lg font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-300 dark:border-gray-600 rounded focus:border-[#ff9900] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                             />
                                             {!isClosed && match.status !== 'POSTPONED' && (
@@ -3270,7 +3274,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
-                                                  aria-label={`Augmenter score ${translateTeamName(match.away_team_name)}`}
+                                                  aria-label={t('increaseScore', { team: translateTeamName(match.away_team_name) })}
                                                 >
                                                   +
                                                 </button>
@@ -3281,7 +3285,7 @@ export default function OppositionClient({
                                                   }}
                                                   disabled={isLocked}
                                                   className="btn-score-adjust w-6 h-5 text-sm"
-                                                  aria-label={`Diminuer score ${translateTeamName(match.away_team_name)}`}
+                                                  aria-label={t('decreaseScore', { team: translateTeamName(match.away_team_name) })}
                                                 >
                                                   −
                                                 </button>
@@ -3319,7 +3323,7 @@ export default function OppositionClient({
                                           <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                           </svg>
-                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                          <span className="font-medium text-yellow-700 dark:text-yellow-500">{t('default')}</span>
                                         </div>
                                       )}
 
@@ -3344,7 +3348,7 @@ export default function OppositionClient({
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                                               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                             </svg>
-                                            <span className="text-[10px] font-medium">Clôturé</span>
+                                            <span className="text-[10px] font-medium">{t('closed')}</span>
                                           </div>
                                         )
                                       ) : isSaved && !isModified && isLocked ? (
@@ -3357,7 +3361,7 @@ export default function OppositionClient({
                                           <button
                                             onClick={() => unlockPrediction(match.id)}
                                             className="flex items-center justify-center w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition flex-shrink-0"
-                                            title="Modifier le pronostic"
+                                            title={t('editPrediction')}
                                           >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -3378,10 +3382,10 @@ export default function OppositionClient({
                                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
-                                                <span className="hidden xl:inline">Envoi...</span>
+                                                <span className="hidden xl:inline">{t('sending')}</span>
                                               </>
                                             ) : (
-                                              <span className="hidden xl:inline">Enregistrer</span>
+                                              <span className="hidden xl:inline">{t('save')}</span>
                                             )}
                                           </button>
                                         </div>
@@ -3411,7 +3415,7 @@ export default function OppositionClient({
                                             <>
                                               {crest && <img src={crest} alt="" className="w-4 h-4 object-contain" />}
                                               <span className="text-orange-700 dark:text-[#ff9900]">
-                                                {translateTeamName(name)} qualifié
+                                                {t('qualified', { name: translateTeamName(name) })}
                                               </span>
                                               {!isClosed && (
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-orange-400 dark:text-[#ff9900]/70" viewBox="0 0 20 20" fill="currentColor">
@@ -3430,7 +3434,7 @@ export default function OppositionClient({
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                                         </svg>
-                                        Choisir le qualifié (+1 pt)
+                                        {t('chooseQualifier')}
                                       </button>
                                     ) : null}
                                   </div>
@@ -3538,7 +3542,7 @@ export default function OppositionClient({
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                             </svg>
-                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">{t('default')}</span>
                                                           </div>
                                                         )}
                                                         {tournament.bonus_qualified && playerPred.predictedQualifier && (
@@ -3605,7 +3609,7 @@ export default function OppositionClient({
                                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-2 w-2 text-yellow-600 dark:text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
                                                               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                                             </svg>
-                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">Défaut</span>
+                                                            <span className="font-medium text-yellow-700 dark:text-yellow-500">{t('default')}</span>
                                                           </div>
                                                         )}
                                                         {tournament.bonus_qualified && playerPred.predictedQualifier && (

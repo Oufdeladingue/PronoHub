@@ -686,6 +686,30 @@
       "upcoming": "Upcoming",
       "finished": "Finished",
       "inProgress": "In progress"
-    }
+    },
+    "loadingMatches": "Loading matches...",
+    "noMatches": "No match available for this matchday",
+    "hideFinished": "Hide the {n} finished matches",
+    "showFinished": "Show the {n} finished matches",
+    "matchesOfDate": "Matches on {date}",
+    "competition": "Competition",
+    "default": "Default",
+    "postponed": "Postponed",
+    "postponedFull": "Match postponed",
+    "matchFinished": "Finished",
+    "live": "Live",
+    "closed": "Closed",
+    "locked": "Locked",
+    "finalScore": "Final score:",
+    "liveScore": "Live:",
+    "qualified": "{name} qualified",
+    "editPrediction": "Edit prediction",
+    "sending": "Saving...",
+    "save": "Save",
+    "chooseQualifier": "Choose the qualifier (+1 pt)",
+    "increaseScore": "Increase {team} score",
+    "decreaseScore": "Decrease {team} score",
+    "scoreHome": "{team} score (home)",
+    "scoreAway": "{team} score (away)"
   }
 }
