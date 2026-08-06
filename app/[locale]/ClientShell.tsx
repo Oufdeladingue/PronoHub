@@ -2,24 +2,26 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import Link from 'next/link'
 import PublicTournamentBanner from '@/components/PublicTournamentBanner'
 import type { FeaturedPublicTournament } from '@/lib/public-tournament'
 
 const SECTIONS = [
-  { id: 'hero', label: 'Accueil' },
-  { id: 'how', label: 'Comment ça marche' },
-  { id: 'features', label: 'Fonctionnalités' },
-  { id: 'proof', label: 'Communauté' },
-  { id: 'pricing', label: "C'est gratuit" },
-  { id: 'cta', label: 'Commencer' },
+  { id: 'hero', key: 'home' },
+  { id: 'how', key: 'how' },
+  { id: 'features', key: 'features' },
+  { id: 'proof', key: 'community' },
+  { id: 'pricing', key: 'free' },
+  { id: 'cta', key: 'start' },
 ] as const
 
 const NAV_LINKS = SECTIONS.filter(s => ['how', 'features'].includes(s.id))
 
 export function ClientShell({ children, featured }: { children: ReactNode; featured?: FeaturedPublicTournament | null }) {
   const router = useRouter()
+  const t = useTranslations('Landing.nav')
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeSection, setActiveSection] = useState('hero')
   const [headerCompact, setHeaderCompact] = useState(false)
@@ -236,7 +238,7 @@ export function ClientShell({ children, featured }: { children: ReactNode; featu
             href="#hero"
             onClick={(e) => scrollTo(e, 'hero')}
             className="flex items-center gap-2 shrink-0 min-h-[44px] min-w-[44px]"
-            aria-label="Retour en haut"
+            aria-label={t('backToTop')}
           >
             <Image src="/images/logo.svg" alt="PronoHub" width={28} height={28} className="w-7 h-auto" unoptimized />
             <span className="hidden sm:inline text-white font-semibold text-sm">PronoHub</span>
@@ -253,7 +255,7 @@ export function ClientShell({ children, featured }: { children: ReactNode; featu
                   activeSection === s.id ? 'text-[#ff9900]' : 'text-[#94a3b8] hover:text-white'
                 }`}
               >
-                {s.label}
+                {t(s.key)}
               </a>
             ))}
           </nav>
@@ -264,18 +266,18 @@ export function ClientShell({ children, featured }: { children: ReactNode; featu
               href="/auth/login"
               className="hidden sm:inline-block text-sm text-[#94a3b8] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#ff9900]/50 rounded-sm"
             >
-              Se connecter
+              {t('login')}
             </Link>
             <Link
               href="/auth/signup"
               className="text-sm font-semibold rounded-[14px] px-5 py-2.5 bg-[#ff9900] text-[#1a1a1a] hover:bg-[#e68a00] transition-all duration-200 shadow-[0_0_12px_rgba(255,153,0,0.3)] active:scale-[0.98] active:shadow-none"
             >
-              Créer mon tournoi
+              {t('signup')}
             </Link>
             <button
               className="md:hidden p-3 text-[#94a3b8]"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Menu"
+              aria-label={t('menu')}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
             >
@@ -309,14 +311,14 @@ export function ClientShell({ children, featured }: { children: ReactNode; featu
                     : 'text-[#94a3b8] hover:text-white hover:bg-white/5'
                 }`}
               >
-                {s.label}
+                {t(s.key)}
               </a>
             ))}
             <Link
               href="/auth/login"
               className="block w-full text-left px-4 py-3 rounded-lg text-sm text-[#94a3b8] hover:text-white hover:bg-white/5 sm:hidden"
             >
-              Se connecter
+              {t('login')}
             </Link>
           </div>
         </nav>
@@ -342,12 +344,12 @@ export function ClientShell({ children, featured }: { children: ReactNode; featu
             href={`#${s.id}`}
             onClick={(e) => scrollTo(e, s.id)}
             className="group relative flex items-center justify-end p-2 outline-none focus-visible:ring-2 focus-visible:ring-[#ff9900] rounded-sm"
-            aria-label={s.label}
+            aria-label={t(s.key)}
             aria-current={activeSection === s.id ? 'true' : undefined}
           >
             {/* Tooltip */}
             <span className="absolute right-9 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-white bg-[#1e293b]/90 px-2.5 py-1 rounded-lg whitespace-nowrap pointer-events-none border border-white/[0.08]">
-              {s.label}
+              {t(s.key)}
             </span>
             {/* Hexagon */}
             <svg width="16" height="18" viewBox="0 0 16 18" className={`transition-all duration-300 ${

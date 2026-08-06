@@ -23,5 +23,115 @@
     "label": "Language",
     "fr": "Français",
     "en": "English"
+  },
+  "Landing": {
+    "nav": {
+      "home": "Home",
+      "how": "How it works",
+      "features": "Features",
+      "community": "Community",
+      "free": "It's free",
+      "start": "Get started",
+      "login": "Log in",
+      "signup": "Create my tournament",
+      "backToTop": "Back to top",
+      "menu": "Menu"
+    },
+    "hero": {
+      "title": "Have fun,<br></br> become the <k>prediction</k><br></br><p>king</p>.",
+      "subtitle": "Create your Ligue 1, Champions League or World Cup tournament in 30 seconds and take on your friends.<br></br>Free, no ads, 100% fun.",
+      "ctaPrimary": "Create my tournament for free",
+      "ctaSecondary": "See a demo",
+      "social": "Already over <b>5,000</b> predictors signed up"
+    },
+    "how": {
+      "title": "How to play?",
+      "subtitle": "In 3 steps, you go from benchwarmer to Ballon d'Or.",
+      "step": "Step {n}",
+      "step1Title": "Create your tournament",
+      "step1Text": "Pick your competition and set your rules in a few clicks.",
+      "step1Chip": "Champions League, Ligue 1,...",
+      "step2Title": "Invite your mates",
+      "step2Text": "Share the code and build your group. The more the merrier.",
+      "step2Chip": "Trophies, chat, bonuses, stats",
+      "step3Title": "Predict and climb",
+      "step3Text": "Unlock trophies and become king of the leaderboard.",
+      "step3Chip": "+3 pts exact score • +1 pt correct result"
+    },
+    "features": {
+      "title": "Everything to live football to the fullest",
+      "subtitle": "PronoHub is way more than a simple prediction table.",
+      "f1Label": "Still on top?",
+      "f1Title": "Real-time leaderboards",
+      "f1Desc": "Track your progress and your mates' every matchday. Who takes the lead?",
+      "f2Label": "Raise your banner",
+      "f2Title": "Player chat",
+      "f2Desc": "Tease your mates, react to their picks, mention them. The locker room is heating up.",
+      "f3Label": "Honours",
+      "f3Title": "16 trophies to unlock",
+      "f3Desc": "Nostradamus, Ballon d'Or, Player of the Day... Collect them all.",
+      "f4Label": "Match delayed?",
+      "f4Title": "Automatic reminders",
+      "f4Desc": "We ping you before every match so you never forget a prediction.",
+      "f5Label": "No let-up",
+      "f5Title": "Varied competitions",
+      "f5Desc": "Ligue 1, Premier League, Champions League, Best of Week... Something for everyone.",
+      "f6Label": "No excuses",
+      "f6Title": "Mobile and web",
+      "f6Desc": "Play from your phone or your computer. Your picks sync everywhere."
+    },
+    "proof": {
+      "title": "They're already battling it out on <logo></logo> PronoHub",
+      "stat1": "Tournaments created",
+      "stat2": "Active players",
+      "stat3": "Predictions recorded",
+      "reviewsIntro": "3 recent player reviews.",
+      "t1Quote": "We launched a Ligue 1 tournament in 2 minutes. The real-time leaderboard creates a crazy vibe.",
+      "t1Tag": "Tournament with mates",
+      "t2Quote": "The in-match chat is amazing. Mentions, reactions… we tease each other non-stop.",
+      "t2Tag": "Chat & reactions",
+      "t3Quote": "The trophies to unlock make it addictive. And the pre-match reminders stop you forgetting.",
+      "t3Tag": "Trophies & reminders"
+    },
+    "pricing": {
+      "title": "Free to start",
+      "subtitle": "Create up to 2 free tournaments with 5 players. Need more? Our plans scale with your crew.",
+      "freeName": "Free-Kick",
+      "freePrice": "€0",
+      "freeF1": "2 active tournaments",
+      "freeF2": "5 players max",
+      "freeF3": "All competitions",
+      "freeF4": "Chat and trophies",
+      "premiumName": "Premium",
+      "premiumPrice": "from €4.99",
+      "premiumF1": "Up to 30 players",
+      "premiumF2": "Unlimited tournaments",
+      "premiumF3": "Bonus match x2",
+      "premiumF4": "Player and duration extensions",
+      "allPrices": "See all plans →"
+    },
+    "cta": {
+      "title": "Ready to challenge your mates?",
+      "subtitle": "Join the community and show them who the real prediction king is.",
+      "button": "Launch my free tournament",
+      "noCard": "No credit card required",
+      "share": "Share PronoHub with your mates"
+    },
+    "footer": {
+      "pronostics": "Predictions",
+      "guides": "Guides",
+      "about": "About",
+      "pricing": "Pricing",
+      "contact": "Contact",
+      "cgu": "Terms",
+      "privacy": "Privacy",
+      "byCompetition": "Predictions by competition",
+      "allCompetitions": "All competitions →"
+    },
+    "meta": {
+      "title": "Football Predictions with Friends | Free Tournament - PronoHub",
+      "description": "Create your free football prediction tournament and challenge your friends on Ligue 1, Champions League and Premier League. Live leaderboards, trophies and chat. Sign up in 30 seconds, no credit card.",
+      "ogDescription": "Create your free football prediction tournament and challenge your friends. Live leaderboards, trophies and chat."
+    }
   }
 }

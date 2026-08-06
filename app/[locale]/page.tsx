@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
@@ -9,32 +10,36 @@ import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
 import { getFeaturedPublicTournament } from '@/lib/public-tournament'
 import './landing.css'
 
-export const metadata = {
-  title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
-  description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis sur la Ligue 1, Champions League et Premier League. Classements en direct, trophées et chat. Inscription en 30 secondes, sans carte bancaire.',
-  openGraph: {
-    title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
-    description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis. Classements en direct, trophées et chat.',
-    url: 'https://www.pronohub.club',
-    siteName: 'PronoHub',
-    type: 'website',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'PronoHub - Pronostics Football entre Amis' }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Pronostics Football entre Amis | Tournoi Gratuit - PronoHub',
-    description: 'Crée ton tournoi de pronostics football gratuit et défie tes amis.',
-    images: ['/opengraph-image'],
-  },
-  alternates: {
-    canonical: 'https://www.pronohub.club',
-  },
+export async function generateMetadata() {
+  const t = await getTranslations('Landing.meta')
+  return {
+    title: t('title'),
+    description: t('description'),
+    openGraph: {
+      title: t('title'),
+      description: t('ogDescription'),
+      url: 'https://www.pronohub.club',
+      siteName: 'PronoHub',
+      type: 'website',
+      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'PronoHub' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('title'),
+      description: t('ogDescription'),
+      images: ['/opengraph-image'],
+    },
+    alternates: {
+      canonical: 'https://www.pronohub.club',
+    },
+  }
 }
 
 // =============================================
 // SECTION 1 — HERO
 // =============================================
-function HeroSection() {
+async function HeroSection() {
+  const t = await getTranslations('Landing.hero')
   return (
     <section id="hero" data-chapter="Hero" className="relative overflow-hidden md:snap-start">
       {/* ── Parallax background image ── */}
@@ -63,11 +68,11 @@ function HeroSection() {
             className="max-w-3xl text-balance text-4xl font-semibold tracking-tight leading-[1.05] text-white sm:text-5xl lg:text-[56px]"
             data-animate
           >
-            Fais-toi plaisir,
-            <br className="hidden sm:block" />
-            {' '}deviens le <span className="text-[#ff9900]">roi du</span>
-            <br className="hidden sm:block" />
-            <span className="text-[#ff9900] text-5xl sm:text-6xl lg:text-[72px]">prono</span><span className="text-white">.</span>
+            {t.rich('title', {
+              br: () => <br className="hidden sm:block" />,
+              k: (chunks) => <span className="text-[#ff9900]">{chunks}</span>,
+              p: (chunks) => <span className="text-[#ff9900] text-5xl sm:text-6xl lg:text-[72px]">{chunks}</span>,
+            })}
           </h1>
 
           {/* Subtitle */}
@@ -76,9 +81,7 @@ function HeroSection() {
             data-animate
             style={{ '--stagger': '100ms' } as React.CSSProperties}
           >
-            Crée ton tournoi de Ligue 1, LDC ou Coupe du monde en 30 secondes et affronte tes amis.
-            <br />
-            Gratuit, sans pub, 100% fun.
+            {t.rich('subtitle', { br: () => <br /> })}
           </p>
 
           {/* CTAs — stacked like reference */}
@@ -91,13 +94,13 @@ function HeroSection() {
               href="/auth/signup"
               className="hero-cta-primary inline-flex h-14 items-center justify-center rounded-2xl bg-[#ff9900] px-8 text-base font-semibold text-black transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#ff9900] focus:ring-offset-0 active:scale-[0.98]"
             >
-              Créer mon tournoi gratuitement
+              {t('ctaPrimary')}
             </Link>
             <Link
               href="/auth/login"
               className="inline-flex h-14 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-8 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/60 active:scale-[0.98]"
             >
-              Voir une démo
+              {t('ctaSecondary')}
             </Link>
           </div>
 
@@ -119,7 +122,7 @@ function HeroSection() {
               ))}
             </div>
             <p className="text-sm text-slate-300">
-              Déjà plus de <span className="font-semibold text-white">5 000</span> pronostiqueurs inscrits
+              {t.rich('social', { b: (chunks) => <span className="font-semibold text-white">{chunks}</span> })}
             </p>
           </div>
         </div>
@@ -139,7 +142,7 @@ function HeroSection() {
                 <Image
                   key={`desktop-${i}`}
                   src={`/images/desktop-${i}.png`}
-                  alt={`PronoHub écran ${i}`}
+                  alt={`PronoHub ${i}`}
                   width={1300}
                   height={770}
                   data-slide={i - 1}
@@ -161,7 +164,7 @@ function HeroSection() {
                 <Image
                   key={`mobile-${i}`}
                   src={`/images/mobile-${i}.png`}
-                  alt={`PronoHub mobile écran ${i}`}
+                  alt={`PronoHub ${i}`}
                   width={375}
                   height={812}
                   data-slide={i - 1}
@@ -185,30 +188,32 @@ function HeroSection() {
 // =============================================
 // SECTION 2 — COMMENT CA MARCHE (3 etapes)
 // =============================================
-function HowItWorksSection() {
+async function HowItWorksSection() {
+  const t = await getTranslations('Landing.how')
+  const iconFilter = { filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }
   const steps = [
     {
       n: '01',
-      title: 'Crée ton tournoi',
-      text: 'Choisis ta compétition et configure tes règles en quelques clics.',
-      chip: "Champion's League, Ligue 1,...",
-      icon: <Image src="/images/icons/stadium-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      title: t('step1Title'),
+      text: t('step1Text'),
+      chip: t('step1Chip'),
+      icon: <Image src="/images/icons/stadium-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-step-1.jpg',
     },
     {
       n: '02',
-      title: 'Invite tes potes',
-      text: 'Partage le code et constitue ton groupe. Plus on est de fous, plus on rit.',
-      chip: 'Trophées, tchat, bonus, stats',
-      icon: <Image src="/images/icons/friends-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      title: t('step2Title'),
+      text: t('step2Text'),
+      chip: t('step2Chip'),
+      icon: <Image src="/images/icons/friends-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-step-2.jpg',
     },
     {
       n: '03',
-      title: 'Pronostique et grimpe',
-      text: 'Décroche des trophées et deviens le roi du classement.',
-      chip: '+3 pts score exact \u2022 +1 pt bon résultat',
-      icon: <Image src="/images/icons/cup-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={{ filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }} unoptimized aria-hidden />,
+      title: t('step3Title'),
+      text: t('step3Text'),
+      chip: t('step3Chip'),
+      icon: <Image src="/images/icons/cup-step.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-step-3.jpg',
     },
   ]
@@ -227,14 +232,14 @@ function HowItWorksSection() {
             className="text-2xl font-semibold tracking-tight text-white sm:text-3xl"
             data-animate
           >
-            Comment jouer ?
+            {t('title')}
           </h2>
           <p
             className="mx-auto mt-2 max-w-xl text-sm text-slate-300 sm:text-base"
             data-animate
             style={{ '--stagger': '80ms' } as React.CSSProperties}
           >
-            En 3 étapes, tu passes de remplaçant à ballon d'or.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -265,7 +270,7 @@ function HowItWorksSection() {
                   <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#ff9900]/25 bg-[#ff9900]/10 text-[#ff9900] transition duration-300 group-hover:bg-[#ff9900]/20 group-hover:shadow-[0_0_20px_rgba(255,153,0,0.2)]">
                     {step.icon}
                   </div>
-                  <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#ff9900]/70">Étape {step.n}</span>
+                  <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#ff9900]/70">{t('step', { n: step.n })}</span>
                 </div>
 
                 <h3 className="relative mt-3.5 text-[17px] font-semibold text-white leading-snug">{step.title}</h3>
@@ -288,48 +293,49 @@ function HowItWorksSection() {
 // =============================================
 // SECTION 3 — FEATURES
 // =============================================
-function FeaturesSection() {
+async function FeaturesSection() {
+  const t = await getTranslations('Landing.features')
   const iconFilter = { filter: 'brightness(0) saturate(100%) invert(59%) sepia(95%) saturate(1936%) hue-rotate(360deg) brightness(101%) contrast(107%)' }
   const features = [
     {
-      label: 'Toujours leader ?',
-      title: 'Classements en temps réel',
-      description: 'Suis ton évolution et celle de tes potes à chaque journée. Qui prend la tête ?',
+      label: t('f1Label'),
+      title: t('f1Title'),
+      description: t('f1Desc'),
       icon: <Image src="/images/icons/podium.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card1.jpg',
     },
     {
-      label: 'Déploie ta banderole',
-      title: 'Chat entre joueurs',
-      description: 'Chambre tes potes, réagis à leurs pronos, mentionne-les. Le vestiaire est chaud.',
+      label: t('f2Label'),
+      title: t('f2Title'),
+      description: t('f2Desc'),
       icon: <Image src="/images/icons/chat.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card2.jpg',
     },
     {
-      label: 'Palmarès',
-      title: '16 trophées à débloquer',
-      description: "Nostradamus, Ballon d'Or, Roi de la journée... Collectionne-les tous.",
+      label: t('f3Label'),
+      title: t('f3Title'),
+      description: t('f3Desc'),
       icon: <Image src="/images/icons/trophy-section.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card3.jpg',
     },
     {
-      label: 'Match retardé ?',
-      title: 'Rappels automatiques',
-      description: 'On te prévient avant chaque match pour ne jamais oublier un prono.',
+      label: t('f4Label'),
+      title: t('f4Title'),
+      description: t('f4Desc'),
       icon: <Image src="/images/icons/rappel.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card4.jpg',
     },
     {
-      label: 'Pas de répit',
-      title: 'Compétitions variées',
-      description: "Ligue 1, Premier League, Champions League, Best of Week... Il y en a pour tous les goûts.",
+      label: t('f5Label'),
+      title: t('f5Title'),
+      description: t('f5Desc'),
       icon: <Image src="/images/icons/compet.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card5.jpg',
     },
     {
-      label: "Pas d'excuses",
-      title: 'Mobile et web',
-      description: 'Joue depuis ton téléphone ou ton ordi. Tes pronos se synchronisent partout.',
+      label: t('f6Label'),
+      title: t('f6Title'),
+      description: t('f6Desc'),
       icon: <Image src="/images/icons/mobile.svg" alt="" width={22} height={22} className="w-[22px] h-[22px]" style={iconFilter} unoptimized aria-hidden />,
       bg: '/images/bg-sect3-card6.jpg',
     },
@@ -351,14 +357,14 @@ function FeaturesSection() {
           className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-[-0.02em] leading-[1.1] text-white text-center"
           data-animate
         >
-          Tout pour vivre le foot à fond
+          {t('title')}
         </h2>
         <p
           className="text-slate-300 text-center mt-3 mb-12 sm:mb-16 max-w-lg mx-auto text-sm sm:text-base font-normal"
           data-animate
           style={{ '--stagger': '80ms' } as React.CSSProperties}
         >
-          PronoHub, c&apos;est bien plus qu&apos;un simple tableau de pronostics.
+          {t('subtitle')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -396,31 +402,32 @@ function FeaturesSection() {
 // =============================================
 // SECTION 4 — SOCIAL PROOF
 // =============================================
-function SocialProofSection() {
+async function SocialProofSection() {
+  const t = await getTranslations('Landing.proof')
   const stats = [
-    { target: 100, suffix: '+', label: 'Tournois créés' },
-    { target: 500, suffix: '+', label: 'Joueurs actifs' },
-    { target: 10000, suffix: '+', label: 'Pronostics enregistrés' },
+    { target: 100, suffix: '+', label: t('stat1') },
+    { target: 500, suffix: '+', label: t('stat2') },
+    { target: 10000, suffix: '+', label: t('stat3') },
   ]
 
   const testimonials = [
     {
       name: 'Zizou34',
       avatar: '/avatars/avatar5.png',
-      quote: "On a lancé un tournoi Ligue 1 en 2 minutes. Le classement en temps réel met une ambiance de fou.",
-      tag: 'Tournoi entre potes',
+      quote: t('t1Quote'),
+      tag: t('t1Tag'),
     },
     {
       name: 'Sandrinette',
       avatar: '/avatars/avatar12.png',
-      quote: "Le chat pendant les matchs est incroyable. Mentions, réactions… on se chambre non-stop.",
-      tag: 'Chat & réactions',
+      quote: t('t2Quote'),
+      tag: t('t2Tag'),
     },
     {
       name: 'Théo_File',
       avatar: '/avatars/avatar3.png',
-      quote: "Les trophées à débloquer rendent ça addictif. Et les rappels avant match évitent d'oublier.",
-      tag: 'Trophées & rappels',
+      quote: t('t3Quote'),
+      tag: t('t3Tag'),
     },
   ]
 
@@ -435,7 +442,9 @@ function SocialProofSection() {
           className="text-3xl md:text-4xl font-bold text-white mb-16"
           data-animate
         >
-          Ils s&apos;affrontent déjà sur <Image src="/images/logo.svg" alt="" width={72} height={72} className="inline-block align-middle w-18 h-auto -mt-2 ml-2" unoptimized aria-hidden /> PronoHub
+          {t.rich('title', {
+            logo: () => <Image src="/images/logo.svg" alt="" width={72} height={72} className="inline-block align-middle w-18 h-auto -mt-2 ml-2" unoptimized aria-hidden />,
+          })}
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16">
@@ -455,11 +464,11 @@ function SocialProofSection() {
         </div>
 
         {/* Testimonials */}
-        <p className="text-white/70 text-base mb-8" data-animate>3 avis récents de joueurs.</p>
+        <p className="text-white/70 text-base mb-8" data-animate>{t('reviewsIntro')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-[18px]">
-          {testimonials.map((t, i) => (
+          {testimonials.map((tm, i) => (
             <article
-              key={t.name}
+              key={tm.name}
               className="testimonial-card relative rounded-[18px] border border-white/10 p-[18px] pb-4 text-left backdrop-blur-lg shadow-[0_25px_70px_rgba(0,0,0,0.45)] hover:-translate-y-1 hover:border-[#ff9900]/30 hover:shadow-[0_35px_90px_rgba(0,0,0,0.55)] transition-all duration-200"
               style={{
                 background: 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)), rgba(15,27,47,0.55)',
@@ -473,11 +482,11 @@ function SocialProofSection() {
               {/* Head: avatar + name + stars */}
               <div className="relative z-[1] flex items-center gap-3 mb-3.5">
                 <div className="w-11 h-11 rounded-full overflow-hidden border border-[#ff9900]/35 shadow-[0_0_0_6px_rgba(255,153,0,0.06)] flex-shrink-0">
-                  <Image src={t.avatar} alt={t.name} width={44} height={44} className="w-full h-full object-cover" />
+                  <Image src={tm.avatar} alt={tm.name} width={44} height={44} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-white tracking-tight">{t.name}</span>
-                  <div className="flex gap-0.5 text-[#ff9900] text-sm leading-none drop-shadow-[0_6px_14px_rgba(255,153,0,0.15)]" aria-label="5 étoiles sur 5" role="img">
+                  <span className="font-semibold text-white tracking-tight">{tm.name}</span>
+                  <div className="flex gap-0.5 text-[#ff9900] text-sm leading-none drop-shadow-[0_6px_14px_rgba(255,153,0,0.15)]" aria-label="5/5" role="img">
                     {[...Array(5)].map((_, s) => (
                       <span key={`star-${s}`} aria-hidden="true">&#9733;</span>
                     ))}
@@ -487,13 +496,13 @@ function SocialProofSection() {
 
               {/* Quote */}
               <p className="relative z-[1] text-white/[0.78] text-sm leading-relaxed mb-3.5">
-                &ldquo;{t.quote}&rdquo;
+                &ldquo;{tm.quote}&rdquo;
               </p>
 
               {/* Tag */}
               <div className="relative z-[1] inline-flex items-center gap-2 px-2.5 py-2 rounded-full border border-white/10 bg-black/20 text-white/70 text-xs">
                 <span className="w-[7px] h-[7px] rounded-full bg-[#ff9900] shadow-[0_0_0_5px_rgba(255,153,0,0.10)]" />
-                {t.tag}
+                {tm.tag}
               </div>
             </article>
           ))}
@@ -506,7 +515,8 @@ function SocialProofSection() {
 // =============================================
 // SECTION 5 — PRICING TEASER
 // =============================================
-function PricingTeaser() {
+async function PricingTeaser() {
+  const t = await getTranslations('Landing.pricing')
   return (
     <section
       id="pricing"
@@ -518,14 +528,14 @@ function PricingTeaser() {
           className="text-3xl md:text-4xl font-bold text-white mb-4"
           data-animate
         >
-          Gratuit pour commencer
+          {t('title')}
         </h2>
         <p
           className="text-[#cbd5e1] mb-12 max-w-lg mx-auto"
           data-animate
           style={{ '--stagger': '80ms' } as React.CSSProperties}
         >
-          Crée jusqu&apos;à 2 tournois gratuits avec 5 joueurs. Besoin de plus ? Nos offres s&apos;adaptent à ta bande de potes.
+          {t('subtitle')}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto mb-12">
@@ -535,13 +545,13 @@ function PricingTeaser() {
             data-animate
             style={{ '--stagger': '160ms' } as React.CSSProperties}
           >
-            <div className="text-sm font-semibold text-[#94a3b8] uppercase tracking-wider mb-2">Free-Kick</div>
-            <div className="text-3xl font-bold text-white mb-4">0 &euro;</div>
+            <div className="text-sm font-semibold text-[#94a3b8] uppercase tracking-wider mb-2">{t('freeName')}</div>
+            <div className="text-3xl font-bold text-white mb-4">{t('freePrice')}</div>
             <ul className="space-y-3 text-sm text-[#cbd5e1] text-left">
-              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 2 tournois actifs</li>
-              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> 5 joueurs max</li>
-              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Toutes les compétitions</li>
-              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> Chat et trophées</li>
+              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('freeF1')}</li>
+              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('freeF2')}</li>
+              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('freeF3')}</li>
+              <li className="flex items-center gap-2"><span className="text-green-400">&#10003;</span> {t('freeF4')}</li>
             </ul>
           </div>
 
@@ -551,13 +561,13 @@ function PricingTeaser() {
             data-animate
             style={{ '--stagger': '240ms' } as React.CSSProperties}
           >
-            <div className="text-sm font-semibold text-[#ff9900] uppercase tracking-wider mb-2">Premium</div>
-            <div className="text-3xl font-bold text-white mb-4">dès 4,99 &euro;</div>
+            <div className="text-sm font-semibold text-[#ff9900] uppercase tracking-wider mb-2">{t('premiumName')}</div>
+            <div className="text-3xl font-bold text-white mb-4">{t('premiumPrice')}</div>
             <ul className="space-y-3 text-sm text-[#cbd5e1] text-left">
-              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Jusqu&apos;à 30 joueurs</li>
-              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Tournois illimités</li>
-              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Match bonus x2</li>
-              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> Extensions joueurs et durée</li>
+              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> {t('premiumF1')}</li>
+              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> {t('premiumF2')}</li>
+              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> {t('premiumF3')}</li>
+              <li className="flex items-center gap-2"><span className="text-[#ff9900]">&#10003;</span> {t('premiumF4')}</li>
             </ul>
           </div>
         </div>
@@ -567,7 +577,7 @@ function PricingTeaser() {
             href="/pricing"
             className="inline-block font-semibold text-sm text-[#ff9900] border border-[#ff9900]/30 rounded-[14px] px-6 py-3 hover:bg-[#ff9900]/10 transition-colors duration-300"
           >
-            Voir tous les tarifs &rarr;
+            {t('allPrices')}
           </Link>
         </div>
       </div>
@@ -578,7 +588,9 @@ function PricingTeaser() {
 // =============================================
 // SECTION 6 — CTA FINAL + FOOTER
 // =============================================
-function CTAFooter() {
+async function CTAFooter() {
+  const t = await getTranslations('Landing.cta')
+  const tf = await getTranslations('Landing.footer')
   return (
     <div id="cta" data-chapter="Commencer" className="min-h-screen flex flex-col md:snap-start">
       {/* CTA content */}
@@ -592,14 +604,14 @@ function CTAFooter() {
             className="text-3xl md:text-4xl font-bold text-white"
             data-animate
           >
-            Prêt à défier tes potes ?
+            {t('title')}
           </h2>
           <p
             className="text-[#cbd5e1] text-lg"
             data-animate
             style={{ '--stagger': '100ms' } as React.CSSProperties}
           >
-            Rejoins la communauté et montre-leur qui est le vrai roi du prono.
+            {t('subtitle')}
           </p>
           <div
             className="pt-4"
@@ -610,7 +622,7 @@ function CTAFooter() {
               href="/auth/signup"
               className="inline-block font-semibold text-base rounded-[14px] px-10 py-4 bg-[#ff9900] text-[#1a1a1a] shadow-[0_0_30px_rgba(255,153,0,0.4)] hover:bg-[#e68a00] hover:shadow-[0_0_40px_rgba(255,153,0,0.6)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] active:shadow-none transition-all duration-300"
             >
-              Lancer mon tournoi gratuit
+              {t('button')}
             </Link>
           </div>
           <p
@@ -618,7 +630,7 @@ function CTAFooter() {
             data-animate
             style={{ '--stagger': '300ms' } as React.CSSProperties}
           >
-            Pas de carte bancaire requise
+            {t('noCard')}
           </p>
 
           {/* Share buttons */}
@@ -627,7 +639,7 @@ function CTAFooter() {
             data-animate
             style={{ '--stagger': '400ms' } as React.CSSProperties}
           >
-            <p className="text-sm text-[#64748b]">Partage PronoHub avec tes potes</p>
+            <p className="text-sm text-[#64748b]">{t('share')}</p>
             <ShareButtons />
           </div>
         </div>
@@ -642,19 +654,19 @@ function CTAFooter() {
               <span className="text-sm text-[#94a3b8]">PronoHub &copy; {new Date().getFullYear()}</span>
             </div>
             <nav className="flex flex-wrap justify-center gap-6 text-sm text-[#94a3b8]">
-              <Link href="/pronostics" className="hover:text-[#ff9900] transition-colors">Pronostics</Link>
-              <Link href="/guides" className="hover:text-[#ff9900] transition-colors">Guides</Link>
-              <Link href="/about" className="hover:text-[#ff9900] transition-colors">À propos</Link>
-              <Link href="/pricing" className="hover:text-[#ff9900] transition-colors">Tarifs</Link>
-              <Link href="/contact" className="hover:text-[#ff9900] transition-colors">Contact</Link>
-              <Link href="/cgv" className="hover:text-[#ff9900] transition-colors">CGU</Link>
-              <Link href="/privacy" className="hover:text-[#ff9900] transition-colors">Confidentialité</Link>
+              <Link href="/pronostics" className="hover:text-[#ff9900] transition-colors">{tf('pronostics')}</Link>
+              <Link href="/guides" className="hover:text-[#ff9900] transition-colors">{tf('guides')}</Link>
+              <Link href="/about" className="hover:text-[#ff9900] transition-colors">{tf('about')}</Link>
+              <Link href="/pricing" className="hover:text-[#ff9900] transition-colors">{tf('pricing')}</Link>
+              <Link href="/contact" className="hover:text-[#ff9900] transition-colors">{tf('contact')}</Link>
+              <Link href="/cgv" className="hover:text-[#ff9900] transition-colors">{tf('cgu')}</Link>
+              <Link href="/privacy" className="hover:text-[#ff9900] transition-colors">{tf('privacy')}</Link>
             </nav>
           </div>
 
           {/* Maillage interne SEO : pronostics par compétition */}
           <div className="mt-6 pt-5 border-t border-white/[0.06]">
-            <p className="text-xs text-[#64748b] mb-2 text-center md:text-left">Pronostics par compétition</p>
+            <p className="text-xs text-[#64748b] mb-2 text-center md:text-left">{tf('byCompetition')}</p>
             <nav className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 text-xs text-[#64748b]">
               {COMPETITIONS_SEO.map((c) => (
                 <Link key={c.slug} href={`/pronostics/${c.slug}`} className="hover:text-[#ff9900] transition-colors">
@@ -662,7 +674,7 @@ function CTAFooter() {
                 </Link>
               ))}
               <Link href="/pronostics" className="text-[#94a3b8] hover:text-[#ff9900] transition-colors">
-                Toutes les compétitions →
+                {tf('allCompetitions')}
               </Link>
             </nav>
           </div>

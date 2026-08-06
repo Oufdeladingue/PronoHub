@@ -23,5 +23,115 @@
     "label": "Langue",
     "fr": "Français",
     "en": "English"
+  },
+  "Landing": {
+    "nav": {
+      "home": "Accueil",
+      "how": "Comment ça marche",
+      "features": "Fonctionnalités",
+      "community": "Communauté",
+      "free": "C'est gratuit",
+      "start": "Commencer",
+      "login": "Se connecter",
+      "signup": "Créer mon tournoi",
+      "backToTop": "Retour en haut",
+      "menu": "Menu"
+    },
+    "hero": {
+      "title": "Fais-toi plaisir,<br></br> deviens le <k>roi du</k><br></br><p>prono</p>.",
+      "subtitle": "Crée ton tournoi de Ligue 1, LDC ou Coupe du monde en 30 secondes et affronte tes amis.<br></br>Gratuit, sans pub, 100% fun.",
+      "ctaPrimary": "Créer mon tournoi gratuitement",
+      "ctaSecondary": "Voir une démo",
+      "social": "Déjà plus de <b>5 000</b> pronostiqueurs inscrits"
+    },
+    "how": {
+      "title": "Comment jouer ?",
+      "subtitle": "En 3 étapes, tu passes de remplaçant à ballon d'or.",
+      "step": "Étape {n}",
+      "step1Title": "Crée ton tournoi",
+      "step1Text": "Choisis ta compétition et configure tes règles en quelques clics.",
+      "step1Chip": "Champion's League, Ligue 1,...",
+      "step2Title": "Invite tes potes",
+      "step2Text": "Partage le code et constitue ton groupe. Plus on est de fous, plus on rit.",
+      "step2Chip": "Trophées, tchat, bonus, stats",
+      "step3Title": "Pronostique et grimpe",
+      "step3Text": "Décroche des trophées et deviens le roi du classement.",
+      "step3Chip": "+3 pts score exact • +1 pt bon résultat"
+    },
+    "features": {
+      "title": "Tout pour vivre le foot à fond",
+      "subtitle": "PronoHub, c'est bien plus qu'un simple tableau de pronostics.",
+      "f1Label": "Toujours leader ?",
+      "f1Title": "Classements en temps réel",
+      "f1Desc": "Suis ton évolution et celle de tes potes à chaque journée. Qui prend la tête ?",
+      "f2Label": "Déploie ta banderole",
+      "f2Title": "Chat entre joueurs",
+      "f2Desc": "Chambre tes potes, réagis à leurs pronos, mentionne-les. Le vestiaire est chaud.",
+      "f3Label": "Palmarès",
+      "f3Title": "16 trophées à débloquer",
+      "f3Desc": "Nostradamus, Ballon d'Or, Roi de la journée... Collectionne-les tous.",
+      "f4Label": "Match retardé ?",
+      "f4Title": "Rappels automatiques",
+      "f4Desc": "On te prévient avant chaque match pour ne jamais oublier un prono.",
+      "f5Label": "Pas de répit",
+      "f5Title": "Compétitions variées",
+      "f5Desc": "Ligue 1, Premier League, Champions League, Best of Week... Il y en a pour tous les goûts.",
+      "f6Label": "Pas d'excuses",
+      "f6Title": "Mobile et web",
+      "f6Desc": "Joue depuis ton téléphone ou ton ordi. Tes pronos se synchronisent partout."
+    },
+    "proof": {
+      "title": "Ils s'affrontent déjà sur <logo></logo> PronoHub",
+      "stat1": "Tournois créés",
+      "stat2": "Joueurs actifs",
+      "stat3": "Pronostics enregistrés",
+      "reviewsIntro": "3 avis récents de joueurs.",
+      "t1Quote": "On a lancé un tournoi Ligue 1 en 2 minutes. Le classement en temps réel met une ambiance de fou.",
+      "t1Tag": "Tournoi entre potes",
+      "t2Quote": "Le chat pendant les matchs est incroyable. Mentions, réactions… on se chambre non-stop.",
+      "t2Tag": "Chat & réactions",
+      "t3Quote": "Les trophées à débloquer rendent ça addictif. Et les rappels avant match évitent d'oublier.",
+      "t3Tag": "Trophées & rappels"
+    },
+    "pricing": {
+      "title": "Gratuit pour commencer",
+      "subtitle": "Crée jusqu'à 2 tournois gratuits avec 5 joueurs. Besoin de plus ? Nos offres s'adaptent à ta bande de potes.",
+      "freeName": "Free-Kick",
+      "freePrice": "0 €",
+      "freeF1": "2 tournois actifs",
+      "freeF2": "5 joueurs max",
+      "freeF3": "Toutes les compétitions",
+      "freeF4": "Chat et trophées",
+      "premiumName": "Premium",
+      "premiumPrice": "dès 4,99 €",
+      "premiumF1": "Jusqu'à 30 joueurs",
+      "premiumF2": "Tournois illimités",
+      "premiumF3": "Match bonus x2",
+      "premiumF4": "Extensions joueurs et durée",
+      "allPrices": "Voir tous les tarifs →"
+    },
+    "cta": {
+      "title": "Prêt à défier tes potes ?",
+      "subtitle": "Rejoins la communauté et montre-leur qui est le vrai roi du prono.",
+      "button": "Lancer mon tournoi gratuit",
+      "noCard": "Pas de carte bancaire requise",
+      "share": "Partage PronoHub avec tes potes"
+    },
+    "footer": {
+      "pronostics": "Pronostics",
+      "guides": "Guides",
+      "about": "À propos",
+      "pricing": "Tarifs",
+      "contact": "Contact",
+      "cgu": "CGU",
+      "privacy": "Confidentialité",
+      "byCompetition": "Pronostics par compétition",
+      "allCompetitions": "Toutes les compétitions →"
+    },
+    "meta": {
+      "title": "Pronostics Football entre Amis | Tournoi Gratuit - PronoHub",
+      "description": "Crée ton tournoi de pronostics football gratuit et défie tes amis sur la Ligue 1, Champions League et Premier League. Classements en direct, trophées et chat. Inscription en 30 secondes, sans carte bancaire.",
+      "ogDescription": "Crée ton tournoi de pronostics football gratuit et défie tes amis. Classements en direct, trophées et chat."
+    }
   }
 }
