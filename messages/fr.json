@@ -710,6 +710,19 @@
     "increaseScore": "Augmenter score {team}",
     "decreaseScore": "Diminuer score {team}",
     "scoreHome": "Score {team} (domicile)",
-    "scoreAway": "Score {team} (extérieur)"
+    "scoreAway": "Score {team} (extérieur)",
+    "countdown": {
+      "unitDay": "j",
+      "unitHour": "h",
+      "unitMin": "min",
+      "unitSec": "s",
+      "matchdayFinishedPts": "Journée de compétition terminée : vous avez marqué {n} pts",
+      "bonusSuffix": " (dont <b>1 de bonus★</b>)",
+      "matchdayFinished": "Journée de compétition terminée",
+      "matchesInProgressPts": "Tous les matchs de cette journée ne sont pas terminés : vous avez pour le moment marqué {n} pts",
+      "matchesInProgress": "Tous les matchs de cette journée ne sont pas terminés",
+      "closedSoon": "Pronostics clôturés : les matchs commencent bientôt",
+      "timeLeft": "Temps restant pour valider vos pronostics : {time}"
+    }
   }
 }

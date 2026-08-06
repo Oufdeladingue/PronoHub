@@ -173,6 +173,7 @@ function ClosingCountdown({
   hasEarlyBonus: boolean
   onShowRules: () => void
 }) {
+  const t = useTranslations('Opposition.countdown')
   const [timeRemaining, setTimeRemaining] = useState<string>('')
 
   useEffect(() => {
@@ -181,14 +182,14 @@ function ClosingCountdown({
       const firstMatchTime = new Date(Math.min(...matches.map(m => new Date(m.utc_date).getTime())))
       const closingTime = new Date(firstMatchTime.getTime() - 30 * 60 * 1000) // 30 min avant
       const diff = closingTime.getTime() - Date.now()
-      if (diff <= 0) return 'Pronostics clôturés'
+      if (diff <= 0) return 'CLOSED'
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
       const seconds = Math.floor((diff % (1000 * 60)) / 1000)
-      if (days > 0) return `${days}j ${hours}h ${minutes}min`
-      if (hours > 0) return `${hours}h ${minutes}min ${seconds}s`
-      return `${minutes}min ${seconds}s`
+      if (days > 0) return `${days}${t('unitDay')} ${hours}${t('unitHour')} ${minutes}${t('unitMin')}`
+      if (hours > 0) return `${hours}${t('unitHour')} ${minutes}${t('unitMin')} ${seconds}${t('unitSec')}`
+      return `${minutes}${t('unitMin')} ${seconds}${t('unitSec')}`
     }
     setTimeRemaining(calc())
     const interval = setInterval(() => setTimeRemaining(calc()), 1000)
@@ -216,81 +217,36 @@ function ClosingCountdown({
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
         </svg>
         <span className="font-semibold text-xs md:text-base">
-          {timeRemaining === 'Pronostics clôturés' ? (
+          {timeRemaining === 'CLOSED' ? (
             <>
               {hasLastMatchEnded() ? (
                 /* Journée terminée */
-                <>
-                  {!isGuessMode ? (
-                    <>
-                      <span className="hidden md:inline">
-                        Journée de compétition terminée : vous avez marqué {matchdayTotalPoints} pts
-                        {hasEarlyBonus && (
-                          <>
-                            {' '}(dont{' '}
-                            <button
-                              onClick={onShowRules}
-                              className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                            >
-                              1 de bonus★
-                            </button>
-                            )
-                          </>
-                        )}
-                      </span>
-                      <span className="md:hidden">
-                        Journée de compétition terminée :<br />vous avez marqué {matchdayTotalPoints} pts
-                        {hasEarlyBonus && (
-                          <>
-                            {' '}(dont{' '}
-                            <button
-                              onClick={onShowRules}
-                              className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors"
-                            >
-                              1 de bonus★
-                            </button>
-                            )
-                          </>
-                        )}
-                      </span>
-                    </>
-                  ) : (
-                    <span>Journée de compétition terminée</span>
-                  )}
-                </>
+                !isGuessMode ? (
+                  <span>
+                    {t('matchdayFinishedPts', { n: matchdayTotalPoints })}
+                    {hasEarlyBonus && t.rich('bonusSuffix', {
+                      b: (c) => (
+                        <button onClick={onShowRules} className="inline-flex items-center gap-0.5 underline hover:text-[#ffaa33] transition-colors">{c}</button>
+                      )
+                    })}
+                  </span>
+                ) : (
+                  <span>{t('matchdayFinished')}</span>
+                )
               ) : hasFirstMatchStarted() ? (
                 /* Matchs en cours */
-                <>
-                  {!isGuessMode ? (
-                    <>
-                      <span className="hidden md:inline">
-                        Tous les matchs de cette journée ne sont pas terminés : vous avez pour le moment marqué {matchdayTotalPoints} pts
-                      </span>
-                      <span className="md:hidden">
-                        Tous les matchs de cette journée ne sont pas terminés :<br />vous avez pour le moment marqué {matchdayTotalPoints} pts
-                      </span>
-                    </>
-                  ) : (
-                    <span>Tous les matchs de cette journée ne sont pas terminés</span>
-                  )}
-                </>
+                !isGuessMode ? (
+                  <span>{t('matchesInProgressPts', { n: matchdayTotalPoints })}</span>
+                ) : (
+                  <span>{t('matchesInProgress')}</span>
+                )
               ) : (
                 /* Pronostics clôturés mais aucun match commencé (30min avant) */
-                <>
-                  <span className="hidden md:inline">
-                    Pronostics clôturés : les matchs commencent bientôt
-                  </span>
-                  <span className="md:hidden">
-                    Pronostics clôturés :<br />les matchs commencent bientôt
-                  </span>
-                </>
+                <span>{t('closedSoon')}</span>
               )}
             </>
           ) : (
-            <>
-              <span className="hidden md:inline">Temps restant pour valider vos pronostics : {timeRemaining}</span>
-              <span className="md:hidden">Temps restant pour valider vos pronostics :<br />{timeRemaining}</span>
-            </>
+            <span>{t('timeLeft', { time: timeRemaining })}</span>
           )}
         </span>
       </div>
