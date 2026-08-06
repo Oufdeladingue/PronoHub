@@ -18,6 +18,7 @@ import IncentiveModalContainer from '@/components/modals/IncentiveModalContainer
 import { useSearchParams } from 'next/navigation'
 import { trackInviteShared, type ShareMethod } from '@/lib/analytics'
 import DiscordConnect from '@/components/DiscordConnect'
+import { useTranslations } from 'next-intl'
 
 interface Tournament {
   id: string
@@ -58,6 +59,7 @@ interface Player {
 }
 
 function EchauffementPageContent() {
+  const t = useTranslations('Echauffement')
   const params = useParams()
   const tournamentSlug = params.tournamentSlug as string
   const { theme } = useTheme()
@@ -336,7 +338,7 @@ function EchauffementPageContent() {
         .eq('slug', tournamentCode)
         .single()
 
-      if (tournamentError) throw new Error('Tournoi non trouvé')
+      if (tournamentError) throw new Error(t('err.notFound'))
 
       // Si le tournoi n'est plus en attente (déjà lancé ou terminé), rediriger
       if (tournamentData.status !== 'pending') {
@@ -674,11 +676,11 @@ function EchauffementPageContent() {
       if (data.url) {
         await openExternalUrl(data.url)
       } else {
-        throw new Error(data.error || 'Erreur lors de la création du paiement')
+        throw new Error(data.error || t('err.paymentCreate'))
       }
     } catch (err: any) {
       console.error('Error creating checkout session:', err)
-      alert(err.message || 'Erreur lors de la création du paiement')
+      alert(err.message || t('err.paymentCreate'))
     } finally {
       setExtensionLoading(false)
     }
@@ -709,11 +711,11 @@ function EchauffementPageContent() {
         // Rediriger vers le paiement
         handleBuyExtension()
       } else {
-        throw new Error(data.error || 'Erreur lors de l\'extension')
+        throw new Error(data.error || t('err.extension'))
       }
     } catch (err: any) {
       console.error('Error applying extension:', err)
-      alert(err.message || 'Erreur lors de l\'extension')
+      alert(err.message || t('err.extension'))
     } finally {
       setExtensionLoading(false)
     }
@@ -739,7 +741,7 @@ function EchauffementPageContent() {
       setTournament({ ...tournament, max_players: tournament.max_players + 1 })
     } catch (err) {
       console.error('Error increasing max players:', err)
-      alert('Erreur lors de l\'augmentation du nombre de places')
+      alert(t('err.increasePlaces'))
     }
   }
 
@@ -748,13 +750,13 @@ function EchauffementPageContent() {
 
     // Minimum de 2 places
     if (tournament.max_players <= 2) {
-      alert('Un tournoi comporte au minimum deux places')
+      alert(t('err.minTwoPlaces'))
       return
     }
 
     // Ne peut pas réduire en dessous du nombre de participants actuels (protection contre suppression d'une place occupée)
     if (tournament.max_players <= players.length) {
-      alert('Impossible de supprimer une place déjà occupée par un joueur')
+      alert(t('err.cantRemoveOccupied'))
       return
     }
 
@@ -770,7 +772,7 @@ function EchauffementPageContent() {
       setTournament({ ...tournament, max_players: tournament.max_players - 1 })
     } catch (err) {
       console.error('Error decreasing max players:', err)
-      alert('Erreur lors de la réduction du nombre de places')
+      alert(t('err.decreasePlaces'))
     }
   }
 
@@ -841,7 +843,7 @@ function EchauffementPageContent() {
       }
     } catch (err: any) {
       console.error('Error starting tournament:', err)
-      alert(err.message || 'Erreur lors du démarrage du tournoi')
+      alert(err.message || t('err.startTournament'))
       setStartConfirmation(false)
     }
   }
@@ -871,7 +873,7 @@ function EchauffementPageContent() {
       }
     } catch (err: any) {
       console.error('Error starting tournament with adjustment:', err)
-      alert(err.message || 'Erreur lors du démarrage du tournoi')
+      alert(err.message || t('err.startTournament'))
       setMatchdayWarning(null)
     }
   }
@@ -902,14 +904,14 @@ function EchauffementPageContent() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'annulation')
+        throw new Error(data.error || t('err.cancel'))
       }
 
       // Rediriger vers le dashboard après succès
       window.location.href = '/dashboard'
     } catch (err: any) {
       console.error('Error cancelling tournament:', err)
-      alert(err.message || 'Erreur lors de l\'annulation du tournoi')
+      alert(err.message || t('err.cancelTournament'))
     }
   }
 
@@ -937,7 +939,7 @@ function EchauffementPageContent() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du transfert')
+        throw new Error(data.error || t('err.transfer'))
       }
 
       setTransferConfirmation({ show: false, playerId: '', playerName: '' })
@@ -980,14 +982,14 @@ function EchauffementPageContent() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erreur lors du départ')
+        throw new Error(data.error || t('err.leave'))
       }
 
       // Rediriger vers le dashboard
       window.location.href = '/dashboard'
     } catch (err: any) {
       console.error('Error leaving tournament:', err)
-      alert(err.message || 'Erreur lors du départ du tournoi')
+      alert(err.message || t('err.leaveTournament'))
       setLeaveConfirmation(false)
     }
   }
@@ -1110,13 +1112,13 @@ function EchauffementPageContent() {
       <div className="fixed inset-0 flex items-center justify-center bg-black p-4">
         <div className="theme-card p-8 max-w-md w-full text-center">
           <div className="text-red-600 text-5xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h1>
-          <p className="theme-text-secondary mb-6">{error || 'Ce tournoi n\'existe pas'}</p>
+          <h1 className="text-2xl font-bold theme-text mb-2">{t('notFoundTitle')}</h1>
+          <p className="theme-text-secondary mb-6">{error || t('notFoundDesc')}</p>
           <Link
             href="/vestiaire"
             className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           >
-            Retour au vestiaire
+            {t('backToVestiaire')}
           </Link>
         </div>
       </div>
@@ -1134,18 +1136,18 @@ function EchauffementPageContent() {
         <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-green-500">
             <div className="text-center mb-6">
-              <img src="/images/icons/start-tour.svg" alt="Démarrer" className="w-16 h-16 mx-auto mb-3" />
+              <img src="/images/icons/start-tour.svg" alt={t('startAlt')} className="w-16 h-16 mx-auto mb-3" />
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Démarrer le tournoi
+                {t('startTitle')}
               </h3>
               <p className="theme-text-secondary">
-                Le tournoi <span className="font-bold text-green-600 dark:text-green-400">{tournament.name}</span> va démarrer avec <span className="font-bold">{players.length} participants</span>.
+                {t.rich('startDesc', { name: tournament.name, n: players.length, b: (c) => <span className="font-bold text-green-600 dark:text-green-400">{c}</span>, c: (ch) => <span className="font-bold">{ch}</span> })}
               </p>
             </div>
 
             <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 mb-6">
               <p className="text-sm text-green-800 dark:text-green-300">
-                <strong>Tout le monde est chaud ?</strong> Une fois le tournoi démarré, tout le monde aura accès aux pronostics.
+                <strong>{t('startReadyBold')}</strong> {t('startReady')}
               </p>
             </div>
 
@@ -1153,7 +1155,7 @@ function EchauffementPageContent() {
             {emptyTeams.length > 0 && (
               <div className="alert-warning">
                 <p className="text-sm text-yellow-400">
-                  <strong>Note :</strong> {emptyTeams.length} équipe{emptyTeams.length > 1 ? 's' : ''} vide{emptyTeams.length > 1 ? 's' : ''} ({emptyTeams.map(t => t.name).join(', ')}) sera{emptyTeams.length > 1 ? 'ont' : ''} automatiquement supprimée{emptyTeams.length > 1 ? 's' : ''} au démarrage.
+                  <strong>{t('note')}</strong> {t('emptyTeams', { n: emptyTeams.length, names: emptyTeams.map(team => team.name).join(', ') })}
                 </p>
               </div>
             )}
@@ -1163,13 +1165,13 @@ function EchauffementPageContent() {
                 onClick={hideStartConfirmation}
                 className="modal-btn-cancel"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleStartTournament}
                 className="modal-btn-confirm"
               >
-                Démarrer le tournoi
+                {t('startBtn')}
               </button>
             </div>
           </div>
@@ -1184,16 +1186,16 @@ function EchauffementPageContent() {
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Annuler le tournoi
+                {t('cancelTitle')}
               </h3>
               <p className="theme-text-secondary">
-                Le tournoi <span className="font-bold text-red-500">{tournament.name}</span> sera supprimé définitivement.
+                {t.rich('cancelDesc', { name: tournament.name, b: (c) => <span className="font-bold text-red-500">{c}</span> })}
               </p>
             </div>
 
             <div className="alert-danger">
               <p className="text-sm text-red-500">
-                <strong>Attention :</strong> Cette action est irréversible. Le tournoi sera supprimé pour vous et tous les autres participants. Il n'apparaîtra plus dans "Mes tournois".
+                <strong>{t('warning')}</strong> {t('cancelWarn')}
               </p>
             </div>
 
@@ -1202,13 +1204,13 @@ function EchauffementPageContent() {
                 onClick={hideCancelConfirmation}
                 className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleCancelTournament}
                 className="modal-btn-danger"
               >
-                Supprimer le tournoi
+                {t('cancelBtn')}
               </button>
             </div>
           </div>
@@ -1222,17 +1224,16 @@ function EchauffementPageContent() {
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Confirmer le transfert
+                {t('transferTitle')}
               </h3>
               <p className="theme-text-secondary">
-                Êtes-vous sûr de vouloir transférer le rôle de capitaine à{' '}
-                <span className="font-bold theme-accent-text-always">{transferConfirmation.playerName}</span> ?
+                {t.rich('transferDesc', { name: transferConfirmation.playerName, b: (c) => <span className="font-bold theme-accent-text-always">{c}</span> })}
               </p>
             </div>
 
             <div className="alert-warning">
               <p className="text-sm text-yellow-500">
-                <strong>Important :</strong> Vous perdrez tous les privilèges de capitaine. Cette action est irréversible.
+                <strong>{t('important')}</strong> {t('transferWarn')}
               </p>
             </div>
 
@@ -1241,13 +1242,13 @@ function EchauffementPageContent() {
                 onClick={cancelTransfer}
                 className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleTransferCaptaincy}
                 className="flex-1 px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
               >
-                Confirmer le transfert
+                {t('transferBtn')}
               </button>
             </div>
           </div>
@@ -1261,16 +1262,16 @@ function EchauffementPageContent() {
             <div className="text-center">
               <div className="text-5xl mb-3">✅</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Transfert réussi !
+                {t('transferSuccessTitle')}
               </h3>
               <p className="theme-text-secondary mb-4">
-                Le capitanat a été transféré à <span className="font-bold text-green-500">{transferSuccess.playerName}</span>.
+                {t.rich('transferSuccessDesc', { name: transferSuccess.playerName, b: (c) => <span className="font-bold text-green-500">{c}</span> })}
               </p>
               <p className="text-sm theme-text-secondary">
-                Un email lui a été envoyé pour l'informer de ses nouvelles responsabilités.
+                {t('transferSuccessEmail')}
               </p>
               <p className="text-xs theme-text-secondary mt-4 opacity-60">
-                Redirection vers le dashboard...
+                {t('redirecting')}
               </p>
             </div>
           </div>
@@ -1284,16 +1285,16 @@ function EchauffementPageContent() {
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">🔒</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Transfert obligatoire
+                {t('leaveWarnTitle')}
               </h3>
               <p className="theme-text-secondary">
-                En tant que capitaine, vous devez d'abord transférer le rôle à un autre participant avant de pouvoir quitter le tournoi.
+                {t('leaveWarnDesc')}
               </p>
             </div>
 
             <div className="bg-[#ff9900]/10 border-l-4 border-[#ff9900] p-4 mb-6 rounded">
               <p className="text-sm theme-accent-text-always">
-                <strong>Important :</strong> Utilisez le bouton "Transférer" à côté du nom d'un participant dans la liste ci-dessous pour lui donner le capitanat.
+                <strong>{t('important')}</strong> {t('leaveWarnImportant')}
               </p>
             </div>
 
@@ -1302,7 +1303,7 @@ function EchauffementPageContent() {
                 onClick={() => setLeaveWarning(false)}
                 className="px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
               >
-                J'ai compris
+                {t('gotIt')}
               </button>
             </div>
           </div>
@@ -1316,16 +1317,16 @@ function EchauffementPageContent() {
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">🚪</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Quitter le tournoi ?
+                {t('leaveConfirmTitle')}
               </h3>
               <p className="theme-text-secondary">
-                Êtes-vous sûr de vouloir quitter le tournoi <span className="font-bold text-red-500">{tournament?.name}</span> ?
+                {t.rich('leaveConfirmDesc', { name: tournament?.name, b: (c) => <span className="font-bold text-red-500">{c}</span> })}
               </p>
             </div>
 
             <div className="alert-danger">
               <p className="text-sm text-red-400">
-                <strong>Attention :</strong> Cette action est irréversible. Vous ne pourrez plus rejoindre ce tournoi et tous vos pronostics seront supprimés.
+                <strong>{t('warning')}</strong> {t('leaveConfirmWarn')}
               </p>
             </div>
 
@@ -1334,13 +1335,13 @@ function EchauffementPageContent() {
                 onClick={() => setLeaveConfirmation(false)}
                 className="flex-1 px-4 py-3 theme-card border-2 theme-border rounded-lg hover:opacity-80 transition font-semibold theme-text"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={confirmLeaveTournament}
                 className="modal-btn-danger"
               >
-                Confirmer le départ
+                {t('leaveConfirmBtn')}
               </button>
             </div>
           </div>
@@ -1354,16 +1355,16 @@ function EchauffementPageContent() {
             <div className="text-center mb-6">
               <div className="text-5xl mb-3">⚠️</div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Joueurs sans équipe
+                {t('unassignedTitle')}
               </h3>
               <p className="theme-text-secondary">
-                <span className="font-bold text-red-500">{unassignedPlayersWarning.count} joueur{unassignedPlayersWarning.count > 1 ? 's' : ''}</span> n'{unassignedPlayersWarning.count > 1 ? 'ont' : 'a'} pas encore été assigné{unassignedPlayersWarning.count > 1 ? 's' : ''} à une équipe.
+                {t('unassignedDesc', { n: unassignedPlayersWarning.count })}
               </p>
             </div>
 
             <div className="alert-danger">
               <p className="text-sm text-red-400">
-                <strong>Impossible de démarrer :</strong> En mode équipe, tous les joueurs doivent être assignés à une équipe avant de pouvoir lancer le tournoi.
+                <strong>{t('cantStart')}</strong> {t('cantStartDesc')}
               </p>
             </div>
 
@@ -1372,7 +1373,7 @@ function EchauffementPageContent() {
                 onClick={() => setUnassignedPlayersWarning({ show: false, count: 0 })}
                 className="px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:opacity-80 transition font-semibold"
               >
-                J'ai compris
+                {t('gotIt')}
               </button>
             </div>
           </div>
@@ -1390,10 +1391,10 @@ function EchauffementPageContent() {
                 </svg>
               </div>
               <h3 className="text-2xl font-bold theme-text mb-2">
-                Renfort du banc
+                {t('extTitle')}
               </h3>
               <p className="theme-text-secondary">
-                Étendez votre tournoi Free-Kick de <span className="font-bold text-purple-500">{playerExtensionInfo.currentMaxPlayers}</span> à <span className="font-bold text-purple-500">{playerExtensionInfo.newMaxPlayers}</span> joueurs
+                {t.rich('extDesc', { from: playerExtensionInfo.currentMaxPlayers, to: playerExtensionInfo.newMaxPlayers, b: (c) => <span className="font-bold text-purple-500">{c}</span> })}
               </p>
             </div>
 
@@ -1401,10 +1402,10 @@ function EchauffementPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-purple-400 font-semibold">
-                    +{playerExtensionInfo.extensionAmount} places supplémentaires
+                    {t('extPlaces', { n: playerExtensionInfo.extensionAmount })}
                   </p>
                   <p className="text-xs theme-text-secondary mt-1">
-                    Extension unique par tournoi
+                    {t('extOnce')}
                   </p>
                 </div>
                 <div className="text-2xl font-bold text-purple-500">
@@ -1416,7 +1417,7 @@ function EchauffementPageContent() {
             {playerExtensionInfo.hasCredit && (
               <div className="alert-success">
                 <p className="text-sm text-green-400">
-                  <strong>Crédit disponible !</strong> Vous avez un crédit d'extension non utilisé.
+                  <strong>{t('extCreditBold')}</strong> {t('extCredit')}
                 </p>
               </div>
             )}
@@ -1427,7 +1428,7 @@ function EchauffementPageContent() {
                 className="modal-btn-cancel"
                 disabled={extensionLoading}
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={playerExtensionInfo.hasCredit ? handleApplyExtension : handleBuyExtension}
@@ -1440,12 +1441,12 @@ function EchauffementPageContent() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Chargement...
+                    {t('loading')}
                   </span>
                 ) : playerExtensionInfo.hasCredit ? (
-                  'Utiliser mon crédit'
+                  t('extUseCredit')
                 ) : (
-                  `Acheter pour ${playerExtensionInfo.price}€`
+                  t('extBuy', { price: playerExtensionInfo.price })
                 )}
               </button>
             </div>
@@ -1461,8 +1462,8 @@ function EchauffementPageContent() {
             <div className="bg-gradient-to-r from-[#ff9900] to-[#e68a00] p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-[#111] flex items-center gap-2">
-                  <img src="/images/icons/share.svg" alt="Partager" className="w-6 h-6" />
-                  Inviter des amis
+                  <img src="/images/icons/share.svg" alt={t('shareAlt')} className="w-6 h-6" />
+                  {t('inviteFriends')}
                 </h3>
                 <button
                   onClick={() => setShareModal(false)}
@@ -1484,11 +1485,11 @@ function EchauffementPageContent() {
                 return (
                   <div className="rounded-lg border border-[#ff9900]/40 bg-[#ff9900]/10 p-3">
                     {unlocked ? (
-                      <p className="text-sm font-semibold theme-text text-center">🔓 Stats avancées débloquées sur ce tournoi ! 🎉</p>
+                      <p className="text-sm font-semibold theme-text text-center">{t('statsUnlocked')}</p>
                     ) : (
                       <>
                         <p className="text-sm font-semibold theme-text text-center mb-2">
-                          🔓 Invite 2 potes → débloque les <span className="theme-accent-text-always">Stats avancées</span> sur ce tournoi
+                          {t.rich('statsTeaser', { a: (c) => <span className="theme-accent-text-always">{c}</span> })}
                         </p>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-2 rounded-full bg-black/20 overflow-hidden">
@@ -1504,7 +1505,7 @@ function EchauffementPageContent() {
 
               {/* Lien et code */}
               <div className="text-center">
-                <p className="text-sm theme-text-secondary mb-2">Code d'invitation</p>
+                <p className="text-sm theme-text-secondary mb-2">{t('inviteCode')}</p>
                 <p className="text-3xl font-bold font-mono tracking-wider theme-accent-text-always mb-3">{tournamentCode}</p>
                 <div className="flex items-center gap-2 p-3 rounded-lg theme-secondary-bg">
                   <input
@@ -1516,7 +1517,7 @@ function EchauffementPageContent() {
                   <button
                     onClick={copyShareUrl}
                     className="p-2 rounded-lg bg-[#ff9900] hover:bg-[#e68a00] transition"
-                    title="Copier le lien"
+                    title={t('copyLinkTitle')}
                   >
                     {copySuccess ? (
                       <svg className="w-5 h-5 text-[#111]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1533,7 +1534,7 @@ function EchauffementPageContent() {
 
               {/* Boutons de partage */}
               <div>
-                <p className="text-sm theme-text-secondary mb-3 text-center">Partager via</p>
+                <p className="text-sm theme-text-secondary mb-3 text-center">{t('shareVia')}</p>
                 <div className="grid grid-cols-3 gap-3">
                   {/* WhatsApp */}
                   <button
@@ -1611,7 +1612,7 @@ function EchauffementPageContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
                       </div>
-                      <span className="text-xs theme-text">Plus...</span>
+                      <span className="text-xs theme-text">{t('more')}</span>
                     </button>
                   )}
                 </div>
@@ -1619,12 +1620,12 @@ function EchauffementPageContent() {
 
               {/* QR Code */}
               <div className="border-t theme-border pt-6">
-                <p className="text-sm theme-text-secondary mb-3 text-center">Ou partager le QR Code</p>
+                <p className="text-sm theme-text-secondary mb-3 text-center">{t('orShareQr')}</p>
                 <div className="flex items-center justify-center gap-4">
                   <div className="bg-white p-3 rounded-lg">
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(getInviteUrl())}`}
-                      alt="QR Code"
+                      alt={t('qrAlt')}
                       className="w-24 h-24"
                     />
                   </div>
@@ -1636,9 +1637,9 @@ function EchauffementPageContent() {
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
-                      Télécharger
+                      {t('download')}
                     </button>
-                    <p className="text-xs theme-text-secondary text-center">Format PNG</p>
+                    <p className="text-xs theme-text-secondary text-center">{t('pngFormat')}</p>
                   </div>
                 </div>
               </div>
