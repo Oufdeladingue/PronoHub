@@ -436,7 +436,7 @@ function DashboardContent({
         setJoinError(data.error || 'Code invalide ou tournoi introuvable')
       }
     } catch (error) {
-      setJoinError('Erreur lors de la connexion au tournoi')
+      setJoinError(t('errors.joinConnection'))
     } finally {
       setIsJoining(false)
     }
@@ -1178,14 +1178,14 @@ function DashboardContent({
 
               {/* Titre */}
               <h3 className="text-lg font-bold theme-text text-center mb-2">
-                {quotas.canCreateFree ? 'Choisir un type de tournoi' : 'Limite atteinte'}
+                {quotas.canCreateFree ? t('purchase.titleChoose') : t('purchase.titleLimit')}
               </h3>
 
               {/* Message */}
               <p className="text-sm theme-text-secondary text-center mb-5">
                 {quotas.canCreateFree
-                  ? `Vous participez à ${quotas.freeTournaments}/${quotas.freeTournamentsMax} tournois Free-Kick.`
-                  : `Vous participez déjà à ${quotas.freeTournamentsMax} tournois Free-Kick.`
+                  ? t('purchase.msgCanCreate', { a: quotas.freeTournaments, b: quotas.freeTournamentsMax })
+                  : t('purchase.msgLimit', { b: quotas.freeTournamentsMax })
                 }
               </p>
 
@@ -1197,25 +1197,25 @@ function DashboardContent({
                     <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-5 h-5 icon-filter-blue" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-blue-400 text-base">Slot Free-Kick</h4>
-                    <p className="text-sm theme-text-secondary">+1 tournoi gratuit</p>
-                    <p className="text-xs theme-text-secondary mt-0.5">5 joueurs · 10 journées max</p>
+                    <h4 className="font-semibold text-blue-400 text-base">{t('purchase.slotFreeKick')}</h4>
+                    <p className="text-sm theme-text-secondary">{t('purchase.slotFreeKickDesc')}</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">{t('purchase.slotFreeKickSub')}</p>
                   </div>
                   {quotas.canCreateFree ? (
                     <a
                       href="/vestiaire?type=free"
                       className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2"
                     >
-                      <span className="text-black font-bold text-base">Créer</span>
-                      <span className="text-black text-[10px] font-medium">{quotas.freeTournamentsMax - quotas.freeTournaments} slot{quotas.freeTournamentsMax - quotas.freeTournaments > 1 ? 's' : ''}</span>
+                      <span className="text-black font-bold text-base">{t('purchase.create')}</span>
+                      <span className="text-black text-[10px] font-medium">{t('purchase.slots', { n: quotas.freeTournamentsMax - quotas.freeTournaments })}</span>
                     </a>
                   ) : credits && credits.slot_invite > 0 ? (
                     <a
                       href="/vestiaire?type=free"
                       className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2"
                     >
-                      <span className="text-black font-bold text-base">Créer</span>
-                      <span className="text-black text-[10px] font-medium">{credits.slot_invite} crédit{credits.slot_invite > 1 ? 's' : ''}</span>
+                      <span className="text-black font-bold text-base">{t('purchase.create')}</span>
+                      <span className="text-black text-[10px] font-medium">{t('purchase.credits', { n: credits.slot_invite })}</span>
                     </a>
                   ) : (
                     <button
@@ -1224,7 +1224,7 @@ function DashboardContent({
                       className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                     >
                       <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.buy')}</span>
                     </button>
                   )}
                 </div>
@@ -1236,16 +1236,16 @@ function DashboardContent({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-green-400 text-base">One-Shot</h4>
-                    <p className="text-sm theme-text-secondary">Tournoi unique entre amis</p>
-                    <p className="text-xs theme-text-secondary mt-0.5">10 joueurs · Saison complète · <span className="text-green-400">Stats+</span></p>
+                    <p className="text-sm theme-text-secondary">{t('purchase.oneShotDesc')}</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">{t.rich('purchase.oneShotSub', { h: (c) => <span className="text-green-400">{c}</span> })}</p>
                   </div>
                   {credits && credits.oneshot > 0 ? (
                     <a
                       href="/vestiaire?type=oneshot"
                       className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2"
                     >
-                      <span className="text-black font-bold text-base">Créer</span>
-                      <span className="text-black text-[10px] font-medium">{credits.oneshot} crédit{credits.oneshot > 1 ? 's' : ''}</span>
+                      <span className="text-black font-bold text-base">{t('purchase.create')}</span>
+                      <span className="text-black text-[10px] font-medium">{t('purchase.credits', { n: credits.oneshot })}</span>
                     </a>
                   ) : (
                     <button
@@ -1254,7 +1254,7 @@ function DashboardContent({
                       className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                     >
                       <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_oneshot' ? '...' : '4,99€'}</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.buy')}</span>
                     </button>
                   )}
                 </div>
@@ -1262,23 +1262,23 @@ function DashboardContent({
                 {/* Elite Team */}
                 <div className="flex items-center gap-4 p-4 border-2 border-orange-500 rounded-lg bg-orange-500/10 relative">
                   <div className="absolute -top-2.5 left-4">
-                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">POPULAIRE</span>
+                    <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full">{t('purchase.popular')}</span>
                   </div>
                   <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <img src="/images/icons/team-elite-tour.svg" alt="Elite Team" className="w-5 h-5 icon-filter-orange" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-orange-400 text-base">Elite Team</h4>
-                    <p className="text-sm theme-text-secondary">Pour les groupes passionnés</p>
-                    <p className="text-xs theme-text-secondary mt-0.5">20 joueurs · Saison complète · <span className="text-orange-400">Tous bonus</span></p>
+                    <p className="text-sm theme-text-secondary">{t('purchase.eliteDesc')}</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">{t.rich('purchase.eliteSub', { h: (c) => <span className="text-orange-400">{c}</span> })}</p>
                   </div>
                   {credits && credits.elite > 0 ? (
                     <a
                       href="/vestiaire?type=elite"
                       className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2"
                     >
-                      <span className="text-black font-bold text-base">Créer</span>
-                      <span className="text-black text-[10px] font-medium">{credits.elite} crédit{credits.elite > 1 ? 's' : ''}</span>
+                      <span className="text-black font-bold text-base">{t('purchase.create')}</span>
+                      <span className="text-black text-[10px] font-medium">{t('purchase.credits', { n: credits.elite })}</span>
                     </a>
                   ) : (
                     <button
@@ -1287,7 +1287,7 @@ function DashboardContent({
                       className="w-20 rounded-lg badge-glossy bg-orange-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                     >
                       <span className="text-black font-bold text-base">{isCheckoutLoading === 'tournament_creation_elite' ? '...' : '9,99€'}</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Acheter</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.buy')}</span>
                     </button>
                   )}
                 </div>
@@ -1299,8 +1299,8 @@ function DashboardContent({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-yellow-400 text-base">Platinium</h4>
-                    <p className="text-sm theme-text-secondary">L'expérience ultime</p>
-                    <p className="text-xs theme-text-secondary mt-0.5">De 11 à 30 joueurs · <span className="text-yellow-400">Lot à gagner</span></p>
+                    <p className="text-sm theme-text-secondary">{t('purchase.platiniumDesc')}</p>
+                    <p className="text-xs theme-text-secondary mt-0.5">{t.rich('purchase.platiniumSub', { h: (c) => <span className="text-yellow-400">{c}</span> })}</p>
                   </div>
                   {(() => {
                     const totalPlatiniumCredits = (credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0)
@@ -1313,8 +1313,8 @@ function DashboardContent({
                           className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
                         >
                           <span className="text-black font-bold text-base leading-none">6,99€</span>
-                          <span className="text-black text-[9px] leading-none">/joueur</span>
-                          <span className="badge-acheter text-white text-xs font-medium transition-colors">Choisir</span>
+                          <span className="text-black text-[9px] leading-none">{t('purchase.perPlayer')}</span>
+                          <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.choose')}</span>
                         </button>
                       )
                     }
@@ -1326,8 +1326,8 @@ function DashboardContent({
                           href="/vestiaire?type=platinium&slots=1"
                           className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
                         >
-                          <span className="text-black font-bold text-base">Créer</span>
-                          <span className="text-black text-[10px] font-medium">1 crédit</span>
+                          <span className="text-black font-bold text-base">{t('purchase.create')}</span>
+                          <span className="text-black text-[10px] font-medium">{t('purchase.credits', { n: 1 })}</span>
                         </a>
                       )
                     }
@@ -1341,9 +1341,9 @@ function DashboardContent({
                         }}
                         className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2"
                       >
-                        <span className="text-black font-bold text-base">Créer</span>
+                        <span className="text-black font-bold text-base">{t('purchase.create')}</span>
                         <span className="text-black text-[10px] font-medium">
-                          {totalPlatiniumCredits} crédits
+                          {t('purchase.credits', { n: totalPlatiniumCredits })}
                         </span>
                       </button>
                     )
@@ -1356,7 +1356,7 @@ function DashboardContent({
                 href="/pricing"
                 className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-[#ff9900] transition underline"
               >
-                Voir le détail des offres
+                {t('purchase.seeOffers')}
               </a>
             </div>
           </div>
@@ -1393,7 +1393,7 @@ function DashboardContent({
               </div>
 
               <p className="text-sm theme-text-secondary text-center mb-5">
-                Choisissez votre formule
+                {t('purchase.choosePlan')}
               </p>
 
               {/* Options */}
@@ -1408,8 +1408,8 @@ function DashboardContent({
                   className="w-full flex items-center justify-between p-4 border border-yellow-500/50 rounded-lg bg-yellow-500/5 hover:bg-yellow-500/10 transition disabled:opacity-50"
                 >
                   <div className="text-left">
-                    <h4 className="font-semibold text-yellow-400">1 place</h4>
-                    <p className="text-xs theme-text-secondary">Pour rejoindre ou créer un tournoi Platinium</p>
+                    <h4 className="font-semibold text-yellow-400">{t('purchase.onePlace')}</h4>
+                    <p className="text-xs theme-text-secondary">{t('purchase.onePlaceDesc')}</p>
                   </div>
                   <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
                     <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_participation' ? '...' : '6,99€'}</span>
@@ -1426,11 +1426,11 @@ function DashboardContent({
                   className="w-full flex items-center justify-between p-4 border-2 border-yellow-500 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/15 transition disabled:opacity-50 relative"
                 >
                   <div className="absolute -top-2.5 left-4">
-                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">ÉCONOMISEZ 7,69 €</span>
+                    <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">{t('purchase.save')}</span>
                   </div>
                   <div className="text-left">
-                    <h4 className="font-semibold text-yellow-400">11 places</h4>
-                    <p className="text-xs theme-text-secondary">Créez votre tournoi pour vous et 10 joueurs</p>
+                    <h4 className="font-semibold text-yellow-400">{t('purchase.elevenPlaces')}</h4>
+                    <p className="text-xs theme-text-secondary">{t('purchase.elevenPlacesDesc')}</p>
                   </div>
                   <div className="badge-glossy bg-yellow-500 rounded-lg px-3 py-2 text-center">
                     <span className="text-black font-bold text-base block">{isCheckoutLoading === 'platinium_group_11' ? '...' : '69,20€'}</span>
@@ -1442,7 +1442,7 @@ function DashboardContent({
               <div className="flex items-center justify-center gap-3 mt-5 p-3 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
                 <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-8" />
                 <p className="text-sm text-yellow-400 font-medium text-center">
-                  Le vainqueur remportera un maillot neuf et authentique de la part de "Le bon maillot"
+                  {t('purchase.prizeNote')}
                 </p>
               </div>
 
@@ -1451,7 +1451,7 @@ function DashboardContent({
                 onClick={() => setShowPlatiniumChoice(false)}
                 className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-yellow-500 transition"
               >
-                ← Retour aux offres
+                {t('purchase.backOffers')}
               </button>
             </div>
           </div>
@@ -1484,11 +1484,11 @@ function DashboardContent({
               {/* Titre */}
               <div className="flex items-center justify-center gap-2 mb-4">
                 <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
-                <h3 className="text-lg font-bold text-yellow-400">Créer un tournoi Platinium</h3>
+                <h3 className="text-lg font-bold text-yellow-400">{t('purchase.createPlatinium')}</h3>
               </div>
 
               <p className="text-sm theme-text-secondary text-center mb-6">
-                Combien de places souhaitez-vous prépayer ?
+                {t('purchase.howManyPlaces')}
               </p>
 
               {/* Sélecteur +/- */}
@@ -1503,7 +1503,7 @@ function DashboardContent({
 
                 <div className="text-center">
                   <span className="text-4xl font-bold text-yellow-400">{selectedPlatiniumSlots}</span>
-                  <p className="text-sm theme-text-secondary mt-1">place{selectedPlatiniumSlots > 1 ? 's' : ''}</p>
+                  <p className="text-sm theme-text-secondary mt-1">{t('purchase.places', { n: selectedPlatiniumSlots })}</p>
                 </div>
 
                 <button
@@ -1517,7 +1517,7 @@ function DashboardContent({
 
               {/* Info crédits disponibles */}
               <p className="text-xs theme-text-secondary text-center mb-6">
-                Vous avez <span className="text-yellow-400 font-semibold">{(credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0)}</span> crédits disponibles
+                {t.rich('purchase.creditsAvailable', { n: (credits?.platinium_solo || 0) + (credits?.platinium_group_slots || 0), h: (c) => <span className="text-yellow-400 font-semibold">{c}</span> })}
               </p>
 
               {/* Bouton Créer */}
@@ -1525,7 +1525,7 @@ function DashboardContent({
                 href={`/vestiaire?type=platinium&slots=${selectedPlatiniumSlots}`}
                 className="block w-full py-3 text-center rounded-lg badge-glossy bg-yellow-500 text-black font-bold text-lg hover:brightness-110 transition"
               >
-                Créer avec {selectedPlatiniumSlots} place{selectedPlatiniumSlots > 1 ? 's' : ''}
+                {t('purchase.createWith', { n: selectedPlatiniumSlots })}
               </a>
 
               {/* Bouton retour */}
@@ -1533,7 +1533,7 @@ function DashboardContent({
                 onClick={() => setShowPlatiniumSlotSelector(false)}
                 className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-yellow-500 transition"
               >
-                ← Retour
+                {t('purchase.back')}
               </button>
             </div>
           </div>
@@ -1565,7 +1565,7 @@ function DashboardContent({
 
               {/* Titre */}
               <h3 className="text-lg font-bold theme-text text-center mb-2">
-                Rejoindre "{joinPaymentModal.tournamentName}"
+                {t('purchase.joinTitle', { name: joinPaymentModal.tournamentName })}
               </h3>
 
               {/* Message */}
@@ -1582,8 +1582,8 @@ function DashboardContent({
                       <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-yellow-400 text-base">Participation Platinium</h4>
-                      <p className="text-sm theme-text-secondary">Accès au tournoi avec lot à gagner</p>
+                      <h4 className="font-semibold text-yellow-400 text-base">{t('purchase.participationPlatinium')}</h4>
+                      <p className="text-sm theme-text-secondary">{t('purchase.participationDesc')}</p>
                     </div>
                     <button
                       onClick={() => {
@@ -1594,7 +1594,7 @@ function DashboardContent({
                       className="w-20 rounded-lg badge-glossy bg-yellow-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                     >
                       <span className="text-black font-bold text-base">{isCheckoutLoading === 'platinium_participation' ? '...' : '6,99€'}</span>
-                      <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
+                      <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.pay')}</span>
                     </button>
                   </div>
                 )}
@@ -1611,16 +1611,16 @@ function DashboardContent({
                           </svg>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-green-400 text-base">Utiliser un slot</h4>
-                          <p className="text-sm theme-text-secondary">Vous avez {joinPaymentModal.availableSlotsCount} slot{(joinPaymentModal.availableSlotsCount || 0) > 1 ? 's' : ''} disponible{(joinPaymentModal.availableSlotsCount || 0) > 1 ? 's' : ''}</p>
+                          <h4 className="font-semibold text-green-400 text-base">{t('purchase.useSlot')}</h4>
+                          <p className="text-sm theme-text-secondary">{t('purchase.slotsAvailable', { n: joinPaymentModal.availableSlotsCount || 0 })}</p>
                         </div>
                         <button
                           onClick={handleUseSlot}
                           disabled={isUsingSlot}
                           className="w-20 rounded-lg badge-glossy bg-green-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                         >
-                          <span className="text-black font-bold text-base">{isUsingSlot ? '...' : 'Gratuit'}</span>
-                          <span className="text-black text-xs font-medium">Utiliser</span>
+                          <span className="text-black font-bold text-base">{isUsingSlot ? '...' : t('purchase.free')}</span>
+                          <span className="text-black text-xs font-medium">{t('purchase.use')}</span>
                         </button>
                       </div>
                     )}
@@ -1629,7 +1629,7 @@ function DashboardContent({
                     {joinPaymentModal.hasAvailableSlot && joinPaymentModal.availableSlotId && (
                       <div className="flex items-center gap-4">
                         <div className="flex-1 h-px bg-gray-600"></div>
-                        <span className="text-xs theme-text-secondary">ou</span>
+                        <span className="text-xs theme-text-secondary">{t('purchase.or')}</span>
                         <div className="flex-1 h-px bg-gray-600"></div>
                       </div>
                     )}
@@ -1640,8 +1640,8 @@ function DashboardContent({
                         <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-5 h-5 icon-filter-blue" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-blue-400 text-base">Acheter un slot</h4>
-                        <p className="text-sm theme-text-secondary">Débloquez une place supplémentaire</p>
+                        <h4 className="font-semibold text-blue-400 text-base">{t('purchase.buySlot')}</h4>
+                        <p className="text-sm theme-text-secondary">{t('purchase.buySlotDesc')}</p>
                       </div>
                       <button
                         onClick={() => {
@@ -1652,7 +1652,7 @@ function DashboardContent({
                         className="w-20 rounded-lg badge-glossy bg-blue-500 flex flex-col items-center justify-center py-2 disabled:opacity-50"
                       >
                         <span className="text-black font-bold text-base">{isCheckoutLoading === 'slot_invite' ? '...' : '0,99€'}</span>
-                        <span className="badge-acheter text-white text-xs font-medium transition-colors">Payer</span>
+                        <span className="badge-acheter text-white text-xs font-medium transition-colors">{t('purchase.pay')}</span>
                       </button>
                     </div>
                   </>
