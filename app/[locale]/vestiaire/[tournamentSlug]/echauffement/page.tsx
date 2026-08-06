@@ -1680,12 +1680,12 @@ function EchauffementPageContent() {
                 <h2 className="text-base md:text-xl font-bold theme-text flex items-center gap-2 justify-center md:justify-start">
                   <img
                     src="/images/icons/cap.svg"
-                    alt="Capitaine"
+                    alt={t('captainAlt')}
                     className="w-6 h-6 icon-filter-white"
                   />
-                  Les privilèges du capitaine
+                  {t('captainPrivileges')}
                 </h2>
-                <p className="text-sm mt-1 italic text-center md:text-left theme-accent-text-always">Le brassard implique de grandes responsabilités</p>
+                <p className="text-sm mt-1 italic text-center md:text-left theme-accent-text-always">{t('captainTagline')}</p>
 
                 {/* Logo de la compétition + infos tournoi - visible uniquement en desktop */}
                 {tournament && (
@@ -1717,13 +1717,13 @@ function EchauffementPageContent() {
                       <p className="text-sm theme-text-secondary">{tournament.competition_name}</p>
                       <p className="text-sm theme-text-secondary">
                         {remainingMatchdaysToPredict !== null && (
-                          <>Encore {remainingMatchdaysToPredict} journée{remainingMatchdaysToPredict > 1 ? 's' : ''} à pronostiquer</>
+                          <>{t('matchdaysToPredict', { n: remainingMatchdaysToPredict })}</>
                         )}
                         {remainingMatchdaysToPredict === null && tournament.all_matchdays && (
-                          <>Toutes les journées</>
+                          <>{t('allMatchdays')}</>
                         )}
                         {remainingMatchdaysToPredict === null && !tournament.all_matchdays && (
-                          <>{tournament.num_matchdays} journée{tournament.num_matchdays > 1 ? 's' : ''} à pronostiquer</>
+                          <>{t('numMatchdaysToPredict', { n: tournament.num_matchdays })}</>
                         )}
                       </p>
                     </div>
@@ -1734,7 +1734,7 @@ function EchauffementPageContent() {
                 {players.length > 1 && (
                   <div className="mt-4 captain-info-box md:hidden">
                     <p className="text-sm text-center text-slate-accent">
-                      💡 Pour transférer le capitanat, cliquez sur le bouton "Transférer" à côté d'un participant ci-dessous.
+                      {t('transferTip')}
                     </p>
                   </div>
                 )}
@@ -1754,7 +1754,7 @@ function EchauffementPageContent() {
                     alt=""
                     className="btn-icon"
                   />
-                  Démarrer le tournoi
+                  {t('startBtn')}
                 </button>
                 <button
                   onClick={showCancelConfirmation}
@@ -1765,7 +1765,7 @@ function EchauffementPageContent() {
                     alt=""
                     className="btn-icon"
                   />
-                  Annuler le tournoi
+                  {t('cancelTournamentBtn')}
                 </button>
                 <button
                   onClick={handleLeaveTournament}
@@ -1776,7 +1776,7 @@ function EchauffementPageContent() {
                     alt=""
                     className="btn-icon"
                   />
-                  Quitter le tournoi
+                  {t('leaveTournamentBtn')}
                 </button>
               </div>
             </div>
@@ -1803,7 +1803,7 @@ function EchauffementPageContent() {
                 <path d="M152.082,145.082c-6.995-7.466-16.874-11.748-27.104-11.748h-24.801c-10.23,0-20.109,4.282-27.103,11.747c-6.995,7.466-10.625,17.603-9.96,27.812l1.103,16.902l2.573,39.47c1.025,15.716,9.876,29.629,23.674,37.219c6.923,3.807,14.518,5.712,22.113,5.712c7.595,0,15.19-1.904,22.113-5.712c13.799-7.59,22.65-21.504,23.674-37.219l2.941-45.103l0.735-11.269C162.707,162.685,159.077,152.548,152.082,145.082z"/>
                 <path d="M306.374,120.599c-8.741-9.329-21.087-14.681-33.872-14.681h-33.339c-12.785,0-25.131,5.352-33.872,14.681c-8.741,9.329-13.277,21.998-12.445,34.755l1.481,22.72l3.461,53.056c1.299,19.922,12.519,37.561,30.012,47.182c8.777,4.827,18.402,7.24,28.032,7.24c9.626,0,19.257-2.414,28.032-7.24c17.494-9.622,28.713-27.26,30.012-47.182l3.954-60.627v-0.001l0.987-15.148C319.65,142.597,315.115,129.929,306.374,120.599z"/>
               </svg>
-              <span className="theme-accent-text">Effectif ({players.length}/{tournament.max_players})</span>
+              <span className="theme-accent-text">{t('roster', { n: players.length, max: tournament.max_players })}</span>
             </h2>
 
             {/* Alerte minimum joueurs pour Platinium */}
@@ -1813,7 +1813,7 @@ function EchauffementPageContent() {
                   <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                   </svg>
-                  Le tournoi ne pourra commencer que lorsque le minimum de {PRICES.PLATINIUM_MIN_PLAYERS} joueurs sera atteint
+                  {t('minPlayers', { n: PRICES.PLATINIUM_MIN_PLAYERS })}
                 </p>
               </div>
             )}
@@ -1838,7 +1838,7 @@ function EchauffementPageContent() {
                       <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-[#ff9900]">
                         <Image
                           src={getAvatarUrl(player.user_id === currentUserId ? userAvatar : (player.profiles?.avatar || 'avatar1'))}
-                          alt={player.profiles?.username || 'Joueur'}
+                          alt={player.profiles?.username || t('player')}
                           fill
                           className="object-cover"
                           sizes="48px"
@@ -1867,10 +1867,10 @@ function EchauffementPageContent() {
                     <div className="flex-1">
                       <p className="font-semibold flex items-center gap-2">
                         <span className={player.user_id === currentUserId ? 'text-[#ff9900]' : 'theme-text'}>
-                          {player.profiles?.username || 'Joueur'}
+                          {player.profiles?.username || t('player')}
                         </span>
                         {isCaptain && (
-                          <span className="text-xs dark-text-white font-semibold">(cap.)</span>
+                          <span className="text-xs dark-text-white font-semibold">{t('cap')}</span>
                         )}
                       </p>
                       {/* Badge de statut de paiement pour Platinium */}
@@ -1879,12 +1879,12 @@ function EchauffementPageContent() {
                           {(hasPaid || isPaidByCreator) ? (
                             <span className="text-green-400 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                              Payé
+                              {t('paid')}
                             </span>
                           ) : (
                             <span className="text-gray-500 flex items-center gap-1">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
-                              En attente paiement
+                              {t('pendingPayment')}
                             </span>
                           )}
                         </p>
@@ -1894,10 +1894,10 @@ function EchauffementPageContent() {
                     {/* Bouton Transférer */}
                     {canTransfer && (
                       <button
-                        onClick={() => showTransferConfirmation(player.user_id, player.profiles?.username || 'Joueur')}
+                        onClick={() => showTransferConfirmation(player.user_id, player.profiles?.username || t('player'))}
                         className="btn-transfer"
                       >
-                        Transférer
+                        {t('transferShort')}
                       </button>
                     )}
                   </div>
@@ -1926,16 +1926,16 @@ function EchauffementPageContent() {
                         isThisSlotPrepaid ? (
                           <p className="text-green-400 text-sm font-medium flex items-center gap-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
-                            Place prepayee - Gratuit
+                            {t('prepaidFree')}
                           </p>
                         ) : (
                           <p className="text-yellow-400/70 text-sm italic flex items-center gap-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/></svg>
-                            En attente - 6,99€
+                            {t('pendingPrice')}
                           </p>
                         )
                       ) : (
-                        <p className="empty-jersey-text italic">En attente...</p>
+                        <p className="empty-jersey-text italic">{t('pending')}</p>
                       )}
                     </div>
                   </div>
@@ -1953,7 +1953,7 @@ function EchauffementPageContent() {
                     >
                       <span className="text-xl dark-text-accent">+</span>
                       <span className="dark-text-accent">
-                        Ajouter une place (max {getMaxPlayersLimit()}{tournament.tournament_type === 'free' ? ' en mode gratuit' : ''})
+                        {tournament.tournament_type === 'free' ? t('addPlaceFree', { n: getMaxPlayersLimit() }) : t('addPlace', { n: getMaxPlayersLimit() })}
                       </span>
                     </button>
                   )}
@@ -1965,7 +1965,7 @@ function EchauffementPageContent() {
                       className="dark-bg-primary dark-border-primary w-full flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed hover:opacity-80 transition font-semibold"
                     >
                       <span className="text-xl dark-text-accent">−</span>
-                      <span className="dark-text-accent">Supprimer une place</span>
+                      <span className="dark-text-accent">{t('removePlace')}</span>
                     </button>
                   )}
                 </div>
@@ -1981,7 +1981,7 @@ function EchauffementPageContent() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
-                    <span>Étendre à {playerExtensionInfo.newMaxPlayers} joueurs (+{playerExtensionInfo.extensionAmount})</span>
+                    <span>{t('extendTo', { n: playerExtensionInfo.newMaxPlayers, amount: playerExtensionInfo.extensionAmount })}</span>
                     <span className="ml-2 px-2 py-0.5 bg-white/20 rounded text-sm">{playerExtensionInfo.price}€</span>
                   </button>
                 </div>
@@ -1992,32 +1992,32 @@ function EchauffementPageContent() {
                 <div className="mt-4 p-4 next-matchday-card border-2 rounded-lg">
                   <h3 className="font-bold next-matchday-title mb-3 flex items-center gap-2">
                     <img src="/images/icons/chrono.svg" alt="Chrono" className="w-5 h-5 icon-orange" />
-                    Prochaine journée
+                    {t('nextMatchdayTitle')}
                   </h3>
                   <div className="mb-3 p-3 next-matchday-timer rounded-lg border-2">
-                    <p className="text-xs theme-text-secondary mb-2 text-center">Prochaine journée dans :</p>
+                    <p className="text-xs theme-text-secondary mb-2 text-center">{t('nextMatchdayIn')}</p>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
                         <div className="text-2xl font-bold next-matchday-number">{timeRemaining.days}</div>
-                        <div className="text-xs theme-text-secondary">jours</div>
+                        <div className="text-xs theme-text-secondary">{t('days')}</div>
                       </div>
                       <div>
                         <div className="text-2xl font-bold next-matchday-number">{timeRemaining.hours}</div>
-                        <div className="text-xs theme-text-secondary">heures</div>
+                        <div className="text-xs theme-text-secondary">{t('hours')}</div>
                       </div>
                       <div>
                         <div className="text-2xl font-bold next-matchday-number">{timeRemaining.minutes}</div>
-                        <div className="text-xs theme-text-secondary">min</div>
+                        <div className="text-xs theme-text-secondary">{t('minUnit')}</div>
                       </div>
                       <div>
                         <div className="text-2xl font-bold next-matchday-number">{timeRemaining.seconds}</div>
-                        <div className="text-xs theme-text-secondary">sec</div>
+                        <div className="text-xs theme-text-secondary">{t('secUnit')}</div>
                       </div>
                     </div>
                   </div>
                   <div className="p-3 next-matchday-warning border-l-4 rounded">
                     <p className="text-xs next-matchday-text font-semibold">
-                      ⚠️ Si le tournoi n'est pas démarré avant le premier match de la prochaine journée de {tournament.competition_name}, il ne pourra commencer qu'à la journée suivante.
+                      {t('nextMatchdayWarn', { comp: tournament.competition_name })}
                     </p>
                   </div>
                 </div>
@@ -2042,12 +2042,12 @@ function EchauffementPageContent() {
             <div className="theme-card">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <img src="/images/icons/code.svg" alt="Code" className="w-6 h-6 icon-orange" />
-                <span className="theme-accent-text">Code d'invitation</span>
+                <span className="theme-accent-text">{t('inviteCode')}</span>
               </h2>
 
               <div className="invite-code-container">
                 <p className="text-sm mb-2 theme-text-secondary">
-                  Partagez ce code avec vos amis :
+                  {t('shareCodeWith')}
                 </p>
                 <div className="text-5xl font-bold tracking-wider mb-4 font-mono invite-code-light">
                   {tournamentCode}
@@ -2057,7 +2057,7 @@ function EchauffementPageContent() {
                   className="w-full px-4 py-2 rounded-lg transition font-semibold btn-copy-code flex items-center justify-center gap-2"
                 >
                   <img src="/images/icons/copy.svg" alt="Copy" className="w-4 h-4 icon-dark" />
-                  {copySuccess ? 'Copié !' : 'Copier le code'}
+                  {copySuccess ? t('copied') : t('copyCode')}
                 </button>
               </div>
             </div>
@@ -2066,7 +2066,7 @@ function EchauffementPageContent() {
             <div className="theme-card">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <img src="/images/icons/qr.svg" alt="QR" className="w-6 h-6 icon-orange" />
-                <span className="theme-accent-text">QR Code</span>
+                <span className="theme-accent-text">{t('qrAlt')}</span>
               </h2>
 
               <div className="qr-container border-2 rounded-lg p-6 text-center">
@@ -2079,13 +2079,13 @@ function EchauffementPageContent() {
                     className="w-48 h-48 mx-auto"
                   />
                 </div>
-                <p className="text-sm theme-text-secondary mt-4">Scannez pour rejoindre le tournoi</p>
+                <p className="text-sm theme-text-secondary mt-4">{t('scanToJoin')}</p>
                 <button
                   onClick={shareUrl}
                   className="w-full mt-4 px-4 py-2 rounded-lg transition font-semibold btn-share flex items-center justify-center gap-2"
                 >
                   <img src="/images/icons/share.svg" alt="Share" className="w-4 h-4 icon-dark" />
-                  Partager le lien
+                  {t('shareLink')}
                 </button>
               </div>
             </div>
@@ -2102,10 +2102,10 @@ function EchauffementPageContent() {
                     alt=""
                     className="w-5 h-5"
                   />
-                  Quitter le tournoi
+                  {t('leaveTournamentBtn')}
                 </button>
                 <p className="text-xs theme-text-secondary text-center mt-2">
-                  Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté
+                  {t('leaveNote')}
                 </p>
               </div>
             )}
