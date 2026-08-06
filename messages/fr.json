@@ -219,5 +219,77 @@
       "inAppBody": "La connexion Google n'y fonctionne pas. Inscris-toi <b>par email</b> ci-dessous — ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b> → « Ouvrir dans le navigateur »).",
       "copyLink": "Copier le lien du site"
     }
+  },
+  "Dashboard": {
+    "meta": {
+      "title": "Tableau de bord - PronoHub",
+      "description": "Gérez vos tournois de pronostics, consultez vos performances et rejoignez de nouvelles compétitions sur PronoHub."
+    },
+    "adminPanel": "Panel d'administration",
+    "myTournaments": "Mes tournois",
+    "participations": "Participations",
+    "quota": {
+      "freeKick": "Tournois Free-Kick : {a}/{b}",
+      "oneShot": "Tournois One-Shot : {n}",
+      "elite": "Tournois Elite : {n}",
+      "platinium": "Tournois Platinium : {n}",
+      "event": "Tournois Événement : {n}"
+    },
+    "publicBadge": "🌍 Tournoi public ouvert à tous",
+    "join": "Rejoindre",
+    "empty": {
+      "title": "Pas encore de tournoi ?",
+      "subtitle": "Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !",
+      "create": "Créer un tournoi",
+      "joinWithCode": "Rejoindre avec un code"
+    },
+    "codePlaceholder": "CODE 8 CARACTÈRES",
+    "popularCompetitions": "Compétitions populaires",
+    "matchdaysLeft": "{n, plural, one {# journée restante} other {# journées restantes}}",
+    "captain": "(capitaine)",
+    "teamRequestsPending": "Demandes d'équipe en attente",
+    "playersOf": "{current}/{max} joueurs",
+    "playersCount": "{n} joueurs",
+    "statusPending": "En attente",
+    "statusActive": "En cours",
+    "statusFinished": "Terminé",
+    "matchdayProgress": "{n}{ord} journée / {total} au total",
+    "nextMatchday": "Prochaine journée le {date}",
+    "archivedToggle": "Tournois terminés et quittés",
+    "finished": "Terminés",
+    "left": "Quittés",
+    "rankParen": "({rank}{ord}/{total})",
+    "finishedOn": "Terminé le {date}",
+    "winner": "Vainqueur : {name}",
+    "quitBadge": "Quitté",
+    "leftNote": "Ces tournois occupent un slot car vous les avez créés, même si vous n'y participez plus.",
+    "createTitle": "Créer un tournoi",
+    "createSubtitle": "Lancez votre propre tournoi de pronostics et invitez vos amis à participer.",
+    "newTournament": "Nouveau tournoi",
+    "joinTitle": "Rejoindre un tournoi",
+    "joinSubtitle": "Vous avez reçu un code d'invitation ? Rejoignez un tournoi existant.",
+    "validate": "Valider",
+    "connecting": "Connexion...",
+    "cancel": "Annuler",
+    "errors": {
+      "minChars": "Au moins 3 caractères requis",
+      "usernameTaken": "Ce nom d'utilisateur est déjà pris",
+      "notConnected": "Non connecté",
+      "codeLength": "Le code doit contenir exactement 8 caractères",
+      "slotError": "Erreur lors de l'utilisation du slot"
+    },
+    "usernameModal": {
+      "title": "Choisis ton flocage",
+      "subtitle": "Il te suivra toute ta carrière",
+      "jerseyAlt": "Maillot",
+      "placeholder": "john_doe",
+      "checking": "Vérification...",
+      "available": "✓ ça sent le futur ballon d'or",
+      "taken": "✗ Ce nom d'utilisateur est déjà pris",
+      "minChars": "Au moins 3 caractères requis",
+      "hint": "3 à 12 caractères max",
+      "saving": "Enregistrement...",
+      "submit": "Valider"
+    }
   }
 }

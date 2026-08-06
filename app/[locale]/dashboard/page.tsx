@@ -9,12 +9,16 @@ import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { getAdminPath } from '@/lib/admin-path'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 
-export const metadata: Metadata = {
-  title: 'Tableau de bord - PronoHub',
-  description: 'Gérez vos tournois de pronostics, consultez vos performances et rejoignez de nouvelles compétitions sur PronoHub.',
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Dashboard.meta')
   // Note: robots.txt bloque déjà /dashboard - pas besoin de robots meta
   // La meta description est importante pour l'accessibilité même si la page n'est pas indexée
+  return {
+    title: t('title'),
+    description: t('description'),
+  }
 }
 
 // Détecter si la requête vient d'un WebView Android (Capacitor)

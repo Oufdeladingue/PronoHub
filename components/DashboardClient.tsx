@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import Footer from '@/components/Footer'
 import TournamentTypeBadge from '@/components/TournamentTypeBadge'
@@ -113,6 +114,7 @@ function DashboardContent({
 }: DashboardClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations('Dashboard')
   const [showJoinInput, setShowJoinInput] = useState(false)
   const [joinCode, setJoinCode] = useState('')
   const [joinError, setJoinError] = useState('')
@@ -236,11 +238,11 @@ function DashboardContent({
     e.preventDefault()
     setUsernameError(null)
     if (newUsername.length < 3) {
-      setUsernameError('Au moins 3 caractères requis')
+      setUsernameError(t('errors.minChars'))
       return
     }
     if (usernameAvailable !== true) {
-      setUsernameError('Ce nom d\'utilisateur est déjà pris')
+      setUsernameError(t('errors.usernameTaken'))
       return
     }
 
@@ -248,7 +250,7 @@ function DashboardContent({
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Non connecté')
+      if (!user) throw new Error(t('errors.notConnected'))
 
       const { error: profileError } = await supabase
         .from('profiles')
@@ -392,7 +394,7 @@ function DashboardContent({
 
   const handleJoinTournament = async () => {
     if (joinCode.length !== 8) {
-      setJoinError('Le code doit contenir exactement 8 caractères')
+      setJoinError(t('errors.codeLength'))
       return
     }
 
@@ -467,11 +469,11 @@ function DashboardContent({
         setJoinPaymentModal(null)
         router.push(`/vestiaire/${data.tournament.slug}/echauffement`)
       } else {
-        alert(data.error || 'Erreur lors de l\'utilisation du slot')
+        alert(data.error || t('errors.slotError'))
       }
     } catch (error) {
       console.error('Error using slot:', error)
-      alert('Erreur lors de l\'utilisation du slot')
+      alert(t('errors.slotError'))
     } finally {
       setIsUsingSlot(false)
     }
@@ -490,7 +492,7 @@ function DashboardContent({
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <span className="font-semibold">Panel d'administration</span>
+              <span className="font-semibold">{t('adminPanel')}</span>
             </Link>
           </div>
         )}
@@ -517,37 +519,37 @@ function DashboardContent({
         <div className="theme-card mb-8">
           <div className="mb-4">
             <h2 className="text-xl font-bold theme-accent-text whitespace-nowrap text-center md:text-left">
-              Mes tournois
+              {t('myTournaments')}
             </h2>
 
             {/* Version Desktop - affichage direct */}
             <p className="hidden md:flex text-sm theme-text-secondary mt-1 flex-wrap items-center gap-x-5 gap-y-1">
               <span className="inline-flex items-center gap-1">
                 <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
-                Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}
+                {t('quota.freeKick', { a: quotas.freeTournaments, b: quotas.freeTournamentsMax })}
               </span>
               {quotas.oneshotCreated > 0 && (
                 <span className="inline-flex items-center gap-1">
                   <img src="/images/icons/on-shot-tour.svg" alt="" className="w-4 h-4 icon-filter-green" />
-                  Tournois One-Shot : {quotas.oneshotCreated}
+                  {t('quota.oneShot', { n: quotas.oneshotCreated })}
                 </span>
               )}
               {quotas.eliteCreated > 0 && (
                 <span className="inline-flex items-center gap-1">
                   <img src="/images/icons/team-elite-tour.svg" alt="" className="w-4 h-4 icon-filter-orange" />
-                  Tournois Elite : {quotas.eliteCreated}
+                  {t('quota.elite', { n: quotas.eliteCreated })}
                 </span>
               )}
               {quotas.platiniumCreated > 0 && (
                 <span className="inline-flex items-center gap-1">
                   <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
-                  Tournois Platinium : {quotas.platiniumCreated}
+                  {t('quota.platinium', { n: quotas.platiniumCreated })}
                 </span>
               )}
               {quotas.eventTournaments > 0 && (
                 <span className="inline-flex items-center gap-1">
                   <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
-                  Tournois Événement : {quotas.eventTournaments}
+                  {t('quota.event', { n: quotas.eventTournaments })}
                 </span>
               )}
             </p>
@@ -558,7 +560,7 @@ function DashboardContent({
                 onClick={() => setShowParticipations(!showParticipations)}
                 className="w-full flex items-center justify-between py-2 px-3 rounded-lg theme-secondary-bg border theme-border hover-theme-accent-border transition-colors"
               >
-                <span className="text-sm font-medium theme-text">Participations</span>
+                <span className="text-sm font-medium theme-text">{t('participations')}</span>
                 <svg
                   className={`w-4 h-4 theme-text-secondary transition-transform duration-200 ${showParticipations ? 'rotate-180' : ''}`}
                   fill="none"
@@ -573,30 +575,30 @@ function DashboardContent({
                 <div className="mt-2 p-3 rounded-lg theme-secondary-bg border theme-border space-y-2 animate-fadeIn">
                   <div className="flex items-center gap-2 text-sm theme-text-secondary">
                     <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
-                    <span>Tournois Free-Kick : {quotas.freeTournaments}/{quotas.freeTournamentsMax}</span>
+                    <span>{t('quota.freeKick', { a: quotas.freeTournaments, b: quotas.freeTournamentsMax })}</span>
                   </div>
                   {quotas.oneshotCreated > 0 && (
                     <div className="flex items-center gap-2 text-sm theme-text-secondary">
                       <img src="/images/icons/on-shot-tour.svg" alt="" className="w-4 h-4 icon-filter-green" />
-                      <span>Tournois One-Shot : {quotas.oneshotCreated}</span>
+                      <span>{t('quota.oneShot', { n: quotas.oneshotCreated })}</span>
                     </div>
                   )}
                   {quotas.eliteCreated > 0 && (
                     <div className="flex items-center gap-2 text-sm theme-text-secondary">
                       <img src="/images/icons/team-elite-tour.svg" alt="" className="w-4 h-4 icon-filter-orange" />
-                      <span>Tournois Elite : {quotas.eliteCreated}</span>
+                      <span>{t('quota.elite', { n: quotas.eliteCreated })}</span>
                     </div>
                   )}
                   {quotas.platiniumCreated > 0 && (
                     <div className="flex items-center gap-2 text-sm theme-text-secondary">
                       <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
-                      <span>Tournois Platinium : {quotas.platiniumCreated}</span>
+                      <span>{t('quota.platinium', { n: quotas.platiniumCreated })}</span>
                     </div>
                   )}
                   {quotas.eventTournaments > 0 && (
                     <div className="flex items-center gap-2 text-sm theme-text-secondary">
                       <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
-                      <span>Tournois Événement : {quotas.eventTournaments}</span>
+                      <span>{t('quota.event', { n: quotas.eventTournaments })}</span>
                     </div>
                   )}
                 </div>
@@ -614,12 +616,12 @@ function DashboardContent({
                   className="flex items-center justify-between gap-3 rounded-xl border border-[#ff9900]/40 bg-[#ff9900]/[0.06] px-4 py-3 hover:bg-[#ff9900]/10 transition-colors"
                 >
                   <div className="min-w-0">
-                    <div className="text-[11px] font-bold uppercase tracking-wide theme-accent-text-always">🌍 Tournoi public ouvert à tous</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wide theme-accent-text-always">{t('publicBadge')}</div>
                     <div className="font-semibold theme-text truncate">
                       {pt.name}{pt.competition_name ? <span className="theme-text-secondary font-normal"> · {pt.competition_name}</span> : null}
                     </div>
                   </div>
-                  <span className="shrink-0 px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm">Rejoindre</span>
+                  <span className="shrink-0 px-4 py-2 rounded-lg bg-[#ff9900] text-black font-semibold text-sm">{t('join')}</span>
                 </a>
               ))}
             </div>
@@ -630,23 +632,23 @@ function DashboardContent({
               {/* Two-column layout centered: text left, referee right */}
               <div className="flex flex-col-reverse sm:flex-row items-center justify-center gap-6 sm:gap-12 mb-8 max-w-2xl mx-auto py-4">
                 <div className="flex flex-col items-center sm:items-start text-center sm:text-left flex-1">
-                  <h3 className="text-2xl font-bold theme-text mb-3">Pas encore de tournoi ?</h3>
+                  <h3 className="text-2xl font-bold theme-text mb-3">{t('empty.title')}</h3>
                   <p className="theme-text-secondary text-base mb-6 max-w-sm">
-                    Crée ton premier tournoi et défie tes amis sur tes compétitions préférées !
+                    {t('empty.subtitle')}
                   </p>
                   <div className="flex flex-col gap-3 w-full max-w-sm">
                     <a
                       href="/vestiaire"
                       className="px-8 py-3 rounded-xl bg-[#ff9900] text-black font-semibold text-base hover:bg-[#e68a00] transition-colors text-center"
                     >
-                      Créer un tournoi
+                      {t('empty.create')}
                     </a>
                     {!showJoinInput ? (
                       <button
                         onClick={() => setShowJoinInput(true)}
                         className="px-8 py-3 rounded-xl border theme-border theme-text font-medium text-base hover-theme-accent-border transition-colors"
                       >
-                        Rejoindre avec un code
+                        {t('empty.joinWithCode')}
                       </button>
                     ) : (
                       <div className="flex gap-2">
@@ -654,7 +656,7 @@ function DashboardContent({
                           type="text"
                           value={joinCode}
                           onChange={handleJoinCodeChange}
-                          placeholder="CODE 8 CARACTÈRES"
+                          placeholder={t('codePlaceholder')}
                           maxLength={8}
                           className="flex-1 px-4 py-3 border-2 border-[#ff9900] rounded-xl text-center font-mono text-base uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
                           autoFocus
@@ -686,7 +688,7 @@ function DashboardContent({
               {popularCompetitions.length > 0 && (
                 <div id="popular-competitions" className="w-full mt-2">
                   <h3 className="text-base font-bold text-[#ff9900] mb-4 text-left">
-                    Compétitions populaires
+                    {t('popularCompetitions')}
                   </h3>
                   <div className="flex gap-3 justify-center flex-wrap">
                     {popularCompetitions.map((comp: any) => {
@@ -711,7 +713,7 @@ function DashboardContent({
                           </p>
                           {comp.remaining_matchdays != null && (
                             <p className="text-[10px] theme-text-secondary mt-1">
-                              {comp.remaining_matchdays} journée{comp.remaining_matchdays > 1 ? 's' : ''} restante{comp.remaining_matchdays > 1 ? 's' : ''}
+                              {t('matchdaysLeft', { n: comp.remaining_matchdays })}
                             </p>
                           )}
                         </a>
@@ -762,18 +764,18 @@ function DashboardContent({
                         <h3 className="font-semibold theme-text text-base flex-1 transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
-                            <span className="captain-label font-normal text-sm"> (capitaine)</span>
+                            <span className="captain-label font-normal text-sm"> {t('captain')}</span>
                           )}
                           {tournament.pendingTeamRequests > 0 && (
-                            <span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold bg-[#ff9900] text-[#111] rounded-full" title="Demandes d'équipe en attente">
+                            <span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold bg-[#ff9900] text-[#111] rounded-full" title={t('teamRequestsPending')}>
                               {tournament.pendingTeamRequests}
                             </span>
                           )}
                         </h3>
                         <p className="text-xs theme-text-secondary whitespace-nowrap">
                           {tournament.status === 'pending' || tournament.status === 'warmup'
-                            ? `${tournament.current_participants}/${tournament.max_players} joueurs`
-                            : `${tournament.current_participants} joueurs`
+                            ? t('playersOf', { current: tournament.current_participants, max: tournament.max_players })
+                            : t('playersCount', { n: tournament.current_participants })
                           }
                         </p>
                       </div>
@@ -834,7 +836,7 @@ function DashboardContent({
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                               </svg>
-                              En attente
+                              {t('statusPending')}
                             </span>
                           )}
                           {tournament.status === 'active' && (
@@ -842,10 +844,10 @@ function DashboardContent({
                               <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <polyline points="9 18 15 12 9 6"/>
                               </svg>
-                              En cours
+                              {t('statusActive')}
                             </>
                           )}
-                          {(tournament.status === 'finished' || tournament.status === 'completed') && 'Terminé'}
+                          {(tournament.status === 'finished' || tournament.status === 'completed') && t('statusFinished')}
                         </span>
                       </div>
 
@@ -854,13 +856,13 @@ function DashboardContent({
                         {/* Informations de journée pour tournois actifs */}
                         {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
                           <p className="text-xs theme-accent-text font-semibold">
-                            {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                            {t('matchdayProgress', { n: tournament.journeyInfo.currentNumber, ord: tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème', total: tournament.journeyInfo.total })}
                           </p>
                         )}
                         {/* Date de la prochaine journée pour tournois en attente */}
                         {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
                           <p className="text-xs theme-accent-text font-semibold">
-                            Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
+                            {t('nextMatchday', { date: formatMatchDate(tournament.nextMatchDate) })}
                           </p>
                         )}
                       </div>
@@ -901,10 +903,10 @@ function DashboardContent({
                         <h3 className="font-semibold theme-text text-xl transition-colors group-hover:!text-[#ff9900]">
                           {tournament.name}
                           {tournament.isCaptain && (
-                            <span className="captain-label font-normal text-base"> (capitaine)</span>
+                            <span className="captain-label font-normal text-base"> {t('captain')}</span>
                           )}
                           {tournament.pendingTeamRequests > 0 && (
-                            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold bg-[#ff9900] text-[#111] rounded-full" title="Demandes d'équipe en attente">
+                            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold bg-[#ff9900] text-[#111] rounded-full" title={t('teamRequestsPending')}>
                               {tournament.pendingTeamRequests}
                             </span>
                           )}
@@ -934,7 +936,7 @@ function DashboardContent({
                                 <circle cx="12" cy="12" r="10"/>
                                 <polyline points="12 6 12 12 16 14"/>
                               </svg>
-                              En attente
+                              {t('statusPending')}
                             </span>
                           )}
                           {tournament.status === 'active' && (
@@ -942,29 +944,29 @@ function DashboardContent({
                               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <polyline points="9 18 15 12 9 6"/>
                               </svg>
-                              En cours
+                              {t('statusActive')}
                             </>
                           )}
-                          {(tournament.status === 'finished' || tournament.status === 'completed') && 'Terminé'}
+                          {(tournament.status === 'finished' || tournament.status === 'completed') && t('statusFinished')}
                           </span>
                         </div>
 
                         <p className="text-xs theme-text-secondary mt-1">
                           {tournament.status === 'pending' || tournament.status === 'warmup'
-                            ? `${tournament.current_participants}/${tournament.max_players} joueurs`
-                            : `${tournament.current_participants} joueurs`
+                            ? t('playersOf', { current: tournament.current_participants, max: tournament.max_players })
+                            : t('playersCount', { n: tournament.current_participants })
                           }
                         </p>
                         {/* Informations de journée pour tournois actifs */}
                         {tournament.status === 'active' && tournament.journeyInfo && tournament.journeyInfo.total > 0 && (
                           <p className="text-xs theme-accent-text mt-1 font-semibold">
-                            {tournament.journeyInfo.currentNumber}{tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème'} journée / {tournament.journeyInfo.total} au total
+                            {t('matchdayProgress', { n: tournament.journeyInfo.currentNumber, ord: tournament.journeyInfo.currentNumber === 1 ? 'ère' : 'ème', total: tournament.journeyInfo.total })}
                           </p>
                         )}
                         {/* Date de la prochaine journée pour tournois en attente */}
                         {(tournament.status === 'pending' || tournament.status === 'warmup') && tournament.nextMatchDate && (
                           <p className="text-xs theme-accent-text mt-1 font-semibold">
-                            Prochaine journée le {formatMatchDate(tournament.nextMatchDate)}
+                            {t('nextMatchday', { date: formatMatchDate(tournament.nextMatchDate) })}
                           </p>
                         )}
                       </div>
@@ -988,7 +990,7 @@ function DashboardContent({
                     alt=""
                     className={`w-4 h-4 icon-filter-orange transition-transform duration-200 ${showArchived ? 'rotate-45' : ''}`}
                   />
-                  Tournois terminés et quittés
+                  {t('archivedToggle')}
                 </span>
                 <span className="text-xs bg-[#ff9900] text-[#0f172a] px-2 py-0.5 rounded font-bold">
                   {finishedTournaments.length + leftTournaments.length}
@@ -1000,7 +1002,7 @@ function DashboardContent({
                   {/* Tournois terminés */}
                   {finishedTournaments.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">Terminés</h4>
+                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">{t('finished')}</h4>
                       <div className="space-y-2">
                         {finishedTournaments.map((tournament) => (
                           <a
@@ -1045,14 +1047,14 @@ function DashboardContent({
                                 {tournament.name}
                                 {tournament.userRank && tournament.totalParticipants > 0 && (
                                   <span className="theme-text-secondary font-normal">
-                                    {' '}({tournament.userRank === 1 ? '1er' : `${tournament.userRank}ème`}/{tournament.totalParticipants})
+                                    {' '}{t('rankParen', { rank: tournament.userRank, ord: tournament.userRank === 1 ? 'er' : 'ème', total: tournament.totalParticipants })}
                                   </span>
                                 )}
                               </h4>
                               <p className="text-xs theme-text-secondary">{tournament.competition_name}</p>
                               {tournament.lastMatchDate && (
                                 <p className="text-xs theme-text-secondary mt-0.5">
-                                  Terminé le {formatEndDate(tournament.lastMatchDate)}
+                                  {t('finishedOn', { date: formatEndDate(tournament.lastMatchDate) })}
                                 </p>
                               )}
                             </div>
@@ -1063,12 +1065,12 @@ function DashboardContent({
                                 <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                   <polyline points="20 6 9 17 4 12"/>
                                 </svg>
-                                Terminé
+                                {t('statusFinished')}
                               </span>
                               {tournament.winner && (
                                 <p className="text-[10px] theme-text-secondary mt-1 flex items-center justify-end gap-1">
                                   <img src="/images/icons/king.svg" alt="" className="w-3 h-3 icon-filter-yellow" />
-                                  Vainqueur : {tournament.winner}
+                                  {t('winner', { name: tournament.winner })}
                                 </p>
                               )}
                             </div>
@@ -1081,7 +1083,7 @@ function DashboardContent({
                   {/* Tournois quittés */}
                   {leftTournaments.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">Quittés</h4>
+                      <h4 className="text-xs font-semibold theme-text-secondary mb-2 uppercase tracking-wide">{t('left')}</h4>
                       <div className="space-y-2">
                         {leftTournaments.map((tournament) => (
                           <div
@@ -1133,14 +1135,14 @@ function DashboardContent({
                                   <polyline points="16 17 21 12 16 7"/>
                                   <line x1="21" y1="12" x2="9" y2="12"/>
                                 </svg>
-                                Quitté
+                                {t('quitBadge')}
                               </span>
                             </div>
                           </div>
                         ))}
                       </div>
                       <p className="text-xs theme-text-secondary mt-2 italic">
-                        Ces tournois occupent un slot car vous les avez créés, même si vous n'y participez plus.
+                        {t('leftNote')}
                       </p>
                     </div>
                   )}
@@ -1662,7 +1664,7 @@ function DashboardContent({
                 onClick={() => setJoinPaymentModal(null)}
                 className="block w-full mt-4 py-2 text-center text-sm theme-text-secondary hover:text-[#ff9900] transition"
               >
-                Annuler
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -1672,9 +1674,9 @@ function DashboardContent({
         {activeTournaments.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="theme-card">
-            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Creer un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">{t('createTitle')}</h2>
             <p className="theme-text-secondary mb-4">
-              Lancez votre propre tournoi de pronostics et invitez vos amis a participer.
+              {t('createSubtitle')}
             </p>
             <div className="space-y-3">
               {/* Bouton principal - affiche toujours la modale de choix du type */}
@@ -1685,15 +1687,15 @@ function DashboardContent({
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
                   <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M275.3,154.8h-41.8v41.8h-45.3v-41.8h-41.8v-45.3h41.8V67.6h45.3v41.8h41.8V154.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
                 </svg>
-                Nouveau tournoi
+                {t('newTournament')}
               </button>
             </div>
           </div>
 
           <div id="join-section" className="theme-card">
-            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">Rejoindre un tournoi</h2>
+            <h2 className="text-xl font-bold mb-4 theme-accent-text text-center md:text-left">{t('joinTitle')}</h2>
             <p className="theme-text-secondary mb-4">
-              Vous avez recu un code d'invitation ? Rejoignez un tournoi existant.
+              {t('joinSubtitle')}
             </p>
             {!showJoinInput ? (
               <div className="space-y-3">
@@ -1705,7 +1707,7 @@ function DashboardContent({
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 419.5 375.3" className="w-5 h-5" fill="currentColor">
                     <path d="M417.1,64.6c-1.7-10.4-8.3-15.8-18.9-15.9c-22.2,0-44.4,0-66.6,0c-1.5,0-3,0-5.1,0c0-2,0-3.9,0-5.7c0-6,0.1-12-0.1-18c-0.3-12.9-10.1-22.7-23-22.8c-15.1-0.1-30.2,0-45.3,0c-46,0-92,0-138,0c-15.8,0-24.9,8.5-25.6,24.3C94,33.8,94.3,41,94.3,48.8c-1.7,0-3.1,0-4.6,0c-22.2,0-44.4,0-66.6,0c-11.2,0-17.8,5.1-19.5,16.2c-8.4,56.5,7.9,104.9,49.1,144.5c23.4,22.4,51.7,36.9,82,47.5c9.7,3.4,19.7,6.2,29.6,9.1c15.5,4.6,24.4,18.4,22.3,34.8c-1.9,14.7-15.1,26.6-30.6,26.5c-12.9,0-23.8,3.7-31.8,14.3c-4.3,5.7-6.5,12.2-6.9,19.3c-0.4,7.7,4.5,13,12.3,13c53.2,0,106.5,0,159.7,0c7.2,0,11.6-4.5,11.7-11.8c0.3-18.8-15.1-34.1-34.5-34.8c-5.7-0.2-11.8-1-17-3.2c-12.1-5-19.1-17.8-18.1-30.7c1.1-13.1,9.8-24,22.6-27.4c24.4-6.6,48-14.8,70.2-27c39.8-21.8,69.2-52.7,85.3-95.6c5.1-13.7,8-27.9,8.9-42.6c0.1-1.3,0.4-2.6,0.7-4c0-4.9,0-9.8,0-14.7C418.7,76.4,418.1,70.5,417.1,64.6z M40.2,122.8c-3.3-12.7-4.5-25.6-3.6-39c1.6-0.1,2.9-0.2,4.2-0.2c16.5,0,32.9,0.1,49.4-0.1c3.5,0,4.8,0.8,5.2,4.6c4,39.9,12.7,78.6,31,114.6c3,5.8,6.3,11.4,10,18.1C89.9,201.2,53.5,173.3,40.2,122.8z M218.6,175.6c-4.7,4.7-9.1,9.7-14.3,13.8c-21.1,16.4-52.6,3.3-56.1-23.2c-1.5-11.3,1.7-21.2,9.6-29.3c7-7.2,14.1-14.3,21.3-21.3c6.7-6.5,14.9-9.6,24.1-9.7c9.6,0.1,17.8,3.4,24.6,9.9c2.9,2.8,3.2,6.9,0.6,9.6c-2.6,2.7-6.6,2.7-9.6-0.1c-9.3-8.6-22.4-8.4-31.4,0.5c-6.6,6.6-13.3,13.2-19.8,19.8c-6.2,6.3-8.2,13.9-5.6,22.4c2.6,8.4,8.6,13.5,17.2,15.1c7.4,1.4,13.9-0.8,19.3-6c3.5-3.3,6.8-6.8,10.3-10.2c3.6-3.5,9.5-2.1,10.9,2.6C220.5,171.7,220.2,173.9,218.6,175.6z M269.4,124.8c-6.9,7.2-14.1,14.2-21.2,21.2c-6.8,6.6-15,9.8-24.6,10c-9.2-0.1-17.4-3.4-24.3-9.9c-2.9-2.8-3.2-6.9-0.6-9.6c2.6-2.7,6.6-2.7,9.6,0c8.1,7.4,19.2,8.4,28,2.4c1.2-0.8,2.3-1.8,3.3-2.8c6.7-6.6,13.3-13.2,19.9-19.9c6.2-6.3,8.2-13.9,5.6-22.4c-2.6-8.4-8.5-13.5-17.2-15.2c-7.3-1.4-13.7,0.6-19.1,5.7c-3.6,3.4-7,7-10.5,10.4c-3.7,3.5-9.4,2.2-10.9-2.6c-0.7-2.1-0.5-4.4,1.1-5.9c5.1-5.1,9.8-10.6,15.6-14.8c21.3-15.3,51.4-1.9,54.9,24.1C280.3,106.9,277.2,116.7,269.4,124.8z M380.7,121.6c-7.2,30.8-24.7,54.7-49.6,73.5c-13.3,10-28,17.8-43.3,24.2c-0.8,0.4-1.7,0.6-2.6,0.9c4.7-9.1,9.6-17.9,13.8-26.9c13.5-29.1,20.8-60,25-91.7c0.7-5,1-10,1.8-15c0.2-1.1,1.8-2.8,2.7-2.8c18.1-0.2,36.2-0.1,54.3-0.1c0.4,0,0.8,0.2,1.5,0.4C384.7,96.7,383.6,109.3,380.7,121.6z"/>
                   </svg>
-                  Rejoindre
+                  {t('join')}
                 </button>
               </div>
             ) : (
@@ -1715,7 +1717,7 @@ function DashboardContent({
                     type="text"
                     value={joinCode}
                     onChange={handleJoinCodeChange}
-                    placeholder="CODE 8 CARACTERES"
+                    placeholder={t('codePlaceholder')}
                     maxLength={8}
                     className="w-full px-4 py-2 border-2 border-[#ff9900] rounded-md text-center font-mono text-lg uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#ff9900] theme-text theme-bg"
                     autoFocus
@@ -1730,7 +1732,7 @@ function DashboardContent({
                     disabled={joinCode.length !== 8 || isJoining}
                     className="flex-1 py-2 px-4 bg-[#ff9900] text-[#111] rounded-md hover:bg-[#e68a00] transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isJoining ? 'Connexion...' : 'Valider'}
+                    {isJoining ? t('connecting') : t('validate')}
                   </button>
                   <button
                     onClick={() => {
@@ -1740,7 +1742,7 @@ function DashboardContent({
                     }}
                     className="px-4 py-2 border-2 border-gray-300 rounded-md hover:bg-gray-100 transition theme-text"
                   >
-                    Annuler
+                    {t('cancel')}
                   </button>
                 </div>
               </div>
@@ -1760,10 +1762,10 @@ function DashboardContent({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-2xl font-bold text-center mb-2 text-white">
-              Choisis ton flocage
+              {t('usernameModal.title')}
             </h2>
             <p className="text-center text-gray-400 mb-6 text-sm">
-              Il te suivra toute ta carrière
+              {t('usernameModal.subtitle')}
             </p>
 
             {/* Maillot avec flocage dynamique */}
@@ -1777,7 +1779,7 @@ function DashboardContent({
               />
               <img
                 src="/images/jersey-auth.png"
-                alt="Maillot"
+                alt={t('usernameModal.jerseyAlt')}
                 className="relative w-full h-full object-contain drop-shadow-[0_0_20px_rgba(255,180,50,0.4)]"
               />
               {newUsername && (
@@ -1814,23 +1816,23 @@ function DashboardContent({
                   minLength={3}
                   autoFocus
                   className="auth-input bg-[#1a1a1a]"
-                  placeholder="john_doe"
+                  placeholder={t('usernameModal.placeholder')}
                 />
                 {newUsername.length > 0 && (
                   <div className="mt-2">
                     {checkingUsername && (
-                      <p className="text-xs text-gray-400">Vérification...</p>
+                      <p className="text-xs text-gray-400">{t('usernameModal.checking')}</p>
                     )}
                     {!checkingUsername && newUsername.length >= 3 && usernameAvailable === true && (
-                      <p className="text-xs text-green-400">✓ ça sent le futur ballon d&apos;or</p>
+                      <p className="text-xs text-green-400">{t('usernameModal.available')}</p>
                     )}
                     {!checkingUsername && newUsername.length >= 3 && usernameAvailable === false && (
-                      <p className="text-xs text-red-400">✗ Ce nom d&apos;utilisateur est déjà pris</p>
+                      <p className="text-xs text-red-400">{t('usernameModal.taken')}</p>
                     )}
                     {newUsername.length < 3 && (
-                      <p className="text-xs text-gray-400">Au moins 3 caractères requis</p>
+                      <p className="text-xs text-gray-400">{t('usernameModal.minChars')}</p>
                     )}
-                    <p className="text-xs text-[#666] mt-0.5">3 à 12 caractères max</p>
+                    <p className="text-xs text-[#666] mt-0.5">{t('usernameModal.hint')}</p>
                   </div>
                 )}
               </div>
@@ -1840,7 +1842,7 @@ function DashboardContent({
                 disabled={savingUsername || usernameAvailable !== true}
                 className="auth-btn-primary disabled:shadow-none"
               >
-                {savingUsername ? 'Enregistrement...' : 'Valider'}
+                {savingUsername ? t('usernameModal.saving') : t('usernameModal.submit')}
               </button>
             </form>
           </div>

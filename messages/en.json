@@ -219,5 +219,77 @@
       "inAppBody": "Google sign-in doesn't work here. Sign up <b>with email</b> below — or open PronoHub in your browser (menu <b>⋮</b> → \"Open in browser\").",
       "copyLink": "Copy the site link"
     }
+  },
+  "Dashboard": {
+    "meta": {
+      "title": "Dashboard - PronoHub",
+      "description": "Manage your prediction tournaments, track your performance and join new competitions on PronoHub."
+    },
+    "adminPanel": "Admin panel",
+    "myTournaments": "My tournaments",
+    "participations": "Participations",
+    "quota": {
+      "freeKick": "Free-Kick tournaments: {a}/{b}",
+      "oneShot": "One-Shot tournaments: {n}",
+      "elite": "Elite tournaments: {n}",
+      "platinium": "Platinium tournaments: {n}",
+      "event": "Event tournaments: {n}"
+    },
+    "publicBadge": "🌍 Public tournament open to all",
+    "join": "Join",
+    "empty": {
+      "title": "No tournament yet?",
+      "subtitle": "Create your first tournament and challenge your friends on your favourite competitions!",
+      "create": "Create a tournament",
+      "joinWithCode": "Join with a code"
+    },
+    "codePlaceholder": "8-CHARACTER CODE",
+    "popularCompetitions": "Popular competitions",
+    "matchdaysLeft": "{n, plural, one {# matchday left} other {# matchdays left}}",
+    "captain": "(captain)",
+    "teamRequestsPending": "Pending team requests",
+    "playersOf": "{current}/{max} players",
+    "playersCount": "{n} players",
+    "statusPending": "Pending",
+    "statusActive": "Live",
+    "statusFinished": "Finished",
+    "matchdayProgress": "Matchday {n} / {total}",
+    "nextMatchday": "Next matchday on {date}",
+    "archivedToggle": "Finished and left tournaments",
+    "finished": "Finished",
+    "left": "Left",
+    "rankParen": "(#{rank}/{total})",
+    "finishedOn": "Finished on {date}",
+    "winner": "Winner: {name}",
+    "quitBadge": "Left",
+    "leftNote": "These tournaments take up a slot because you created them, even though you no longer take part.",
+    "createTitle": "Create a tournament",
+    "createSubtitle": "Launch your own prediction tournament and invite your friends to join.",
+    "newTournament": "New tournament",
+    "joinTitle": "Join a tournament",
+    "joinSubtitle": "Got an invite code? Join an existing tournament.",
+    "validate": "Confirm",
+    "connecting": "Connecting...",
+    "cancel": "Cancel",
+    "errors": {
+      "minChars": "At least 3 characters required",
+      "usernameTaken": "This username is already taken",
+      "notConnected": "Not signed in",
+      "codeLength": "The code must be exactly 8 characters",
+      "slotError": "Error while using the slot"
+    },
+    "usernameModal": {
+      "title": "Choose your name",
+      "subtitle": "It'll follow you your whole career",
+      "jerseyAlt": "Jersey",
+      "placeholder": "john_doe",
+      "checking": "Checking...",
+      "available": "✓ smells like a future Ballon d'Or",
+      "taken": "✗ This username is already taken",
+      "minChars": "At least 3 characters required",
+      "hint": "3 to 12 characters max",
+      "saving": "Saving...",
+      "submit": "Confirm"
+    }
   }
 }
