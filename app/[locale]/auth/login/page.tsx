@@ -11,8 +11,10 @@ import { initGoogleAuth, signInWithGoogleNative } from '@/lib/google-auth'
 import AgeGate from '@/components/AgeGate'
 import { trackLogin } from '@/lib/analytics'
 import { detectInAppBrowser } from '@/lib/inapp-browser'
+import { useTranslations } from 'next-intl'
 
 function LoginForm() {
+  const t = useTranslations('Auth')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -37,23 +39,8 @@ function LoginForm() {
     if (d.isInApp) setInApp({ isInApp: true, app: d.app })
   }, [])
 
-  // Phrases de chargement aléatoires
-  const loadingMessages = [
-    'On chauffe les crampons…',
-    'Le ballon est encore chez l\'arbitre, on va le récupérer…',
-    'On vérifie si la VAR valide le chargement…',
-    'Le serveur s\'est pris un petit pont, il revient…',
-    'On fait un changement… chargement incoming.',
-    'On cherche la connexion… elle s\'est cachée derrière la défense.',
-    'On temporise… comme Giroud dos au jeu.',
-    'Réchauffage : nos serveurs tirent des coups francs.',
-    'On attend que le gardien arrête de chambrer.',
-    'On prépare une occasion… faut juste cadrer le chargement.',
-    'On repasse par derrière… ça charge mieux.',
-    'Le match reprend dans un instant… promesse d\'arbitre.',
-    'Système en place : 4-4-2… 4 secondes, 4 infos, 2 cafés.',
-    'On fait circuler les données… tiki-taka de chargement.'
-  ]
+  // Phrases de chargement aléatoires (localisées)
+  const loadingMessages = t.raw('login.loadingMessages') as string[]
 
   // Retour OAuth web : vérifier la session et naviguer en client-side
   // (évite le flash de la landing page causé par un chargement complet de /dashboard)
@@ -140,7 +127,7 @@ function LoginForm() {
     const elapsed = Date.now() - pageLoadTime.current
     if (elapsed < 800) {
       console.warn('[Login] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
-      setError('Veuillez patienter un instant avant de continuer.')
+      setError(t('errors.botWait'))
       setGoogleLoading(false)
       return
     }
@@ -226,7 +213,7 @@ function LoginForm() {
         window.location.href = apiUrl
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
+      const errorMessage = err instanceof Error ? err.message : t('errors.unknown')
       setError(errorMessage)
     } finally {
       setGoogleLoading(false)
@@ -255,7 +242,7 @@ function LoginForm() {
           const lookupData = await lookupResponse.json()
 
           if (!lookupResponse.ok || !lookupData.email) {
-            throw new Error('Utilisateur non trouvé')
+            throw new Error(t('errors.userNotFound'))
           }
           email = lookupData.email
         }
@@ -268,7 +255,7 @@ function LoginForm() {
 
         if (error) {
           throw new Error(error.message === 'Invalid login credentials'
-            ? 'Email/pseudo ou mot de passe incorrect'
+            ? t('errors.badCredentials')
             : error.message)
         }
 
@@ -305,7 +292,7 @@ function LoginForm() {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data.error || 'Erreur de connexion')
+          throw new Error(data.error || t('errors.loginFailed'))
         }
 
         // Rafraîchir la session côté client
@@ -352,8 +339,8 @@ function LoginForm() {
 
           {/* Message de connexion Google */}
           <div className="flex flex-col items-center gap-2">
-            <span className="text-[#ff9900] text-xl font-semibold">Connexion avec Google</span>
-            <span className="text-gray-400 text-sm text-center px-4">Authentification en cours...</span>
+            <span className="text-[#ff9900] text-xl font-semibold">{t('googleOverlayTitle')}</span>
+            <span className="text-gray-400 text-sm text-center px-4">{t('googleOverlaySub')}</span>
           </div>
         </div>
       </div>
@@ -431,7 +418,7 @@ function LoginForm() {
       <div className="relative z-10 w-full max-w-[380px] rounded-xl p-5 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
         <div className="flex items-center justify-center gap-2 mb-4">
           <h1 className="text-lg font-bold text-white m-0">
-            Rejoins le vestiaire
+            {t('login.title')}
           </h1>
           <Image
             src="/images/logo.svg"
@@ -451,12 +438,12 @@ function LoginForm() {
         {/* Navigateur intégré : la connexion Google y échoue → guider vers email / vrai navigateur. */}
         {inApp.isInApp && (
           <div className="mb-4 p-3 bg-amber-900/40 border border-amber-600/50 text-amber-100 rounded-lg text-sm">
-            <p className="font-semibold mb-1">⚠️ Navigateur intégré{inApp.app ? ` de ${inApp.app}` : ''} détecté</p>
-            <p className="mb-2 opacity-90">La connexion Google n'y fonctionne pas. Connecte-toi <b>par email</b> ci-dessous, ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b>).</p>
+            <p className="font-semibold mb-1">{inApp.app ? t('login.inAppTitleNamed', { app: inApp.app }) : t('login.inAppTitle')}</p>
+            <p className="mb-2 opacity-90">{t.rich('login.inAppBody', { b: (c) => <b>{c}</b> })}</p>
             <button type="button"
-              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/login') } catch {} setError('Lien copié — colle-le dans Chrome ou Safari pour continuer avec Google.') }}
+              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/login') } catch {} setError(t('errors.linkCopied')) }}
               className="text-amber-200 underline font-medium">
-              Copier le lien du site
+              {t('login.copyLink')}
             </button>
           </div>
         )}
@@ -464,7 +451,7 @@ function LoginForm() {
         <form onSubmit={handleLogin}>
           <div>
             <label htmlFor="identifier" className="block text-sm font-medium text-gray-300 mb-2">
-              Email ou Pseudo
+              {t('login.identifier')}
             </label>
             <input
               id="identifier"
@@ -473,13 +460,13 @@ function LoginForm() {
               onChange={(e) => setIdentifier(e.target.value)}
               required
               className="auth-input mb-4"
-              placeholder="adresse email ou pseudo"
+              placeholder={t('login.identifierPlaceholder')}
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Mot de passe
+              {t('login.password')}
             </label>
             <input
               id="password"
@@ -494,7 +481,7 @@ function LoginForm() {
               href="/auth/forgot-password"
               className="text-sm text-[#ff9900] hover:text-[#e68a00] transition-colors"
             >
-              Mot de passe oublié ?
+              {t('login.forgot')}
             </a>
           </div>
 
@@ -509,7 +496,7 @@ function LoginForm() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             )}
-            {loading ? 'Connexion...' : 'Se connecter'}
+            {loading ? t('login.loading') : t('login.submit')}
           </button>
         </form>
 
@@ -519,7 +506,7 @@ function LoginForm() {
             <div className="w-full border-t border-[#2f2f2f]"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 text-gray-400 auth-divider-bg">OU</span>
+            <span className="px-2 text-gray-400 auth-divider-bg">{t('or')}</span>
           </div>
         </div>
 
@@ -543,14 +530,14 @@ function LoginForm() {
             </svg>
           )}
           <span className="text-white font-medium">
-            {googleLoading ? 'Connexion...' : 'Continuer avec Google'}
+            {googleLoading ? t('login.loading') : t('google')}
           </span>
         </button>
 
         <p className="text-center mt-[18px] text-sm text-[#888]">
-          Pas encore de compte ?{' '}
+          {t('login.noAccount')}{' '}
           <Link href={redirectTo ? `/auth/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/signup'} className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
-            S'inscrire
+            {t('login.signupLink')}
           </Link>
         </p>
       </div>
@@ -559,11 +546,11 @@ function LoginForm() {
       <div className="text-center py-3 text-[10px] text-gray-400">
         © {new Date().getFullYear()} PronoHub
         <span className="mx-2">•</span>
-        <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
+        <Link href="/cgv" className="hover:text-[#ff9900]">{t('footer.cgu')}</Link>
         <span className="mx-2">•</span>
-        <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
+        <Link href="/privacy" className="hover:text-[#ff9900]">{t('footer.privacy')}</Link>
         <span className="mx-2">•</span>
-        <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+        <Link href="/about" className="hover:text-[#ff9900]">{t('footer.about')}</Link>
       </div>
     </div>
   )

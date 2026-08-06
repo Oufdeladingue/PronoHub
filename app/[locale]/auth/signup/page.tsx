@@ -12,8 +12,10 @@ import AgeGate from '@/components/AgeGate'
 import { trackSignup } from '@/lib/analytics'
 import { isDisposableEmail } from '@/lib/disposable-emails'
 import { detectInAppBrowser } from '@/lib/inapp-browser'
+import { useTranslations } from 'next-intl'
 
 function SignUpForm() {
+  const t = useTranslations('Auth')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -128,7 +130,7 @@ function SignUpForm() {
     const elapsed = Date.now() - pageLoadTime.current
     if (elapsed < 800) {
       console.warn('[Signup] Bot behavior detected: OAuth click too fast', elapsed, 'ms')
-      setError('Veuillez patienter un instant avant de continuer.')
+      setError(t('errors.botWait'))
       setGoogleLoading(false)
       return
     }
@@ -212,7 +214,7 @@ function SignUpForm() {
         window.location.href = apiUrl
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue'
+      const errorMessage = err instanceof Error ? err.message : t('errors.unknown')
       setError(errorMessage)
     } finally {
       setGoogleLoading(false)
@@ -228,21 +230,21 @@ function SignUpForm() {
     const elapsed = Date.now() - pageLoadTime.current
     if (elapsed < 800) {
       console.warn('[Signup] Bot behavior detected: form submit too fast', elapsed, 'ms')
-      setError('Veuillez patienter un instant avant de continuer.')
+      setError(t('errors.botWait'))
       setLoading(false)
       return
     }
 
     // Validation du mot de passe
     if (!passwordValidation.isValid) {
-      setError('Le mot de passe ne respecte pas les critères de sécurité')
+      setError(t('errors.pwWeak'))
       setLoading(false)
       return
     }
 
     // Vérification de la confirmation
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
+      setError(t('errors.pwMismatch'))
       setLoading(false)
       return
     }
@@ -250,7 +252,7 @@ function SignUpForm() {
     try {
       // Bloquer les emails jetables/temporaires (côté client)
       if (isDisposableEmail(email)) {
-        setError('Les adresses email temporaires ne sont pas acceptées. Veuillez utiliser une adresse email permanente.')
+        setError(t('errors.disposableEmail'))
         setLoading(false)
         return
       }
@@ -294,12 +296,12 @@ function SignUpForm() {
           })
           const turnstileData = await turnstileCheck.json()
           if (!turnstileData.success) {
-            setError('La vérification anti-bot a échoué. Veuillez réessayer.')
+            setError(t('errors.turnstileFailed'))
             setLoading(false)
             return
           }
         } catch {
-          setError('Erreur lors de la vérification anti-bot. Veuillez réessayer.')
+          setError(t('errors.turnstileError'))
           setLoading(false)
           return
         }
@@ -361,8 +363,8 @@ function SignUpForm() {
 
           {/* Message de connexion Google */}
           <div className="flex flex-col items-center gap-2">
-            <span className="text-[#ff9900] text-xl font-semibold">Connexion avec Google</span>
-            <span className="text-gray-400 text-sm text-center px-4">Authentification en cours...</span>
+            <span className="text-[#ff9900] text-xl font-semibold">{t('googleOverlayTitle')}</span>
+            <span className="text-gray-400 text-sm text-center px-4">{t('googleOverlaySub')}</span>
           </div>
         </div>
       </div>
@@ -396,7 +398,7 @@ function SignUpForm() {
       <div className="relative z-10 w-full max-w-[380px] rounded-xl p-5 shadow-[0_15px_50px_rgba(0,0,0,0.75)] auth-card-bg">
         <div className="flex items-center justify-center gap-2 mb-3">
           <h1 className="text-lg font-bold text-white m-0">
-            Rejoins l'effectif
+            {t('signup.title')}
           </h1>
           <Image
             src="/images/logo.svg"
@@ -417,12 +419,12 @@ function SignUpForm() {
             On guide vers l'email (qui marche ici) ou l'ouverture dans le vrai navigateur. Non bloquant. */}
         {inApp.isInApp && (
           <div className="mb-4 p-3 bg-amber-900/40 border border-amber-600/50 text-amber-100 rounded-lg text-sm">
-            <p className="font-semibold mb-1">⚠️ Tu es dans le navigateur intégré{inApp.app ? ` de ${inApp.app}` : ''}</p>
-            <p className="mb-2 opacity-90">La connexion Google n'y fonctionne pas. Inscris-toi <b>par email</b> ci-dessous — ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b> → « Ouvrir dans le navigateur »).</p>
+            <p className="font-semibold mb-1">{inApp.app ? t('signup.inAppTitleNamed', { app: inApp.app }) : t('signup.inAppTitle')}</p>
+            <p className="mb-2 opacity-90">{t.rich('signup.inAppBody', { b: (c) => <b>{c}</b> })}</p>
             <button type="button"
-              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/signup') } catch {} setError('Lien copié — colle-le dans Chrome ou Safari pour continuer avec Google.') }}
+              onClick={() => { try { navigator.clipboard?.writeText('https://www.pronohub.club/auth/signup') } catch {} setError(t('errors.linkCopied')) }}
               className="text-amber-200 underline font-medium">
-              Copier le lien du site
+              {t('signup.copyLink')}
             </button>
           </div>
         )}
@@ -430,7 +432,7 @@ function SignUpForm() {
         <form onSubmit={handleSignUp} className="space-y-3">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-              Email
+              {t('signup.email')}
             </label>
             <input
               id="email"
@@ -439,13 +441,13 @@ function SignUpForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="auth-input"
-              placeholder="vous@example.com"
+              placeholder={t('signup.emailPlaceholder')}
             />
           </div>
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Mot de passe
+              {t('signup.password')}
             </label>
             <div className="relative">
               <input
@@ -464,7 +466,7 @@ function SignUpForm() {
               >
                 <img
                   src={showPassword ? '/images/icons/eye-closed.svg' : '/images/icons/eye-open.svg'}
-                  alt={showPassword ? 'Masquer' : 'Afficher'}
+                  alt={showPassword ? t('signup.hide') : t('signup.show')}
                   className="w-5 h-5"
                 />
               </button>
@@ -490,10 +492,10 @@ function SignUpForm() {
                   passwordStrength <= 75 ? 'text-yellow-600' :
                   'text-green-600'
                 }`}>
-                  {passwordStrength <= 25 ? 'Faible' :
-                   passwordStrength <= 50 ? 'Moyen' :
-                   passwordStrength <= 75 ? 'Bon' :
-                   'Fort'}
+                  {passwordStrength <= 25 ? t('signup.strengthWeak') :
+                   passwordStrength <= 50 ? t('signup.strengthMedium') :
+                   passwordStrength <= 75 ? t('signup.strengthGood') :
+                   t('signup.strengthStrong')}
                 </p>
               </div>
             )}
@@ -501,23 +503,23 @@ function SignUpForm() {
             {/* Critères de validation */}
             <div className="mt-2 space-y-1">
               <p className={`text-xs ${passwordValidation.hasMinLength ? 'text-green-400' : 'text-gray-400'}`}>
-                {passwordValidation.hasMinLength ? '✓' : '○'} Au moins 8 caractères
+                {passwordValidation.hasMinLength ? '✓' : '○'} {t('signup.critMinLength')}
               </p>
               <p className={`text-xs ${passwordValidation.hasUpperCase ? 'text-green-400' : 'text-gray-400'}`}>
-                {passwordValidation.hasUpperCase ? '✓' : '○'} Une lettre majuscule
+                {passwordValidation.hasUpperCase ? '✓' : '○'} {t('signup.critUpper')}
               </p>
               <p className={`text-xs ${passwordValidation.hasLowerCase ? 'text-green-400' : 'text-gray-400'}`}>
-                {passwordValidation.hasLowerCase ? '✓' : '○'} Une lettre minuscule
+                {passwordValidation.hasLowerCase ? '✓' : '○'} {t('signup.critLower')}
               </p>
               <p className={`text-xs ${passwordValidation.hasNumber ? 'text-green-400' : 'text-gray-400'}`}>
-                {passwordValidation.hasNumber ? '✓' : '○'} Un chiffre
+                {passwordValidation.hasNumber ? '✓' : '○'} {t('signup.critNumber')}
               </p>
             </div>
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-              Confirmer le mot de passe
+              {t('signup.confirmPassword')}
             </label>
             <div className="relative">
               <input
@@ -536,16 +538,16 @@ function SignUpForm() {
               >
                 <img
                   src={showConfirmPassword ? '/images/icons/eye-closed.svg' : '/images/icons/eye-open.svg'}
-                  alt={showConfirmPassword ? 'Masquer' : 'Afficher'}
+                  alt={showConfirmPassword ? t('signup.hide') : t('signup.show')}
                   className="w-5 h-5"
                 />
               </button>
             </div>
             {confirmPassword && password !== confirmPassword && (
-              <p className="text-xs text-red-400 mt-1">Les mots de passe ne correspondent pas</p>
+              <p className="text-xs text-red-400 mt-1">{t('errors.pwMismatch')}</p>
             )}
             {confirmPassword && password === confirmPassword && (
-              <p className="text-xs text-green-400 mt-1">✓ Les mots de passe correspondent</p>
+              <p className="text-xs text-green-400 mt-1">✓ {t('signup.pwMatch')}</p>
             )}
           </div>
 
@@ -558,13 +560,13 @@ function SignUpForm() {
               className="mt-1 h-4 w-4 accent-[#ff9900] cursor-pointer shrink-0"
             />
             <label htmlFor="accept-cgu" className="text-xs text-gray-400 cursor-pointer leading-relaxed">
-              J'accepte les{' '}
+              {t('signup.acceptPre')}{' '}
               <Link href="/cgv" target="_blank" className="text-[#ffb84d] hover:text-[#ff9900] underline">
-                Conditions Générales d'Utilisation
+                {t('signup.cguLink')}
               </Link>{' '}
-              et la{' '}
+              {t('signup.acceptMid')}{' '}
               <Link href="/privacy" target="_blank" className="text-[#ffb84d] hover:text-[#ff9900] underline">
-                Politique de confidentialité
+                {t('signup.privacyLink')}
               </Link>
             </label>
           </div>
@@ -581,7 +583,7 @@ function SignUpForm() {
             disabled={loading || !acceptCGU}
             className="auth-btn-primary"
           >
-            {loading ? 'Inscription...' : 'S\'inscrire'}
+            {loading ? t('signup.loading') : t('signup.submit')}
           </button>
         </form>
 
@@ -591,7 +593,7 @@ function SignUpForm() {
             <div className="w-full border-t border-[#2f2f2f]"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 text-gray-400 auth-divider-bg">OU</span>
+            <span className="px-2 text-gray-400 auth-divider-bg">{t('or')}</span>
           </div>
         </div>
 
@@ -599,7 +601,7 @@ function SignUpForm() {
         <button
           onClick={() => {
             if (!acceptCGU) {
-              setError('Veuillez accepter les CGU et la politique de confidentialité')
+              setError(t('errors.acceptCgu'))
               return
             }
             handleOAuthSignIn('google')
@@ -612,13 +614,13 @@ function SignUpForm() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          <span className="text-white font-medium">Continuer avec Google</span>
+          <span className="text-white font-medium">{t('google')}</span>
         </button>
 
         <p className="text-center mt-[18px] text-sm text-[#888]">
-          Déjà un compte ?{' '}
+          {t('signup.haveAccount')}{' '}
           <Link href={redirectTo ? `/auth/login?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/login'} className="text-[#ffb84d] no-underline font-medium transition-colors duration-200 hover:text-[#ff9900] hover:underline">
-            Se connecter
+            {t('signup.loginLink')}
           </Link>
         </p>
       </div>
@@ -627,11 +629,11 @@ function SignUpForm() {
       <div className="text-center py-3 text-[10px] text-gray-400">
         © {new Date().getFullYear()} PronoHub
         <span className="mx-2">•</span>
-        <Link href="/cgv" className="hover:text-[#ff9900]">CGU</Link>
+        <Link href="/cgv" className="hover:text-[#ff9900]">{t('footer.cgu')}</Link>
         <span className="mx-2">•</span>
-        <Link href="/privacy" className="hover:text-[#ff9900]">Confidentialité</Link>
+        <Link href="/privacy" className="hover:text-[#ff9900]">{t('footer.privacy')}</Link>
         <span className="mx-2">•</span>
-        <Link href="/about" className="hover:text-[#ff9900]">À propos</Link>
+        <Link href="/about" className="hover:text-[#ff9900]">{t('footer.about')}</Link>
       </div>
     </div>
   )
