@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import { notFound } from "next/navigation";
+import { NextIntlClientProvider, hasLocale } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
+import { routing } from "@/i18n/routing";
+import "../globals.css";
 import { UserProvider } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import NavigationLoader from "@/components/NavigationLoader";
@@ -64,19 +68,40 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: 'https://www.pronohub.club',
+    languages: {
+      'fr-FR': 'https://www.pronohub.club',
+      'en': 'https://www.pronohub.club/en',
+      'x-default': 'https://www.pronohub.club',
+    },
   },
   verification: {
     google: 'YxdZzPQhmS94lQs6REKEJA6J6chP2bGEeQ3Zf5bgmjs',
   },
 };
 
-export default function RootLayout({
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
+
+  // Locale invalide → 404 (évite le rendu avec une langue inconnue)
+  if (!hasLocale(routing.locales, locale)) {
+    notFound();
+  }
+
+  // Active le rendu statique pour cette locale
+  setRequestLocale(locale);
+
   return (
-    <html lang="fr" suppressHydrationWarning className={inter.variable}>
+    <html lang={locale} suppressHydrationWarning className={inter.variable}>
       <head>
         {/* Viewport avec viewport-fit=cover pour gérer les safe areas sur mobile */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -189,21 +214,23 @@ export default function RootLayout({
         >
           Aller au contenu principal
         </a>
-        <CapacitorSessionProvider>
-          <PostHogProvider>
-          <ThemeProvider>
-            <UserProvider>
-              <PushNotificationsProvider>
-                <Suspense fallback={null}>
-                  <NavigationLoader />
-                </Suspense>
-                {children}
-                <DebugModalContainer />
-              </PushNotificationsProvider>
-            </UserProvider>
-          </ThemeProvider>
-          </PostHogProvider>
-        </CapacitorSessionProvider>
+        <NextIntlClientProvider>
+          <CapacitorSessionProvider>
+            <PostHogProvider>
+            <ThemeProvider>
+              <UserProvider>
+                <PushNotificationsProvider>
+                  <Suspense fallback={null}>
+                    <NavigationLoader />
+                  </Suspense>
+                  {children}
+                  <DebugModalContainer />
+                </PushNotificationsProvider>
+              </UserProvider>
+            </ThemeProvider>
+            </PostHogProvider>
+          </CapacitorSessionProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

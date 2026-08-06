@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import Image from 'next/image'
-import OppositionClient from '@/app/[tournamentSlug]/opposition/OppositionClient'
+import OppositionClient from '@/app/[locale]/[tournamentSlug]/opposition/OppositionClient'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
 
 interface TournamentData {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Navigation from '@/components/Navigation'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import PricingClient from '@/app/pricing/PricingClient'
+import PricingClient from '@/app/[locale]/pricing/PricingClient'
 import Image from 'next/image'
 
 interface UserProfile {
