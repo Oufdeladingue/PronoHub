@@ -670,5 +670,22 @@
     "scanToJoin": "Scan to join the tournament",
     "shareLink": "Share the link",
     "leaveNote": "You won't be able to rejoin this tournament after leaving it"
+  },
+  "Opposition": {
+    "tabs": {
+      "predictions": "Predictions",
+      "ranking": "Ranking",
+      "chat": "Chat",
+      "teams": "Teams",
+      "rules": "Rules",
+      "invite": "Invite"
+    },
+    "prevMatchdays": "Previous matchdays",
+    "nextMatchdays": "Next matchdays",
+    "status": {
+      "upcoming": "Upcoming",
+      "finished": "Finished",
+      "inProgress": "In progress"
+    }
   }
 }

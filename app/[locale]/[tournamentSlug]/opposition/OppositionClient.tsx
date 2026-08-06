@@ -8,6 +8,7 @@ import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { isCapacitor } from '@/lib/capacitor'
 import { useTheme } from '@/contexts/ThemeContext'
 import Navigation from '@/components/Navigation'
+import { useTranslations } from 'next-intl'
 import TournamentRankings from '@/components/TournamentRankings'
 import TournamentChat from '@/components/TournamentChat'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -310,6 +311,7 @@ export default function OppositionClient({
 }: OppositionClientProps) {
   const searchParams = useSearchParams()
   const { theme } = useTheme()
+  const t = useTranslations('Opposition')
 
   // Lire le paramètre ?tab= de l'URL pour déterminer l'onglet initial
   const tabParam = searchParams.get('tab')
@@ -1806,12 +1808,12 @@ export default function OppositionClient({
 
   // Déterminer le statut d'une journée
   const getMatchdayStatus = (matchday: number): string => {
-    if (!allMatches.length) return 'À venir'
+    if (!allMatches.length) return 'upcoming'
 
     // Récupérer les matchs de cette journée depuis allMatches
     // Utiliser virtual_matchday pour les compétitions knockout
     const matchdayMatches = allMatches.filter((m: any) => (m.virtual_matchday || m.matchday) === matchday)
-    if (matchdayMatches.length === 0) return 'À venir'
+    if (matchdayMatches.length === 0) return 'upcoming'
 
     const now = new Date()
 
@@ -1820,7 +1822,7 @@ export default function OppositionClient({
     const hoursAfterLastMatch = (now.getTime() - lastMatchTime.getTime()) / (1000 * 60 * 60)
 
     if (hoursAfterLastMatch > 2) {
-      return 'Terminée'
+      return 'finished'
     }
 
     // Vérifier si la journée est en cours (30min avant le premier match ou après)
@@ -1828,10 +1830,10 @@ export default function OppositionClient({
     const hoursUntilFirstMatch = (firstMatchTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
     if (hoursUntilFirstMatch < 0.5) {
-      return 'En cours'
+      return 'inProgress'
     }
 
-    return 'À venir'
+    return 'upcoming'
   }
 
   // Déterminer si une journée nécessite un avertissement (pronostics manquants et éditables)
@@ -2198,14 +2200,14 @@ export default function OppositionClient({
             >
               <img
                 src="/images/icons/prediction.svg"
-                alt="Pronostics"
+                alt={t('tabs.predictions')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'pronostics'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Pronostics</span>
+              <span className="hidden md:inline">{t('tabs.predictions')}</span>
             </button>
             <button
               onClick={() => setActiveTab('classement')}
@@ -2217,14 +2219,14 @@ export default function OppositionClient({
             >
               <img
                 src="/images/icons/ranking.svg"
-                alt="Classement"
+                alt={t('tabs.ranking')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'classement'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Classement</span>
+              <span className="hidden md:inline">{t('tabs.ranking')}</span>
             </button>
             <button
               onClick={handleCauserieClick}
@@ -2238,7 +2240,7 @@ export default function OppositionClient({
               <div className="relative md:contents">
                 <img
                   src="/images/icons/talk.svg"
-                  alt="Causerie"
+                  alt={t('tabs.chat')}
                   className={`w-7 h-7 md:w-5 md:h-5 ${
                     activeTab === 'tchat'
                       ? 'icon-filter-orange'
@@ -2253,7 +2255,7 @@ export default function OppositionClient({
               </div>
               {/* Badge sur le texte en desktop */}
               <span className="hidden md:inline relative">
-                Causerie
+                {t('tabs.chat')}
                 {unreadMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-3 bg-[#ff9900] text-[#0f172a] text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                     {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
@@ -2273,14 +2275,14 @@ export default function OppositionClient({
               >
                 <img
                   src="/images/icons/team.svg"
-                  alt="Équipes"
+                  alt={t('tabs.teams')}
                   className={`w-7 h-7 md:w-5 md:h-5 ${
                     activeTab === 'equipes'
                       ? 'icon-filter-orange'
                       : 'icon-filter-slate'
                   }`}
                 />
-                <span className="hidden md:inline">Équipes</span>
+                <span className="hidden md:inline">{t('tabs.teams')}</span>
               </button>
             )}
             <button
@@ -2293,14 +2295,14 @@ export default function OppositionClient({
             >
               <img
                 src="/images/icons/rules.svg"
-                alt="Règles"
+                alt={t('tabs.rules')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'regles'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Règles</span>
+              <span className="hidden md:inline">{t('tabs.rules')}</span>
             </button>
             {/* Onglet Inviter — uniquement pour les tournois publics (partage du lien public) */}
             {tournament.is_public && (
@@ -2308,8 +2310,8 @@ export default function OppositionClient({
                 onClick={() => setShowInviteModal(true)}
                 className="nav-tab flex-1 md:flex-none px-3 py-2 md:px-6 md:py-3 font-semibold transition-all relative flex items-center justify-center gap-2 theme-slate-text hover:theme-text"
               >
-                <img src="/images/icons/share.svg" alt="Inviter" className="w-7 h-7 md:w-5 md:h-5 icon-filter-slate" />
-                <span className="hidden md:inline">Inviter</span>
+                <img src="/images/icons/share.svg" alt={t('tabs.invite')} className="w-7 h-7 md:w-5 md:h-5 icon-filter-slate" />
+                <span className="hidden md:inline">{t('tabs.invite')}</span>
               </button>
             )}
           </div>
@@ -2329,7 +2331,7 @@ export default function OppositionClient({
                       <button
                         onClick={() => scrollMatchdays('left')}
                         className="absolute left-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-r from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
-                        aria-label="Journées précédentes"
+                        aria-label={t('prevMatchdays')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -2345,8 +2347,8 @@ export default function OppositionClient({
                     >
                       {availableMatchdays.map(matchday => {
                         const matchdayStatus = getMatchdayStatus(matchday)
-                        const isFinished = matchdayStatus === 'Terminée'
-                        const isInProgress = matchdayStatus === 'En cours'
+                        const isFinished = matchdayStatus === 'finished'
+                        const isInProgress = matchdayStatus === 'inProgress'
                         const isActive = selectedMatchday === matchday
                         // Pour les tournois custom, toujours afficher J{matchday} (pas de stages)
                         // Protection contre le cache WebView qui pourrait avoir d'anciennes données
@@ -2392,7 +2394,7 @@ export default function OppositionClient({
                                     ? 'text-[#ff9900]'
                                     : 'text-slate-300 dark:text-slate-400'
                             }`}>
-                              {matchdayStatus}
+                              {t(`status.${matchdayStatus}`)}
                             </span>
                           </button>
                         )
@@ -2421,7 +2423,7 @@ export default function OppositionClient({
                       <button
                         onClick={() => scrollMatchdays('right')}
                         className="absolute right-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-l from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
-                        aria-label="Journées suivantes"
+                        aria-label={t('nextMatchdays')}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

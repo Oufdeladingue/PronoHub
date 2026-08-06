@@ -670,5 +670,22 @@
     "scanToJoin": "Scannez pour rejoindre le tournoi",
     "shareLink": "Partager le lien",
     "leaveNote": "Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté"
+  },
+  "Opposition": {
+    "tabs": {
+      "predictions": "Pronostics",
+      "ranking": "Classement",
+      "chat": "Causerie",
+      "teams": "Équipes",
+      "rules": "Règles",
+      "invite": "Inviter"
+    },
+    "prevMatchdays": "Journées précédentes",
+    "nextMatchdays": "Journées suivantes",
+    "status": {
+      "upcoming": "À venir",
+      "finished": "Terminée",
+      "inProgress": "En cours"
+    }
   }
 }
