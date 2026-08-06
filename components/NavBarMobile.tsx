@@ -8,6 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
 import LogoutButton from '@/components/LogoutButton'
+import { useTranslations } from 'next-intl'
 
 export default function NavBarMobile({
   username,
@@ -17,6 +18,7 @@ export default function NavBarMobile({
   tournamentContext,
   creationContext,
 }: NavBarProps) {
+  const t = useTranslations('Nav')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { theme } = useTheme()
 
@@ -106,7 +108,7 @@ export default function NavBarMobile({
           {mobileMenuOpen && (
             <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
               <div className="mobile-menu-text text-sm text-center font-bold">
-                Bonjour {username} !
+                {t('greeting', { username })}
               </div>
 
               {/* 3 icônes côte à côte */}
@@ -119,7 +121,7 @@ export default function NavBarMobile({
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('home')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Accueil</span>
@@ -133,7 +135,7 @@ export default function NavBarMobile({
                 >
                   <img
                     src="/images/icons/profil.svg"
-                    alt="Carrière"
+                    alt={t('career')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Carrière</span>
@@ -143,7 +145,7 @@ export default function NavBarMobile({
                 <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('leave')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Quitter</span>
@@ -259,7 +261,7 @@ export default function NavBarMobile({
           {mobileMenuOpen && (
             <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
               <div className="mobile-menu-text text-sm text-center font-bold">
-                Bonjour {username} !
+                {t('greeting', { username })}
               </div>
 
               {/* 3 icônes côte à côte */}
@@ -272,7 +274,7 @@ export default function NavBarMobile({
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('home')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Accueil</span>
@@ -286,7 +288,7 @@ export default function NavBarMobile({
                 >
                   <img
                     src="/images/icons/profil.svg"
-                    alt="Carrière"
+                    alt={t('career')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Carrière</span>
@@ -296,7 +298,7 @@ export default function NavBarMobile({
                 <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('leave')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
                   <span className="text-xs mobile-menu-text">Quitter</span>
@@ -359,7 +361,7 @@ export default function NavBarMobile({
         {mobileMenuOpen && (
           <div className="mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
             <div className="mobile-menu-text text-sm text-center font-bold">
-              Bonjour {username} !
+              {t('greeting', { username })}
             </div>
 
             {/* 3 icônes côte à côte */}
@@ -372,7 +374,7 @@ export default function NavBarMobile({
               >
                 <img
                   src="/images/icons/home.svg"
-                  alt="Accueil"
+                  alt={t('home')}
                   className="w-6 h-6 mobile-menu-icon"
                 />
                 <span className="text-xs mobile-menu-text">Accueil</span>
@@ -386,7 +388,7 @@ export default function NavBarMobile({
               >
                 <img
                   src="/images/icons/profil.svg"
-                  alt="Carrière"
+                  alt={t('career')}
                   className="w-6 h-6 mobile-menu-icon"
                 />
                 <span className="text-xs mobile-menu-text">Carrière</span>
@@ -396,7 +398,7 @@ export default function NavBarMobile({
               <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
                 <img
                   src="/images/icons/logout.svg"
-                  alt="Quitter"
+                  alt={t('leave')}
                   className="w-6 h-6 mobile-menu-icon"
                 />
                 <span className="text-xs mobile-menu-text">Quitter</span>

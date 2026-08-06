@@ -10,6 +10,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import { NavBarProps } from '@/types/navigation'
 import LogoutButton from '@/components/LogoutButton'
 import { fetchWithAuth } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 
 export default function NavBar({
   username,
@@ -20,6 +21,7 @@ export default function NavBar({
   adminContext,
   creationContext
 }: NavBarProps) {
+  const t = useTranslations('Nav')
   const { theme } = useTheme()
   const pathname = usePathname()
   const [hasNewTrophies, setHasNewTrophies] = useState(false)
@@ -204,17 +206,17 @@ export default function NavBar({
 
               {/* Menu desktop */}
               <div className="flex items-center gap-3">
-                <span className="nav-greeting">Bonjour {username} !</span>
+                <span className="nav-greeting">{t('greeting', { username })}</span>
 
                 {/* Lien Accueil avec icône et tooltip */}
                 <Link
                   href="/dashboard"
                   className="nav-icon-btn"
-                  title="Accueil"
+                  title={t('home')}
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('home')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -223,11 +225,11 @@ export default function NavBar({
                 <Link
                   href="/profile"
                   className="nav-icon-btn"
-                  title="Carrière"
+                  title={t('career')}
                 >
                   <img
                     src="/images/icons/profil.svg"
-                    alt="Carrière"
+                    alt={t('career')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -235,11 +237,11 @@ export default function NavBar({
                 {/* Bouton Déconnexion avec icône et tooltip */}
                 <LogoutButton
                   className="nav-icon-btn"
-                  title="Quitter le terrain"
+                  title={t('leaveTitle')}
                 >
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('leave')}
                     className="w-6 h-6"
                   />
                 </LogoutButton>
@@ -340,17 +342,17 @@ export default function NavBar({
 
               {/* Menu desktop */}
               <div className="flex items-center gap-3">
-                <span className="nav-greeting">Bonjour {username} !</span>
+                <span className="nav-greeting">{t('greeting', { username })}</span>
 
                 {/* Lien Accueil avec icône et tooltip */}
                 <Link
                   href="/dashboard"
                   className="nav-icon-btn"
-                  title="Accueil"
+                  title={t('home')}
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('home')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -359,11 +361,11 @@ export default function NavBar({
                 <Link
                   href="/profile"
                   className="nav-icon-btn"
-                  title="Carrière"
+                  title={t('career')}
                 >
                   <img
                     src="/images/icons/profil.svg"
-                    alt="Carrière"
+                    alt={t('career')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -371,11 +373,11 @@ export default function NavBar({
                 {/* Bouton Déconnexion avec icône et tooltip */}
                 <LogoutButton
                   className="nav-icon-btn"
-                  title="Quitter le terrain"
+                  title={t('leaveTitle')}
                 >
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('leave')}
                     className="w-6 h-6"
                   />
                 </LogoutButton>
@@ -411,7 +413,7 @@ export default function NavBar({
               <span className="prono-title-white">Prono</span><span className="hub-title-white">Hub</span>
             </h1>
             <p className="text-sm text-[#ff9900] text-center">
-              Tournois de pronostics entre amis
+              {t('subtitle')}
             </p>
           </div>
 
@@ -434,18 +436,18 @@ export default function NavBar({
 
             {/* Menu desktop */}
             <div className="flex items-center gap-3">
-              <span className="nav-greeting">Bonjour {username} !</span>
+              <span className="nav-greeting">{t('greeting', { username })}</span>
 
               {/* Lien Accueil avec icône et tooltip - affiché si showBackToDashboard */}
               {appContext?.showBackToDashboard && (
                 <Link
                   href="/dashboard"
                   className="nav-icon-btn"
-                  title="Accueil"
+                  title={t('home')}
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('home')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -455,11 +457,11 @@ export default function NavBar({
               <Link
                 href="/profile"
                 className="nav-icon-btn"
-                title="Carrière"
+                title={t('career')}
               >
                 <img
                   src="/images/icons/profil.svg"
-                  alt="Carrière"
+                  alt={t('career')}
                   className="w-6 h-6"
                 />
               </Link>
@@ -467,11 +469,11 @@ export default function NavBar({
               {/* Bouton Déconnexion avec icône et tooltip */}
               <LogoutButton
                 className="nav-icon-btn"
-                title="Quitter le terrain"
+                title={t('leaveTitle')}
               >
                 <img
                   src="/images/icons/logout.svg"
-                  alt="Quitter"
+                  alt={t('leave')}
                   className="w-6 h-6"
                 />
               </LogoutButton>

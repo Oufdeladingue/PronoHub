@@ -17,7 +17,13 @@
     "profile": "Profil",
     "login": "Connexion",
     "signup": "Inscription",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "greeting": "Bonjour {username} !",
+    "subtitle": "Tournois de pronostics entre amis",
+    "home": "Accueil",
+    "career": "Carrière",
+    "leaveTitle": "Quitter le terrain",
+    "leave": "Quitter"
   },
   "Language": {
     "label": "Langue",

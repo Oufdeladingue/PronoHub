@@ -17,7 +17,13 @@
     "profile": "Profile",
     "login": "Log in",
     "signup": "Sign up",
-    "logout": "Log out"
+    "logout": "Log out",
+    "greeting": "Hello {username}!",
+    "subtitle": "Football prediction tournaments with friends",
+    "home": "Home",
+    "career": "Career",
+    "leaveTitle": "Leave the pitch",
+    "leave": "Leave"
   },
   "Language": {
     "label": "Language",
