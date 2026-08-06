@@ -1,5 +1,7 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
+
 type TournamentType = 'free' | 'oneshot' | 'elite' | 'platinium' | 'premium' | 'enterprise' | 'event'
 
 interface TournamentTypeBadgeProps {
@@ -132,9 +134,11 @@ const EventTourIcon = ({ size, color }: { size: number; color: string }) => (
 )
 
 export function TournamentTypeBadge({ type, size = 'md', className = '' }: TournamentTypeBadgeProps) {
+  const t = useTranslations('TournamentBadge')
   const config = BADGE_CONFIG[type] || BADGE_CONFIG.free
   const iconSize = SIZE_CONFIG[size]
   const color = config.color
+  const tooltip = (BADGE_CONFIG[type] ? type : 'free') as TournamentType
 
   const renderIcon = () => {
     switch (type) {
@@ -160,7 +164,7 @@ export function TournamentTypeBadge({ type, size = 'md', className = '' }: Tourn
   return (
     <div
       className={`tournament-type-badge ${className}`}
-      title={config.tooltip}
+      title={t(tooltip)}
     >
       {renderIcon()}
     </div>

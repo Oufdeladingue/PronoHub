@@ -30,6 +30,20 @@
     "fr": "Français",
     "en": "English"
   },
+  "PublicBanner": {
+    "openToAll": "Public tournament open to all",
+    "players": "{n} players",
+    "join": "Join →"
+  },
+  "TournamentBadge": {
+    "free": "Free-Kick tournament",
+    "oneshot": "One-Shot tournament",
+    "elite": "Elite Team tournament",
+    "platinium": "Platinium tournament",
+    "premium": "Premium tournament",
+    "enterprise": "Enterprise tournament",
+    "event": "Event tournament"
+  },
   "Landing": {
     "nav": {
       "home": "Home",
