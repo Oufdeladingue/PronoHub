@@ -433,6 +433,35 @@
     "typeEnterprise": "Tournoi Entreprise",
     "maxPlayers": "Max {n} joueurs"
   },
+  "Join": {
+    "invitationTo": "Invitation à rejoindre le tournoi",
+    "tournamentFallback": "Tournoi",
+    "createdBy": "Créé par",
+    "players": "{current}/{max} joueurs",
+    "inviteCode": "Code d'invitation",
+    "login": "Se connecter",
+    "createAccount": "Créer un compte",
+    "or": "ou",
+    "enterAnotherCode": "Entrer un autre code",
+    "afterLogin": "Après connexion, tu rejoindras automatiquement le tournoi.",
+    "joinTournament": "Rejoindre un tournoi",
+    "enterInviteCode": "Entrez le code d'invitation",
+    "joining": "Connexion au tournoi en cours...",
+    "codeLabel": "Code : {code}",
+    "charsCount": "{n}/8 caractères",
+    "codeValid": "Code valide",
+    "checking": "Vérification...",
+    "joinButton": "Rejoindre le tournoi",
+    "backToDashboard": "Retour au dashboard",
+    "noCode": "Vous n'avez pas de code ? Demandez-le au créateur du tournoi.",
+    "errors": {
+      "codeLength": "Le code doit contenir 8 caractères",
+      "quotaUpgrade": "Passez à une offre supérieure.",
+      "quota": "Quota atteint ({current}/{max}). {message}",
+      "joinFailed": "Erreur lors de la tentative de rejoindre le tournoi",
+      "serverError": "Erreur de connexion au serveur"
+    }
+  },
   "Vestiaire": {
     "loading": "Chargement des compétitions...",
     "errorLabel": "Erreur :",

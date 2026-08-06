@@ -433,6 +433,35 @@
     "typeEnterprise": "Enterprise tournament",
     "maxPlayers": "Max {n} players"
   },
+  "Join": {
+    "invitationTo": "Invitation to join the tournament",
+    "tournamentFallback": "Tournament",
+    "createdBy": "Created by",
+    "players": "{current}/{max} players",
+    "inviteCode": "Invite code",
+    "login": "Log in",
+    "createAccount": "Create an account",
+    "or": "or",
+    "enterAnotherCode": "Enter another code",
+    "afterLogin": "After logging in, you'll join the tournament automatically.",
+    "joinTournament": "Join a tournament",
+    "enterInviteCode": "Enter the invite code",
+    "joining": "Joining the tournament...",
+    "codeLabel": "Code: {code}",
+    "charsCount": "{n}/8 characters",
+    "codeValid": "Valid code",
+    "checking": "Checking...",
+    "joinButton": "Join the tournament",
+    "backToDashboard": "Back to dashboard",
+    "noCode": "Don't have a code? Ask the tournament creator.",
+    "errors": {
+      "codeLength": "The code must be 8 characters",
+      "quotaUpgrade": "Upgrade to a higher plan.",
+      "quota": "Quota reached ({current}/{max}). {message}",
+      "joinFailed": "Error while trying to join the tournament",
+      "serverError": "Server connection error"
+    }
+  },
   "Vestiaire": {
     "loading": "Loading competitions...",
     "errorLabel": "Error:",

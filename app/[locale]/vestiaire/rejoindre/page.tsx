@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Footer from '@/components/Footer'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { trackTournamentJoined } from '@/lib/analytics'
+import { useTranslations } from 'next-intl'
 
 interface TournamentPreview {
   tournament: {
@@ -30,6 +31,7 @@ interface TournamentPreview {
 }
 
 function RejoindreContent() {
+  const t = useTranslations('Join')
   const router = useRouter()
   const searchParams = useSearchParams()
   const codeFromUrl = searchParams.get('code')?.toUpperCase() || ''
@@ -107,7 +109,7 @@ function RejoindreContent() {
     const joinCode = code || codeFromUrl
 
     if (joinCode.length !== 8) {
-      setError('Le code doit contenir 8 caractères')
+      setError(t('errors.codeLength'))
       setAutoJoin(false)
       return
     }
@@ -128,11 +130,11 @@ function RejoindreContent() {
 
       if (!response.ok) {
         if (data.quotaExceeded) {
-          setError(`Quota atteint (${data.currentCount}/${data.maxCount}). ${data.message || 'Passez à une offre supérieure.'}`)
+          setError(t('errors.quota', { current: data.currentCount, max: data.maxCount, message: data.message || t('errors.quotaUpgrade') }))
         } else if (data.requiresPayment && data.isEventTournament) {
           setError(`${data.error} ${data.message || ''}`)
         } else {
-          setError(data.error || 'Erreur lors de la tentative de rejoindre le tournoi')
+          setError(data.error || t('errors.joinFailed'))
         }
         setIsLoading(false)
         setAutoJoin(false)
@@ -151,7 +153,7 @@ function RejoindreContent() {
         }
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur')
+      setError(t('errors.serverError'))
       setIsLoading(false)
       setAutoJoin(false)
     }
@@ -211,11 +213,11 @@ function RejoindreContent() {
                 </div>
 
                 {/* Titre */}
-                <p className="text-sm text-[#111]/70 uppercase tracking-wider">Invitation à rejoindre le tournoi</p>
+                <p className="text-sm text-[#111]/70 uppercase tracking-wider">{t('invitationTo')}</p>
                 {tournamentPreview ? (
                   <h1 className="text-2xl font-bold text-[#111] mt-1">{tournamentPreview.tournament.name}</h1>
                 ) : (
-                  <h1 className="text-2xl font-bold text-[#111] mt-1">Tournoi</h1>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">{t('tournamentFallback')}</h1>
                 )}
               </div>
 
@@ -237,7 +239,7 @@ function RejoindreContent() {
                         }}
                       />
                       <span className="text-sm theme-text">
-                        Créé par <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
+                        {t('createdBy')} <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
                       </span>
                     </div>
 
@@ -267,7 +269,7 @@ function RejoindreContent() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        <span>{tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} joueurs</span>
+                        <span>{t('players', { current: tournamentPreview.tournament.currentPlayers, max: tournamentPreview.tournament.maxPlayers })}</span>
                       </div>
                     </div>
                   </div>
@@ -276,7 +278,7 @@ function RejoindreContent() {
                 {/* Code affiché (si pas d'infos tournoi) */}
                 {!tournamentPreview && (code || codeFromUrl) && (
                   <div className="text-center p-4 rounded-xl theme-secondary-bg">
-                    <p className="text-sm theme-text-secondary mb-1">Code d'invitation</p>
+                    <p className="text-sm theme-text-secondary mb-1">{t('inviteCode')}</p>
                     <p className="text-2xl font-bold font-mono tracking-widest theme-accent-text-always">
                       {code || codeFromUrl}
                     </p>
@@ -292,7 +294,7 @@ function RejoindreContent() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Se connecter
+                    {t('login')}
                   </Link>
 
                   <Link
@@ -302,7 +304,7 @@ function RejoindreContent() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
-                    Créer un compte
+                    {t('createAccount')}
                   </Link>
                 </div>
 
@@ -312,14 +314,14 @@ function RejoindreContent() {
                     <div className="w-full border-t theme-border"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 theme-card theme-text-secondary">ou</span>
+                    <span className="px-2 theme-card theme-text-secondary">{t('or')}</span>
                   </div>
                 </div>
 
                 {/* Input code manuel */}
                 <div>
                   <label className="block text-sm font-medium theme-text mb-2">
-                    Entrer un autre code
+                    {t('enterAnotherCode')}
                   </label>
                   <input
                     type="text"
@@ -335,7 +337,7 @@ function RejoindreContent() {
             {/* Info */}
             <div className="mt-6 text-center">
               <p className="text-sm theme-text-secondary">
-                Après connexion, tu rejoindras automatiquement le tournoi.
+                {t('afterLogin')}
               </p>
             </div>
           </div>
@@ -369,13 +371,13 @@ function RejoindreContent() {
               {/* Titre */}
               {tournamentPreview ? (
                 <>
-                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">Invitation à rejoindre le tournoi</p>
+                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">{t('invitationTo')}</p>
                   <h1 className="text-2xl font-bold text-[#111] mt-1">{tournamentPreview.tournament.name}</h1>
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">Rejoindre un tournoi</p>
-                  <h1 className="text-2xl font-bold text-[#111] mt-1">Entrez le code d'invitation</h1>
+                  <p className="text-sm text-[#111]/70 uppercase tracking-wider">{t('joinTournament')}</p>
+                  <h1 className="text-2xl font-bold text-[#111] mt-1">{t('enterInviteCode')}</h1>
                 </>
               )}
             </div>
@@ -386,8 +388,8 @@ function RejoindreContent() {
               {isLoading && autoJoin ? (
                 <div className="text-center py-8">
                   <div className="w-12 h-12 mx-auto mb-4 border-4 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
-                  <p className="theme-text font-medium">Connexion au tournoi en cours...</p>
-                  <p className="theme-text-secondary text-sm mt-2">Code : {code}</p>
+                  <p className="theme-text font-medium">{t('joining')}</p>
+                  <p className="theme-text-secondary text-sm mt-2">{t('codeLabel', { code })}</p>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -407,7 +409,7 @@ function RejoindreContent() {
                           }}
                         />
                         <span className="text-sm theme-text">
-                          Créé par <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
+                          {t('createdBy')} <span className="font-semibold theme-accent-text-always">{tournamentPreview.creator.username}</span>
                         </span>
                       </div>
 
@@ -437,7 +439,7 @@ function RejoindreContent() {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
-                          <span>{tournamentPreview.tournament.currentPlayers}/{tournamentPreview.tournament.maxPlayers} joueurs</span>
+                          <span>{t('players', { current: tournamentPreview.tournament.currentPlayers, max: tournamentPreview.tournament.maxPlayers })}</span>
                         </div>
                       </div>
                     </div>
@@ -447,7 +449,7 @@ function RejoindreContent() {
                   <div>
                     {!tournamentPreview && (
                       <label className="block text-sm font-medium theme-text mb-2">
-                        Code d'invitation
+                        {t('inviteCode')}
                       </label>
                     )}
                     <input
@@ -461,14 +463,14 @@ function RejoindreContent() {
                     />
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-xs theme-text-secondary">
-                        {code.length}/8 caractères
+                        {t('charsCount', { n: code.length })}
                       </span>
                       {code.length === 8 && (
                         <span className="text-xs text-green-500 flex items-center gap-1">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                           </svg>
-                          Code valide
+                          {t('codeValid')}
                         </span>
                       )}
                     </div>
@@ -496,14 +498,14 @@ function RejoindreContent() {
                       {isLoading ? (
                         <>
                           <div className="w-5 h-5 border-2 border-[#111] border-t-transparent rounded-full animate-spin"></div>
-                          Vérification...
+                          {t('checking')}
                         </>
                       ) : (
                         <>
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                           </svg>
-                          Rejoindre le tournoi
+                          {t('joinButton')}
                         </>
                       )}
                     </button>
@@ -512,7 +514,7 @@ function RejoindreContent() {
                       href="/dashboard"
                       className="block w-full py-3 px-6 text-center theme-text-secondary hover:theme-text rounded-xl border-2 theme-border hover:border-[#ff9900]/50 transition font-medium"
                     >
-                      Retour au dashboard
+                      {t('backToDashboard')}
                     </Link>
                   </div>
                 </form>
@@ -523,7 +525,7 @@ function RejoindreContent() {
           {/* Info */}
           <div className="mt-6 text-center">
             <p className="text-sm theme-text-secondary">
-              Vous n'avez pas de code ? Demandez-le au créateur du tournoi.
+              {t('noCode')}
             </p>
           </div>
         </div>
