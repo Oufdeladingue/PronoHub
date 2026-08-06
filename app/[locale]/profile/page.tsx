@@ -722,7 +722,6 @@ function ProfileContent() {
                 <img src="/images/logo.svg" alt="PronoHub" className="w-14 h-14" />
               </Link>
               <ThemeToggle />
-              <LanguageSelector />
             </div>
 
             {/* COLONNE CENTRALE - "Fiche technique" centré sur mobile, également visible sur desktop */}
@@ -970,23 +969,26 @@ function ProfileContent() {
 
               {/* Nom d'utilisateur sous l'avatar */}
               <div className="text-center mb-6">
-                <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setUsername(val)
-                    if (!hasChosenUsername && val.length >= 3 && val !== initialUsername) {
-                      setCheckingUsername(true)
-                      setUsernameAvailable(null)
-                    }
-                  }}
-                  disabled={isUsernameLocked}
-                  maxLength={12}
-                  className={`theme-input max-w-[200px] mx-auto text-center ${isUsernameLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  placeholder="Votre pseudo"
-                />
+                <div className="flex items-center justify-center gap-2">
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setUsername(val)
+                      if (!hasChosenUsername && val.length >= 3 && val !== initialUsername) {
+                        setCheckingUsername(true)
+                        setUsernameAvailable(null)
+                      }
+                    }}
+                    disabled={isUsernameLocked}
+                    maxLength={12}
+                    className={`theme-input max-w-[200px] text-center ${isUsernameLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    placeholder="Votre pseudo"
+                  />
+                  <LanguageSelector />
+                </div>
                 {isUsernameLocked && (
                   <p className="text-sm theme-text-secondary mt-1">
                     Le pseudo ne peut pas être modifié
