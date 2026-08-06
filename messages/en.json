@@ -1,0 +1,27 @@
+{
+  "Common": {
+    "appName": "PronoHub",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "confirm": "Confirm",
+    "error": "Something went wrong",
+    "retry": "Try again"
+  },
+  "Nav": {
+    "dashboard": "Home",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "profile": "Profile",
+    "login": "Log in",
+    "signup": "Sign up",
+    "logout": "Log out"
+  },
+  "Language": {
+    "label": "Language",
+    "fr": "Français",
+    "en": "English"
+  }
+}
