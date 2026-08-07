@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/server'
 import { SeoHeader, SeoFooter } from '@/components/seo/PronosticsChrome'
+import { getTranslations, getLocale } from 'next-intl/server'
 
 export const dynamic = 'force-dynamic'
 const BASE = 'https://www.pronohub.club'
@@ -68,17 +69,18 @@ async function getPublic(slug: string): Promise<PublicTournament | null> {
   }
 }
 
-function fmtDate(iso: string): string {
-  const d = new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+function fmtDate(iso: string, locale: string): string {
+  const d = new Date(iso).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
   return d.charAt(0).toUpperCase() + d.slice(1)
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
+  const tr = await getTranslations('PublicTournament.meta')
   const t = await getPublic(slug)
-  if (!t) return { title: 'Tournoi public | PronoHub', robots: { index: false, follow: true } }
-  const title = `${t.name} — tournoi de pronos public gratuit | PronoHub`
-  const description = t.description || `Rejoins « ${t.name} » : un tournoi de pronostics ouvert à tous, gratuit. Grimpe au classement !`
+  if (!t) return { title: tr('fallbackTitle'), robots: { index: false, follow: true } }
+  const title = tr('title', { name: t.name })
+  const description = t.description || tr('description', { name: t.name })
   const image = `${BASE}/api/og/ranking?tournamentId=${t.id}&mode=general`
   return {
     title,
@@ -91,10 +93,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PublicTournamentPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  const tr = await getTranslations('PublicTournament')
+  const locale = await getLocale()
   const t = await getPublic(slug)
   if (!t) notFound()
 
   const joinUrl = `/vestiaire/rejoindre?code=${encodeURIComponent(t.invite_code || t.slug)}`
+  const bold = (c: React.ReactNode) => <strong className="text-white">{c}</strong>
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">
@@ -102,7 +107,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
 
       <section className="max-w-3xl mx-auto px-5 pt-8 pb-4 text-center">
         <span className="inline-block text-xs font-bold uppercase tracking-wide text-[#ff9900] bg-[#ff9900]/10 border border-[#ff9900]/30 rounded-full px-3 py-1 mb-4">
-          Tournoi public — ouvert à tous
+          {tr('badge')}
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-3 text-balance">{t.name}</h1>
 
@@ -112,34 +117,34 @@ export default async function PublicTournamentPage({ params }: { params: Promise
         )}
 
         <p className="text-slate-400 text-[15px] leading-relaxed mb-3">
-          Un tournoi de pronostics <strong className="text-white">gratuit</strong>, que tu peux rejoindre <strong className="text-white">seul</strong> — pas besoin d'amis pour commencer.
+          {tr.rich('intro', { b: bold })}
         </p>
 
         {/* Date de début + nombre de joueurs */}
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-slate-400 mb-6">
-          {t.startDate && <span>🗓️ Début : <strong className="text-white">{fmtDate(t.startDate)}</strong></span>}
-          {t.players > 1 && <span>👥 Déjà <strong className="text-white">{t.players}</strong> joueurs</span>}
-          {t.status !== 'pending' && <span className="text-[#ff9900]">Rejoignable même en cours</span>}
+          {t.startDate && <span>{tr.rich('startDate', { b: bold, date: fmtDate(t.startDate, locale) })}</span>}
+          {t.players > 1 && <span>{tr.rich('playersCount', { b: bold, count: t.players })}</span>}
+          {t.status !== 'pending' && <span className="text-[#ff9900]">{tr('joinableInProgress')}</span>}
         </div>
 
         <Link href={joinUrl} className="inline-block bg-[#ff9900] text-[#111827] font-bold text-lg px-9 py-4 rounded-xl hover:brightness-110 transition">
-          Rejoindre le tournoi
+          {tr('joinButton')}
         </Link>
-        <p className="text-slate-500 text-xs mt-3">Inscription en 30 secondes, 100% gratuit.</p>
+        <p className="text-slate-500 text-xs mt-3">{tr('signupNote')}</p>
       </section>
 
       {/* Classement live */}
       <section className="max-w-2xl mx-auto px-5 py-8">
-        <h2 className="text-xl font-bold text-white text-center mb-4">Le classement en direct</h2>
+        <h2 className="text-xl font-bold text-white text-center mb-4">{tr('liveRanking')}</h2>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={`/api/og/ranking?tournamentId=${t.id}&mode=general`}
-          alt={`Classement de ${t.name}`}
+          alt={tr('rankingAlt', { name: t.name })}
           className="w-full rounded-2xl border border-white/10 shadow-2xl"
         />
         <div className="text-center mt-4">
           <Link href={`/share/ranking/${t.id}?mode=general`} className="text-[#ff9900] text-sm font-semibold hover:underline">
-            Voir le classement complet →
+            {tr('viewFullRanking')}
           </Link>
         </div>
       </section>
@@ -149,25 +154,25 @@ export default async function PublicTournamentPage({ params }: { params: Promise
         <div className="grid gap-4 sm:grid-cols-3 text-center">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-2xl mb-1">🆓</div>
-            <p className="text-sm text-slate-300">100% gratuit</p>
+            <p className="text-sm text-slate-300">{tr('free')}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-2xl mb-1">⚡</div>
-            <p className="text-sm text-slate-300">Rejoins seul, en 30 s</p>
+            <p className="text-sm text-slate-300">{tr('joinAlone')}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-2xl mb-1">🏆</div>
-            <p className="text-sm text-slate-300">Classement, trophées, chambrage</p>
+            <p className="text-sm text-slate-300">{tr('rankingTrophies')}</p>
           </div>
         </div>
       </section>
 
       <section className="max-w-2xl mx-auto px-5 py-10 text-center">
         <Link href={joinUrl} className="inline-block bg-[#ff9900] text-[#111827] font-bold text-lg px-9 py-4 rounded-xl hover:brightness-110 transition">
-          Rejoindre {t.name}
+          {tr('joinNamed', { name: t.name })}
         </Link>
         <p className="text-slate-500 text-sm mt-4">
-          Envie de ton propre tournoi entre potes ? <Link href="/pronostics" className="text-[#ff9900] hover:underline">C'est par ici</Link>.
+          {tr.rich('ownTournament', { link: (c) => <Link href="/pronostics" className="text-[#ff9900] hover:underline">{c}</Link> })}
         </p>
       </section>
 

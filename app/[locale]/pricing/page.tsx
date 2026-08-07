@@ -6,18 +6,22 @@ import Navigation from '@/components/Navigation'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import PricingClient from './PricingClient'
 import PricingCapacitorWrapper from '@/components/PricingCapacitorWrapper'
+import { getTranslations } from 'next-intl/server'
 
-export const metadata: Metadata = {
-  title: 'Tarifs - PronoHub Football | Gratuit et Premium',
-  description: 'Découvrez les offres PronoHub : version gratuite ou Premium. Créez des tournois de pronostics football, invitez vos amis et débloquez des fonctionnalités exclusives.',
-  alternates: {
-    canonical: 'https://www.pronohub.club/pricing',
-  },
-  openGraph: {
-    title: 'Tarifs - PronoHub Football | Gratuit et Premium',
-    description: 'Découvrez les offres PronoHub : version gratuite ou Premium.',
-    url: 'https://www.pronohub.club/pricing',
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('Pricing.meta')
+  return {
+    title: t('title'),
+    description: t('description'),
+    alternates: {
+      canonical: 'https://www.pronohub.club/pricing',
+    },
+    openGraph: {
+      title: t('title'),
+      description: t('ogDescription'),
+      url: 'https://www.pronohub.club/pricing',
+    },
+  }
 }
 
 // Détecter si la requête vient d'un WebView Android (Capacitor)
@@ -36,6 +40,7 @@ export default async function PricingPage() {
     return <PricingCapacitorWrapper />
   }
 
+  const t = await getTranslations('Pricing')
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -53,7 +58,7 @@ export default async function PricingPage() {
     <ThemeProvider>
       {profile ? (
         <Navigation
-          username={profile.username || 'Utilisateur'}
+          username={profile.username || t('defaultUsername')}
           userAvatar={profile.avatar}
           context="app"
           appContext={{ showBackToDashboard: true }}
@@ -62,7 +67,7 @@ export default async function PricingPage() {
         <Link
           href="/"
           className="fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-white hover:bg-white/20 transition-colors"
-          aria-label="Retour à l'accueil"
+          aria-label={t('backToHome')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

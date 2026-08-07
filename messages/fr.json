@@ -1229,5 +1229,326 @@
     "plus5Seats": "+5 places par extension",
     "buyCredits": "Acheter des crédits",
     "extensionsNote": "Les extensions de tournoi sont disponibles depuis la page de chaque tournoi"
+  },
+  "Profile": {
+    "header": {
+      "title": "Fiche technique",
+      "greeting": "Bonjour, {username} !",
+      "home": "Accueil",
+      "leaveTitle": "Quitter le terrain",
+      "leave": "Quitter",
+      "menu": "Menu"
+    },
+    "loading": "Chargement...",
+    "tabs": {
+      "profil": "Profil",
+      "stats": "Stats",
+      "trophees": "Trophées",
+      "securite": "Sécurité",
+      "abonnement": "Zone VIP"
+    },
+    "messages": {
+      "usernameTaken": "Ce pseudo est déjà pris",
+      "saveError": "Erreur lors de la sauvegarde",
+      "saveSuccess": "Profil mis à jour avec succès"
+    },
+    "profil": {
+      "avatarSelectedAlt": "Avatar sélectionné",
+      "usernamePlaceholder": "Votre pseudo",
+      "usernameLocked": "Le pseudo ne peut pas être modifié",
+      "usernameChangeOnce": "Tu peux changer ton pseudo une seule fois",
+      "chooseAvatar": "Choisissez votre avatar :",
+      "avatarAlt": "Avatar {id}",
+      "moreChoices": "Plus de choix",
+      "trophyAvatars": "Avatars trophées débloqués :",
+      "defaultTheme": "Thème par défaut",
+      "saving": "Enregistrement...",
+      "save": "Enregistrer",
+      "back": "Retour"
+    },
+    "stats": {
+      "loading": "Chargement des statistiques...",
+      "myTournaments": "Mes tournois",
+      "totalTournaments": "Tournois total",
+      "inProgress": "En cours",
+      "finished": "Terminés",
+      "myPredictions": "Mes pronostics",
+      "correctResults": "Bons résultats",
+      "onMatches": "Sur {count} matchs",
+      "exactScores": "Scores exacts",
+      "notFilled": "Non renseignés",
+      "defaultPredictions": "Pronos par défaut",
+      "noFinishedMatch": "Aucun match pronostiqué terminé pour le moment",
+      "myPerformances": "Mes performances",
+      "finalWins": "{count, plural, one {Victoire finale} other {Victoires finales}}",
+      "noFinishedTournament": "Aucun tournoi terminé",
+      "provisionalFirsts": "{count, plural, one {Première place provisoire} other {Premières places provisoires}}",
+      "noProvisionalFirst": "Aucune première place provisoire"
+    },
+    "trophies": {
+      "checking": "Vérification des nouveaux trophées...",
+      "refreshMessage": "{count, plural, one {# nouveau trophée débloqué !} other {# nouveaux trophées débloqués !}}",
+      "loading": "Chargement des trophées...",
+      "emptyTitle": "Aucun trophée déverrouillé pour le moment",
+      "emptySubtitle": "Continuez à pronostiquer pour débloquer vos premiers trophées !",
+      "unlockedTitle": "Mes trophées déverrouillés",
+      "newBadge": "NOUVEAU",
+      "unlockedOn": "Déverrouillé le {date}",
+      "toUnlockTitle": "Trophées à débloquer",
+      "default": "Trophée",
+      "types": {
+        "king_of_day": {
+          "name": "The King of Day",
+          "desc": "Premier au classement d'une journée de tournoi"
+        },
+        "correct_result": {
+          "name": "Le Veinard",
+          "desc": "Au moins un bon résultat pronostiqué"
+        },
+        "exact_score": {
+          "name": "L'Analyste",
+          "desc": "Au moins un score exact pronostiqué"
+        },
+        "tournament_winner": {
+          "name": "Le Ballon d'or",
+          "desc": "Premier au classement final d'un tournoi"
+        },
+        "double_king": {
+          "name": "Le Roi du Doublé",
+          "desc": "Premier au classement de deux journées consécutives"
+        },
+        "opportunist": {
+          "name": "L'Opportuniste",
+          "desc": "Deux bons résultats sur une même journée"
+        },
+        "nostradamus": {
+          "name": "Le Nostradamus",
+          "desc": "Deux scores exacts sur une même journée"
+        },
+        "bonus_profiteer": {
+          "name": "Le Profiteur",
+          "desc": "Un bon résultat sur un match Bonus"
+        },
+        "bonus_optimizer": {
+          "name": "L'Optimisateur",
+          "desc": "Un score exact sur un match Bonus"
+        },
+        "ultra_dominator": {
+          "name": "L'Ultra-dominateur",
+          "desc": "Premier à chaque journée d'un tournoi"
+        },
+        "lantern": {
+          "name": "La Lanterne-rouge",
+          "desc": "Dernier au classement d'une journée de tournoi"
+        },
+        "downward_spiral": {
+          "name": "La Spirale infernale",
+          "desc": "Dernier deux journées de suite lors d'un même tournoi"
+        },
+        "abyssal": {
+          "name": "L'Abyssal",
+          "desc": "Dernier au classement final d'un tournoi"
+        },
+        "poulidor": {
+          "name": "Le Poulidor",
+          "desc": "Aucune première place sur toutes les journées d'un tournoi"
+        },
+        "cursed": {
+          "name": "Le Maudit",
+          "desc": "Aucun bon résultat sur une journée de tournoi"
+        },
+        "legend": {
+          "name": "La Légende",
+          "desc": "Vainqueur d'un tournoi comptant plus de 10 participants"
+        }
+      }
+    },
+    "security": {
+      "errors": {
+        "allFieldsRequired": "Tous les champs sont requis",
+        "passwordRules": "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre",
+        "passwordsMismatch": "Les mots de passe ne correspondent pas",
+        "userNotFound": "Erreur : utilisateur non trouvé",
+        "currentPasswordWrong": "Mot de passe actuel incorrect",
+        "updateError": "Erreur lors de la mise à jour du mot de passe",
+        "changeError": "Erreur lors de la modification du mot de passe"
+      },
+      "emailSection": "Adresse email",
+      "emailLabel": "Email",
+      "emailLocked": "L'email ne peut pas être modifié",
+      "notifSection": "Préférences de notifications",
+      "notifIntroPush": "Choisissez les notifications mobiles que vous souhaitez recevoir",
+      "notifIntroEmail": "Choisissez les emails que vous souhaitez recevoir",
+      "notifs": {
+        "reminderTitle": "Rappel de pronostics",
+        "reminderDesc": "Recevoir un rappel 4h avant le début des matchs si vous n'avez pas pronostiqué",
+        "startedTitle": "Lancement de tournoi",
+        "startedDesc": "Confirmation quand le capitaine lance le tournoi",
+        "dayRecapTitle": "Récapitulatif de journée",
+        "dayRecapDesc": "Recevoir un résumé à l'issue de chaque journée (classement, stats)",
+        "endTitle": "Récapitulatif de fin de tournoi",
+        "endDesc": "Recevoir un résumé à la fin du tournoi (classement final, statistiques)",
+        "inviteTitle": "Invitation à un tournoi",
+        "inviteDesc": "Recevoir un email quand quelqu'un vous invite à rejoindre un tournoi",
+        "playerJoinedTitle": "Nouveau joueur dans mon tournoi",
+        "playerJoinedDesc": "Recevoir un email quand un joueur rejoint un tournoi dont vous êtes capitaine",
+        "mentionTitle": "Mention dans une discussion",
+        "mentionDesc": "Recevoir une notification quand quelqu'un vous mentionne (@user) dans une discussion de tournoi",
+        "badgeTitle": "Nouveau badge débloqué",
+        "badgeDesc": "Recevoir une notification quand vous débloquez un nouveau badge ou trophée",
+        "newMatchesTitle": "Nouvelles rencontres",
+        "newMatchesDesc": "Recevoir une notification quand de nouveaux matchs sont ajoutés à un tournoi auquel vous participez"
+      },
+      "savingNotif": "Enregistrement...",
+      "notifSaved": "Préférence enregistrée",
+      "changePasswordSection": "Modifier le mot de passe",
+      "currentPassword": "Mot de passe actuel",
+      "currentPasswordPlaceholder": "Entrez votre mot de passe actuel",
+      "newPassword": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Minimum 6 caractères",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "confirmPasswordPlaceholder": "Confirmez le nouveau mot de passe",
+      "changingPassword": "Modification en cours...",
+      "changePassword": "Modifier le mot de passe",
+      "advancedAccount": "Gestion avancée du compte",
+      "deleteTitle": "Supprimer mon compte",
+      "deleteDesc": "Cette action est irréversible. Toutes vos données seront définitivement supprimées : pronostics, participations aux tournois, trophées et statistiques. Si vous êtes capitaine d'un tournoi, le rôle sera automatiquement transféré à un autre joueur.",
+      "deletePermanent": "Supprimer définitivement mon compte",
+      "deleteConfirmPrompt": "Tapez <mono>{phrase}</mono> pour confirmer :",
+      "deleteConfirmPhrase": "SUPPRIMER MON COMPTE",
+      "deleteErrors": {
+        "generic": "Erreur lors de la suppression",
+        "connection": "Erreur de connexion au serveur"
+      },
+      "deleting": "Suppression en cours...",
+      "deleteConfirm": "Confirmer la suppression"
+    },
+    "passwordSuccess": {
+      "title": "Mot de passe modifié",
+      "message": "Votre mot de passe a été mis à jour avec succès.",
+      "button": "Compris"
+    }
+  },
+  "Pricing": {
+    "meta": {
+      "title": "Tarifs - PronoHub Football | Gratuit et Premium",
+      "description": "Découvrez les offres PronoHub : version gratuite ou Premium. Créez des tournois de pronostics football, invitez vos amis et débloquez des fonctionnalités exclusives.",
+      "ogDescription": "Découvrez les offres PronoHub : version gratuite ou Premium."
+    },
+    "backToHome": "Retour à l'accueil",
+    "defaultUsername": "Utilisateur",
+    "header": {
+      "title": "Choisissez votre stratégie",
+      "subtitle": "4-4-2 classique ou en losange ? Optez pour la formule qui vous convient."
+    },
+    "pricePerTournament": "Tarif par tournoi",
+    "pricePerParticipant": "Tarif par participant",
+    "from": "à partir de",
+    "extensionsAvailable": "Extensions disponibles",
+    "features": {
+      "freeTournaments2": "2 tournois actifs max",
+      "freeCompetition": "Compétition ponctuelle gratuite",
+      "matchdayLimit": "Limite à {count} journées",
+      "maxPlayers": "Max {count} joueurs",
+      "bonusSettings": "Paramétrage de bonus",
+      "oneActiveTournament": "1 tournoi actif",
+      "unlimitedDuration": "Durée illimitée",
+      "trophiesUnlock": "Déblocage de trophées",
+      "teamPlay": "Jeu en équipe",
+      "playersRange": "{min} à {max} joueurs",
+      "winnerPrize": "Lot pour le vainqueur",
+      "upTo300": "Jusqu'à 300 joueurs",
+      "tournamentBranding": "Branding du tournoi",
+      "adminTools": "Outils d'administration",
+      "prizeGallery": "Galerie des lots"
+    },
+    "extensions": {
+      "extendDuration": "Étendre la durée :",
+      "plus5Players": "+5 joueurs :",
+      "slotInvite": "Slot invite :"
+    },
+    "plans": {
+      "freeSubtitle": "Pour découvrir PronoHub",
+      "oneshotSubtitle": "Pour un tournoi complet",
+      "eliteSubtitle": "Pour les grands groupes",
+      "platiniumSubtitle": "Tournoi événementiel",
+      "corpoSubtitle": "Pour les entreprises",
+      "popular": "POPULAIRE"
+    },
+    "cta": {
+      "startFree": "Commencer gratuitement",
+      "buySlot": "Acheter un slot",
+      "backToDashboard": "Retour au dashboard",
+      "buy": "Acheter",
+      "buyElite": "Acheter Elite Team",
+      "launchPlatinium": "Lancer un Platinium",
+      "contactUs": "Nous contacter"
+    },
+    "faq": {
+      "title": "Questions fréquentes",
+      "q1": "Comment fonctionnent les tournois gratuits (Free-Kick) ?",
+      "a1": "Chaque utilisateur peut participer à 2 tournois gratuits maximum simultanément, limités à 10 journées et 5 joueurs. Besoin de plus ? Achetez un slot invité (0,99 €), étendez la durée (3,99 €) ou augmentez le nombre de joueurs (1,99 € pour +5 joueurs).",
+      "q2": "Comment fonctionnent One-Shot et Elite Team ?",
+      "a2": "Le créateur paie une fois (4,99 € ou 9,99 €) et peut inviter gratuitement jusqu'à 9 (One-Shot) ou 19 (Elite Team) joueurs. Chaque joueur ne peut être invité gratuitement que dans un seul tournoi premium à la fois.",
+      "q3": "Le paiement est-il sécurisé ?",
+      "a3": "Oui, tous les paiements sont gérés par Stripe, leader mondial du paiement en ligne. Nous ne stockons jamais vos informations bancaires.",
+      "q4": "Comment fonctionne le Platinium ?",
+      "a4": "Le créateur paie 6,99 € et chaque participant doit également payer 6,99 € pour rejoindre. Le tournoi démarre à partir de 11 joueurs inscrits et peut accueillir jusqu'à 30 participants. Le gagnant remporte un maillot officiel !",
+      "q5": "Qu'est-ce qu'une compétition ponctuelle offerte ?",
+      "a5": "Avec Free-Kick, vous bénéficiez d'un accès gratuit aux grandes compétitions comme l'Euro ou la Coupe du Monde, sans consommer de slot tournoi."
+    },
+    "stripeModal": {
+      "invalidPlan": "Type de plan invalide",
+      "paymentError": "Erreur lors du paiement",
+      "paymentErrorRetry": "Erreur lors du paiement. Veuillez réessayer.",
+      "title": "Paiement indisponible",
+      "devNote": "Le système de paiement n'est pas disponible en environnement de développement. Les paiements fonctionneront en production."
+    },
+    "platiniumModal": {
+      "title": "Lancer un tournoi Platinium",
+      "subtitle": "Choisissez votre formule",
+      "solo": {
+        "title": "1 place",
+        "subtitle": "Pour rejoindre ou créer",
+        "feat1": "Vous payez votre participation",
+        "feat2": "Autres participants : {price} € chacun",
+        "feat3": "Démarre à partir de {count} joueurs",
+        "note": "<b>Note :</b> Si moins de {count} participants, conversion en One-Shot + 2 slots invités.",
+        "pay": "Payer {price} €"
+      },
+      "group": {
+        "save": "ÉCONOMISEZ {amount} €",
+        "places": "{count} places",
+        "subtitle": "Vous + 10 invités",
+        "feat1": "Tournoi <b>garanti</b> de démarrer",
+        "feat2": "{count} places déjà payées",
+        "feat3": "{count} places supplémentaires à {price} €",
+        "feat4": "Remboursement entre amis possible",
+        "pay": "Payer {price} €"
+      },
+      "prize": "Le vainqueur remporte un maillot officiel offert par Le Bon Maillot"
+    }
+  },
+  "PublicTournament": {
+    "meta": {
+      "fallbackTitle": "Tournoi public | PronoHub",
+      "title": "{name} — tournoi de pronos public gratuit | PronoHub",
+      "description": "Rejoins « {name} » : un tournoi de pronostics ouvert à tous, gratuit. Grimpe au classement !"
+    },
+    "badge": "Tournoi public — ouvert à tous",
+    "intro": "Un tournoi de pronostics <b>gratuit</b>, que tu peux rejoindre <b>seul</b> — pas besoin d'amis pour commencer.",
+    "startDate": "🗓️ Début : <b>{date}</b>",
+    "playersCount": "👥 Déjà <b>{count}</b> joueurs",
+    "joinableInProgress": "Rejoignable même en cours",
+    "joinButton": "Rejoindre le tournoi",
+    "signupNote": "Inscription en 30 secondes, 100% gratuit.",
+    "liveRanking": "Le classement en direct",
+    "rankingAlt": "Classement de {name}",
+    "viewFullRanking": "Voir le classement complet →",
+    "free": "100% gratuit",
+    "joinAlone": "Rejoins seul, en 30 s",
+    "rankingTrophies": "Classement, trophées, chambrage",
+    "joinNamed": "Rejoindre {name}",
+    "ownTournament": "Envie de ton propre tournoi entre potes ? <link>C'est par ici</link>."
   }
 }

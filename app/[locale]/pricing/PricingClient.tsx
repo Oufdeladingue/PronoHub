@@ -6,6 +6,7 @@ import { Check, X, Loader2, Plus, AlertTriangle } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { openExternalUrl, isCapacitor } from '@/lib/capacitor'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
+import { useTranslations } from 'next-intl'
 
 interface PricingClientProps {
   isLoggedIn: boolean
@@ -54,6 +55,8 @@ const defaultPrices: Prices = {
 }
 
 export default function PricingClient({ isLoggedIn }: PricingClientProps) {
+  const t = useTranslations('Pricing')
+  const tc = useTranslations('Common')
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState<string | null>(null)
@@ -161,7 +164,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
 
       const purchaseType = purchaseTypeMap[planType]
       if (!purchaseType) {
-        alert('Type de plan invalide')
+        alert(t('stripeModal.invalidPlan'))
         return
       }
 
@@ -189,11 +192,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
         await openExternalUrl(data.url)
       } else {
         // Afficher l'erreur dans une modale conviviale
-        setStripeError(data.error || 'Erreur lors du paiement')
+        setStripeError(data.error || t('stripeModal.paymentError'))
       }
     } catch (error) {
       console.error('Checkout error:', error)
-      setStripeError('Erreur lors du paiement. Veuillez réessayer.')
+      setStripeError(t('stripeModal.paymentErrorRetry'))
     } finally {
       setLoading(null)
     }
@@ -206,10 +209,10 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
           {/* Header */}
           <div className="text-center mb-12 relative z-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Choisissez votre stratégie
+              {t('header.title')}
             </h1>
             <p className="text-xl theme-text-secondary max-w-2xl mx-auto">
-              4-4-2 classique ou en losange ? Optez pour la formule qui vous convient.
+              {t('header.subtitle')}
             </p>
           </div>
 
@@ -223,11 +226,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/free-tour.svg" alt="Free-Kick" className="w-6 h-6 icon-filter-blue" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-blue-400">Free-Kick</h3>
-                <p className="theme-text-secondary text-sm">Pour découvrir PronoHub</p>
+                <p className="theme-text-secondary text-sm">{t('plans.freeSubtitle')}</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">{t('pricePerTournament')}</span>
                 <div>
                   <span className="text-4xl font-bold">0</span>
                   <span className="theme-text-secondary ml-1">EUR</span>
@@ -235,28 +238,28 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
-                <PlanFeature included>2 tournois actifs max</PlanFeature>
-                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Limite à {prices.freeMaxMatchdays} journées</PlanFeature>
-                <PlanFeature included>Max {prices.freeMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Paramétrage de bonus</PlanFeature>
+                <PlanFeature included>{t('features.freeTournaments2')}</PlanFeature>
+                <PlanFeature included>{t('features.freeCompetition')}</PlanFeature>
+                <PlanFeature included>{t('features.matchdayLimit', { count: prices.freeMaxMatchdays })}</PlanFeature>
+                <PlanFeature included>{t('features.maxPlayers', { count: prices.freeMaxPlayers })}</PlanFeature>
+                <PlanFeature included>{t('features.bonusSettings')}</PlanFeature>
               </ul>
 
               {/* Extensions */}
               <div className="border-t theme-border pt-4 mb-6">
-                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">{t('extensionsAvailable')}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
-                    <span>Étendre la durée : <span className="text-blue-400 font-medium">{prices.durationExtension.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>{t('extensions.extendDuration')} <span className="text-blue-400 font-medium">{prices.durationExtension.toFixed(2).replace('.', ',')} EUR</span></span>
                   </div>
                   <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
-                    <span>+5 joueurs : <span className="text-blue-400 font-medium">{prices.playerExtension.toFixed(2).replace('.', ',')} EUR</span></span>
+                    <span>{t('extensions.plus5Players')} <span className="text-blue-400 font-medium">{prices.playerExtension.toFixed(2).replace('.', ',')} EUR</span></span>
                   </div>
                   <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-blue-400" />
-                    <span>Slot invite : <button
+                    <span>{t('extensions.slotInvite')} <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleCheckout('slot_invite')
@@ -276,7 +279,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   onClick={() => router.push('/auth/signup')}
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
                 >
-                  Commencer gratuitement
+                  {t('cta.startFree')}
                 </button>
               ) : userQuotas && userQuotas.free_tournaments_active >= userQuotas.free_tournaments_max ? (
                 <button
@@ -287,7 +290,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   {loading === 'slot_invite' ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    'Acheter un slot'
+                    t('cta.buySlot')
                   )}
                 </button>
               ) : (
@@ -295,7 +298,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   onClick={() => router.push('/dashboard')}
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
                 >
-                  Retour au dashboard
+                  {t('cta.backToDashboard')}
                 </button>
               )}
             </div>
@@ -307,11 +310,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/on-shot-tour.svg" alt="One-Shot" className="w-6 h-6 icon-filter-green" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-green-400">One-Shot</h3>
-                <p className="theme-text-secondary text-sm">Pour un tournoi complet</p>
+                <p className="theme-text-secondary text-sm">{t('plans.oneshotSubtitle')}</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">{t('pricePerTournament')}</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.oneshot.toFixed(2).replace('.', ',')}</span>
                   <span className="theme-text-secondary ml-1">EUR</span>
@@ -319,21 +322,21 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
-                <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Durée illimitée</PlanFeature>
-                <PlanFeature included>Max {prices.oneshotMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Déblocage de trophées</PlanFeature>
-                <PlanFeature included>Paramétrage de bonus</PlanFeature>
+                <PlanFeature included>{t('features.oneActiveTournament')}</PlanFeature>
+                <PlanFeature included>{t('features.freeCompetition')}</PlanFeature>
+                <PlanFeature included>{t('features.unlimitedDuration')}</PlanFeature>
+                <PlanFeature included>{t('features.maxPlayers', { count: prices.oneshotMaxPlayers })}</PlanFeature>
+                <PlanFeature included>{t('features.trophiesUnlock')}</PlanFeature>
+                <PlanFeature included>{t('features.bonusSettings')}</PlanFeature>
               </ul>
 
               {/* Extensions */}
               <div className="border-t theme-border pt-4 mb-6">
-                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">{t('extensionsAvailable')}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-green-400" />
-                    <span>Slot invite : <button
+                    <span>{t('extensions.slotInvite')} <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleCheckout('slot_invite')
@@ -355,7 +358,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 {loading === 'oneshot-premium' ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  'Acheter'
+                  t('cta.buy')
                 )}
               </button>
             </div>
@@ -364,7 +367,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
             <div className="bg-gradient-to-b from-orange-500/20 to-transparent rounded-2xl p-6 border-2 border-orange-500 flex flex-col relative">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  POPULAIRE
+                  {t('plans.popular')}
                 </span>
               </div>
 
@@ -373,11 +376,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/team-elite-tour.svg" alt="Elite Team" className="w-6 h-6 icon-filter-orange" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-orange-400">Elite Team</h3>
-                <p className="theme-text-secondary text-sm">Pour les grands groupes</p>
+                <p className="theme-text-secondary text-sm">{t('plans.eliteSubtitle')}</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm theme-text-secondary">Tarif par tournoi</span>
+                <span className="text-sm theme-text-secondary">{t('pricePerTournament')}</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.elite.toFixed(2).replace('.', ',')}</span>
                   <span className="theme-text-secondary ml-1">EUR</span>
@@ -385,22 +388,22 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
-                <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Durée illimitée</PlanFeature>
-                <PlanFeature included>Max {prices.eliteMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Déblocage de trophées</PlanFeature>
-                <PlanFeature included>Paramétrage de bonus</PlanFeature>
-                <PlanFeature included>Jeu en équipe</PlanFeature>
+                <PlanFeature included>{t('features.oneActiveTournament')}</PlanFeature>
+                <PlanFeature included>{t('features.freeCompetition')}</PlanFeature>
+                <PlanFeature included>{t('features.unlimitedDuration')}</PlanFeature>
+                <PlanFeature included>{t('features.maxPlayers', { count: prices.eliteMaxPlayers })}</PlanFeature>
+                <PlanFeature included>{t('features.trophiesUnlock')}</PlanFeature>
+                <PlanFeature included>{t('features.bonusSettings')}</PlanFeature>
+                <PlanFeature included>{t('features.teamPlay')}</PlanFeature>
               </ul>
 
               {/* Extensions */}
               <div className="border-t theme-border pt-4 mb-6">
-                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">Extensions disponibles</p>
+                <p className="text-xs theme-text-secondary uppercase mb-3 font-medium">{t('extensionsAvailable')}</p>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 theme-text-secondary">
                     <Plus className="w-4 h-4 text-orange-400" />
-                    <span>Slot invite : <button
+                    <span>{t('extensions.slotInvite')} <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleCheckout('slot_invite')
@@ -422,7 +425,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 {loading === 'elite-team' ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  'Acheter Elite Team'
+                  t('cta.buyElite')
                 )}
               </button>
             </div>
@@ -434,11 +437,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-6 h-6 icon-filter-yellow" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-yellow-400">Platinium</h3>
-                <p className="theme-text-secondary text-sm">Tournoi événementiel</p>
+                <p className="theme-text-secondary text-sm">{t('plans.platiniumSubtitle')}</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm theme-text-secondary">Tarif par participant</span>
+                <span className="text-sm theme-text-secondary">{t('pricePerParticipant')}</span>
                 <div>
                   <span className="text-4xl font-bold">{prices.platinium.toFixed(2).replace('.', ',')}</span>
                   <span className="theme-text-secondary ml-1">EUR</span>
@@ -446,14 +449,14 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
-                <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Durée illimitée</PlanFeature>
-                <PlanFeature included>{prices.platiniumMinPlayers} à {prices.platiniumMaxPlayers} joueurs</PlanFeature>
-                <PlanFeature included>Déblocage de trophées</PlanFeature>
-                <PlanFeature included>Paramétrage de bonus</PlanFeature>
-                <PlanFeature included>Jeu en équipe</PlanFeature>
-                <PlanFeature included>Lot pour le vainqueur</PlanFeature>
+                <PlanFeature included>{t('features.oneActiveTournament')}</PlanFeature>
+                <PlanFeature included>{t('features.freeCompetition')}</PlanFeature>
+                <PlanFeature included>{t('features.unlimitedDuration')}</PlanFeature>
+                <PlanFeature included>{t('features.playersRange', { min: prices.platiniumMinPlayers, max: prices.platiniumMaxPlayers })}</PlanFeature>
+                <PlanFeature included>{t('features.trophiesUnlock')}</PlanFeature>
+                <PlanFeature included>{t('features.bonusSettings')}</PlanFeature>
+                <PlanFeature included>{t('features.teamPlay')}</PlanFeature>
+                <PlanFeature included>{t('features.winnerPrize')}</PlanFeature>
                 <li className="flex items-center justify-center mt-2">
                   <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-10" />
                 </li>
@@ -469,7 +472,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 }}
                 className="w-full py-3 px-4 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
-                Lancer un Platinium
+                {t('cta.launchPlatinium')}
               </button>
             </div>
 
@@ -480,11 +483,11 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                   <img src="/images/icons/company-tour.svg" alt="Corpo" className="w-6 h-6 icon-filter-purple" />
                 </div>
                 <h3 className="text-xl font-bold mb-2 text-purple-400">Corpo</h3>
-                <p className="theme-text-secondary text-sm">Pour les entreprises</p>
+                <p className="theme-text-secondary text-sm">{t('plans.corpoSubtitle')}</p>
               </div>
 
               <div className="mb-6 text-center h-16 flex flex-col justify-center">
-                <span className="text-sm theme-text-secondary">à partir de</span>
+                <span className="text-sm theme-text-secondary">{t('from')}</span>
                 <div>
                   <span className="text-4xl font-bold">99</span>
                   <span className="theme-text-secondary ml-1">EUR</span>
@@ -492,50 +495,50 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               </div>
 
               <ul className="space-y-3 mb-6 flex-grow">
-                <PlanFeature included>1 tournoi actif</PlanFeature>
-                <PlanFeature included>Compétition ponctuelle gratuite</PlanFeature>
-                <PlanFeature included>Durée illimitée</PlanFeature>
-                <PlanFeature included>Jusqu'à 300 joueurs</PlanFeature>
-                <PlanFeature included>Déblocage de trophées</PlanFeature>
-                <PlanFeature included>Paramétrage de bonus</PlanFeature>
-                <PlanFeature included>Jeu en équipe</PlanFeature>
-                <PlanFeature included>Branding du tournoi</PlanFeature>
-                <PlanFeature included>Outils d'administration</PlanFeature>
-                <PlanFeature included>Galerie des lots</PlanFeature>
+                <PlanFeature included>{t('features.oneActiveTournament')}</PlanFeature>
+                <PlanFeature included>{t('features.freeCompetition')}</PlanFeature>
+                <PlanFeature included>{t('features.unlimitedDuration')}</PlanFeature>
+                <PlanFeature included>{t('features.upTo300')}</PlanFeature>
+                <PlanFeature included>{t('features.trophiesUnlock')}</PlanFeature>
+                <PlanFeature included>{t('features.bonusSettings')}</PlanFeature>
+                <PlanFeature included>{t('features.teamPlay')}</PlanFeature>
+                <PlanFeature included>{t('features.tournamentBranding')}</PlanFeature>
+                <PlanFeature included>{t('features.adminTools')}</PlanFeature>
+                <PlanFeature included>{t('features.prizeGallery')}</PlanFeature>
               </ul>
 
               <button
                 onClick={() => router.push('/contact?type=enterprise')}
                 className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium transition-colors"
               >
-                Nous contacter
+                {t('cta.contactUs')}
               </button>
             </div>
           </div>
 
           {/* FAQ */}
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-center mb-8">Questions fréquentes</h2>
+            <h2 className="text-2xl font-bold text-center mb-8">{t('faq.title')}</h2>
             <div className="space-y-4">
               <FaqItem
-                question="Comment fonctionnent les tournois gratuits (Free-Kick) ?"
-                answer="Chaque utilisateur peut participer à 2 tournois gratuits maximum simultanément, limités à 10 journées et 5 joueurs. Besoin de plus ? Achetez un slot invité (0,99 €), étendez la durée (3,99 €) ou augmentez le nombre de joueurs (1,99 € pour +5 joueurs)."
+                question={t('faq.q1')}
+                answer={t('faq.a1')}
               />
               <FaqItem
-                question="Comment fonctionnent One-Shot et Elite Team ?"
-                answer="Le créateur paie une fois (4,99 € ou 9,99 €) et peut inviter gratuitement jusqu'à 9 (One-Shot) ou 19 (Elite Team) joueurs. Chaque joueur ne peut être invité gratuitement que dans un seul tournoi premium à la fois."
+                question={t('faq.q2')}
+                answer={t('faq.a2')}
               />
               <FaqItem
-                question="Le paiement est-il sécurisé ?"
-                answer="Oui, tous les paiements sont gérés par Stripe, leader mondial du paiement en ligne. Nous ne stockons jamais vos informations bancaires."
+                question={t('faq.q3')}
+                answer={t('faq.a3')}
               />
               <FaqItem
-                question="Comment fonctionne le Platinium ?"
-                answer="Le créateur paie 6,99 € et chaque participant doit également payer 6,99 € pour rejoindre. Le tournoi démarre à partir de 11 joueurs inscrits et peut accueillir jusqu'à 30 participants. Le gagnant remporte un maillot officiel !"
+                question={t('faq.q4')}
+                answer={t('faq.a4')}
               />
               <FaqItem
-                question="Qu'est-ce qu'une compétition ponctuelle offerte ?"
-                answer="Avec Free-Kick, vous bénéficiez d'un accès gratuit aux grandes compétitions comme l'Euro ou la Coupe du Monde, sans consommer de slot tournoi."
+                question={t('faq.q5')}
+                answer={t('faq.a5')}
               />
             </div>
           </div>
@@ -551,22 +554,21 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-500" />
                 </div>
-                <h2 className="text-xl font-bold text-red-400">Paiement indisponible</h2>
+                <h2 className="text-xl font-bold text-red-400">{t('stripeModal.title')}</h2>
               </div>
             </div>
             <div className="p-6 space-y-4">
               <p className="theme-text-secondary">{stripeError}</p>
               {stripeError.includes('configure') && (
                 <p className="text-sm theme-text-secondary">
-                  Le système de paiement n&apos;est pas disponible en environnement de développement.
-                  Les paiements fonctionneront en production.
+                  {t('stripeModal.devNote')}
                 </p>
               )}
               <button
                 onClick={() => setStripeError(null)}
                 className="w-full py-3 px-4 bg-gray-500 hover:bg-gray-400 rounded-lg font-medium transition-colors"
               >
-                Fermer
+                {tc('close')}
               </button>
             </div>
           </div>
@@ -585,8 +587,8 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                     <img src="/images/icons/premium-tour.svg" alt="Platinium" className="w-5 h-5 icon-filter-yellow" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-yellow-400">Lancer un tournoi Platinium</h2>
-                    <p className="text-xs theme-text-secondary">Choisissez votre formule</p>
+                    <h2 className="text-xl font-bold text-yellow-400">{t('platiniumModal.title')}</h2>
+                    <p className="text-xs theme-text-secondary">{t('platiniumModal.subtitle')}</p>
                   </div>
                 </div>
                 <button
@@ -605,28 +607,28 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="bg-(--card-bg) rounded-xl p-4 border border-(--border-color) hover:border-yellow-500/50 transition-colors flex flex-col">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-lg font-semibold theme-text">1 place</h3>
-                      <p className="text-xs theme-text-secondary">Pour rejoindre ou créer</p>
+                      <h3 className="text-lg font-semibold theme-text">{t('platiniumModal.solo.title')}</h3>
+                      <p className="text-xs theme-text-secondary">{t('platiniumModal.solo.subtitle')}</p>
                     </div>
                     <p className="text-2xl font-bold text-yellow-400">{prices.platinium.toFixed(2).replace('.', ',')} <span className="text-sm font-normal theme-text-secondary">€</span></p>
                   </div>
                   <ul className="space-y-1.5 mb-3 text-sm theme-text-secondary flex-grow">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Vous payez votre participation</span>
+                      <span>{t('platiniumModal.solo.feat1')}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Autres participants : {prices.platinium.toFixed(2).replace('.', ',')} € chacun</span>
+                      <span>{t('platiniumModal.solo.feat2', { price: prices.platinium.toFixed(2).replace('.', ',') })}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Démarre à partir de {prices.platiniumMinPlayers} joueurs</span>
+                      <span>{t('platiniumModal.solo.feat3', { count: prices.platiniumMinPlayers })}</span>
                     </li>
                   </ul>
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 mb-3">
                     <p className="text-xs text-orange-300">
-                      <strong>Note :</strong> Si moins de {prices.platiniumMinPlayers} participants, conversion en One-Shot + 2 slots invités.
+                      {t.rich('platiniumModal.solo.note', { b: (c) => <strong>{c}</strong>, count: prices.platiniumMinPlayers })}
                     </p>
                   </div>
                   <button
@@ -640,7 +642,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                     {loading === 'platinium_solo' ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                      `Payer ${prices.platinium.toFixed(2).replace('.', ',')} €`
+                      t('platiniumModal.solo.pay', { price: prices.platinium.toFixed(2).replace('.', ',') })
                     )}
                   </button>
                 </div>
@@ -649,32 +651,32 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                 <div className="bg-(--card-bg) rounded-xl p-4 border-2 border-yellow-500/50 hover:border-yellow-500 transition-colors relative flex flex-col">
                   <div className="absolute -top-2.5 left-4">
                     <span className="bg-yellow-500 text-black text-[10px] font-bold px-2.5 py-0.5 rounded-full">
-                      ÉCONOMISEZ {(prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',')} €
+                      {t('platiniumModal.group.save', { amount: (prices.platinium * prices.platiniumGroupSize - prices.platiniumGroup).toFixed(2).replace('.', ',') })}
                     </span>
                   </div>
                   <div className="flex items-start justify-between mb-3 mt-1">
                     <div>
-                      <h3 className="text-lg font-semibold theme-text">{prices.platiniumGroupSize} places</h3>
-                      <p className="text-xs theme-text-secondary">Vous + 10 invités</p>
+                      <h3 className="text-lg font-semibold theme-text">{t('platiniumModal.group.places', { count: prices.platiniumGroupSize })}</h3>
+                      <p className="text-xs theme-text-secondary">{t('platiniumModal.group.subtitle')}</p>
                     </div>
                     <p className="text-2xl font-bold text-yellow-400">{prices.platiniumGroup.toFixed(2).replace('.', ',')} <span className="text-sm font-normal theme-text-secondary">€</span></p>
                   </div>
                   <ul className="space-y-1.5 mb-3 text-sm theme-text-secondary flex-grow">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Tournoi <strong>garanti</strong> de démarrer</span>
+                      <span>{t.rich('platiniumModal.group.feat1', { b: (c) => <strong>{c}</strong> })}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{prices.platiniumGroupSize} places déjà payées</span>
+                      <span>{t('platiniumModal.group.feat2', { count: prices.platiniumGroupSize })}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{prices.platiniumMaxPlayers - prices.platiniumGroupSize} places supplémentaires à {prices.platinium.toFixed(2).replace('.', ',')} €</span>
+                      <span>{t('platiniumModal.group.feat3', { count: prices.platiniumMaxPlayers - prices.platiniumGroupSize, price: prices.platinium.toFixed(2).replace('.', ',') })}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Remboursement entre amis possible</span>
+                      <span>{t('platiniumModal.group.feat4')}</span>
                     </li>
                   </ul>
                   <button
@@ -688,7 +690,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
                     {loading === 'platinium_group' ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                      `Payer ${prices.platiniumGroup.toFixed(2).replace('.', ',')} €`
+                      t('platiniumModal.group.pay', { price: prices.platiniumGroup.toFixed(2).replace('.', ',') })
                     )}
                   </button>
                 </div>
@@ -698,7 +700,7 @@ export default function PricingClient({ isLoggedIn }: PricingClientProps) {
               <div className="flex items-center justify-center gap-3 p-3 mt-4 border border-yellow-500/30 rounded-lg bg-yellow-500/5">
                 <img src="/images/le-bon-maillot.svg" alt="Le Bon Maillot" className="h-8" />
                 <p className="text-sm text-yellow-400 font-medium">
-                  Le vainqueur remporte un maillot officiel offert par Le Bon Maillot
+                  {t('platiniumModal.prize')}
                 </p>
               </div>
             </div>

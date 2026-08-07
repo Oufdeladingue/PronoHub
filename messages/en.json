@@ -1229,5 +1229,326 @@
     "plus5Seats": "+5 seats per extension",
     "buyCredits": "Buy credits",
     "extensionsNote": "Tournament extensions are available from each tournament's page"
+  },
+  "Profile": {
+    "header": {
+      "title": "Tech Sheet",
+      "greeting": "Hi, {username}!",
+      "home": "Home",
+      "leaveTitle": "Leave the pitch",
+      "leave": "Leave",
+      "menu": "Menu"
+    },
+    "loading": "Loading...",
+    "tabs": {
+      "profil": "Profile",
+      "stats": "Stats",
+      "trophees": "Trophies",
+      "securite": "Security",
+      "abonnement": "VIP Zone"
+    },
+    "messages": {
+      "usernameTaken": "This username is already taken",
+      "saveError": "Error while saving",
+      "saveSuccess": "Profile updated successfully"
+    },
+    "profil": {
+      "avatarSelectedAlt": "Selected avatar",
+      "usernamePlaceholder": "Your username",
+      "usernameLocked": "The username cannot be changed",
+      "usernameChangeOnce": "You can change your username only once",
+      "chooseAvatar": "Choose your avatar:",
+      "avatarAlt": "Avatar {id}",
+      "moreChoices": "More choices",
+      "trophyAvatars": "Unlocked trophy avatars:",
+      "defaultTheme": "Default theme",
+      "saving": "Saving...",
+      "save": "Save",
+      "back": "Back"
+    },
+    "stats": {
+      "loading": "Loading statistics...",
+      "myTournaments": "My tournaments",
+      "totalTournaments": "Total tournaments",
+      "inProgress": "In progress",
+      "finished": "Finished",
+      "myPredictions": "My predictions",
+      "correctResults": "Correct results",
+      "onMatches": "Out of {count} matches",
+      "exactScores": "Exact scores",
+      "notFilled": "Not filled in",
+      "defaultPredictions": "Default predictions",
+      "noFinishedMatch": "No finished predicted match yet",
+      "myPerformances": "My performances",
+      "finalWins": "{count, plural, one {Final win} other {Final wins}}",
+      "noFinishedTournament": "No finished tournament",
+      "provisionalFirsts": "{count, plural, one {Provisional first place} other {Provisional first places}}",
+      "noProvisionalFirst": "No provisional first place"
+    },
+    "trophies": {
+      "checking": "Checking for new trophies...",
+      "refreshMessage": "{count, plural, one {# new trophy unlocked!} other {# new trophies unlocked!}}",
+      "loading": "Loading trophies...",
+      "emptyTitle": "No trophy unlocked yet",
+      "emptySubtitle": "Keep predicting to unlock your first trophies!",
+      "unlockedTitle": "My unlocked trophies",
+      "newBadge": "NEW",
+      "unlockedOn": "Unlocked on {date}",
+      "toUnlockTitle": "Trophies to unlock",
+      "default": "Trophy",
+      "types": {
+        "king_of_day": {
+          "name": "The King of Day",
+          "desc": "First in the standings of a tournament matchday"
+        },
+        "correct_result": {
+          "name": "The Lucky One",
+          "desc": "At least one correct result predicted"
+        },
+        "exact_score": {
+          "name": "The Analyst",
+          "desc": "At least one exact score predicted"
+        },
+        "tournament_winner": {
+          "name": "The Ballon d'Or",
+          "desc": "First in the final standings of a tournament"
+        },
+        "double_king": {
+          "name": "The Double King",
+          "desc": "First in the standings on two consecutive matchdays"
+        },
+        "opportunist": {
+          "name": "The Opportunist",
+          "desc": "Two correct results on the same matchday"
+        },
+        "nostradamus": {
+          "name": "The Nostradamus",
+          "desc": "Two exact scores on the same matchday"
+        },
+        "bonus_profiteer": {
+          "name": "The Profiteer",
+          "desc": "A correct result on a Bonus match"
+        },
+        "bonus_optimizer": {
+          "name": "The Optimizer",
+          "desc": "An exact score on a Bonus match"
+        },
+        "ultra_dominator": {
+          "name": "The Ultra-Dominator",
+          "desc": "First on every matchday of a tournament"
+        },
+        "lantern": {
+          "name": "The Red Lantern",
+          "desc": "Last in the standings of a tournament matchday"
+        },
+        "downward_spiral": {
+          "name": "The Downward Spiral",
+          "desc": "Last two matchdays in a row in the same tournament"
+        },
+        "abyssal": {
+          "name": "The Abyssal",
+          "desc": "Last in the final standings of a tournament"
+        },
+        "poulidor": {
+          "name": "The Poulidor",
+          "desc": "No first place across all matchdays of a tournament"
+        },
+        "cursed": {
+          "name": "The Cursed",
+          "desc": "No correct result on a tournament matchday"
+        },
+        "legend": {
+          "name": "The Legend",
+          "desc": "Winner of a tournament with more than 10 participants"
+        }
+      }
+    },
+    "security": {
+      "errors": {
+        "allFieldsRequired": "All fields are required",
+        "passwordRules": "The password must contain at least 8 characters, one uppercase letter, one lowercase letter and one number",
+        "passwordsMismatch": "The passwords do not match",
+        "userNotFound": "Error: user not found",
+        "currentPasswordWrong": "Current password is incorrect",
+        "updateError": "Error while updating the password",
+        "changeError": "Error while changing the password"
+      },
+      "emailSection": "Email address",
+      "emailLabel": "Email",
+      "emailLocked": "The email cannot be changed",
+      "notifSection": "Notification preferences",
+      "notifIntroPush": "Choose which mobile notifications you want to receive",
+      "notifIntroEmail": "Choose which emails you want to receive",
+      "notifs": {
+        "reminderTitle": "Prediction reminder",
+        "reminderDesc": "Get a reminder 4h before matches start if you haven't predicted",
+        "startedTitle": "Tournament kickoff",
+        "startedDesc": "Confirmation when the captain launches the tournament",
+        "dayRecapTitle": "Matchday recap",
+        "dayRecapDesc": "Get a summary at the end of each matchday (standings, stats)",
+        "endTitle": "End-of-tournament recap",
+        "endDesc": "Get a summary at the end of the tournament (final standings, statistics)",
+        "inviteTitle": "Tournament invitation",
+        "inviteDesc": "Get an email when someone invites you to join a tournament",
+        "playerJoinedTitle": "New player in my tournament",
+        "playerJoinedDesc": "Get an email when a player joins a tournament you captain",
+        "mentionTitle": "Mention in a discussion",
+        "mentionDesc": "Get a notification when someone mentions you (@user) in a tournament discussion",
+        "badgeTitle": "New badge unlocked",
+        "badgeDesc": "Get a notification when you unlock a new badge or trophy",
+        "newMatchesTitle": "New matches",
+        "newMatchesDesc": "Get a notification when new matches are added to a tournament you take part in"
+      },
+      "savingNotif": "Saving...",
+      "notifSaved": "Preference saved",
+      "changePasswordSection": "Change password",
+      "currentPassword": "Current password",
+      "currentPasswordPlaceholder": "Enter your current password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmPassword": "Confirm the new password",
+      "confirmPasswordPlaceholder": "Confirm the new password",
+      "changingPassword": "Changing...",
+      "changePassword": "Change password",
+      "advancedAccount": "Advanced account management",
+      "deleteTitle": "Delete my account",
+      "deleteDesc": "This action is irreversible. All your data will be permanently deleted: predictions, tournament participations, trophies and statistics. If you are the captain of a tournament, the role will be automatically transferred to another player.",
+      "deletePermanent": "Permanently delete my account",
+      "deleteConfirmPrompt": "Type <mono>{phrase}</mono> to confirm:",
+      "deleteConfirmPhrase": "DELETE MY ACCOUNT",
+      "deleteErrors": {
+        "generic": "Error while deleting",
+        "connection": "Server connection error"
+      },
+      "deleting": "Deleting...",
+      "deleteConfirm": "Confirm deletion"
+    },
+    "passwordSuccess": {
+      "title": "Password changed",
+      "message": "Your password has been updated successfully.",
+      "button": "Got it"
+    }
+  },
+  "Pricing": {
+    "meta": {
+      "title": "Pricing - PronoHub Football | Free and Premium",
+      "description": "Discover PronoHub's plans: free or Premium version. Create football prediction tournaments, invite your friends and unlock exclusive features.",
+      "ogDescription": "Discover PronoHub's plans: free or Premium version."
+    },
+    "backToHome": "Back to home",
+    "defaultUsername": "User",
+    "header": {
+      "title": "Choose your strategy",
+      "subtitle": "Classic 4-4-2 or diamond? Pick the plan that suits you."
+    },
+    "pricePerTournament": "Price per tournament",
+    "pricePerParticipant": "Price per participant",
+    "from": "from",
+    "extensionsAvailable": "Available extensions",
+    "features": {
+      "freeTournaments2": "Up to 2 active tournaments",
+      "freeCompetition": "Free one-off competition",
+      "matchdayLimit": "Limited to {count} matchdays",
+      "maxPlayers": "Up to {count} players",
+      "bonusSettings": "Bonus settings",
+      "oneActiveTournament": "1 active tournament",
+      "unlimitedDuration": "Unlimited duration",
+      "trophiesUnlock": "Trophy unlocking",
+      "teamPlay": "Team play",
+      "playersRange": "{min} to {max} players",
+      "winnerPrize": "Prize for the winner",
+      "upTo300": "Up to 300 players",
+      "tournamentBranding": "Tournament branding",
+      "adminTools": "Admin tools",
+      "prizeGallery": "Prize gallery"
+    },
+    "extensions": {
+      "extendDuration": "Extend the duration:",
+      "plus5Players": "+5 players:",
+      "slotInvite": "Invite slot:"
+    },
+    "plans": {
+      "freeSubtitle": "To discover PronoHub",
+      "oneshotSubtitle": "For a full tournament",
+      "eliteSubtitle": "For large groups",
+      "platiniumSubtitle": "Event tournament",
+      "corpoSubtitle": "For companies",
+      "popular": "POPULAR"
+    },
+    "cta": {
+      "startFree": "Start for free",
+      "buySlot": "Buy a slot",
+      "backToDashboard": "Back to dashboard",
+      "buy": "Buy",
+      "buyElite": "Buy Elite Team",
+      "launchPlatinium": "Launch a Platinium",
+      "contactUs": "Contact us"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "q1": "How do the free tournaments (Free-Kick) work?",
+      "a1": "Each user can take part in up to 2 free tournaments at the same time, limited to 10 matchdays and 5 players. Need more? Buy an invite slot (0,99 €), extend the duration (3,99 €) or increase the number of players (1,99 € for +5 players).",
+      "q2": "How do One-Shot and Elite Team work?",
+      "a2": "The creator pays once (4,99 € or 9,99 €) and can invite up to 9 (One-Shot) or 19 (Elite Team) players for free. Each player can only be invited for free to a single premium tournament at a time.",
+      "q3": "Is payment secure?",
+      "a3": "Yes, all payments are handled by Stripe, the global leader in online payments. We never store your banking information.",
+      "q4": "How does Platinium work?",
+      "a4": "The creator pays 6,99 € and each participant must also pay 6,99 € to join. The tournament starts from 11 registered players and can host up to 30 participants. The winner takes home an official jersey!",
+      "q5": "What is a free one-off competition?",
+      "a5": "With Free-Kick, you get free access to major competitions like the Euro or the World Cup, without using a tournament slot."
+    },
+    "stripeModal": {
+      "invalidPlan": "Invalid plan type",
+      "paymentError": "Payment error",
+      "paymentErrorRetry": "Payment error. Please try again.",
+      "title": "Payment unavailable",
+      "devNote": "The payment system is not available in the development environment. Payments will work in production."
+    },
+    "platiniumModal": {
+      "title": "Launch a Platinium tournament",
+      "subtitle": "Choose your plan",
+      "solo": {
+        "title": "1 spot",
+        "subtitle": "To join or create",
+        "feat1": "You pay for your participation",
+        "feat2": "Other participants: {price} € each",
+        "feat3": "Starts from {count} players",
+        "note": "<b>Note:</b> If fewer than {count} participants, converts to One-Shot + 2 invite slots.",
+        "pay": "Pay {price} €"
+      },
+      "group": {
+        "save": "SAVE {amount} €",
+        "places": "{count} spots",
+        "subtitle": "You + 10 guests",
+        "feat1": "Tournament <b>guaranteed</b> to start",
+        "feat2": "{count} spots already paid",
+        "feat3": "{count} extra spots at {price} €",
+        "feat4": "Reimbursement between friends possible",
+        "pay": "Pay {price} €"
+      },
+      "prize": "The winner takes home an official jersey offered by Le Bon Maillot"
+    }
+  },
+  "PublicTournament": {
+    "meta": {
+      "fallbackTitle": "Public tournament | PronoHub",
+      "title": "{name} — free public prediction tournament | PronoHub",
+      "description": "Join \"{name}\": a prediction tournament open to everyone, free. Climb the leaderboard!"
+    },
+    "badge": "Public tournament — open to everyone",
+    "intro": "A <b>free</b> prediction tournament that you can join <b>on your own</b> — no friends needed to get started.",
+    "startDate": "🗓️ Start: <b>{date}</b>",
+    "playersCount": "👥 Already <b>{count}</b> players",
+    "joinableInProgress": "Joinable even mid-competition",
+    "joinButton": "Join the tournament",
+    "signupNote": "Sign up in 30 seconds, 100% free.",
+    "liveRanking": "The live leaderboard",
+    "rankingAlt": "Leaderboard of {name}",
+    "viewFullRanking": "See the full leaderboard →",
+    "free": "100% free",
+    "joinAlone": "Join alone, in 30s",
+    "rankingTrophies": "Leaderboard, trophies, banter",
+    "joinNamed": "Join {name}",
+    "ownTournament": "Want your own tournament with your mates? <link>This way</link>."
   }
 }

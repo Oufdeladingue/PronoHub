@@ -14,6 +14,7 @@ import UserQuotasCard from '@/components/UserQuotasCard'
 import Footer from '@/components/Footer'
 import { useUser } from '@/contexts/UserContext'
 import { isCapacitor } from '@/lib/capacitor'
+import { useTranslations, useLocale } from 'next-intl'
 import LogoutButton from '@/components/LogoutButton'
 import TrophyCelebrationModal from '@/components/TrophyCelebrationModal'
 import LockedBadgeModal from '@/components/LockedBadgeModal'
@@ -120,6 +121,9 @@ function SemiCircleGauge({
 }
 
 function ProfileContent() {
+  const t = useTranslations('Profile')
+  const tc = useTranslations('Common')
+  const locale = useLocale()
   const { refreshUserData } = useUser()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
@@ -138,6 +142,7 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'success' | 'error'>('error')
   const [securityMessage, setSecurityMessage] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -298,7 +303,8 @@ function ProfileContent() {
         .limit(1)
 
       if (existing && existing.length > 0) {
-        setMessage('Ce pseudo est déjà pris')
+        setMessage(t('messages.usernameTaken'))
+        setMessageType('error')
         setSaving(false)
         return
       }
@@ -322,12 +328,14 @@ function ProfileContent() {
 
     if (error) {
       if (error.code === '23505') {
-        setMessage('Ce pseudo est déjà pris')
+        setMessage(t('messages.usernameTaken'))
       } else {
-        setMessage('Erreur lors de la sauvegarde')
+        setMessage(t('messages.saveError'))
       }
+      setMessageType('error')
     } else {
-      setMessage('Profil mis à jour avec succès')
+      setMessage(t('messages.saveSuccess'))
+      setMessageType('success')
       setInitialUsername(username)
       if (usernameChanged && !hasChosenUsername) {
         setHasChosenUsername(true)
@@ -385,7 +393,7 @@ function ProfileContent() {
 
     // Validations
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setSecurityMessage('Tous les champs sont requis')
+      setSecurityMessage(t('security.errors.allFieldsRequired'))
       setChangingPassword(false)
       return
     }
@@ -395,13 +403,13 @@ function ProfileContent() {
     const hasLowerCase = /[a-z]/.test(newPassword)
     const hasNumber = /\d/.test(newPassword)
     if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasNumber) {
-      setSecurityMessage('Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre')
+      setSecurityMessage(t('security.errors.passwordRules'))
       setChangingPassword(false)
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setSecurityMessage('Les mots de passe ne correspondent pas')
+      setSecurityMessage(t('security.errors.passwordsMismatch'))
       setChangingPassword(false)
       return
     }
@@ -410,7 +418,7 @@ function ProfileContent() {
       // Vérifier le mot de passe actuel en tentant de se connecter
       const { data: { user } } = await supabase.auth.getUser()
       if (!user?.email) {
-        setSecurityMessage('Erreur : utilisateur non trouvé')
+        setSecurityMessage(t('security.errors.userNotFound'))
         setChangingPassword(false)
         return
       }
@@ -421,7 +429,7 @@ function ProfileContent() {
       })
 
       if (signInError) {
-        setSecurityMessage('Mot de passe actuel incorrect')
+        setSecurityMessage(t('security.errors.currentPasswordWrong'))
         setChangingPassword(false)
         return
       }
@@ -432,7 +440,7 @@ function ProfileContent() {
       })
 
       if (updateError) {
-        setSecurityMessage('Erreur lors de la mise à jour du mot de passe')
+        setSecurityMessage(t('security.errors.updateError'))
       } else {
         setSecurityMessage('')
         setCurrentPassword('')
@@ -441,14 +449,14 @@ function ProfileContent() {
         setShowPasswordSuccessModal(true)
       }
     } catch (error) {
-      setSecurityMessage('Erreur lors de la modification du mot de passe')
+      setSecurityMessage(t('security.errors.changeError'))
     }
 
     setChangingPassword(false)
   }
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'SUPPRIMER MON COMPTE') return
+    if (deleteConfirmText !== t('security.deleteConfirmPhrase')) return
 
     setDeleting(true)
     setDeleteError('')
@@ -467,11 +475,11 @@ function ProfileContent() {
         await supabase.auth.signOut()
         router.push('/')
       } else {
-        setDeleteError(data.error || 'Erreur lors de la suppression')
+        setDeleteError(data.error || t('security.deleteErrors.generic'))
         setDeleting(false)
       }
     } catch (error) {
-      setDeleteError('Erreur de connexion au serveur')
+      setDeleteError(t('security.deleteErrors.connection'))
       setDeleting(false)
     }
   }
@@ -538,7 +546,7 @@ function ProfileContent() {
         if (refreshData.newTrophiesUnlocked > 0) {
           setTrophies(refreshData.trophies)
           setHasNewTrophies(refreshData.hasNewTrophies)
-          setLastRefreshMessage(`${refreshData.newTrophiesUnlocked} nouveau(x) trophée(s) débloqué(s) !`)
+          setLastRefreshMessage(t('trophies.refreshMessage', { count: refreshData.newTrophiesUnlocked }))
         }
       }
     } catch (error) {
@@ -592,110 +600,33 @@ function ProfileContent() {
     }
   }
 
+  const trophyImages: Record<string, string> = {
+    king_of_day: '/trophy/king-of-day.png',
+    correct_result: '/trophy/bon-resultat.png',
+    exact_score: '/trophy/score-exact.png',
+    tournament_winner: '/trophy/tournoi.png',
+    double_king: '/trophy/double.png',
+    opportunist: '/trophy/opportuniste.png',
+    nostradamus: '/trophy/nostra.png',
+    bonus_profiteer: '/trophy/profiteur.png',
+    bonus_optimizer: '/trophy/optimisateur.png',
+    ultra_dominator: '/trophy/dominateur.png',
+    lantern: '/trophy/lanterne.png',
+    downward_spiral: '/trophy/spirale.png',
+    abyssal: '/trophy/abyssal.png',
+    poulidor: '/trophy/poulidor.png',
+    cursed: '/trophy/maudit.png',
+    legend: '/trophy/LEGENDE.png',
+  }
+
   const getTrophyInfo = (trophyType: string) => {
-    switch (trophyType) {
-      case 'king_of_day':
-        return {
-          name: 'The King of Day',
-          description: 'Premier au classement d\'une journée de tournoi',
-          image: '/trophy/king-of-day.png'
-        }
-      case 'correct_result':
-        return {
-          name: 'Le Veinard',
-          description: 'Au moins un bon résultat pronostiqué',
-          image: '/trophy/bon-resultat.png'
-        }
-      case 'exact_score':
-        return {
-          name: 'L\'Analyste',
-          description: 'Au moins un score exact pronostiqué',
-          image: '/trophy/score-exact.png'
-        }
-      case 'tournament_winner':
-        return {
-          name: 'Le Ballon d\'or',
-          description: 'Premier au classement final d\'un tournoi',
-          image: '/trophy/tournoi.png'
-        }
-      case 'double_king':
-        return {
-          name: 'Le Roi du Doublé',
-          description: 'Premier au classement de deux journées consécutives',
-          image: '/trophy/double.png'
-        }
-      case 'opportunist':
-        return {
-          name: 'L\'Opportuniste',
-          description: 'Deux bons résultats sur une même journée',
-          image: '/trophy/opportuniste.png'
-        }
-      case 'nostradamus':
-        return {
-          name: 'Le Nostradamus',
-          description: 'Deux scores exacts sur une même journée',
-          image: '/trophy/nostra.png'
-        }
-      case 'bonus_profiteer':
-        return {
-          name: 'Le Profiteur',
-          description: 'Un bon résultat sur un match Bonus',
-          image: '/trophy/profiteur.png'
-        }
-      case 'bonus_optimizer':
-        return {
-          name: 'L\'Optimisateur',
-          description: 'Un score exact sur un match Bonus',
-          image: '/trophy/optimisateur.png'
-        }
-      case 'ultra_dominator':
-        return {
-          name: 'L\'Ultra-dominateur',
-          description: 'Premier à chaque journée d\'un tournoi',
-          image: '/trophy/dominateur.png'
-        }
-      case 'lantern':
-        return {
-          name: 'La Lanterne-rouge',
-          description: 'Dernier au classement d\'une journée de tournoi',
-          image: '/trophy/lanterne.png'
-        }
-      case 'downward_spiral':
-        return {
-          name: 'La Spirale infernale',
-          description: 'Dernier deux journées de suite lors d\'un même tournoi',
-          image: '/trophy/spirale.png'
-        }
-      case 'abyssal':
-        return {
-          name: 'L\'Abyssal',
-          description: 'Dernier au classement final d\'un tournoi',
-          image: '/trophy/abyssal.png'
-        }
-      case 'poulidor':
-        return {
-          name: 'Le Poulidor',
-          description: 'Aucune première place sur toutes les journées d\'un tournoi',
-          image: '/trophy/poulidor.png'
-        }
-      case 'cursed':
-        return {
-          name: 'Le Maudit',
-          description: 'Aucun bon résultat sur une journée de tournoi',
-          image: '/trophy/maudit.png'
-        }
-      case 'legend':
-        return {
-          name: 'La Légende',
-          description: 'Vainqueur d\'un tournoi comptant plus de 10 participants',
-          image: '/trophy/LEGENDE.png'
-        }
-      default:
-        return {
-          name: 'Trophée',
-          description: '',
-          image: ''
-        }
+    if (!(trophyType in trophyImages)) {
+      return { name: t('trophies.default'), description: '', image: '' }
+    }
+    return {
+      name: t(`trophies.types.${trophyType}.name`),
+      description: t(`trophies.types.${trophyType}.desc`),
+      image: trophyImages[trophyType]
     }
   }
 
@@ -704,7 +635,7 @@ function ProfileContent() {
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <p className="text-gray-400">Chargement...</p>
+        <p className="text-gray-400">{t('loading')}</p>
       </div>
     )
   }
@@ -726,7 +657,7 @@ function ProfileContent() {
 
             {/* COLONNE CENTRALE - "Fiche technique" centré sur mobile, également visible sur desktop */}
             <div className="flex justify-center">
-              <h1 className="text-lg md:text-xl font-bold theme-accent-text-always">Fiche technique</h1>
+              <h1 className="text-lg md:text-xl font-bold theme-accent-text-always">{t('header.title')}</h1>
             </div>
 
             {/* COLONNE DROITE - Avatar + Menu */}
@@ -750,7 +681,7 @@ function ProfileContent() {
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden flex flex-col gap-1 p-1 cursor-pointer"
-                aria-label="Menu"
+                aria-label={t('header.menu')}
               >
                 <span className="w-5 h-0.5 hamburger-bar rounded"></span>
                 <span className="w-5 h-0.5 hamburger-bar rounded"></span>
@@ -759,17 +690,17 @@ function ProfileContent() {
 
               {/* Menu desktop (caché sur mobile) */}
               <div className="hidden md:flex items-center gap-3">
-                <span className="nav-greeting">Bonjour, {username} !</span>
+                <span className="nav-greeting">{t('header.greeting', { username })}</span>
 
                 {/* Lien Accueil avec icône */}
                 <Link
                   href="/dashboard"
                   className="nav-icon-btn"
-                  title="Accueil"
+                  title={t('header.home')}
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('header.home')}
                     className="w-6 h-6"
                   />
                 </Link>
@@ -777,11 +708,11 @@ function ProfileContent() {
                 {/* Bouton Déconnexion avec icône */}
                 <LogoutButton
                   className="nav-icon-btn"
-                  title="Quitter le terrain"
+                  title={t('header.leaveTitle')}
                 >
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('header.leave')}
                     className="w-6 h-6"
                   />
                 </LogoutButton>
@@ -793,7 +724,7 @@ function ProfileContent() {
           {mobileMenuOpen && (
             <div className="md:hidden mt-3 pt-3 border-t border-white/30 flex flex-col gap-3">
               <div className="mobile-menu-text text-sm text-center font-bold">
-                Bonjour, {username} !
+                {t('header.greeting', { username })}
               </div>
 
               {/* 2 icônes côte à côte */}
@@ -806,20 +737,20 @@ function ProfileContent() {
                 >
                   <img
                     src="/images/icons/home.svg"
-                    alt="Accueil"
+                    alt={t('header.home')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs mobile-menu-text">Accueil</span>
+                  <span className="text-xs mobile-menu-text">{t('header.home')}</span>
                 </Link>
 
                 {/* Quitter le terrain */}
                 <LogoutButton className="flex flex-col items-center gap-1 p-2 rounded transition-all hover:bg-white/10">
                   <img
                     src="/images/icons/logout.svg"
-                    alt="Quitter"
+                    alt={t('header.leave')}
                     className="w-6 h-6 mobile-menu-icon"
                   />
-                  <span className="text-xs mobile-menu-text">Quitter</span>
+                  <span className="text-xs mobile-menu-text">{t('header.leave')}</span>
                 </LogoutButton>
               </div>
             </div>
@@ -840,14 +771,14 @@ function ProfileContent() {
             >
               <img
                 src="/images/icons/user.svg"
-                alt="Profil"
+                alt={t('tabs.profil')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'profil'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Profil</span>
+              <span className="hidden md:inline">{t('tabs.profil')}</span>
             </button>
 
             <button
@@ -860,14 +791,14 @@ function ProfileContent() {
             >
               <img
                 src="/images/icons/stats.svg"
-                alt="Stats"
+                alt={t('tabs.stats')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'stats'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Stats</span>
+              <span className="hidden md:inline">{t('tabs.stats')}</span>
             </button>
 
             <button
@@ -886,7 +817,7 @@ function ProfileContent() {
               <div className="relative">
                 <img
                   src="/images/icons/gain.svg"
-                  alt="Trophées"
+                  alt={t('tabs.trophees')}
                   className={`w-7 h-7 md:w-5 md:h-5 ${
                     activeTab === 'trophees'
                       ? 'icon-filter-orange'
@@ -898,7 +829,7 @@ function ProfileContent() {
                   <div className="absolute -top-1 -right-1 w-2 h-2 md:w-2.5 md:h-2.5 bg-red-500 rounded-full border border-white"></div>
                 )}
               </div>
-              <span className="hidden md:inline">Trophées</span>
+              <span className="hidden md:inline">{t('tabs.trophees')}</span>
             </button>
 
             <button
@@ -911,14 +842,14 @@ function ProfileContent() {
             >
               <img
                 src="/images/icons/secure.svg"
-                alt="Sécurité"
+                alt={t('tabs.securite')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'securite'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Sécurité</span>
+              <span className="hidden md:inline">{t('tabs.securite')}</span>
             </button>
 
             <button
@@ -931,20 +862,20 @@ function ProfileContent() {
             >
               <img
                 src="/images/icons/premium.svg"
-                alt="Zone VIP"
+                alt={t('tabs.abonnement')}
                 className={`w-7 h-7 md:w-5 md:h-5 ${
                   activeTab === 'abonnement'
                     ? 'icon-filter-orange'
                     : 'icon-filter-slate'
                 }`}
               />
-              <span className="hidden md:inline">Zone VIP</span>
+              <span className="hidden md:inline">{t('tabs.abonnement')}</span>
             </button>
           </div>
 
         <div className="theme-card">
           {message && (
-            <div className={`mb-4 p-3 rounded-lg ${message.includes('succès') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            <div className={`mb-4 p-3 rounded-lg ${messageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {message}
             </div>
           )}
@@ -958,7 +889,7 @@ function ProfileContent() {
                 <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#ff9900] shadow-lg">
                   <Image
                     src={getAvatarUrl(selectedAvatar)}
-                    alt="Avatar sélectionné"
+                    alt={t('profil.avatarSelectedAlt')}
                     fill
                     priority
                     className="object-cover"
@@ -985,18 +916,18 @@ function ProfileContent() {
                     disabled={isUsernameLocked}
                     maxLength={12}
                     className={`theme-input max-w-[200px] text-center ${isUsernameLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    placeholder="Votre pseudo"
+                    placeholder={t('profil.usernamePlaceholder')}
                   />
                   <LanguageSelector />
                 </div>
                 {isUsernameLocked && (
                   <p className="text-sm theme-text-secondary mt-1">
-                    Le pseudo ne peut pas être modifié
+                    {t('profil.usernameLocked')}
                   </p>
                 )}
                 {!hasChosenUsername && !isUsernameLocked && (
                   <p className="text-sm text-[#ff9900] mt-1 font-medium">
-                    Tu peux changer ton pseudo une seule fois
+                    {t('profil.usernameChangeOnce')}
                   </p>
                 )}
               </div>
@@ -1005,7 +936,7 @@ function ProfileContent() {
               <div className="border-t-2 border-[#ff9900] mb-6"></div>
 
               <p className="text-sm theme-text-secondary text-center mb-4">
-                Choisissez votre avatar :
+                {t('profil.chooseAvatar')}
               </p>
 
               {/* Afficher seulement les avatars qui rentrent sur une ligne */}
@@ -1022,7 +953,7 @@ function ProfileContent() {
                     >
                       <Image
                         src={getAvatarUrl(avatarId)}
-                        alt={`Avatar ${avatarId}`}
+                        alt={t('profil.avatarAlt', { id: avatarId })}
                         fill
                         className="object-cover"
                         sizes="64px"
@@ -1051,7 +982,7 @@ function ProfileContent() {
                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                       )}
                     </svg>
-                    <span>Plus de choix</span>
+                    <span>{t('profil.moreChoices')}</span>
                   </button>
                 </div>
               )}
@@ -1071,7 +1002,7 @@ function ProfileContent() {
                       >
                         <Image
                           src={getAvatarUrl(avatarId)}
-                          alt={`Avatar ${avatarId}`}
+                          alt={t('profil.avatarAlt', { id: avatarId })}
                           fill
                           className="object-cover"
                           sizes="64px"
@@ -1085,7 +1016,7 @@ function ProfileContent() {
               {trophies.length > 0 && (
                 <div className="mt-6 pt-4 border-t theme-border">
                   <p className="text-sm theme-text-secondary text-center mb-4">
-                    Avatars trophées débloqués :
+                    {t('profil.trophyAvatars')}
                   </p>
                   <div className="flex justify-center gap-2 flex-wrap">
                     {trophies.map((trophy) => {
@@ -1121,7 +1052,7 @@ function ProfileContent() {
 
             <div>
               <label className="block text-sm font-medium theme-text mb-2 text-center">
-                Thème par défaut
+                {t('profil.defaultTheme')}
               </label>
               <div className="flex items-center justify-center gap-4">
                 {/* Icône soleil */}
@@ -1166,14 +1097,14 @@ function ProfileContent() {
                   disabled={saving}
                   className="theme-btn-primary flex-1"
                 >
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? t('profil.saving') : t('profil.save')}
                 </button>
 
                 <Link
                   href="/dashboard"
                   className="theme-btn-secondary flex-1 text-center"
                 >
-                  Retour
+                  {t('profil.back')}
                 </Link>
               </div>
             </div>
@@ -1185,7 +1116,7 @@ function ProfileContent() {
               {loadingStats && (
                 <div className="text-center py-12">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#ff9900] border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] mb-4"></div>
-                  <p className="theme-text-secondary">Chargement des statistiques...</p>
+                  <p className="theme-text-secondary">{t('stats.loading')}</p>
                 </div>
               )}
 
@@ -1193,14 +1124,14 @@ function ProfileContent() {
                 <div className="space-y-6">
                   {/* Statistiques de tournois */}
                   <div>
-                    <h3 className="text-lg font-semibold theme-text mb-4">Mes tournois</h3>
+                    <h3 className="text-lg font-semibold theme-text mb-4">{t('stats.myTournaments')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="stat-card border-blue-200">
                         <div className="stat-number text-blue-600">
                           {stats.totalTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
-                          Tournois total
+                          {t('stats.totalTournaments')}
                         </div>
                       </div>
                       <div className="stat-card border-green-200">
@@ -1208,7 +1139,7 @@ function ProfileContent() {
                           {stats.activeTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
-                          En cours
+                          {t('stats.inProgress')}
                         </div>
                       </div>
                       <div className="stat-card border-gray-200">
@@ -1216,7 +1147,7 @@ function ProfileContent() {
                           {stats.finishedTournaments}
                         </div>
                         <div className="text-sm theme-text-secondary mt-1">
-                          Terminés
+                          {t('stats.finished')}
                         </div>
                       </div>
                     </div>
@@ -1227,35 +1158,35 @@ function ProfileContent() {
 
                   {/* Statistiques de pronostics */}
                   <div>
-                    <h3 className="text-lg font-semibold theme-text mb-4">Mes pronostics</h3>
+                    <h3 className="text-lg font-semibold theme-text mb-4">{t('stats.myPredictions')}</h3>
                     {stats.totalFinishedMatches > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="stat-card border-transparent">
                           <SemiCircleGauge
                             percentage={stats.correctResultsPercentage}
-                            label="Bons résultats"
-                            subLabel={`Sur ${stats.totalFinishedMatches} matchs`}
+                            label={t('stats.correctResults')}
+                            subLabel={t('stats.onMatches', { count: stats.totalFinishedMatches })}
                           />
                         </div>
                         <div className="stat-card border-transparent">
                           <SemiCircleGauge
                             percentage={stats.exactScoresPercentage}
-                            label="Scores exacts"
-                            subLabel={`Sur ${stats.totalFinishedMatches} matchs`}
+                            label={t('stats.exactScores')}
+                            subLabel={t('stats.onMatches', { count: stats.totalFinishedMatches })}
                           />
                         </div>
                         <div className="stat-card border-transparent">
                           <SemiCircleGauge
                             percentage={stats.defaultPredictionsPercentage}
-                            label="Non renseignés"
-                            subLabel="Pronos par défaut"
+                            label={t('stats.notFilled')}
+                            subLabel={t('stats.defaultPredictions')}
                             invertColors={true}
                           />
                         </div>
                       </div>
                     ) : (
                       <div className="text-center py-8 theme-text-secondary">
-                        Aucun match pronostiqué terminé pour le moment
+                        {t('stats.noFinishedMatch')}
                       </div>
                     )}
                   </div>
@@ -1265,7 +1196,7 @@ function ProfileContent() {
 
                   {/* Statistiques de classements */}
                   <div>
-                    <h3 className="text-lg font-semibold theme-text mb-4">Mes performances</h3>
+                    <h3 className="text-lg font-semibold theme-text mb-4">{t('stats.myPerformances')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {stats.finishedTournaments > 0 ? (
                         <div className="stat-card border-2 border-yellow-400 bg-yellow-50">
@@ -1276,7 +1207,7 @@ function ProfileContent() {
                                 {stats.firstPlacesFinal}
                               </div>
                               <div className="text-sm theme-text-secondary mt-1">
-                                Victoire{stats.firstPlacesFinal > 1 ? 's' : ''} finale{stats.firstPlacesFinal > 1 ? 's' : ''}
+                                {t('stats.finalWins', { count: stats.firstPlacesFinal })}
                               </div>
                             </div>
                           </div>
@@ -1284,7 +1215,7 @@ function ProfileContent() {
                       ) : (
                         <div className="stat-card border-gray-200 bg-gray-50">
                           <div className="text-center py-4 theme-text-secondary text-sm">
-                            Aucun tournoi terminé
+                            {t('stats.noFinishedTournament')}
                           </div>
                         </div>
                       )}
@@ -1298,7 +1229,7 @@ function ProfileContent() {
                                 {stats.firstPlacesProvisional}
                               </div>
                               <div className="text-sm theme-text-secondary mt-1">
-                                Première{stats.firstPlacesProvisional > 1 ? 's' : ''} place{stats.firstPlacesProvisional > 1 ? 's' : ''} provisoire{stats.firstPlacesProvisional > 1 ? 's' : ''}
+                                {t('stats.provisionalFirsts', { count: stats.firstPlacesProvisional })}
                               </div>
                             </div>
                           </div>
@@ -1306,7 +1237,7 @@ function ProfileContent() {
                       ) : (
                         <div className="stat-card border-gray-200 bg-gray-50">
                           <div className="text-center py-4 theme-text-secondary text-sm">
-                            Aucune première place provisoire
+                            {t('stats.noProvisionalFirst')}
                           </div>
                         </div>
                       )}
@@ -1325,7 +1256,7 @@ function ProfileContent() {
               {recalculatingTrophies && (
                 <div className="flex items-center justify-center gap-2 text-sm theme-text-secondary">
                   <div className="w-3 h-3 border-2 border-[#ff9900] border-t-transparent rounded-full animate-spin"></div>
-                  <span>Vérification des nouveaux trophées...</span>
+                  <span>{t('trophies.checking')}</span>
                 </div>
               )}
 
@@ -1339,19 +1270,19 @@ function ProfileContent() {
               {loadingTrophies ? (
                 <div className="text-center py-12">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#ff9900] border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] mb-4"></div>
-                  <p className="theme-text-secondary">Chargement des trophées...</p>
+                  <p className="theme-text-secondary">{t('trophies.loading')}</p>
                 </div>
               ) : trophies.length === 0 ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">🏆</div>
-                  <p className="theme-text-secondary text-lg mb-2">Aucun trophée déverrouillé pour le moment</p>
+                  <p className="theme-text-secondary text-lg mb-2">{t('trophies.emptyTitle')}</p>
                   <p className="theme-text-secondary text-sm">
-                    Continuez à pronostiquer pour débloquer vos premiers trophées !
+                    {t('trophies.emptySubtitle')}
                   </p>
                 </div>
               ) : (
                 <div>
-                  <h3 className="text-lg font-semibold theme-text mb-4">Mes trophées déverrouillés</h3>
+                  <h3 className="text-lg font-semibold theme-text mb-4">{t('trophies.unlockedTitle')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {trophies.map((trophy) => {
                       const trophyInfo = getTrophyInfo(trophy.trophy_type)
@@ -1364,7 +1295,7 @@ function ProfileContent() {
                           {/* Badge "NOUVEAU" */}
                           {trophy.is_new && (
                             <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
-                              NOUVEAU
+                              {t('trophies.newBadge')}
                             </div>
                           )}
 
@@ -1387,11 +1318,11 @@ function ProfileContent() {
                                 {trophyInfo.description}
                               </p>
                               <p className="text-xs theme-text-secondary">
-                                Déverrouillé le {new Date(trophy.unlocked_at).toLocaleDateString('fr-FR', {
+                                {t('trophies.unlockedOn', { date: new Date(trophy.unlocked_at).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', {
                                   day: '2-digit',
                                   month: '2-digit',
                                   year: 'numeric'
-                                })}
+                                }) })}
                               </p>
                             </div>
                           </div>
@@ -1402,7 +1333,7 @@ function ProfileContent() {
 
                   {/* Liste des trophées à débloquer */}
                   <div className="mt-8">
-                    <h3 className="text-lg font-semibold theme-text mb-4">Trophées à débloquer</h3>
+                    <h3 className="text-lg font-semibold theme-text mb-4">{t('trophies.toUnlockTitle')}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {['king_of_day', 'correct_result', 'exact_score', 'tournament_winner', 'double_king', 'opportunist', 'nostradamus', 'bonus_profiteer', 'bonus_optimizer', 'ultra_dominator', 'lantern', 'downward_spiral', 'abyssal', 'poulidor', 'cursed', 'legend']
                         .filter(type => !trophies.some(t => t.trophy_type === type))
@@ -1448,17 +1379,17 @@ function ProfileContent() {
           {activeTab === 'securite' && (
             <div className="space-y-6">
               {securityMessage && (
-                <div className={`p-3 rounded-lg ${securityMessage.includes('succès') ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                <div className="p-3 rounded-lg bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                   {securityMessage}
                 </div>
               )}
 
               {/* Section Email */}
               <div>
-                <h3 className="text-lg font-semibold theme-text mb-4">Adresse email</h3>
+                <h3 className="text-lg font-semibold theme-text mb-4">{t('security.emailSection')}</h3>
                 <div>
                   <label htmlFor="email-security" className="block text-sm font-medium theme-text mb-2">
-                    Email
+                    {t('security.emailLabel')}
                   </label>
                   <input
                     id="email-security"
@@ -1468,7 +1399,7 @@ function ProfileContent() {
                     className="theme-input opacity-60 cursor-not-allowed"
                   />
                   <p className="text-sm theme-text-secondary mt-1">
-                    L'email ne peut pas être modifié
+                    {t('security.emailLocked')}
                   </p>
                 </div>
               </div>
@@ -1478,20 +1409,20 @@ function ProfileContent() {
 
               {/* Section Notifications */}
               <div>
-                <h3 className="text-lg font-semibold theme-text mb-4">Préférences de notifications</h3>
+                <h3 className="text-lg font-semibold theme-text mb-4">{t('security.notifSection')}</h3>
                 <p className="text-sm theme-text-secondary mb-4">
                   {isCapacitor()
-                    ? 'Choisissez les notifications mobiles que vous souhaitez recevoir'
-                    : 'Choisissez les emails que vous souhaitez recevoir'}
+                    ? t('security.notifIntroPush')
+                    : t('security.notifIntroEmail')}
                 </p>
 
                 <div className="space-y-4">
                   {/* Rappel pronostics */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Rappel de pronostics</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.reminderTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir un rappel 4h avant le début des matchs si vous n'avez pas pronostiqué
+                        {t('security.notifs.reminderDesc')}
                       </p>
                     </div>
                     <button
@@ -1506,9 +1437,9 @@ function ProfileContent() {
                   {/* Lancement tournoi */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Lancement de tournoi</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.startedTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Confirmation quand le capitaine lance le tournoi
+                        {t('security.notifs.startedDesc')}
                       </p>
                     </div>
                     <button
@@ -1523,9 +1454,9 @@ function ProfileContent() {
                   {/* Récap journée */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Récapitulatif de journée</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.dayRecapTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir un résumé à l'issue de chaque journée (classement, stats)
+                        {t('security.notifs.dayRecapDesc')}
                       </p>
                     </div>
                     <button
@@ -1540,9 +1471,9 @@ function ProfileContent() {
                   {/* Récap fin tournoi */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Récapitulatif de fin de tournoi</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.endTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir un résumé à la fin du tournoi (classement final, statistiques)
+                        {t('security.notifs.endDesc')}
                       </p>
                     </div>
                     <button
@@ -1557,9 +1488,9 @@ function ProfileContent() {
                   {/* Invitation tournoi */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Invitation à un tournoi</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.inviteTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir un email quand quelqu'un vous invite à rejoindre un tournoi
+                        {t('security.notifs.inviteDesc')}
                       </p>
                     </div>
                     <button
@@ -1574,9 +1505,9 @@ function ProfileContent() {
                   {/* Joueur rejoint (capitaine) */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Nouveau joueur dans mon tournoi</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.playerJoinedTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir un email quand un joueur rejoint un tournoi dont vous êtes capitaine
+                        {t('security.notifs.playerJoinedDesc')}
                       </p>
                     </div>
                     <button
@@ -1591,9 +1522,9 @@ function ProfileContent() {
                   {/* Mention dans discussion */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Mention dans une discussion</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.mentionTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir une notification quand quelqu'un vous mentionne (@user) dans une discussion de tournoi
+                        {t('security.notifs.mentionDesc')}
                       </p>
                     </div>
                     <button
@@ -1608,9 +1539,9 @@ function ProfileContent() {
                   {/* Badge débloqué */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Nouveau badge débloqué</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.badgeTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir une notification quand vous débloquez un nouveau badge ou trophée
+                        {t('security.notifs.badgeDesc')}
                       </p>
                     </div>
                     <button
@@ -1625,9 +1556,9 @@ function ProfileContent() {
                   {/* Nouvelles rencontres */}
                   <div className="pref-item">
                     <div className="flex-1 pr-4">
-                      <p className="text-sm font-medium theme-text">Nouvelles rencontres</p>
+                      <p className="text-sm font-medium theme-text">{t('security.notifs.newMatchesTitle')}</p>
                       <p className="text-xs theme-text-secondary">
-                        Recevoir une notification quand de nouveaux matchs sont ajoutés à un tournoi auquel vous participez
+                        {t('security.notifs.newMatchesDesc')}
                       </p>
                     </div>
                     <button
@@ -1649,14 +1580,14 @@ function ProfileContent() {
                     {savingNotifications ? (
                       <>
                         <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        <span>Enregistrement...</span>
+                        <span>{t('security.savingNotif')}</span>
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>Préférence enregistrée</span>
+                        <span>{t('security.notifSaved')}</span>
                       </>
                     )}
                   </div>
@@ -1668,12 +1599,12 @@ function ProfileContent() {
 
               {/* Section Changement de mot de passe */}
               <div>
-                <h3 className="text-lg font-semibold theme-text mb-4">Modifier le mot de passe</h3>
+                <h3 className="text-lg font-semibold theme-text mb-4">{t('security.changePasswordSection')}</h3>
 
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="current-password" className="block text-sm font-medium theme-text mb-2">
-                      Mot de passe actuel
+                      {t('security.currentPassword')}
                     </label>
                     <input
                       id="current-password"
@@ -1681,13 +1612,13 @@ function ProfileContent() {
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       className="theme-input"
-                      placeholder="Entrez votre mot de passe actuel"
+                      placeholder={t('security.currentPasswordPlaceholder')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="new-password" className="block text-sm font-medium theme-text mb-2">
-                      Nouveau mot de passe
+                      {t('security.newPassword')}
                     </label>
                     <input
                       id="new-password"
@@ -1695,13 +1626,13 @@ function ProfileContent() {
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="theme-input"
-                      placeholder="Minimum 6 caractères"
+                      placeholder={t('security.newPasswordPlaceholder')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="confirm-password" className="block text-sm font-medium theme-text mb-2">
-                      Confirmer le nouveau mot de passe
+                      {t('security.confirmPassword')}
                     </label>
                     <input
                       id="confirm-password"
@@ -1709,7 +1640,7 @@ function ProfileContent() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className="theme-input"
-                      placeholder="Confirmez le nouveau mot de passe"
+                      placeholder={t('security.confirmPasswordPlaceholder')}
                     />
                   </div>
 
@@ -1718,7 +1649,7 @@ function ProfileContent() {
                     disabled={changingPassword}
                     className="theme-btn-primary w-full"
                   >
-                    {changingPassword ? 'Modification en cours...' : 'Modifier le mot de passe'}
+                    {changingPassword ? t('security.changingPassword') : t('security.changePassword')}
                   </button>
                 </div>
               </div>
@@ -1732,16 +1663,14 @@ function ProfileContent() {
                   onClick={() => setShowDeleteZone(!showDeleteZone)}
                   className="text-xs theme-text-secondary hover:text-red-500 transition-colors underline underline-offset-2"
                 >
-                  Gestion avancée du compte
+                  {t('security.advancedAccount')}
                 </button>
 
                 {showDeleteZone && (
                   <div className="mt-4 p-4 rounded-lg border border-red-500/30 bg-red-500/5">
-                    <h4 className="text-sm font-semibold text-red-500 mb-2">Supprimer mon compte</h4>
+                    <h4 className="text-sm font-semibold text-red-500 mb-2">{t('security.deleteTitle')}</h4>
                     <p className="text-xs theme-text-secondary mb-3">
-                      Cette action est irréversible. Toutes vos données seront définitivement supprimées :
-                      pronostics, participations aux tournois, trophées et statistiques.
-                      Si vous êtes capitaine d&apos;un tournoi, le rôle sera automatiquement transféré à un autre joueur.
+                      {t('security.deleteDesc')}
                     </p>
 
                     {!showDeleteConfirm ? (
@@ -1749,12 +1678,12 @@ function ProfileContent() {
                         onClick={() => setShowDeleteConfirm(true)}
                         className="text-xs px-3 py-1.5 rounded border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors"
                       >
-                        Supprimer définitivement mon compte
+                        {t('security.deletePermanent')}
                       </button>
                     ) : (
                       <div className="space-y-3">
                         <p className="text-xs text-red-400 font-medium">
-                          Tapez <span className="font-mono font-bold">SUPPRIMER MON COMPTE</span> pour confirmer :
+                          {t.rich('security.deleteConfirmPrompt', { mono: (c) => <span className="font-mono font-bold">{c}</span>, phrase: t('security.deleteConfirmPhrase') })}
                         </p>
                         <input
                           type="text"
@@ -1763,7 +1692,7 @@ function ProfileContent() {
                             setDeleteConfirmText(e.target.value.toUpperCase())
                             setDeleteError('')
                           }}
-                          placeholder="SUPPRIMER MON COMPTE"
+                          placeholder={t('security.deleteConfirmPhrase')}
                           className="w-full px-3 py-2 text-sm rounded border border-red-500/50 bg-transparent theme-text font-mono focus:outline-none focus:ring-1 focus:ring-red-500"
                           autoComplete="off"
                         />
@@ -1773,10 +1702,10 @@ function ProfileContent() {
                         <div className="flex gap-2">
                           <button
                             onClick={handleDeleteAccount}
-                            disabled={deleteConfirmText !== 'SUPPRIMER MON COMPTE' || deleting}
+                            disabled={deleteConfirmText !== t('security.deleteConfirmPhrase') || deleting}
                             className="flex-1 py-2 px-3 text-sm rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                           >
-                            {deleting ? 'Suppression en cours...' : 'Confirmer la suppression'}
+                            {deleting ? t('security.deleting') : t('security.deleteConfirm')}
                           </button>
                           <button
                             onClick={() => {
@@ -1786,7 +1715,7 @@ function ProfileContent() {
                             }}
                             className="px-3 py-2 text-sm rounded border theme-border theme-text hover:opacity-80 transition-colors"
                           >
-                            Annuler
+                            {tc('cancel')}
                           </button>
                         </div>
                       </div>
@@ -1834,12 +1763,12 @@ function ProfileContent() {
 
             {/* Titre */}
             <h3 className="text-xl font-bold theme-text mb-2">
-              Mot de passe modifié
+              {t('passwordSuccess.title')}
             </h3>
 
             {/* Message */}
             <p className="theme-text-secondary mb-6">
-              Votre mot de passe a été mis à jour avec succès.
+              {t('passwordSuccess.message')}
             </p>
 
             {/* Bouton fermer */}
@@ -1847,7 +1776,7 @@ function ProfileContent() {
               onClick={() => setShowPasswordSuccessModal(false)}
               className="theme-btn-primary w-full"
             >
-              Compris
+              {t('passwordSuccess.button')}
             </button>
           </div>
         </div>
