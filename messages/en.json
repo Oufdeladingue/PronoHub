@@ -827,5 +827,30 @@
     "ctxMatchday": "matchday {n}",
     "shareTextRanking": "{ctx} ranking on PronoHub 👀",
     "shareTextRankingNamed": "{ctx} ranking of {name} on PronoHub 👀"
+  },
+  "Chat": {
+    "loading": "Loading chat...",
+    "empty": "No messages yet.",
+    "emptyCta": "Be the first to write!",
+    "says": "says:",
+    "readBy": "Read by",
+    "readByInline": "• Read by",
+    "noReaders": "No readers",
+    "reply": "Reply",
+    "react": "React",
+    "addEmoji": "Add an emoji",
+    "send": "Send",
+    "placeholder": "Type your message...",
+    "placeholderReply": "Reply to @{username}...",
+    "replyingTo": "Replying to @{username}",
+    "cancelReply": "Cancel reply",
+    "mentionHint": "@ to mention",
+    "charCount": "{count}/500 • @ to mention",
+    "sendError": "Failed to send message",
+    "unknownUser": "Unknown",
+    "justNow": "Just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n}h ago",
+    "daysAgo": "{n}d ago"
   }
 }

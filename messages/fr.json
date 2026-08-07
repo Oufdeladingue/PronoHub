@@ -827,5 +827,30 @@
     "ctxMatchday": "Journée {n}",
     "shareTextRanking": "Classement {ctx} sur PronoHub 👀",
     "shareTextRankingNamed": "Classement {ctx} de {name} sur PronoHub 👀"
+  },
+  "Chat": {
+    "loading": "Chargement de la causerie...",
+    "empty": "Aucun message pour le moment.",
+    "emptyCta": "Soyez le premier à écrire !",
+    "says": "dit :",
+    "readBy": "Lu par",
+    "readByInline": "• Lu par",
+    "noReaders": "Aucun lecteur",
+    "reply": "Répondre",
+    "react": "Réagir",
+    "addEmoji": "Ajouter un emoji",
+    "send": "Envoyer",
+    "placeholder": "Écrivez votre message...",
+    "placeholderReply": "Répondre à @{username}...",
+    "replyingTo": "Réponse à @{username}",
+    "cancelReply": "Annuler la réponse",
+    "mentionHint": "@ pour mentionner",
+    "charCount": "{count}/500 • @ pour mentionner",
+    "sendError": "Erreur lors de l'envoi du message",
+    "unknownUser": "Inconnu",
+    "justNow": "À l'instant",
+    "minutesAgo": "Il y a {n} min",
+    "hoursAgo": "Il y a {n}h",
+    "daysAgo": "Il y a {n}j"
   }
 }

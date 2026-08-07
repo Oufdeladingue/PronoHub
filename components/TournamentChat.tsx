@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { createClient, fetchWithAuth } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -49,6 +50,8 @@ interface TournamentChatProps {
 const EMOJIS = ['😀', '😂', '😍', '😎', '🤔', '👍', '👎', '🎉', '⚽', '🏆', '🔥', '💪', '👏', '🙌', '😭', '😡', '🤩', '🥳', '😴', '🤯']
 
 export default function TournamentChat({ tournamentId, currentUserId, currentUsername, currentUserAvatar }: TournamentChatProps) {
+  const t = useTranslations('Chat')
+  const locale = useLocale()
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
@@ -83,12 +86,12 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    if (diffInSeconds < 60) return 'À l\'instant'
-    if (diffInSeconds < 3600) return `Il y a ${Math.floor(diffInSeconds / 60)} min'`
-    if (diffInSeconds < 86400) return `Il y a ${Math.floor(diffInSeconds / 3600)}h`
-    if (diffInSeconds < 604800) return `Il y a ${Math.floor(diffInSeconds / 86400)}j`
+    if (diffInSeconds < 60) return t('justNow')
+    if (diffInSeconds < 3600) return t('minutesAgo', { n: Math.floor(diffInSeconds / 60) })
+    if (diffInSeconds < 86400) return t('hoursAgo', { n: Math.floor(diffInSeconds / 3600) })
+    if (diffInSeconds < 604800) return t('daysAgo', { n: Math.floor(diffInSeconds / 86400) })
 
-    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })
   }
 
   // Scroll vers le bas
@@ -316,7 +319,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
       setReplyTo(null)
     } catch (error: any) {
       console.error('Error sending message:', error)
-      alert(error.message || 'Erreur lors de l\'envoi du message')
+      alert(error.message || t('sendError'))
     } finally {
       setSending(false)
     }
@@ -360,7 +363,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
               replyToData = {
                 id: replyMsg.id,
                 message: replyMsg.message,
-                username: (replyMsg.profiles as any)?.username || 'Inconnu'
+                username: (replyMsg.profiles as any)?.username || t('unknownUser')
               }
             }
           }
@@ -370,7 +373,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
             message: payload.new.message,
             created_at: payload.new.created_at,
             user_id: payload.new.user_id,
-            username: profile?.username || 'Inconnu',
+            username: profile?.username || t('unknownUser'),
             avatar: profile?.avatar || 'avatar1',
             reply_to_id: payload.new.reply_to_id,
             reply_to: replyToData,
@@ -411,7 +414,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
     return (
       <div className="theme-card p-8 text-center">
         <div className="loading-spinner mx-auto"></div>
-        <p className="theme-text-secondary mt-4">Chargement de la causerie...</p>
+        <p className="theme-text-secondary mt-4">{t('loading')}</p>
       </div>
     )
   }
@@ -422,8 +425,8 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4" style={{ overscrollBehaviorY: 'contain' }}>
         {messages.length === 0 ? (
           <div className="text-center py-8">
-            <p className="theme-text-secondary">Aucun message pour le moment.</p>
-            <p className="theme-text-secondary text-sm mt-2">Soyez le premier à écrire !</p>
+            <p className="theme-text-secondary">{t('empty')}</p>
+            <p className="theme-text-secondary text-sm mt-2">{t('emptyCta')}</p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -455,14 +458,14 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                     <span className={`text-sm font-bold ${isCurrentUser ? 'text-[#ff9900]' : 'theme-text'}`}>
                       {msg.username}
                     </span>
-                    <span className="text-xs theme-text-secondary">dit :</span>
+                    <span className="text-xs theme-text-secondary">{t('says')}</span>
                     <span className="text-xs theme-text-secondary">
                       {formatDate(msg.created_at)}
                     </span>
                     {/* Lecteurs du message */}
                     {msg.readers && msg.readers.length > 0 && (
                       <div className="flex items-center gap-1 ml-1">
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">• Lu par</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('readByInline')}</span>
                         <div className="flex -space-x-1.5">
                           {msg.readers.slice(0, 5).map((reader) => (
                             <div
@@ -508,7 +511,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                       <button
                         onClick={() => handleReply(msg)}
                         className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        title="Répondre"
+                        title={t('reply')}
                       >
                         <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -520,7 +523,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                         <button
                           onClick={() => setReactionPickerMessageId(reactionPickerMessageId === msg.id ? null : msg.id)}
                           className="p-1 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                          title="Réagir"
+                          title={t('react')}
                         >
                           <svg className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -635,7 +638,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                     sendMessage(e)
                   }
                 }}
-                placeholder={replyTo ? `Répondre à @${replyTo.username}...` : 'Écrivez votre message...'}
+                placeholder={replyTo ? t('placeholderReply', { username: replyTo.username }) : t('placeholder')}
                 maxLength={500}
                 disabled={sending}
                 rows={2}
@@ -646,7 +649,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                   type="button"
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   className="btn-emoji-picker px-3 py-1 rounded-lg transition text-xl"
-                  title="Ajouter un emoji"
+                  title={t('addEmoji')}
                 >
                   😀
                 </button>
@@ -658,13 +661,13 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                   {sending ? (
                     <span className="text-sm">...</span>
                   ) : (
-                    <img src="/images/icons/send.svg" alt="Envoyer" className="w-4 h-4" />
+                    <img src="/images/icons/send.svg" alt={t('send')} className="w-4 h-4" />
                   )}
                 </button>
               </div>
             </div>
             <p className="text-xs theme-text-secondary">
-              {newMessage.length}/500 • @ pour mentionner
+              {t('charCount', { count: newMessage.length })}
             </p>
           </div>
         </form>
@@ -681,7 +684,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold theme-text">Lu par</h3>
+              <h3 className="font-semibold theme-text">{t('readBy')}</h3>
               <button
                 onClick={() => setShowReadersModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -705,7 +708,7 @@ export default function TournamentChat({ tournamentId, currentUserId, currentUse
                 </div>
               ))}
               {selectedReaders.length === 0 && (
-                <p className="text-sm theme-text-secondary text-center py-2">Aucun lecteur</p>
+                <p className="text-sm theme-text-secondary text-center py-2">{t('noReaders')}</p>
               )}
             </div>
           </div>
