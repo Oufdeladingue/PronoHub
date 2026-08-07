@@ -10,6 +10,8 @@ const INACTIVE_DAYS = 10 // Jours d'inactivité avant envoi
 // Contenu de la notification push
 const PUSH_TITLE = '🗣️ Expert foot ?'
 const PUSH_BODY = 'Beaucoup de débats, zéro tournoi. PronoHub s\'inquiète.'
+const PUSH_TITLE_EN = '🗣️ Football expert?'
+const PUSH_BODY_EN = 'Plenty of debates, zero tournaments. PronoHub is getting worried.'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -131,10 +133,11 @@ export async function GET(request: NextRequest) {
       if (user.fcm_token) {
         // --- PUSH (prioritaire si FCM token) ---
         try {
+          const isEn = (user as any).locale === 'en'
           const pushResult = await sendPushNotification(
             user.fcm_token,
-            PUSH_TITLE,
-            PUSH_BODY,
+            isEn ? PUSH_TITLE_EN : PUSH_TITLE,
+            isEn ? PUSH_BODY_EN : PUSH_BODY,
             { type: 'inactive_reminder', url: '/vestiaire' }
           )
 

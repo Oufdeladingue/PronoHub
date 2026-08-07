@@ -304,7 +304,11 @@ export async function POST(
               mentionedUser.user_id,
               'mention',
               {
-                body: `${senderUsername} t'a mentionné dans ${tournament?.name || 'le tournoi'}`,
+                // Body localisé par destinataire (défaut FR). {senderName} = expéditeur.
+                bodyParams: {
+                  senderName: senderUsername,
+                  tournamentName: tournament?.name || { fr: 'le tournoi', en: 'the tournament' },
+                },
                 tournamentSlug: tournament?.slug || '',
                 data: {
                   username: senderUsername,

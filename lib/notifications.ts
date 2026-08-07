@@ -14,6 +14,9 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   prefKey: string
   defaultTitle: string
   defaultBody: string
+  // Variantes anglaises (bilinguisme push). FR = défaut, EN utilisé si profiles.locale === 'en'.
+  defaultTitleEn: string
+  defaultBodyEn: string
   // URL à ouvrir au clic (relative)
   clickAction?: string
 }> = {
@@ -21,56 +24,101 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     prefKey: 'email_reminder', // Même préférence pour email et push
     defaultTitle: 'C\'est maintenant ou jamais !',
     defaultBody: 'Des matchs sont à pronostiquer dans {tournamentName}, un oubli et c\'est toute ta prépa qui tombe à l\'eau...',
+    defaultTitleEn: 'Now or never!',
+    defaultBodyEn: 'There are matches to predict in {tournamentName} — forget them and all your prep goes down the drain...',
     clickAction: '/dashboard',
   },
   tournament_started: {
     prefKey: 'email_tournament_started',
     defaultTitle: 'Place au jeu, le tournoi démarre ! ⚽',
     defaultBody: 'Le tournoi {tournamentName} démarre {firstMatchDate}. En piste champion !',
+    defaultTitleEn: 'Game on, the tournament is kicking off! ⚽',
+    defaultBodyEn: 'The {tournamentName} tournament starts {firstMatchDate}. Get out there, champ!',
     clickAction: '/dashboard',
   },
   day_recap: {
     prefKey: 'email_day_recap',
     defaultTitle: 'Bilan du jour : qui l\'emporte ? 📊',
     defaultBody: 'Les résultats de la journée sont tombés. Découvre ton classement et prépare ta revanche.',
+    defaultTitleEn: 'Today\'s recap: who comes out on top? 📊',
+    defaultBodyEn: 'The matchday results are in. Check your ranking and plan your comeback.',
     clickAction: '/dashboard',
   },
   tournament_end: {
     prefKey: 'email_tournament_end',
     defaultTitle: 'Alors ? C\'est qui le champion ? 🏆',
     defaultBody: 'Le tournoi {tournamentName} est terminé, c\'est le moment de voir qui est n°1 dans ta team...',
+    defaultTitleEn: 'So… who\'s the champion? 🏆',
+    defaultBodyEn: 'The {tournamentName} tournament is over — time to see who\'s no. 1 in your crew...',
     clickAction: '/dashboard',
   },
   invite: {
     prefKey: 'email_invite',
     defaultTitle: 'On a besoin de toi dans l\'équipe ! 🎯',
     defaultBody: '{captainName} t\'invite à rejoindre {tournamentName}. Tu es partant ?',
+    defaultTitleEn: 'We need you on the team! 🎯',
+    defaultBodyEn: '{captainName} is inviting you to join {tournamentName}. Are you in?',
     clickAction: '/vestiaire/rejoindre',
   },
   player_joined: {
     prefKey: 'email_player_joined',
     defaultTitle: 'Un nouveau joueur dans le vestiaire ! 👋',
     defaultBody: '{playerName} vient de rejoindre {tournamentName}. La concurrence s\'intensifie.',
+    defaultTitleEn: 'A new player in the locker room! 👋',
+    defaultBodyEn: '{playerName} just joined {tournamentName}. The competition is heating up.',
     clickAction: '/dashboard',
   },
   mention: {
     prefKey: 'email_mention',
     defaultTitle: 'On parle de toi dans le vestiaire ! 💬',
-    defaultBody: '{username} t\'a mentionné dans {tournamentName}. Va voir ce qu\'il se dit.',
+    defaultBody: '{senderName} t\'a mentionné dans {tournamentName}. Va voir ce qu\'il se dit.',
+    defaultTitleEn: 'People are talking about you in the locker room! 💬',
+    defaultBodyEn: '{senderName} mentioned you in {tournamentName}. Go see what\'s being said.',
     clickAction: '/dashboard', // Sera remplacé dynamiquement par /{tournamentSlug}/opposition?tab=tchat
   },
   badge_unlocked: {
     prefKey: 'email_badge_unlocked',
     defaultTitle: 'Trophée débloqué ! 🏅',
     defaultBody: 'GG {username} ! Tu viens de décrocher le badge "{badgeName}". Continue sur ta lancée.',
+    defaultTitleEn: 'Trophy unlocked! 🏅',
+    defaultBodyEn: 'GG {username}! You just earned the "{badgeName}" badge. Keep it up.',
     clickAction: '/profile?tab=trophees',
   },
   new_matches: {
     prefKey: 'email_new_matches',
     defaultTitle: 'Nouvelles rencontres à pronostiquer ! ⚽',
     defaultBody: "Le juge de ligne a levé son drapeau : il signale {matchCount} nouveau{plural} match{plural} ajouté{plural} dans {tournamentName}. N'oublie pas de les renseigner...",
+    defaultTitleEn: 'New fixtures to predict! ⚽',
+    defaultBodyEn: "The linesman raised his flag: {matchCount} new match{plural} added in {tournamentName}. Don't forget to fill them in...",
     clickAction: '/dashboard',
   },
+}
+
+// ---- Bilinguisme push : helpers de localisation (défaut FR) ----
+export type NotifLocale = 'fr' | 'en'
+// Une valeur de paramètre peut être une string (identique FR/EN) ou un couple {fr,en}
+type LocalizedValue = string | { fr: string; en: string }
+type LocalizedParams = Record<string, LocalizedValue>
+
+function pickNotifLocale(locale?: string | null): NotifLocale {
+  return locale === 'en' ? 'en' : 'fr'
+}
+
+function notifStrings(type: NotificationType, locale: NotifLocale): { title: string; body: string } {
+  const c = NOTIFICATION_CONFIG[type]
+  return locale === 'en'
+    ? { title: c.defaultTitleEn, body: c.defaultBodyEn }
+    : { title: c.defaultTitle, body: c.defaultBody }
+}
+
+function applyNotifParams(str: string, params: LocalizedParams | undefined, locale: NotifLocale): string {
+  if (!params) return str
+  let out = str
+  for (const [k, v] of Object.entries(params)) {
+    const val = typeof v === 'string' ? v : (locale === 'en' ? v.en : v.fr)
+    out = out.split(`{${k}}`).join(val)
+  }
+  return out
 }
 
 /**
@@ -83,6 +131,8 @@ export async function sendNotificationToUser(
   options?: {
     title?: string
     body?: string
+    // Paramètres d'interpolation localisés (préféré à un body pré-rendu → permet l'EN par destinataire)
+    bodyParams?: LocalizedParams
     data?: Record<string, string>
     tournamentSlug?: string
     imageUrl?: string
@@ -90,10 +140,10 @@ export async function sendNotificationToUser(
 ): Promise<boolean> {
   const supabase = await createClient()
 
-  // Récupérer le profil avec token, préférences ET email
+  // Récupérer le profil avec token, préférences, email ET locale
   const { data: profile } = await supabase
     .from('profiles')
-    .select('fcm_token, notification_preferences, username, email')
+    .select('fcm_token, notification_preferences, username, email, locale')
     .eq('id', userId)
     .single()
 
@@ -106,11 +156,16 @@ export async function sendNotificationToUser(
     return false
   }
 
-  // Construire le titre et le body
-  const title = options?.title || config.defaultTitle
-  let body = options?.body || config.defaultBody
+  // Langue du destinataire (défaut FR)
+  const loc = pickNotifLocale((profile as any)?.locale)
+  const strings = notifStrings(type, loc)
 
-  // Personnaliser avec le username si disponible
+  // Construire le titre et le body (un title/body explicite prime ; sinon défaut localisé)
+  const title = options?.title || strings.title
+  let body = options?.body || strings.body
+
+  // Interpolation des paramètres localisés, puis du username
+  body = applyNotifParams(body, options?.bodyParams, loc)
   body = body.replace('{username}', profile?.username || 'champion')
 
   // Données pour le clic
@@ -143,7 +198,8 @@ export async function sendNotificationToUser(
         tournamentName: options?.data?.tournamentName || 'le tournoi',
         tournamentSlug: options?.tournamentSlug || '',
         competitionName: options?.data?.competitionName,
-        message: options?.data?.message || ''
+        message: options?.data?.message || '',
+        locale: loc,
       }
 
       const emailSendResult = await sendMentionEmail(profile.email, emailProps)
@@ -166,6 +222,8 @@ export async function sendNotificationToTournament(
   options?: {
     title?: string
     body?: string
+    // Paramètres d'interpolation localisés (préféré à un body pré-rendu)
+    bodyParams?: LocalizedParams
     data?: Record<string, string>
     tournamentSlug?: string
     excludeUserId?: string // Exclure un utilisateur (ex: le capitaine qui lance)
@@ -188,10 +246,10 @@ export async function sendNotificationToTournament(
     .map(p => p.user_id)
     .filter(id => id !== options?.excludeUserId)
 
-  // Récupérer les profils avec tokens et préférences
+  // Récupérer les profils avec tokens, préférences ET locale
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, fcm_token, notification_preferences, username')
+    .select('id, fcm_token, notification_preferences, username, locale')
     .in('id', userIds)
 
   if (!profiles || profiles.length === 0) {
@@ -199,8 +257,6 @@ export async function sendNotificationToTournament(
   }
 
   const config = NOTIFICATION_CONFIG[type]
-  const title = options?.title || config.defaultTitle
-  const baseBody = options?.body || config.defaultBody
 
   // Filtrer les utilisateurs qui ont activé ce type de notification et ont un token
   const eligibleProfiles = profiles.filter(p => {
@@ -213,9 +269,6 @@ export async function sendNotificationToTournament(
     return { sent: 0, skipped: profiles.length }
   }
 
-  const tokens = eligibleProfiles.map(p => p.fcm_token!)
-  const body = baseBody // On pourrait personnaliser par user si besoin
-
   const data: Record<string, string> = {
     type,
     clickAction: options?.tournamentSlug
@@ -224,11 +277,30 @@ export async function sendNotificationToTournament(
     ...(options?.data || {}),
   }
 
-  const result = await sendPushNotificationToMany(tokens, title, body, data, options?.imageUrl)
+  // Grouper par langue pour envoyer le bon texte à chaque destinataire (un title/body explicite
+  // reste appliqué tel quel pour rétrocompat ; sinon défaut localisé + interpolation par langue).
+  const byLocale = new Map<NotifLocale, string[]>()
+  for (const p of eligibleProfiles) {
+    const loc = pickNotifLocale((p as any).locale)
+    const arr = byLocale.get(loc) || []
+    arr.push(p.fcm_token!)
+    byLocale.set(loc, arr)
+  }
+
+  let sent = 0
+  let failure = 0
+  for (const [loc, tokens] of byLocale) {
+    const strings = notifStrings(type, loc)
+    const title = options?.title || strings.title
+    const body = applyNotifParams(options?.body || strings.body, options?.bodyParams, loc)
+    const result = await sendPushNotificationToMany(tokens, title, body, data, options?.imageUrl)
+    sent += result.success
+    failure += result.failure
+  }
 
   return {
-    sent: result.success,
-    skipped: profiles.length - eligibleProfiles.length + result.failure,
+    sent,
+    skipped: profiles.length - eligibleProfiles.length + failure,
   }
 }
 
@@ -241,11 +313,8 @@ export async function sendPronosticReminder(
   tournamentSlug: string,
   matchCount: number
 ): Promise<boolean> {
-  const config = NOTIFICATION_CONFIG.reminder
-  const body = config.defaultBody.replace('{tournamentName}', tournamentName)
-
   return sendNotificationToUser(userId, 'reminder', {
-    body,
+    bodyParams: { tournamentName },
     tournamentSlug,
     data: { tournamentName, matchCount: String(matchCount) },
   })
@@ -271,8 +340,9 @@ export async function sendTournamentStarted(
     .limit(1)
     .single()
 
-  // Formater la date en français (ex: "samedi 15 mars à 21h00")
-  let firstMatchDate = ''
+  // Formater la date par langue (FR: "samedi 15 mars à 21h00" ; EN: "Saturday 15 March at 21:00")
+  let firstMatchDateFr = ''
+  let firstMatchDateEn = ''
   let matchTime = '21:00'
   if (firstMatch?.scheduled_at) {
     const date = new Date(firstMatch.scheduled_at)
@@ -284,12 +354,14 @@ export async function sendTournamentStarted(
       minute: '2-digit',
       timeZone: 'Europe/Paris',
     }
-    const formatted = new Intl.DateTimeFormat('fr-FR', options).format(date)
-    // Format: "samedi 15 mars à 21h00"
-    firstMatchDate = formatted.replace(' à ', ' à ').replace(':', 'h')
+    // FR: "samedi 15 mars à 21h00"
+    firstMatchDateFr = new Intl.DateTimeFormat('fr-FR', options).format(date).replace(':', 'h')
+    // EN: on retire l'éventuelle virgule après le jour de semaine pour rester lisible
+    firstMatchDateEn = new Intl.DateTimeFormat('en-GB', options).format(date).replace(/^(\w+),/, '$1')
     matchTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
   } else {
-    firstMatchDate = 'bientôt'
+    firstMatchDateFr = 'bientôt'
+    firstMatchDateEn = 'soon'
   }
 
   // Récupérer les logos depuis imported_matches si disponible
@@ -333,13 +405,11 @@ export async function sendTournamentStarted(
   })
   const imageUrl = `${baseUrl}/api/og/tournament-started?${ogParams.toString()}`
 
-  const config = NOTIFICATION_CONFIG.tournament_started
-  const body = config.defaultBody
-    .replace('{tournamentName}', tournamentName)
-    .replace('{firstMatchDate}', firstMatchDate)
-
   return sendNotificationToTournament(tournamentId, 'tournament_started', {
-    body,
+    bodyParams: {
+      tournamentName,
+      firstMatchDate: { fr: firstMatchDateFr, en: firstMatchDateEn },
+    },
     tournamentSlug,
     excludeUserId: captainId,
     imageUrl,
@@ -362,7 +432,7 @@ export async function sendTournamentEnd(
   // Récupérer les participants avec profils
   const { data: participants } = await supabase
     .from('tournament_participants')
-    .select('user_id, profiles(username, avatar, fcm_token, notification_preferences)')
+    .select('user_id, profiles(username, avatar, fcm_token, notification_preferences, locale)')
     .eq('tournament_id', tournamentId)
 
   if (!participants || participants.length === 0) {
@@ -422,8 +492,10 @@ export async function sendTournamentEnd(
     })
     const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
 
-    const title = config.defaultTitle
-    const body = config.defaultBody.replace('{tournamentName}', tournamentName)
+    const loc = pickNotifLocale(profile.locale)
+    const strings = notifStrings('tournament_end', loc)
+    const title = strings.title
+    const body = applyNotifParams(strings.body, { tournamentName }, loc)
 
     try {
       const success = await sendPushNotification(
@@ -456,13 +528,8 @@ export async function sendPlayerJoined(
   tournamentName: string,
   tournamentSlug: string
 ): Promise<boolean> {
-  const config = NOTIFICATION_CONFIG.player_joined
-  const body = config.defaultBody
-    .replace('{playerName}', playerName)
-    .replace('{tournamentName}', tournamentName)
-
   return sendNotificationToUser(captainId, 'player_joined', {
-    body,
+    bodyParams: { playerName, tournamentName },
     tournamentSlug,
     data: { playerName, tournamentName },
   })

@@ -530,14 +530,25 @@ export async function GET(request: NextRequest) {
           let title: string
           let body: string
 
+          const isEn = (userData as any).locale === 'en'
           if (userData.tournaments.length === 1) {
             const t = userData.tournaments[0]
-            title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
-            body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
+            if (isEn) {
+              title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 'es' : ''} to predict`
+              body = `Don't forget your predictions for ${t.name} before ${deadlineStr}!`
+            } else {
+              title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
+              body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
+            }
           } else {
-            title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
             const tournamentNames = userData.tournaments.map(t => t.name).join(', ')
-            body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
+            if (isEn) {
+              title = `⚽ ${totalMissingMatches} matches to predict`
+              body = `${userData.tournaments.length} tournaments pending: ${tournamentNames}. Deadline: ${deadlineStr}`
+            } else {
+              title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
+              body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
+            }
           }
 
           // Construire l'URL de l'image dynamique

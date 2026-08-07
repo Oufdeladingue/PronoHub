@@ -172,8 +172,11 @@ export async function GET(request: NextRequest) {
 
               if (!existingPushLog || existingPushLog.length === 0) {
                 try {
-                  const title = 'Trophée débloqué ! 🏅'
-                  const body = `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`
+                  const isEn = (profile as any)?.locale === 'en'
+                  const title = isEn ? 'Trophy unlocked! 🏅' : 'Trophée débloqué ! 🏅'
+                  const body = isEn
+                    ? `One more line on your record! Badge ${trophyInfo.name} unlocked`
+                    : `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`
                   const data = {
                     type: 'badge_unlocked',
                     clickAction: config.clickAction || '/profile?tab=trophees',

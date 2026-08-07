@@ -437,7 +437,12 @@ export async function GET(request: NextRequest) {
             user.id,
             'new_matches',
             {
-              body: `Le juge de ligne a levé son drapeau : il signale ${matchCount} nouveau${plural} match${plural} ajouté${plural} dans ${tournament.name}. N'oublie pas de les renseigner...`,
+              // Body localisé par destinataire : pluriel FR (s) vs EN (es → "matches")
+              bodyParams: {
+                matchCount: String(matchCount),
+                tournamentName: tournament.name,
+                plural: { fr: matchCount > 1 ? 's' : '', en: matchCount > 1 ? 'es' : '' },
+              },
               tournamentSlug: tournament.slug,
               imageUrl,
               data: {
