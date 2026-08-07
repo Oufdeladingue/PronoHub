@@ -100,11 +100,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
     const L = locale === 'en'
       ? { players: 'players', teams: 'teams', teamRanking: 'Team ranking', matchdayRanking: (m: string | null) => `Ranking · Matchday ${m}`, generalRanking: 'Overall ranking', liveRanking: '● Live ranking', matchesPlayed: 'matches played', member: (n: number) => `· ${n} player${n > 1 ? 's' : ''}`, king: "Who's the prediction king?", others: (n: number) => `+${n} more`, avgPoints: 'Average points', points: 'Points', goodResults: 'Correct results', exactScores: 'Exact scores', defaultPlayer: 'Player', defaultTeam: 'Team' }
       : locale === 'es'
       ? { players: 'jugadores', teams: 'equipos', teamRanking: 'Clasificación por equipos', matchdayRanking: (m: string | null) => `Clasificación · Jornada ${m}`, generalRanking: 'Clasificación general', liveRanking: '● Clasificación en directo', matchesPlayed: 'partidos jugados', member: (n: number) => `· ${n} jugador${n > 1 ? 'es' : ''}`, king: '¿Quién es el rey del pronóstico?', others: (n: number) => `+${n} más`, avgPoints: 'Media de puntos', points: 'Puntos', goodResults: 'Resultados correctos', exactScores: 'Marcadores exactos', defaultPlayer: 'Jugador', defaultTeam: 'Equipo' }
+      : locale === 'de'
+      ? { players: 'Spieler', teams: 'Teams', teamRanking: 'Team-Wertung', matchdayRanking: (m: string | null) => `Wertung · Spieltag ${m}`, generalRanking: 'Gesamtwertung', liveRanking: '● Live-Wertung', matchesPlayed: 'gespielte Spiele', member: (n: number) => `· ${n} Spieler`, king: 'Wer ist der Tipp-König?', others: (n: number) => `+${n} weitere`, avgPoints: 'Durchschnittspunkte', points: 'Punkte', goodResults: 'Richtige Tendenz', exactScores: 'Exakte Ergebnisse', defaultPlayer: 'Spieler', defaultTeam: 'Team' }
       : { players: 'joueurs', teams: 'équipes', teamRanking: 'Classement par équipes', matchdayRanking: (m: string | null) => `Classement · Journée ${m}`, generalRanking: 'Classement général', liveRanking: '● Classement live', matchesPlayed: 'matchs joués', member: (n: number) => `· ${n} joueur${n > 1 ? 's' : ''}`, king: 'C’est qui le roi du Prono ?', others: (n: number) => `+${n} autres`, avgPoints: 'Moyenne de points', points: 'Points', goodResults: 'Bons résultats', exactScores: 'Scores exacts', defaultPlayer: 'Joueur', defaultTeam: 'Équipe' }
     const tournamentId = searchParams.get('tournamentId')
     const mode = (searchParams.get('mode') || 'general') as 'general' | 'teams' | 'matchday'

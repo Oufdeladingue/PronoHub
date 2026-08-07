@@ -201,8 +201,8 @@ export async function GET(request: NextRequest) {
             const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
 
             const loc = (profile as any)?.locale
-            const title = loc === 'en' ? config.defaultTitleEn : loc === 'es' ? config.defaultTitleEs : config.defaultTitle
-            const body = (loc === 'en' ? config.defaultBodyEn : loc === 'es' ? config.defaultBodyEs : config.defaultBody).replace('{tournamentName}', tournament.name)
+            const title = loc === 'en' ? config.defaultTitleEn : loc === 'es' ? config.defaultTitleEs : loc === 'de' ? config.defaultTitleDe : config.defaultTitle
+            const body = (loc === 'en' ? config.defaultBodyEn : loc === 'es' ? config.defaultBodyEs : loc === 'de' ? config.defaultBodyDe : config.defaultBody).replace('{tournamentName}', tournament.name)
 
             try {
               const success = await sendPushNotification(

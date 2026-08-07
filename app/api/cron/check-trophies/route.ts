@@ -174,11 +174,13 @@ export async function GET(request: NextRequest) {
               if (!existingPushLog || existingPushLog.length === 0) {
                 try {
                   const loc = (profile as any)?.locale
-                  const title = loc === 'en' ? 'Trophy unlocked! 🏅' : loc === 'es' ? '¡Trofeo desbloqueado! 🏅' : 'Trophée débloqué ! 🏅'
+                  const title = loc === 'en' ? 'Trophy unlocked! 🏅' : loc === 'es' ? '¡Trofeo desbloqueado! 🏅' : loc === 'de' ? 'Trophäe freigeschaltet! 🏅' : 'Trophée débloqué ! 🏅'
                   const body = loc === 'en'
                     ? `One more line on your record! Badge ${trophyInfo.name} unlocked`
                     : loc === 'es'
                     ? `¡Una línea más en tu palmarés! Insignia ${trophyInfo.name} desbloqueada`
+                    : loc === 'de'
+                    ? `Eine Zeile mehr auf deiner Erfolgsliste! Abzeichen ${trophyInfo.name} freigeschaltet`
                     : `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`
                   const data = {
                     type: 'badge_unlocked',

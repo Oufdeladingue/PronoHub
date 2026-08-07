@@ -20,6 +20,15 @@ const SPANISH_COUNTRIES = new Set([
 ])
 
 /**
+ * Pays germanophones → langue DE par défaut.
+ * (Allemagne, Autriche, Liechtenstein. La Suisse et le Luxembourg restent
+ * mappés FR ci-dessus, vérifiés en premier — choix produit.)
+ */
+const GERMAN_COUNTRIES = new Set([
+  'DE', 'AT', 'LI',
+])
+
+/**
  * Langue par défaut à partir du pays détecté (cf-ipcountry).
  * - Pays francophone → 'fr'
  * - Autre marché ouvert → 'en' (langue passerelle tant qu'ES/IT/DE ne sont pas produites)
@@ -33,5 +42,6 @@ export function localeForCountry(country: string | null | undefined): Locale {
   const cc = country.toUpperCase()
   if (FRENCH_COUNTRIES.has(cc)) return 'fr'
   if (SPANISH_COUNTRIES.has(cc)) return 'es'
+  if (GERMAN_COUNTRIES.has(cc)) return 'de'
   return 'en'
 }

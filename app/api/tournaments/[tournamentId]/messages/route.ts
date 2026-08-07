@@ -307,7 +307,7 @@ export async function POST(
                 // Body localisé par destinataire (défaut FR). {senderName} = expéditeur.
                 bodyParams: {
                   senderName: senderUsername,
-                  tournamentName: tournament?.name || { fr: 'le tournoi', en: 'the tournament', es: 'el torneo' },
+                  tournamentName: tournament?.name || { fr: 'le tournoi', en: 'the tournament', es: 'el torneo', de: 'das Turnier' },
                 },
                 tournamentSlug: tournament?.slug || '',
                 data: {

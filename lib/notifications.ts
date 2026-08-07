@@ -14,11 +14,13 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   prefKey: string
   defaultTitle: string
   defaultBody: string
-  // Variantes localisées (push multilingue). FR = défaut ; EN/ES selon profiles.locale.
+  // Variantes localisées (push multilingue). FR = défaut ; EN/ES/DE selon profiles.locale.
   defaultTitleEn: string
   defaultBodyEn: string
   defaultTitleEs: string
   defaultBodyEs: string
+  defaultTitleDe: string
+  defaultBodyDe: string
   // URL à ouvrir au clic (relative)
   clickAction?: string
 }> = {
@@ -30,6 +32,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: 'There are matches to predict in {tournamentName} — forget them and all your prep goes down the drain...',
     defaultTitleEs: '¡Ahora o nunca!',
     defaultBodyEs: 'Hay partidos por pronosticar en {tournamentName}, un olvido y toda tu preparación se va al garete...',
+    defaultTitleDe: 'Jetzt oder nie!',
+    defaultBodyDe: 'In {tournamentName} gibt es Spiele zu tippen — vergisst du sie, war die ganze Vorbereitung umsonst...',
     clickAction: '/dashboard',
   },
   tournament_started: {
@@ -40,6 +44,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: 'The {tournamentName} tournament starts {firstMatchDate}. Get out there, champ!',
     defaultTitleEs: '¡A jugar, el torneo empieza! ⚽',
     defaultBodyEs: 'El torneo {tournamentName} empieza {firstMatchDate}. ¡A por ello, campeón!',
+    defaultTitleDe: 'Auf geht\'s, das Turnier startet! ⚽',
+    defaultBodyDe: 'Das Turnier {tournamentName} startet {firstMatchDate}. Ran an die Sache, Champ!',
     clickAction: '/dashboard',
   },
   day_recap: {
@@ -50,6 +56,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: 'The matchday results are in. Check your ranking and plan your comeback.',
     defaultTitleEs: 'Resumen del día: ¿quién manda? 📊',
     defaultBodyEs: 'Ya están los resultados de la jornada. Mira tu clasificación y prepara la revancha.',
+    defaultTitleDe: 'Tagesbilanz: Wer hat die Nase vorn? 📊',
+    defaultBodyDe: 'Die Ergebnisse des Spieltags sind da. Schau dir deine Platzierung an und plane deine Revanche.',
     clickAction: '/dashboard',
   },
   tournament_end: {
@@ -60,6 +68,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: 'The {tournamentName} tournament is over — time to see who\'s no. 1 in your crew...',
     defaultTitleEs: '¿Y bien? ¿Quién es el campeón? 🏆',
     defaultBodyEs: 'El torneo {tournamentName} ha terminado, es hora de ver quién es el nº 1 de tu grupo...',
+    defaultTitleDe: 'Und? Wer ist der Champion? 🏆',
+    defaultBodyDe: 'Das Turnier {tournamentName} ist vorbei — Zeit zu sehen, wer die Nummer 1 in deiner Crew ist...',
     clickAction: '/dashboard',
   },
   invite: {
@@ -70,6 +80,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: '{captainName} is inviting you to join {tournamentName}. Are you in?',
     defaultTitleEs: '¡Te necesitamos en el equipo! 🎯',
     defaultBodyEs: '{captainName} te invita a unirte a {tournamentName}. ¿Te apuntas?',
+    defaultTitleDe: 'Wir brauchen dich im Team! 🎯',
+    defaultBodyDe: '{captainName} lädt dich zu {tournamentName} ein. Bist du dabei?',
     clickAction: '/vestiaire/rejoindre',
   },
   player_joined: {
@@ -80,6 +92,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: '{playerName} just joined {tournamentName}. The competition is heating up.',
     defaultTitleEs: '¡Un nuevo jugador en el vestuario! 👋',
     defaultBodyEs: '{playerName} acaba de unirse a {tournamentName}. La competencia se calienta.',
+    defaultTitleDe: 'Ein neuer Spieler in der Kabine! 👋',
+    defaultBodyDe: '{playerName} ist gerade {tournamentName} beigetreten. Die Konkurrenz wird härter.',
     clickAction: '/dashboard',
   },
   mention: {
@@ -90,6 +104,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: '{senderName} mentioned you in {tournamentName}. Go see what\'s being said.',
     defaultTitleEs: '¡Hablan de ti en el vestuario! 💬',
     defaultBodyEs: '{senderName} te ha mencionado en {tournamentName}. Ve a ver qué se dice.',
+    defaultTitleDe: 'Man spricht über dich in der Kabine! 💬',
+    defaultBodyDe: '{senderName} hat dich in {tournamentName} erwähnt. Schau, was gesagt wird.',
     clickAction: '/dashboard', // Sera remplacé dynamiquement par /{tournamentSlug}/opposition?tab=tchat
   },
   badge_unlocked: {
@@ -100,6 +116,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: 'GG {username}! You just earned the "{badgeName}" badge. Keep it up.',
     defaultTitleEs: '¡Trofeo desbloqueado! 🏅',
     defaultBodyEs: '¡GG {username}! Acabas de conseguir la insignia "{badgeName}". Sigue así.',
+    defaultTitleDe: 'Trophäe freigeschaltet! 🏅',
+    defaultBodyDe: 'GG {username}! Du hast gerade das Abzeichen "{badgeName}" ergattert. Weiter so.',
     clickAction: '/profile?tab=trophees',
   },
   new_matches: {
@@ -110,25 +128,28 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBodyEn: "The linesman raised his flag: {matchCount} new match{plural} added in {tournamentName}. Don't forget to fill them in...",
     defaultTitleEs: '¡Nuevos partidos por pronosticar! ⚽',
     defaultBodyEs: 'El juez de línea ha levantado el banderín: señala {matchCount} partido{plural} nuevo{plural} añadido{plural} en {tournamentName}. No olvides rellenarlos...',
+    defaultTitleDe: 'Neue Spiele zum Tippen! ⚽',
+    defaultBodyDe: 'Der Linienrichter hebt die Fahne: {matchCount} neue Spiele in {tournamentName} hinzugefügt. Vergiss nicht, deine Tipps abzugeben...',
     clickAction: '/dashboard',
   },
 }
 
 // ---- Push multilingue : helpers de localisation (défaut FR) ----
-export type NotifLocale = 'fr' | 'en' | 'es'
+export type NotifLocale = 'fr' | 'en' | 'es' | 'de'
 // Une valeur de paramètre peut être une string (identique partout) ou un objet
-// par langue ({fr} requis, en/es optionnels → repli FR).
-type LocalizedValue = string | { fr: string; en?: string; es?: string }
+// par langue ({fr} requis, en/es/de optionnels → repli FR).
+type LocalizedValue = string | { fr: string; en?: string; es?: string; de?: string }
 type LocalizedParams = Record<string, LocalizedValue>
 
 function pickNotifLocale(locale?: string | null): NotifLocale {
-  return locale === 'en' || locale === 'es' ? locale : 'fr'
+  return locale === 'en' || locale === 'es' || locale === 'de' ? locale : 'fr'
 }
 
 function notifStrings(type: NotificationType, locale: NotifLocale): { title: string; body: string } {
   const c = NOTIFICATION_CONFIG[type]
   if (locale === 'en') return { title: c.defaultTitleEn, body: c.defaultBodyEn }
   if (locale === 'es') return { title: c.defaultTitleEs, body: c.defaultBodyEs }
+  if (locale === 'de') return { title: c.defaultTitleDe, body: c.defaultBodyDe }
   return { title: c.defaultTitle, body: c.defaultBody }
 }
 
@@ -365,6 +386,7 @@ export async function sendTournamentStarted(
   let firstMatchDateFr = ''
   let firstMatchDateEn = ''
   let firstMatchDateEs = ''
+  let firstMatchDateDe = ''
   let matchTime = '21:00'
   if (firstMatch?.scheduled_at) {
     const date = new Date(firstMatch.scheduled_at)
@@ -382,11 +404,14 @@ export async function sendTournamentStarted(
     firstMatchDateEn = new Intl.DateTimeFormat('en-GB', options).format(date).replace(/^(\w+),/, '$1')
     // ES: format espagnol
     firstMatchDateEs = new Intl.DateTimeFormat('es-ES', options).format(date)
+    // DE: format allemand
+    firstMatchDateDe = new Intl.DateTimeFormat('de-DE', options).format(date)
     matchTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
   } else {
     firstMatchDateFr = 'bientôt'
     firstMatchDateEn = 'soon'
     firstMatchDateEs = 'pronto'
+    firstMatchDateDe = 'bald'
   }
 
   // Récupérer les logos depuis imported_matches si disponible
@@ -434,7 +459,7 @@ export async function sendTournamentStarted(
   return sendNotificationToTournament(tournamentId, 'tournament_started', {
     bodyParams: {
       tournamentName,
-      firstMatchDate: { fr: firstMatchDateFr, en: firstMatchDateEn, es: firstMatchDateEs },
+      firstMatchDate: { fr: firstMatchDateFr, en: firstMatchDateEn, es: firstMatchDateEs, de: firstMatchDateDe },
     },
     tournamentSlug,
     excludeUserId: captainId,

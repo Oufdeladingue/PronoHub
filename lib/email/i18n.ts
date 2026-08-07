@@ -1,12 +1,12 @@
 import { emailMessages } from './messages'
 
-export type EmailLocale = 'fr' | 'en' | 'es'
+export type EmailLocale = 'fr' | 'en' | 'es' | 'de'
 
 // Traducteur synchrone : lookup par chemin pointé + interpolation {param}.
 // Fallback : si la clé manque dans la locale demandée, retombe sur FR ; si absente
 // partout, renvoie la clé. Supporte FR/EN/ES (extensible).
 export function emailT(locale?: EmailLocale) {
-  const loc: EmailLocale = locale === 'en' || locale === 'es' ? locale : 'fr'
+  const loc: EmailLocale = locale === 'en' || locale === 'es' || locale === 'de' ? locale : 'fr'
   return function t(key: string, params?: Record<string, string | number>): string {
     const lookup = (cat: any) => key.split('.').reduce((o: any, k) => (o == null ? undefined : o[k]), cat)
     let raw = lookup((emailMessages as any)[loc])

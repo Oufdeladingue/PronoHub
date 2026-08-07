@@ -457,7 +457,151 @@ const ES: Guide[] = [
   },
 ]
 
-export const GUIDES: Partial<Record<string, Guide[]>> & { fr: Guide[] } = { fr: FR, en: EN, es: ES }
+const DE: Guide[] = [
+  {
+    slug: 'organiser-tournoi-pronostics-entre-amis',
+    title: 'So organisierst du ein Fußball-Tippspiel mit Freunden | PronoHub',
+    h1: 'So organisierst du ein Fußball-Tippspiel mit Freunden',
+    description: 'Die komplette Anleitung für ein Fußball-Tippspiel mit deinen Freunden: Wettbewerb wählen, Regeln festlegen, alle einladen und die Live-Tabelle verfolgen. Kostenlos.',
+    lede: "Ein Tippspiel mit deinen Freunden zu organisieren ist der beste Weg, jedes Fußball-Wochenende noch intensiver zu machen. So bringst du deins in wenigen Minuten an den Start – ganz ohne Stress und ohne einen Cent auszugeben.",
+    sections: [
+      {
+        h2: '1. Wähle den Wettbewerb',
+        paragraphs: [
+          "Alles beginnt hier. Eine Liga, die die ganze Saison läuft (Bundesliga, Premier League, LaLiga…), ist perfekt für ein Tippspiel über die lange Distanz, bei dem die Spannung Spieltag für Spieltag steigt. Lieber kurz und intensiv? Dann nimm die K.-o.-Phase der Champions League oder eine WM.",
+          "Guter Tipp: Wähle einen Wettbewerb, den die Mehrheit der Gruppe ohnehin schon verfolgt. Je besser die Leute die Teams kennen, desto mehr Spaß macht das Tippen – und das gegenseitige Sticheln.",
+        ],
+      },
+      {
+        h2: '2. Lege die Regeln und die Punkte fest',
+        paragraphs: [
+          "Ein Tippspiel lebt von seiner Punktevergabe. Am gängigsten: Punkte für den richtigen Ausgang (Heimsieg, Unentschieden oder Auswärtssieg) und ein Bonus für das exakte Ergebnis. Das belohnt sowohl Gespür als auch Mut.",
+          "Du kannst das Ganze mit einem Bonusspiel (doppelte Punkte) oder einer Prämie für alle, die früh tippen, aufpeppen. Das Wichtigste: Die Regeln sind von Anfang an für alle klar.",
+        ],
+      },
+      {
+        h2: '3. Lade deine Freunde ein',
+        paragraphs: [
+          "Das ist der Schritt, der über Erfolg oder Misserfolg entscheidet. Das Geheimnis: null Hürden. Teile einfach einen Link (WhatsApp, SMS, Gruppenchat…) und lass deine Freunde mit einem Klick beitreten. Je einfacher es ist, desto mehr machen mit.",
+          "Ziel sind mindestens 3-4 Teilnehmer, damit der Wettbewerb lebendig ist. Ein Tippspiel spielt man zu mehreren – es ist der Vergleich der Tabellen, der die Stimmung macht.",
+        ],
+      },
+      {
+        h2: '4. Verfolge die Tabelle in Echtzeit',
+        paragraphs: [
+          "Nichts ist schlimmer als ein Tippspiel, bei dem keiner weiß, wer führt. Eine Tabelle, die sich nach jedem Spiel automatisch aktualisiert, hält die Rivalität am Leben und macht Lust, immer wieder nachzuschauen, wo man steht.",
+          "Gib eine Prise Wettkampf dazu: Trophäen zum Freischalten, Tipper des Spieltags, spektakuläre Aufholjagden… genau diese Details machen aus einem einfachen Spiel einen festen Termin.",
+        ],
+      },
+      {
+        h2: '5. Halte den Spaß am Laufen',
+        paragraphs: [
+          "Das Sticheln gehört zum Spiel dazu. Gib allen einen Chat, in dem jeder den Tabellenletzten aufziehen oder nach einem exakten Ergebnis angeben kann, und dein Tippspiel wird zum roten Faden zwischen Kumpels über die ganze Saison.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Muss man für ein Tippspiel bezahlen?', a: 'Nein. Auf PronoHub ist es 100% kostenlos, ein Tippspiel zu erstellen, deine Freunde einzuladen und mitzuspielen. Bezahlpläne gibt es nur für sehr große Gruppen.' },
+      { q: 'Wie viele Teilnehmer braucht man?', a: 'Ab 2, aber ein Tippspiel wird ab 3-4 Spielern richtig lebendig. Der Vergleich der Tabellen macht den Spaß aus.' },
+      { q: 'Kann man ohne Geldeinsatz spielen?', a: 'Ja, und genau das ist der Sinn. Man spielt um die Tabelle, die Trophäen und den Stolz – niemals um Geld.' },
+    ],
+    related: ['ligue-1', 'ligue-des-champions', 'premier-league'],
+  },
+  {
+    slug: 'jeux-de-pronos-groupe-whatsapp',
+    title: 'Ideen für Tippspiele in einer WhatsApp-Gruppe | PronoHub',
+    h1: 'Ideen für Tippspiele in deiner WhatsApp-Gruppe',
+    description: 'Deine WhatsApp-Gruppe mit den Kumpels hat mehr verdient als eine Tabelle. Entdecke die besten Ideen für Fußball-Tippspiele, die du mit deiner Gruppe starten kannst – kostenlos.',
+    lede: "Explodiert deine WhatsApp-Gruppe bei jedem Spiel? Verwandle diese Energie in einen Wettbewerb. Hier sind Ideen für Tippspiele, die perfekt für eine Freundesgruppe sind – und warum eine echte App die Tabellenkalkulation oder das Zählen von Hand schlägt.",
+    sections: [
+      {
+        h2: 'Das Saison-Turnier',
+        paragraphs: [
+          "Der Klassiker: Jeder tippt alle Spiele einer Liga, man sammelt Punkte, und die Tabelle entscheidet sich über die ganze Saison. Ideal für eine Gruppe, die die Bundesliga oder Premier League von August bis Mai verfolgt.",
+        ],
+      },
+      {
+        h2: 'Der Tipp zum Sonderturnier',
+        paragraphs: [
+          "Für ein kurzes, intensives Event: WM, EM, K.-o.-Phase der Champions League. Alle tippen vom ersten Spiel bis zum Finale, die Stimmung steigt und ihr kürt in wenigen Wochen einen Sieger.",
+        ],
+      },
+      {
+        h2: 'Die Spieltags-Challenge',
+        paragraphs: [
+          "Etwas leichter: Jede Woche tippt ihr nur die Top-Spiele des Wochenendes. Perfekt für Gruppen, die sich nicht für eine ganze Saison binden wollen, aber ein Duell von Spiel zu Spiel lieben.",
+        ],
+      },
+      {
+        h2: 'Warum eine App statt WhatsApp von Hand?',
+        list: [
+          "Schluss mit Ergebnissen, die in einer Tabelle vergraben sind, die keiner aktuell hält.",
+          "Die Tabelle berechnet sich nach jedem Spiel von selbst – null Streit um Punkte.",
+          "Jeder gibt seine Tipps ab, wo und wann er will, ohne die Gruppe zuzuspammen.",
+          "Trophäen, Statistiken und Verlauf: Dinge, die dir ein WhatsApp-Chat nie bieten wird.",
+        ],
+        paragraphs: [
+          "Behalte deine WhatsApp-Gruppe fürs Sticheln und lass die App die Tipps und die Tabelle regeln. Das Beste aus beiden Welten.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Wie starte ich ein Tippspiel mit meiner WhatsApp-Gruppe?', a: 'Erstelle ein Tippspiel auf PronoHub, wähle den Wettbewerb und teile den Einladungslink direkt in deiner WhatsApp-Gruppe. Deine Kumpels treten mit einem Klick bei.' },
+      { q: 'Ist es kostenlos?', a: 'Ja, völlig. Keine Gebühr, um das Spiel zu erstellen, die Gruppe einzuladen und die Tabelle zu verfolgen.' },
+      { q: 'Muss jeder eine App installieren?', a: 'Nein, PronoHub funktioniert auch im Browser. Für alle, die es lieber mögen, gibt es eine Android-App.' },
+    ],
+    related: ['ligue-1', 'coupe-du-monde', 'ligue-des-champions'],
+  },
+  {
+    slug: 'regles-bareme-concours-pronostics',
+    title: 'Regeln und Punkte für ein Fußball-Tippspiel unter Freunden | PronoHub',
+    h1: 'Regeln und Punkte für ein Tippspiel unter Kumpels',
+    description: 'Wie du Regeln und Punktevergabe für ein Fußball-Tippspiel unter Freunden festlegst: richtiger Ausgang, exaktes Ergebnis, Boni, Gleichstand. Die klare Anleitung.',
+    lede: "Ein gutes Tippspiel baut auf klaren Regeln auf. So gestaltest du eine ausgewogene Punktevergabe, die sowohl Beständigkeit als auch Risikofreude belohnt – ohne jemals Streit zwischen Kumpels auszulösen.",
+    sections: [
+      {
+        h2: 'Die Basis-Punkte: der richtige Ausgang',
+        paragraphs: [
+          "Der Grundbaustein: Du bekommst Punkte, wenn du den Ausgang des Spiels richtig tippst – Heimsieg, Unentschieden oder Auswärtssieg. In der Regel 1 Punkt. Einfach, klar, jeder versteht es.",
+        ],
+      },
+      {
+        h2: 'Das exakte Ergebnis: die Belohnung für den Mut',
+        paragraphs: [
+          "Um die Spieler zu trennen, kommt ein Bonus dazu, wenn das getippte Ergebnis genau stimmt (etwa 3 Punkte statt 1). Das treibt dazu an, ein 2:1 zu wagen, statt auf Nummer sicher zu spielen, und sorgt für die schönsten Aufholjagden in der Tabelle.",
+        ],
+      },
+      {
+        h2: 'Boni, um es zu würzen',
+        list: [
+          "Bonusspiel: Die Punkte eines ausgewählten Spiels werden verdoppelt.",
+          "Früh-Bonus: ein paar Extrapunkte für alle, die lange vor dem Anpfiff tippen.",
+          "Qualifikations-Bonus: in der K.-o.-Phase Punkte dafür, das weiterkommende Team zu tippen.",
+        ],
+      },
+      {
+        h2: 'Gleichstände regeln',
+        paragraphs: [
+          "Bei Gleichstand am Ende lege ein von Anfang an angekündigtes Kriterium fest: Anzahl der exakten Ergebnisse, dann Anzahl der richtigen Ausgänge. Entscheidend ist, dass die Regel vor dem Ende allen bekannt ist – niemals nachträglich entschieden.",
+        ],
+      },
+      {
+        h2: 'Dauer und Rhythmus',
+        paragraphs: [
+          "Entscheide vorab, ob das Tippspiel über die ganze Saison oder über eine feste Zahl an Spieltagen läuft. Ein kurzes Format hält die Aufmerksamkeit hoch; ein langes belohnt Beständigkeit. Beides funktioniert – wähle nach der Lust deiner Gruppe.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Welche Punktevergabe für den Anfang?', a: 'Die einfachste und wirksamste: 1 Punkt für den richtigen Ausgang (Heim/Unentschieden/Auswärts) und 3 Punkte für das exakte Ergebnis. Später passt du sie an die Wünsche der Gruppe an.' },
+      { q: 'Muss man die Punkte von Hand ausrechnen?', a: 'Nein. Auf PronoHub wird die Punktevergabe automatisch angewendet und die Tabelle aktualisiert sich nach jedem Spiel – ohne Fehler und ohne Streit.' },
+      { q: 'Kann man die Regeln anpassen?', a: 'Ja, du kannst Optionen wie das Bonusspiel oder den Früh-Bonus aktivieren, je nach dem Stil, den du deinem Tippspiel geben willst.' },
+    ],
+    related: ['ligue-1', 'serie-a', 'liga'],
+  },
+]
+
+export const GUIDES: Partial<Record<string, Guide[]>> & { fr: Guide[] } = { fr: FR, en: EN, es: ES, de: DE }
 
 /** Liste des guides pour la locale donnée (repli FR si langue non traduite). */
 export function getGuides(locale: string = 'fr'): Guide[] {
