@@ -30,6 +30,94 @@
     "fr": "Français",
     "en": "English"
   },
+  "Seo": {
+    "header": {
+      "cta": "Créer un tournoi gratuit"
+    },
+    "how": {
+      "title": "Comment ça marche ?",
+      "s1t": "Crée ton tournoi",
+      "s1d": "Choisis la compétition, donne un nom, et c'est prêt. En moins d'une minute, gratuitement.",
+      "s2t": "Invite tes potes",
+      "s2d": "Partage un lien (WhatsApp, SMS…). Tes amis rejoignent en un clic, sans prise de tête.",
+      "s3t": "Pronostique & grimpe",
+      "s3d": "Chaque match rapporte des points. Suis le classement en direct, débloque des trophées, chambre dans le chat."
+    },
+    "why": {
+      "title": "Pourquoi PronoHub ?",
+      "i1t": "Gratuit",
+      "i1d": "Crée et joue sans payer. Aucune carte bancaire demandée.",
+      "i2t": "Sans argent",
+      "i2d": "On ne parie pas d'argent : juste l'honneur et le classement entre potes.",
+      "i3t": "Entre amis",
+      "i3d": "Pensé pour ta bande, ton groupe WhatsApp, tes collègues ou ta famille.",
+      "i4t": "Trophées & classement",
+      "i4d": "Classement en direct, badges à débloquer et un vrai vestiaire pour chambrer."
+    },
+    "cta": {
+      "title": "Prêt à défier tes potes ?",
+      "subtitle": "Crée ton tournoi en une minute. C'est gratuit, et tes amis vont adorer.",
+      "createFree": "Créer mon tournoi gratuit"
+    },
+    "footer": {
+      "competitions": "Compétitions",
+      "guides": "Guides",
+      "pricing": "Formules",
+      "about": "À propos",
+      "login": "Connexion"
+    },
+    "guidesHub": {
+      "metaTitle": "Guides pronostics foot entre amis | PronoHub",
+      "metaDesc": "Nos guides pour organiser et animer un tournoi de pronostics de foot entre amis : règles, barème, idées de jeux pour un groupe WhatsApp. Gratuit et sans argent.",
+      "h1": "Guides pronostics <k>entre amis</k>",
+      "subtitle": "Tout pour organiser, régler et animer ton tournoi de pronos de foot entre potes — simplement, et gratuitement.",
+      "readGuide": "Lire le guide →",
+      "ctaLabel": "Créer mon tournoi gratuit"
+    },
+    "guideDetail": {
+      "breadcrumb": "Guides",
+      "launch": "Lance ton tournoi",
+      "predictionsShort": "Pronostics {short} →",
+      "faqTitle": "Questions fréquentes",
+      "ctaLabel": "Créer mon tournoi gratuit",
+      "metaFallback": "Guide | PronoHub"
+    },
+    "pronosticsHub": {
+      "metaTitle": "Pronostics foot entre amis — jeu de pronos gratuit | PronoHub",
+      "metaDesc": "PronoHub, l'appli pour créer un tournoi de pronostics foot entre amis : gratuit, sans argent, sur la Ligue 1, la Champions League et les grands championnats. Défie tes potes !",
+      "heroH1": "Pronostics foot <k>entre amis</k>",
+      "heroP1": "Crée ton tournoi de pronostics de foot en une minute, invite ta bande et voyez qui lit le mieux le jeu. <b>100% gratuit, sans argent</b> — juste le classement, les trophées et la chambre entre potes.",
+      "heroP2": "Parfait pour un groupe WhatsApp, les collègues du bureau ou la famille. De la Ligue 1 à la Coupe du Monde.",
+      "heroCta": "Créer mon tournoi gratuit",
+      "chooseComp": "Choisis ta compétition",
+      "faqTitle": "Questions fréquentes",
+      "ctaLabel": "Créer mon tournoi gratuit",
+      "q1": "PronoHub est-il vraiment gratuit ?",
+      "a1": "Oui. Créer un tournoi de pronostics, inviter tes amis et jouer est 100% gratuit. Des formules payantes existent seulement pour les grands groupes ou des options bonus, mais tu n'en as pas besoin pour t'amuser.",
+      "q2": "Joue-t-on avec de l'argent réel ?",
+      "a2": "Non, jamais. PronoHub est un jeu de pronostics entre amis, sans mise ni gain financier. On joue pour le classement, les trophées et la fierté.",
+      "q3": "Sur quelles compétitions puis-je jouer ?",
+      "a3": "Ligue 1, Ligue des Champions, Premier League, Liga, Serie A, Bundesliga, Coupe du Monde et d'autres championnats. Tu peux même créer des compétitions personnalisées.",
+      "q4": "Comment inviter mes amis à un tournoi ?",
+      "a4": "Tu partages un simple lien (WhatsApp, SMS, réseaux sociaux). Tes amis le rejoignent en un clic, l'inscription prend une minute."
+    },
+    "compDetail": {
+      "createFree": "Créer mon tournoi {short} gratuit",
+      "allComps": "Voir toutes les compétitions",
+      "otherComps": "Pronostique d'autres compétitions",
+      "faqTitle": "Questions fréquentes",
+      "ctaLabel": "Créer mon tournoi {short}",
+      "metaFallback": "Pronostics | PronoHub",
+      "q1": "Combien coûte un tournoi de pronostics {short} ?",
+      "a1": "Rien du tout. Créer un tournoi {short}, inviter tes amis et jouer est 100% gratuit sur PronoHub. Aucune carte bancaire n'est demandée.",
+      "q2": "Joue-t-on avec de l'argent ?",
+      "a2": "Non. PronoHub est un jeu de pronostics entre amis, sans mise ni gain en argent. On joue pour le classement, les trophées et l'honneur.",
+      "q3": "Combien de joueurs peuvent participer ?",
+      "a3": "Un tournoi gratuit accueille jusqu'à 5 joueurs, et des formules permettent d'aller jusqu'à 10, 20 ou 30 participants pour les plus grandes bandes.",
+      "q4": "Comment inviter mes amis ?",
+      "a4": "Après avoir créé ton tournoi, tu partages un simple lien (WhatsApp, SMS, réseaux…). Tes amis le rejoignent en un clic, même sans compte au préalable."
+    }
+  },
   "PublicBanner": {
     "openToAll": "Tournoi public ouvert à tous",
     "players": "{n} joueurs",

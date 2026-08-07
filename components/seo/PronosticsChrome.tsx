@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 import { createAdminClient } from '@/lib/supabase/server'
 
 /** Logo blanc (fond sombre) d'une compétition, custom_emblem_white en priorité. */
@@ -16,7 +17,8 @@ export async function fetchEmblem(competitionId: number): Promise<string | null>
   }
 }
 
-export function SeoHeader() {
+export async function SeoHeader() {
+  const t = await getTranslations('Seo.header')
   return (
     <header className="flex items-center justify-between max-w-5xl mx-auto px-5 py-4">
       <Link href="/" aria-label="Accueil PronoHub">
@@ -27,22 +29,23 @@ export function SeoHeader() {
         href="/auth/signup"
         className="inline-block bg-[#ff9900] text-[#111827] font-bold text-sm px-5 py-2.5 rounded-xl hover:brightness-110 transition"
       >
-        Créer un tournoi gratuit
+        {t('cta')}
       </Link>
     </header>
   )
 }
 
 /** Section « Comment ça marche » réutilisable. */
-export function HowItWorks() {
+export async function HowItWorks() {
+  const t = await getTranslations('Seo.how')
   const steps = [
-    { n: '1', t: 'Crée ton tournoi', d: 'Choisis la compétition, donne un nom, et c\'est prêt. En moins d\'une minute, gratuitement.' },
-    { n: '2', t: 'Invite tes potes', d: 'Partage un lien (WhatsApp, SMS…). Tes amis rejoignent en un clic, sans prise de tête.' },
-    { n: '3', t: 'Pronostique & grimpe', d: 'Chaque match rapporte des points. Suis le classement en direct, débloque des trophées, chambre dans le chat.' },
+    { n: '1', t: t('s1t'), d: t('s1d') },
+    { n: '2', t: t('s2t'), d: t('s2d') },
+    { n: '3', t: t('s3t'), d: t('s3d') },
   ]
   return (
     <section className="max-w-5xl mx-auto px-5 py-10">
-      <h2 className="text-2xl font-bold text-white text-center mb-8">Comment ça marche ?</h2>
+      <h2 className="text-2xl font-bold text-white text-center mb-8">{t('title')}</h2>
       <div className="grid gap-5 sm:grid-cols-3">
         {steps.map((s) => (
           <div key={s.n} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -57,16 +60,17 @@ export function HowItWorks() {
 }
 
 /** Arguments clés (différenciation : gratuit, sans argent, entre amis). */
-export function WhyPronoHub() {
+export async function WhyPronoHub() {
+  const t = await getTranslations('Seo.why')
   const items = [
-    ['🆓', 'Gratuit', 'Crée et joue sans payer. Aucune carte bancaire demandée.'],
-    ['🚫💶', 'Sans argent', 'On ne parie pas d\'argent : juste l\'honneur et le classement entre potes.'],
-    ['👥', 'Entre amis', 'Pensé pour ta bande, ton groupe WhatsApp, tes collègues ou ta famille.'],
-    ['🏆', 'Trophées & classement', 'Classement en direct, badges à débloquer et un vrai vestiaire pour chambrer.'],
+    ['🆓', t('i1t'), t('i1d')],
+    ['🚫💶', t('i2t'), t('i2d')],
+    ['👥', t('i3t'), t('i3d')],
+    ['🏆', t('i4t'), t('i4d')],
   ]
   return (
     <section className="max-w-5xl mx-auto px-5 py-10">
-      <h2 className="text-2xl font-bold text-white text-center mb-8">Pourquoi PronoHub ?</h2>
+      <h2 className="text-2xl font-bold text-white text-center mb-8">{t('title')}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map(([e, t, d]) => (
           <div key={t} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -82,33 +86,35 @@ export function WhyPronoHub() {
   )
 }
 
-export function SeoCta({ label }: { label: string }) {
+export async function SeoCta({ label }: { label?: string }) {
+  const t = await getTranslations('Seo.cta')
   return (
     <section className="max-w-3xl mx-auto px-5 py-12 text-center">
-      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Prêt à défier tes potes ?</h2>
-      <p className="text-slate-400 mb-6">Crée ton tournoi en une minute. C'est gratuit, et tes amis vont adorer.</p>
+      <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">{t('title')}</h2>
+      <p className="text-slate-400 mb-6">{t('subtitle')}</p>
       <Link
         href="/auth/signup"
         className="inline-block bg-[#ff9900] text-[#111827] font-bold text-lg px-9 py-4 rounded-xl hover:brightness-110 transition"
       >
-        {label}
+        {label ?? t('createFree')}
       </Link>
     </section>
   )
 }
 
-export function SeoFooter() {
+export async function SeoFooter() {
+  const t = await getTranslations('Seo.footer')
   return (
     <footer className="border-t border-white/10 mt-8">
       <div className="max-w-5xl mx-auto px-5 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo.png" alt="PronoHub" className="h-7 w-auto opacity-80" />
         <nav className="flex flex-wrap gap-x-5 gap-y-2 justify-center">
-          <Link href="/pronostics" className="hover:text-slate-300">Compétitions</Link>
-          <Link href="/guides" className="hover:text-slate-300">Guides</Link>
-          <Link href="/pricing" className="hover:text-slate-300">Formules</Link>
-          <Link href="/about" className="hover:text-slate-300">À propos</Link>
-          <Link href="/auth/login" className="hover:text-slate-300">Connexion</Link>
+          <Link href="/pronostics" className="hover:text-slate-300">{t('competitions')}</Link>
+          <Link href="/guides" className="hover:text-slate-300">{t('guides')}</Link>
+          <Link href="/pricing" className="hover:text-slate-300">{t('pricing')}</Link>
+          <Link href="/about" className="hover:text-slate-300">{t('about')}</Link>
+          <Link href="/auth/login" className="hover:text-slate-300">{t('login')}</Link>
         </nav>
       </div>
     </footer>

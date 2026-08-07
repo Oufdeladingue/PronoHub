@@ -1,22 +1,25 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { GUIDES, getGuide } from '@/lib/seo/guides-content'
-import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
+import { getTranslations } from 'next-intl/server'
+import { getGuide, getGuides } from '@/lib/seo/guides-content'
+import { getCompetitions } from '@/lib/seo/pronostics-content'
 import { SeoHeader, SeoCta, SeoFooter } from '@/components/seo/PronosticsChrome'
+import type { Locale } from '@/i18n/routing'
 
 export const revalidate = 86400
 const BASE = 'https://www.pronohub.club'
 
 export function generateStaticParams() {
-  return GUIDES.map((g) => ({ slug: g.slug }))
+  return getGuides('fr').map((g) => ({ slug: g.slug }))
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params
-  const g = getGuide(slug)
-  if (!g) return { title: 'Guide | PronoHub' }
-  const url = `${BASE}/guides/${g.slug}`
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: Locale }> }): Promise<Metadata> {
+  const { slug, locale } = await params
+  const g = getGuide(slug, locale)
+  const t = await getTranslations({ locale, namespace: 'Seo.guideDetail' })
+  if (!g) return { title: t('metaFallback') }
+  const url = locale === 'fr' ? `${BASE}/guides/${g.slug}` : `${BASE}/${locale}/guides/${g.slug}`
   return {
     title: g.title,
     description: g.description,
@@ -26,13 +29,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  const g = getGuide(slug)
+export default async function GuidePage({ params }: { params: Promise<{ slug: string; locale: Locale }> }) {
+  const { slug, locale } = await params
+  const g = getGuide(slug, locale)
   if (!g) notFound()
 
+  const t = await getTranslations({ locale, namespace: 'Seo.guideDetail' })
+  const competitions = getCompetitions(locale)
   const related = g.related
-    .map((s) => COMPETITIONS_SEO.find((c) => c.slug === s))
+    .map((s) => competitions.find((c) => c.slug === s))
     .filter((c): c is NonNullable<typeof c> => Boolean(c))
 
   const jsonLd = {
@@ -42,7 +47,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         '@type': 'Article',
         headline: g.h1,
         description: g.description,
-        inLanguage: 'fr-FR',
+        inLanguage: locale === 'fr' ? 'fr-FR' : 'en-GB',
         author: { '@type': 'Organization', name: 'PronoHub' },
         publisher: { '@type': 'Organization', name: 'PronoHub', logo: { '@type': 'ImageObject', url: `${BASE}/images/logo.png` } },
         mainEntityOfPage: `${BASE}/guides/${g.slug}`,
@@ -51,7 +56,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Accueil', item: BASE },
-          { '@type': 'ListItem', position: 2, name: 'Guides', item: `${BASE}/guides` },
+          { '@type': 'ListItem', position: 2, name: t('breadcrumb'), item: `${BASE}/guides` },
           { '@type': 'ListItem', position: 3, name: g.h1, item: `${BASE}/guides/${g.slug}` },
         ],
       },
@@ -69,7 +74,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
 
       <article className="max-w-2xl mx-auto px-5 pt-8 pb-4">
         <nav className="text-xs text-slate-500 mb-4">
-          <Link href="/guides" className="hover:text-slate-300">Guides</Link> <span className="mx-1">/</span> <span className="text-slate-400">{g.h1}</span>
+          <Link href="/guides" className="hover:text-slate-300">{t('breadcrumb')}</Link> <span className="mx-1">/</span> <span className="text-slate-400">{g.h1}</span>
         </nav>
         <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4 text-balance">{g.h1}</h1>
         <p className="text-slate-300 text-[17px] leading-relaxed mb-8">{g.lede}</p>
@@ -92,11 +97,11 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
       {/* Compétitions à mettre en avant (maillage interne) */}
       {related.length > 0 && (
         <section className="max-w-2xl mx-auto px-5 py-6">
-          <h2 className="text-lg font-bold text-white mb-4">Lance ton tournoi</h2>
+          <h2 className="text-lg font-bold text-white mb-4">{t('launch')}</h2>
           <div className="flex flex-wrap gap-3">
             {related.map((c) => (
               <Link key={c.slug} href={`/pronostics/${c.slug}`} className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-200 hover:border-[#ff9900]/50 hover:text-white transition">
-                Pronostics {c.short} →
+                {t('predictionsShort', { short: c.short })}
               </Link>
             ))}
           </div>
@@ -105,7 +110,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
 
       {/* FAQ */}
       <section className="max-w-2xl mx-auto px-5 py-8">
-        <h2 className="text-2xl font-bold text-white text-center mb-6">Questions fréquentes</h2>
+        <h2 className="text-2xl font-bold text-white text-center mb-6">{t('faqTitle')}</h2>
         <div className="space-y-4">
           {g.faq.map((f) => (
             <div key={f.q} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -116,7 +121,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         </div>
       </section>
 
-      <SeoCta label="Créer mon tournoi gratuit" />
+      <SeoCta label={t('ctaLabel')} />
       <SeoFooter />
     </div>
   )

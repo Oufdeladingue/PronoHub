@@ -1,39 +1,49 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { GUIDES } from '@/lib/seo/guides-content'
+import { getTranslations } from 'next-intl/server'
+import { getGuides } from '@/lib/seo/guides-content'
 import { SeoHeader, SeoCta, SeoFooter } from '@/components/seo/PronosticsChrome'
+import type { Locale } from '@/i18n/routing'
 
 export const revalidate = 86400
 const BASE = 'https://www.pronohub.club'
 
-const TITLE = 'Guides pronostics foot entre amis | PronoHub'
-const DESC = 'Nos guides pour organiser et animer un tournoi de pronostics de foot entre amis : règles, barème, idées de jeux pour un groupe WhatsApp. Gratuit et sans argent.'
-
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESC,
-  alternates: { canonical: `${BASE}/guides` },
-  openGraph: { title: TITLE, description: DESC, url: `${BASE}/guides`, type: 'website', images: [{ url: '/opengraph-image' }] },
-  twitter: { card: 'summary_large_image', title: TITLE, description: DESC, images: ['/opengraph-image'] },
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'Seo.guidesHub' })
+  const url = locale === 'fr' ? `${BASE}/guides` : `${BASE}/${locale}/guides`
+  const title = t('metaTitle')
+  const description = t('metaDesc')
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: 'website', images: [{ url: '/opengraph-image' }] },
+    twitter: { card: 'summary_large_image', title, description, images: ['/opengraph-image'] },
+  }
 }
 
-export default function GuidesHubPage() {
+export default async function GuidesHubPage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'Seo.guidesHub' })
+  const guides = getGuides(locale)
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white">
       <SeoHeader />
 
       <section className="max-w-3xl mx-auto px-5 pt-10 pb-4 text-center">
         <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4 text-balance">
-          Guides pronostics <span className="text-[#ff9900]">entre amis</span>
+          {t.rich('h1', { k: (c) => <span className="text-[#ff9900]">{c}</span> })}
         </h1>
         <p className="text-slate-300 text-[16px] leading-relaxed">
-          Tout pour organiser, régler et animer ton tournoi de pronos de foot entre potes — simplement, et gratuitement.
+          {t('subtitle')}
         </p>
       </section>
 
       <section className="max-w-3xl mx-auto px-5 py-8">
         <div className="grid gap-4">
-          {GUIDES.map((g) => (
+          {guides.map((g) => (
             <Link
               key={g.slug}
               href={`/guides/${g.slug}`}
@@ -41,13 +51,13 @@ export default function GuidesHubPage() {
             >
               <h2 className="text-xl font-bold text-white mb-2">{g.h1}</h2>
               <p className="text-slate-400 text-sm leading-relaxed">{g.description}</p>
-              <span className="inline-block mt-3 text-[#ff9900] text-sm font-semibold">Lire le guide →</span>
+              <span className="inline-block mt-3 text-[#ff9900] text-sm font-semibold">{t('readGuide')}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      <SeoCta label="Créer mon tournoi gratuit" />
+      <SeoCta label={t('ctaLabel')} />
       <SeoFooter />
     </div>
   )

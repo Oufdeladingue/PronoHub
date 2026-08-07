@@ -30,6 +30,94 @@
     "fr": "Français",
     "en": "English"
   },
+  "Seo": {
+    "header": {
+      "cta": "Create a free tournament"
+    },
+    "how": {
+      "title": "How does it work?",
+      "s1t": "Create your tournament",
+      "s1d": "Pick the competition, give it a name, and you're set. In under a minute, for free.",
+      "s2t": "Invite your mates",
+      "s2d": "Share a link (WhatsApp, text…). Your friends join in one tap, no hassle.",
+      "s3t": "Predict & climb",
+      "s3d": "Every match scores points. Follow the live leaderboard, unlock trophies, and banter in the chat."
+    },
+    "why": {
+      "title": "Why PronoHub?",
+      "i1t": "Free",
+      "i1d": "Create and play without paying. No credit card required.",
+      "i2t": "No money",
+      "i2d": "No betting real money: just bragging rights and the leaderboard between mates.",
+      "i3t": "With friends",
+      "i3d": "Built for your crew, your WhatsApp group, your colleagues or your family.",
+      "i4t": "Trophies & leaderboard",
+      "i4d": "Live leaderboard, badges to unlock and a proper locker room for the banter."
+    },
+    "cta": {
+      "title": "Ready to take on your mates?",
+      "subtitle": "Create your tournament in a minute. It's free, and your friends will love it.",
+      "createFree": "Create my free tournament"
+    },
+    "footer": {
+      "competitions": "Competitions",
+      "guides": "Guides",
+      "pricing": "Pricing",
+      "about": "About",
+      "login": "Log in"
+    },
+    "guidesHub": {
+      "metaTitle": "Football prediction game guides with friends | PronoHub",
+      "metaDesc": "Our guides to setting up and running a football prediction game with your friends: rules, scoring, game ideas for a WhatsApp group. Free and no money.",
+      "h1": "Football prediction guides <k>with friends</k>",
+      "subtitle": "Everything to set up, tune and run your football prediction game with your mates — simply, and for free.",
+      "readGuide": "Read the guide →",
+      "ctaLabel": "Create my free tournament"
+    },
+    "guideDetail": {
+      "breadcrumb": "Guides",
+      "launch": "Start your tournament",
+      "predictionsShort": "{short} predictions →",
+      "faqTitle": "Frequently asked questions",
+      "ctaLabel": "Create my free tournament",
+      "metaFallback": "Guide | PronoHub"
+    },
+    "pronosticsHub": {
+      "metaTitle": "Football prediction game with friends — free | PronoHub",
+      "metaDesc": "PronoHub, the app to create a football prediction game with friends: free, no money, on Ligue 1, the Champions League and the big leagues. Take on your mates!",
+      "heroH1": "Football predictions <k>with friends</k>",
+      "heroP1": "Create your football prediction game in a minute, invite your crew and see who reads the game best. <b>100% free, no money</b> — just the leaderboard, the trophies and the banter between mates.",
+      "heroP2": "Perfect for a WhatsApp group, the office colleagues or the family. From Ligue 1 to the World Cup.",
+      "heroCta": "Create my free tournament",
+      "chooseComp": "Choose your competition",
+      "faqTitle": "Frequently asked questions",
+      "ctaLabel": "Create my free tournament",
+      "q1": "Is PronoHub really free?",
+      "a1": "Yes. Creating a prediction tournament, inviting your friends and playing is 100% free. Paid plans only exist for large groups or bonus options, but you don't need them to have fun.",
+      "q2": "Do you play with real money?",
+      "a2": "No, never. PronoHub is a prediction game between friends, with no stake and no financial winnings. You play for the leaderboard, the trophies and the pride.",
+      "q3": "Which competitions can I play on?",
+      "a3": "Ligue 1, Champions League, Premier League, La Liga, Serie A, Bundesliga, World Cup and other leagues. You can even create custom competitions.",
+      "q4": "How do I invite my friends to a tournament?",
+      "a4": "You share a simple link (WhatsApp, text, social media). Your friends join in one tap, and signing up takes a minute."
+    },
+    "compDetail": {
+      "createFree": "Create my free {short} tournament",
+      "allComps": "See all competitions",
+      "otherComps": "Predict other competitions",
+      "faqTitle": "Frequently asked questions",
+      "ctaLabel": "Create my {short} tournament",
+      "metaFallback": "Predictions | PronoHub",
+      "q1": "How much does a {short} prediction game cost?",
+      "a1": "Nothing at all. Creating a {short} tournament, inviting your friends and playing is 100% free on PronoHub. No credit card required.",
+      "q2": "Do you play with money?",
+      "a2": "No. PronoHub is a prediction game between friends, with no stake and no money winnings. You play for the leaderboard, the trophies and the bragging rights.",
+      "q3": "How many players can take part?",
+      "a3": "A free tournament holds up to 5 players, and plans let you go up to 10, 20 or 30 players for the biggest crews.",
+      "q4": "How do I invite my friends?",
+      "a4": "Once you've created your tournament, you share a simple link (WhatsApp, text, social media). Your friends join in one tap, even without an account beforehand."
+    }
+  },
   "PublicBanner": {
     "openToAll": "Public tournament open to all",
     "players": "{n} players",

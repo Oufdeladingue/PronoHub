@@ -2,10 +2,15 @@
  * Contenu SEO des pages /pronostics/[slug] (une par compétition) + hub /pronostics.
  * Copie rédigée à la main (FR) : on ne vise PAS « pronostic ligue 1 » (écrasé par les sites de
  * paris) mais l'intention différenciante de PronoHub : pronos ENTRE AMIS, GRATUIT, SANS ARGENT.
+ *
+ * Bilingue FR/EN : `COMPETITIONS_SEO` est un Record indexé par locale. Les champs de DONNÉES
+ * (`slug`, `competitionId`, `dbName`) sont IDENTIQUES entre les deux langues — on garde les mêmes
+ * slugs pour ne pas casser le routing / le sitemap / les liens `related`. Le contenu EN est rédigé
+ * pour l'intention de recherche anglophone (football prediction game with friends, free, no money).
  */
 
 export interface CompetitionSeo {
-  slug: string          // segment URL FR
+  slug: string          // segment URL FR (identique EN)
   competitionId: number // id table competitions (pour le logo)
   dbName: string        // nom exact en base (fallback)
   name: string          // nom affiché avec article ("la Ligue 1")
@@ -16,7 +21,7 @@ export interface CompetitionSeo {
   intro: string         // paragraphe d'intro unique
 }
 
-export const COMPETITIONS_SEO: CompetitionSeo[] = [
+const FR: CompetitionSeo[] = [
   {
     slug: 'ligue-1',
     competitionId: 2015,
@@ -129,6 +134,126 @@ export const COMPETITIONS_SEO: CompetitionSeo[] = [
   },
 ]
 
-export function getCompetitionSeo(slug: string): CompetitionSeo | undefined {
-  return COMPETITIONS_SEO.find((c) => c.slug === slug)
+const EN: CompetitionSeo[] = [
+  {
+    slug: 'ligue-1',
+    competitionId: 2015,
+    dbName: 'Ligue 1',
+    name: 'Ligue 1',
+    short: 'Ligue 1',
+    title: 'Ligue 1 prediction game with friends — free | PronoHub',
+    h1: 'Ligue 1 predictions with friends',
+    description: 'Start a free Ligue 1 prediction game with your friends — no money, no betting. Take on your mates matchday after matchday, climb the leaderboard and grab the trophies.',
+    intro: "France's top flight is the perfect playground for a prediction league with your mates: 34 matchdays, PSG-Marseille clashes, and a weekly chance to prove you read the game better than your friends. On PronoHub you set up your Ligue 1 tournament in a minute, invite your crew, and you're off — completely free.",
+  },
+  {
+    slug: 'ligue-des-champions',
+    competitionId: 2001,
+    dbName: 'UEFA Champions League',
+    name: 'the Champions League',
+    short: 'Champions League',
+    title: 'Champions League prediction game with friends — free | PronoHub',
+    h1: 'Champions League predictions with friends',
+    description: 'Launch a free Champions League prediction game with your friends — no money involved. From the group stage to the final, rack up points and aim for the top of the leaderboard.',
+    intro: "Those big European nights are even better shared. Create a Champions League prediction tournament and turn every Tuesday and Wednesday into a duel with your mates: who called the smash-and-grab, the thrashing, the unlikely qualification? On PronoHub it's free from the first group game all the way to the final.",
+  },
+  {
+    slug: 'coupe-du-monde',
+    competitionId: 2000,
+    dbName: 'FIFA World Cup',
+    name: 'the World Cup',
+    short: 'World Cup',
+    title: 'World Cup 2026 prediction game with friends — free | PronoHub',
+    h1: 'World Cup predictions with friends',
+    description: 'Run a free World Cup prediction pool with your friends or colleagues — no betting, no money. From the group stage to the final, the football event of a generation.',
+    intro: "A World Cup isn't meant to be watched alone. Set up a World Cup prediction pool with your friends, your family or the whole office: group stage, round of 16, quarters… every match counts towards the leaderboard. Free to create, invites in a single link, and the buzz of a tournament that runs all summer.",
+  },
+  {
+    slug: 'premier-league',
+    competitionId: 2021,
+    dbName: 'Premier League',
+    name: 'the Premier League',
+    short: 'Premier League',
+    title: 'Premier League prediction game with friends — free | PronoHub',
+    h1: 'Premier League predictions with friends',
+    description: 'Start a free Premier League prediction game with your friends — no money, no betting. 38 matchdays of English football to settle the debate with your crew.',
+    intro: "The most unpredictable league in the world deserves a proper contest between mates. Big Six wobbles, underdogs nicking points, last-gasp Saturday winners: on PronoHub you create your Premier League prediction game for free and finally find out who really knows English football.",
+  },
+  {
+    slug: 'liga',
+    competitionId: 2014,
+    dbName: 'Primera Division',
+    name: 'La Liga',
+    short: 'Liga',
+    title: 'La Liga prediction game with friends — free | PronoHub',
+    h1: 'La Liga predictions with friends',
+    description: 'Launch a free La Liga prediction game with your friends — no money involved. Real, Barça, Atlético… predict the Spanish league and take on your mates.',
+    intro: "Clásicos, Madrid derbies and Andalusian surprises: La Liga has everything for a lively prediction league. Create your Spanish-league prediction game on PronoHub, invite your friends and watch the leaderboard take shape matchday after matchday — for free.",
+  },
+  {
+    slug: 'serie-a',
+    competitionId: 2019,
+    dbName: 'Serie A',
+    name: 'Serie A',
+    short: 'Serie A',
+    title: 'Serie A prediction game with friends — free | PronoHub',
+    h1: 'Serie A predictions with friends',
+    description: 'Start a free Serie A prediction game with your friends — no money, no betting. Italian football as the arena to settle it with your crew.',
+    intro: "Tactics, out-of-nowhere goals and iron defences: Italian football rewards those who actually watch the matches. Set up your Serie A prediction game with your friends on PronoHub, for free, and prove you know Italian football better than your mates.",
+  },
+  {
+    slug: 'bundesliga',
+    competitionId: 2002,
+    dbName: 'Bundesliga',
+    name: 'the Bundesliga',
+    short: 'Bundesliga',
+    title: 'Bundesliga prediction game with friends — free | PronoHub',
+    h1: 'Bundesliga predictions with friends',
+    description: 'Run a free Bundesliga prediction game with your friends — no betting, no money. Goals galore and German football to challenge your crew every weekend.',
+    intro: "The league of packed stadiums and goal-fests is made for predicting. Create your Bundesliga prediction game with your friends on PronoHub: free to set up, one-click invites, and a leaderboard that catches fire from matchday one.",
+  },
+  {
+    slug: 'liga-portugal',
+    competitionId: 2017,
+    dbName: 'Primeira Liga',
+    name: 'the Primeira Liga',
+    short: 'Primeira Liga',
+    title: 'Primeira Liga prediction game with friends — free | PronoHub',
+    h1: 'Primeira Liga predictions with friends',
+    description: 'Create a free Primeira Liga (Liga Portugal) prediction game with your friends — no money, no betting. Benfica, Porto, Sporting… your move.',
+    intro: "Benfica, Porto, Sporting and tomorrow's wonderkids: the Primeira Liga always has surprises in store. Launch your Portuguese-league prediction game with your friends on PronoHub, for free, and see who rules the title race… prediction edition.",
+  },
+  {
+    slug: 'eredivisie',
+    competitionId: 2003,
+    dbName: 'Eredivisie',
+    name: 'the Eredivisie',
+    short: 'Eredivisie',
+    title: 'Eredivisie prediction game with friends — free | PronoHub',
+    h1: 'Eredivisie predictions with friends',
+    description: "Launch a free Eredivisie prediction game with your friends — no betting, no money. Spectacular Dutch football to settle it with your crew.",
+    intro: "Ajax, PSV, Feyenoord and attacking football that never stops: the Eredivisie is a joy to predict. Create your Dutch-league prediction game with your friends on PronoHub, for free, and see who best calls the weekend's goal-fests.",
+  },
+  {
+    slug: 'championnat-bresilien',
+    competitionId: 2013,
+    dbName: 'Campeonato Brasileiro Série A',
+    name: 'the Brazilian league',
+    short: 'Brasileirão',
+    title: 'Brazilian league prediction game with friends — free | PronoHub',
+    h1: 'Brazilian league predictions with friends',
+    description: 'Create a free Brasileirão prediction game with your friends — no money, no betting. Brazilian football to challenge your crew all season long.',
+    intro: "Flamengo, Palmeiras, Corinthians: the Brasileirão is raw passion and results no one can ever call in advance. Set up your Brazilian-league prediction game with your friends on PronoHub, for free, and pit your instincts against your mates'.",
+  },
+]
+
+export const COMPETITIONS_SEO: Record<'fr' | 'en', CompetitionSeo[]> = { fr: FR, en: EN }
+
+/** Liste des compétitions pour la locale donnée (défaut FR pour rétrocompat). */
+export function getCompetitions(locale: 'fr' | 'en' = 'fr'): CompetitionSeo[] {
+  return COMPETITIONS_SEO[locale] ?? COMPETITIONS_SEO.fr
+}
+
+export function getCompetitionSeo(slug: string, locale: 'fr' | 'en' = 'fr'): CompetitionSeo | undefined {
+  return getCompetitions(locale).find((c) => c.slug === slug)
 }

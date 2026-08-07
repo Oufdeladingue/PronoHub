@@ -1,21 +1,24 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { COMPETITIONS_SEO, getCompetitionSeo } from '@/lib/seo/pronostics-content'
+import { getTranslations } from 'next-intl/server'
+import { getCompetitions, getCompetitionSeo } from '@/lib/seo/pronostics-content'
 import { fetchEmblem, SeoHeader, HowItWorks, WhyPronoHub, SeoCta, SeoFooter } from '@/components/seo/PronosticsChrome'
+import type { Locale } from '@/i18n/routing'
 
 export const revalidate = 86400 // ISR : régénère au plus une fois/jour
 const BASE = 'https://www.pronohub.club'
 
 export function generateStaticParams() {
-  return COMPETITIONS_SEO.map((c) => ({ slug: c.slug }))
+  return getCompetitions('fr').map((c) => ({ slug: c.slug }))
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params
-  const c = getCompetitionSeo(slug)
-  if (!c) return { title: 'Pronostics | PronoHub' }
-  const url = `${BASE}/pronostics/${c.slug}`
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: Locale }> }): Promise<Metadata> {
+  const { slug, locale } = await params
+  const c = getCompetitionSeo(slug, locale)
+  const t = await getTranslations({ locale, namespace: 'Seo.compDetail' })
+  if (!c) return { title: t('metaFallback') }
+  const url = locale === 'fr' ? `${BASE}/pronostics/${c.slug}` : `${BASE}/${locale}/pronostics/${c.slug}`
   return {
     title: c.title,
     description: c.description,
@@ -25,21 +28,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-const FAQ = (short: string) => [
-  { q: `Combien coûte un tournoi de pronostics ${short} ?`, a: `Rien du tout. Créer un tournoi ${short}, inviter tes amis et jouer est 100% gratuit sur PronoHub. Aucune carte bancaire n'est demandée.` },
-  { q: 'Joue-t-on avec de l\'argent ?', a: 'Non. PronoHub est un jeu de pronostics entre amis, sans mise ni gain en argent. On joue pour le classement, les trophées et l\'honneur.' },
-  { q: 'Combien de joueurs peuvent participer ?', a: 'Un tournoi gratuit accueille jusqu\'à 5 joueurs, et des formules permettent d\'aller jusqu\'à 10, 20 ou 30 participants pour les plus grandes bandes.' },
-  { q: 'Comment inviter mes amis ?', a: 'Après avoir créé ton tournoi, tu partages un simple lien (WhatsApp, SMS, réseaux…). Tes amis le rejoignent en un clic, même sans compte au préalable.' },
-]
-
-export default async function CompetitionPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  const c = getCompetitionSeo(slug)
+export default async function CompetitionPage({ params }: { params: Promise<{ slug: string; locale: Locale }> }) {
+  const { slug, locale } = await params
+  const c = getCompetitionSeo(slug, locale)
   if (!c) notFound()
 
+  const t = await getTranslations({ locale, namespace: 'Seo.compDetail' })
   const emblem = await fetchEmblem(c.competitionId)
-  const others = COMPETITIONS_SEO.filter((x) => x.slug !== c.slug)
-  const faq = FAQ(c.short)
+  const others = getCompetitions(locale).filter((x) => x.slug !== c.slug)
+  const faq = [
+    { q: t('q1', { short: c.short }), a: t('a1', { short: c.short }) },
+    { q: t('q2', { short: c.short }), a: t('a2', { short: c.short }) },
+    { q: t('q3', { short: c.short }), a: t('a3', { short: c.short }) },
+    { q: t('q4', { short: c.short }), a: t('a4', { short: c.short }) },
+  ]
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -74,10 +76,10 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
         <p className="text-slate-300 text-[16px] leading-relaxed mb-7">{c.intro}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/auth/signup" className="inline-block bg-[#ff9900] text-[#111827] font-bold text-[16px] px-8 py-3.5 rounded-xl hover:brightness-110 transition">
-            Créer mon tournoi {c.short} gratuit
+            {t('createFree', { short: c.short })}
           </Link>
           <Link href="/pronostics" className="inline-block border border-white/20 text-white font-semibold text-[16px] px-8 py-3.5 rounded-xl hover:bg-white/5 transition">
-            Voir toutes les compétitions
+            {t('allComps')}
           </Link>
         </div>
       </section>
@@ -87,7 +89,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
 
       {/* Autres compétitions (maillage interne) */}
       <section className="max-w-5xl mx-auto px-5 py-10">
-        <h2 className="text-2xl font-bold text-white text-center mb-8">Pronostique d'autres compétitions</h2>
+        <h2 className="text-2xl font-bold text-white text-center mb-8">{t('otherComps')}</h2>
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {others.map((o) => (
             <Link key={o.slug} href={`/pronostics/${o.slug}`} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-center text-sm font-semibold text-slate-200 hover:border-[#ff9900]/50 hover:text-white transition">
@@ -99,7 +101,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
 
       {/* FAQ */}
       <section className="max-w-3xl mx-auto px-5 py-10">
-        <h2 className="text-2xl font-bold text-white text-center mb-8">Questions fréquentes</h2>
+        <h2 className="text-2xl font-bold text-white text-center mb-8">{t('faqTitle')}</h2>
         <div className="space-y-4">
           {faq.map((f) => (
             <div key={f.q} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -110,7 +112,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ sl
         </div>
       </section>
 
-      <SeoCta label={`Créer mon tournoi ${c.short}`} />
+      <SeoCta label={t('ctaLabel', { short: c.short })} />
       <SeoFooter />
     </div>
   )

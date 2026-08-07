@@ -2,11 +2,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, getLocale } from 'next-intl/server'
 import { ClientShell } from './ClientShell'
 import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
-import { COMPETITIONS_SEO } from '@/lib/seo/pronostics-content'
+import { getCompetitions } from '@/lib/seo/pronostics-content'
+import type { Locale } from '@/i18n/routing'
 import { getFeaturedPublicTournament } from '@/lib/public-tournament'
 import './landing.css'
 
@@ -591,6 +592,7 @@ async function PricingTeaser() {
 async function CTAFooter() {
   const t = await getTranslations('Landing.cta')
   const tf = await getTranslations('Landing.footer')
+  const locale = (await getLocale()) as Locale
   return (
     <div id="cta" data-chapter="Commencer" className="min-h-screen flex flex-col md:snap-start">
       {/* CTA content */}
@@ -668,7 +670,7 @@ async function CTAFooter() {
           <div className="mt-6 pt-5 border-t border-white/[0.06]">
             <p className="text-xs text-[#64748b] mb-2 text-center md:text-left">{tf('byCompetition')}</p>
             <nav className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 text-xs text-[#64748b]">
-              {COMPETITIONS_SEO.map((c) => (
+              {getCompetitions(locale).map((c) => (
                 <Link key={c.slug} href={`/pronostics/${c.slug}`} className="hover:text-[#ff9900] transition-colors">
                   {c.short}
                 </Link>
