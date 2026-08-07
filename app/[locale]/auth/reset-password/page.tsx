@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function ResetPasswordPage() {
+  const t = useTranslations('Auth')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -49,12 +51,12 @@ export default function ResetPasswordPage() {
     setError('')
 
     if (!validation.isValid) {
-      setError('Le mot de passe ne respecte pas les critères requis.')
+      setError(t('resetPassword.errCriteria'))
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas.')
+      setError(t('resetPassword.errMismatch'))
       return
     }
 
@@ -66,7 +68,7 @@ export default function ResetPasswordPage() {
       setSuccess(true)
       setTimeout(() => router.push('/auth/login'), 3000)
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la réinitialisation')
+      setError(err.message || t('resetPassword.errReset'))
     } finally {
       setLoading(false)
     }
@@ -76,22 +78,22 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#111' }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Nouveau mot de passe</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">{t('resetPassword.title')}</h1>
           <p className="text-gray-400 text-sm">
-            Choisis un nouveau mot de passe pour ton compte.
+            {t('resetPassword.subtitle')}
           </p>
         </div>
 
         {success ? (
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6 text-center">
             <p className="text-green-400 mb-4">
-              Mot de passe mis à jour ! Tu vas être redirigé vers la connexion...
+              {t('resetPassword.success')}
             </p>
             <Link
               href="/auth/login"
               className="text-[#ff9900] hover:text-[#e68a00] text-sm transition-colors"
             >
-              Se connecter
+              {t('resetPassword.loginLink')}
             </Link>
           </div>
         ) : (
@@ -104,7 +106,7 @@ export default function ResetPasswordPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Nouveau mot de passe
+                {t('resetPassword.passwordLabel')}
               </label>
               <input
                 id="password"
@@ -119,16 +121,16 @@ export default function ResetPasswordPage() {
               {password && (
                 <div className="mt-2 space-y-1">
                   <p className={`text-xs ${validation.hasMinLength ? 'text-green-400' : 'text-gray-400'}`}>
-                    {validation.hasMinLength ? '✓' : '○'} 8 caractères minimum
+                    {validation.hasMinLength ? '✓' : '○'} {t('resetPassword.critMinLength')}
                   </p>
                   <p className={`text-xs ${validation.hasUpperCase ? 'text-green-400' : 'text-gray-400'}`}>
-                    {validation.hasUpperCase ? '✓' : '○'} Une lettre majuscule
+                    {validation.hasUpperCase ? '✓' : '○'} {t('signup.critUpper')}
                   </p>
                   <p className={`text-xs ${validation.hasLowerCase ? 'text-green-400' : 'text-gray-400'}`}>
-                    {validation.hasLowerCase ? '✓' : '○'} Une lettre minuscule
+                    {validation.hasLowerCase ? '✓' : '○'} {t('signup.critLower')}
                   </p>
                   <p className={`text-xs ${validation.hasNumber ? 'text-green-400' : 'text-gray-400'}`}>
-                    {validation.hasNumber ? '✓' : '○'} Un chiffre
+                    {validation.hasNumber ? '✓' : '○'} {t('signup.critNumber')}
                   </p>
                 </div>
               )}
@@ -136,7 +138,7 @@ export default function ResetPasswordPage() {
 
             <div>
               <label htmlFor="confirm" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirmer le mot de passe
+                {t('signup.confirmPassword')}
               </label>
               <input
                 id="confirm"
@@ -149,7 +151,7 @@ export default function ResetPasswordPage() {
                 placeholder="••••••••"
               />
               {confirmPassword && password !== confirmPassword && (
-                <p className="text-xs text-red-400 mt-1">Les mots de passe ne correspondent pas</p>
+                <p className="text-xs text-red-400 mt-1">{t('errors.pwMismatch')}</p>
               )}
             </div>
 
@@ -158,7 +160,7 @@ export default function ResetPasswordPage() {
               disabled={loading || !validation.isValid || password !== confirmPassword}
               className="auth-btn-primary"
             >
-              {loading ? 'Mise à jour...' : 'Réinitialiser le mot de passe'}
+              {loading ? t('resetPassword.submitLoading') : t('resetPassword.submit')}
             </button>
 
             <div className="text-center">
@@ -166,7 +168,7 @@ export default function ResetPasswordPage() {
                 href="/auth/login"
                 className="text-sm text-gray-400 hover:text-white transition-colors"
               >
-                Retour à la connexion
+                {t('forgotPassword.backToLogin')}
               </Link>
             </div>
           </form>

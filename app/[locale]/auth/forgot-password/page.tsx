@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations('Auth')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -27,7 +29,7 @@ export default function ForgotPasswordPage() {
       if (error) throw error
       setSuccess(true)
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'envoi')
+      setError(err.message || t('forgotPassword.errSend'))
     } finally {
       setLoading(false)
     }
@@ -37,23 +39,22 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#111' }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white mb-2">Mot de passe oublié</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">{t('forgotPassword.title')}</h1>
           <p className="text-gray-400 text-sm">
-            Entre ton adresse email et on t'envoie un lien pour réinitialiser ton mot de passe.
+            {t('forgotPassword.subtitle')}
           </p>
         </div>
 
         {success ? (
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6 text-center">
             <p className="text-green-400 mb-4">
-              Un email de réinitialisation a été envoyé à <strong>{email}</strong>.
-              Vérifie ta boîte de réception (et les spams).
+              {t.rich('forgotPassword.success', { email, b: (c) => <strong>{c}</strong> })}
             </p>
             <Link
               href="/auth/login"
               className="text-[#ff9900] hover:text-[#e68a00] text-sm transition-colors"
             >
-              Retour à la connexion
+              {t('forgotPassword.backToLogin')}
             </Link>
           </div>
         ) : (
@@ -66,7 +67,7 @@ export default function ForgotPasswordPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Adresse email
+                {t('forgotPassword.emailLabel')}
               </label>
               <input
                 id="email"
@@ -76,7 +77,7 @@ export default function ForgotPasswordPage() {
                 required
                 className="auth-input"
                 style={{ background: '#1a1a1a' }}
-                placeholder="ton@email.com"
+                placeholder={t('forgotPassword.emailPlaceholder')}
               />
             </div>
 
@@ -85,7 +86,7 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="auth-btn-primary"
             >
-              {loading ? 'Envoi en cours...' : 'Envoyer le lien'}
+              {loading ? t('forgotPassword.sending') : t('forgotPassword.submit')}
             </button>
 
             <div className="text-center">
@@ -93,7 +94,7 @@ export default function ForgotPasswordPage() {
                 href="/auth/login"
                 className="text-sm text-gray-400 hover:text-white transition-colors"
               >
-                Retour à la connexion
+                {t('forgotPassword.backToLogin')}
               </Link>
             </div>
           </form>

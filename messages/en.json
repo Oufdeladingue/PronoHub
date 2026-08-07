@@ -266,7 +266,83 @@
       "inAppTitleNamed": "⚠️ You're in {app}'s in-app browser",
       "inAppBody": "Google sign-in doesn't work here. Sign up <b>with email</b> below — or open PronoHub in your browser (menu <b>⋮</b> → \"Open in browser\").",
       "copyLink": "Copy the site link"
+    },
+    "chooseUsername": {
+      "title": "Choose your name print",
+      "subtitle": "It'll follow you your whole career",
+      "jerseyAlt": "Jersey",
+      "checking": "Checking...",
+      "available": "smells like a future Ballon d'Or",
+      "usernameTaken": "This username is already taken",
+      "minChars": "At least 3 characters required",
+      "lengthHint": "3 to 12 characters max",
+      "saving": "Saving...",
+      "submit": "Confirm",
+      "notLoggedIn": "Not logged in"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "subtitle": "Enter your email address and we'll send you a link to reset your password.",
+      "success": "A reset email has been sent to <b>{email}</b>. Check your inbox (and your spam folder).",
+      "backToLogin": "Back to login",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@email.com",
+      "sending": "Sending...",
+      "submit": "Send the link",
+      "errSend": "Something went wrong while sending"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitle": "Choose a new password for your account.",
+      "success": "Password updated! You'll be redirected to login...",
+      "loginLink": "Log in",
+      "passwordLabel": "New password",
+      "critMinLength": "At least 8 characters",
+      "confirmLabel": "Confirm password",
+      "submitLoading": "Updating...",
+      "submit": "Reset password",
+      "errCriteria": "The password doesn't meet the required criteria.",
+      "errMismatch": "Passwords don't match.",
+      "errReset": "Something went wrong while resetting"
+    },
+    "verifyCode": {
+      "title": "Verify your email",
+      "sentTo": "A 6-digit code has been sent to",
+      "errPasteFormat": "The code must contain exactly 6 digits",
+      "errIncomplete": "Please enter all 6 digits of the code",
+      "errInvalid": "Invalid or expired code. Please try again.",
+      "verifying": "Verifying...",
+      "submit": "Confirm",
+      "resendSuccess": "Code resent successfully!",
+      "errResend": "Something went wrong while resending the code. Please try again.",
+      "notReceived": "Didn't receive the code?",
+      "resending": "Sending...",
+      "resend": "Resend the code",
+      "backTo": "Back to"
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "body": "We've sent a confirmation email to your address. Click the link in the email to activate your account.",
+      "importantLabel": "Important:",
+      "importantBody": "Also check your spam folder if you can't find the email in your inbox.",
+      "notReceived": "Didn't receive the email?",
+      "resendLink": "Resend the confirmation email",
+      "backHome": "← Back to home"
     }
+  },
+  "AgeGate": {
+    "title": "Are you of legal age?",
+    "warningLabel": "WARNING",
+    "warningBody": "This site contains sports predictions that can be <hl>highly addictive</hl>.",
+    "warningSub": "Scenes of tight standings and spectacular comebacks may hurt the feelings of sore losers.",
+    "acceptLine1": "I'm 18 or older",
+    "acceptLine2": "Enter",
+    "declineLine1": "I'm underage",
+    "declineLine2": "Leave",
+    "legalPre": "By continuing, you confirm you are 18 or older and accept our",
+    "cguLink": "Terms & Conditions",
+    "legalMid": "and our",
+    "privacyLink": "Privacy Policy"
   },
   "Dashboard": {
     "meta": {

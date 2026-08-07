@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPage() {
+  const t = await getTranslations('Auth')
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 auth-page">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
@@ -23,30 +25,28 @@ export default function VerifyEmailPage() {
         </div>
 
         <h1 className="text-3xl font-bold mb-4 text-gray-900">
-          Vérifiez votre email
+          {t('verifyEmail.title')}
         </h1>
 
         <p className="text-gray-600 mb-6">
-          Nous avons envoyé un email de confirmation à votre adresse.
-          Cliquez sur le lien dans l'email pour activer votre compte.
+          {t('verifyEmail.body')}
         </p>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-800">
-            <strong>Important :</strong> Vérifiez également votre dossier de spam
-            si vous ne trouvez pas l'email dans votre boîte de réception.
+            <strong>{t('verifyEmail.importantLabel')}</strong> {t('verifyEmail.importantBody')}
           </p>
         </div>
 
         <div className="space-y-3">
           <p className="text-sm text-gray-500">
-            Vous n'avez pas reçu l'email ?
+            {t('verifyEmail.notReceived')}
           </p>
           <Link
             href="/auth/signup"
             className="inline-block px-4 py-2 text-sm text-green-600 hover:text-green-700 hover:underline"
           >
-            Renvoyer l'email de confirmation
+            {t('verifyEmail.resendLink')}
           </Link>
         </div>
 
@@ -55,7 +55,7 @@ export default function VerifyEmailPage() {
             href="/"
             className="text-sm text-gray-600 hover:text-gray-900"
           >
-            ← Retour à l'accueil
+            {t('verifyEmail.backHome')}
           </Link>
         </div>
       </div>

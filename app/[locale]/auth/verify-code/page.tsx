@@ -4,10 +4,14 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Footer from '@/components/Footer'
+import { useTranslations } from 'next-intl'
 
 function VerifyCodeForm() {
+  const t = useTranslations('Auth')
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState<string | null>(null)
+  // Type du message affiché (succès vs erreur) — piloté par un état stable, pas par le texte.
+  const [isSuccessMsg, setIsSuccessMsg] = useState(false)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
   const [resending, setResending] = useState(false)
@@ -58,7 +62,8 @@ function VerifyCodeForm() {
     const pastedData = e.clipboardData.getData('text').trim()
 
     if (!/^\d{6}$/.test(pastedData)) {
-      setError('Le code doit contenir exactement 6 chiffres')
+      setIsSuccessMsg(false)
+      setError(t('verifyCode.errPasteFormat'))
       return
     }
 
@@ -75,7 +80,8 @@ function VerifyCodeForm() {
     const verificationCode = code.join('')
 
     if (verificationCode.length !== 6) {
-      setError('Veuillez saisir les 6 chiffres du code')
+      setIsSuccessMsg(false)
+      setError(t('verifyCode.errIncomplete'))
       setLoading(false)
       return
     }
@@ -97,7 +103,8 @@ function VerifyCodeForm() {
       // Rediriger vers le choix de pseudo (tous les nouveaux inscrits y passent)
       router.push(redirectTo ? `/auth/choose-username?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/choose-username')
     } catch (err: any) {
-      setError(err.message || 'Code invalide ou expiré. Veuillez réessayer.')
+      setIsSuccessMsg(false)
+      setError(err.message || t('verifyCode.errInvalid'))
     } finally {
       setLoading(false)
     }
@@ -115,13 +122,13 @@ function VerifyCodeForm() {
 
       if (error) throw error
 
-      setError(null)
       // Afficher un message de succès temporaire
-      const successMsg = 'Code renvoyé avec succès !'
-      setError(successMsg)
+      setIsSuccessMsg(true)
+      setError(t('verifyCode.resendSuccess'))
       setTimeout(() => setError(null), 3000)
     } catch (err: any) {
-      setError('Erreur lors du renvoi du code. Veuillez réessayer.')
+      setIsSuccessMsg(false)
+      setError(t('verifyCode.errResend'))
     } finally {
       setResending(false)
     }
@@ -161,17 +168,17 @@ function VerifyCodeForm() {
               />
             </div>
             <h1 className="text-2xl font-bold text-center text-white mb-2">
-              Vérification de votre email
+              {t('verifyCode.title')}
             </h1>
             <p className="text-sm text-center text-gray-400">
-              Un code à 6 chiffres a été envoyé à<br />
+              {t('verifyCode.sentTo')}<br />
               <span className="font-semibold text-[#ff9900]">{email}</span>
             </p>
           </div>
 
           {error && (
             <div className={`mb-4 p-3 border rounded-lg ${
-              error.includes('succès')
+              isSuccessMsg
                 ? 'bg-green-900/50 border-green-600/50 text-green-200'
                 : 'bg-red-900/50 border-red-600/50 text-red-200'
             }`}>
@@ -204,25 +211,25 @@ function VerifyCodeForm() {
               disabled={loading || code.some(d => !d)}
               className="auth-btn-primary disabled:shadow-none"
             >
-              {loading ? 'Vérification...' : 'Valider'}
+              {loading ? t('verifyCode.verifying') : t('verifyCode.submit')}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-[#888] mb-2">
-              Vous n'avez pas reçu le code ?
+              {t('verifyCode.notReceived')}
             </p>
             <button
               onClick={handleResendCode}
               disabled={resending}
               className="text-[#ffb84d] hover:text-[#ff9900] hover:underline text-sm font-medium transition-colors duration-200 disabled:text-gray-500"
             >
-              {resending ? 'Envoi en cours...' : 'Renvoyer le code'}
+              {resending ? t('verifyCode.resending') : t('verifyCode.resend')}
             </button>
           </div>
 
           <p className="text-center mt-6 text-sm text-[#888] flex items-center justify-center gap-1">
-            Retour à
+            {t('verifyCode.backTo')}
             <img
               src="/images/logo.svg"
               alt="PronoHub"
@@ -230,7 +237,7 @@ function VerifyCodeForm() {
             />
             ?{' '}
             <a href={redirectTo ? `/auth/signup?redirectTo=${encodeURIComponent(redirectTo)}` : '/auth/signup'} className="text-[#ffb84d] hover:text-[#ff9900] hover:underline transition-colors duration-200">
-              S'inscrire
+              {t('login.signupLink')}
             </a>
           </p>
         </div>

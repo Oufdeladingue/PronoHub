@@ -266,7 +266,83 @@
       "inAppTitleNamed": "⚠️ Tu es dans le navigateur intégré de {app}",
       "inAppBody": "La connexion Google n'y fonctionne pas. Inscris-toi <b>par email</b> ci-dessous — ou ouvre PronoHub dans ton navigateur (menu <b>⋮</b> → « Ouvrir dans le navigateur »).",
       "copyLink": "Copier le lien du site"
+    },
+    "chooseUsername": {
+      "title": "Choisis ton flocage",
+      "subtitle": "Il te suivra toute ta carrière",
+      "jerseyAlt": "Maillot",
+      "checking": "Vérification...",
+      "available": "ça sent le futur ballon d'or",
+      "usernameTaken": "Ce nom d'utilisateur est déjà pris",
+      "minChars": "Au moins 3 caractères requis",
+      "lengthHint": "3 à 12 caractères max",
+      "saving": "Enregistrement...",
+      "submit": "Valider",
+      "notLoggedIn": "Non connecté"
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entre ton adresse email et on t'envoie un lien pour réinitialiser ton mot de passe.",
+      "success": "Un email de réinitialisation a été envoyé à <b>{email}</b>. Vérifie ta boîte de réception (et les spams).",
+      "backToLogin": "Retour à la connexion",
+      "emailLabel": "Adresse email",
+      "emailPlaceholder": "ton@email.com",
+      "sending": "Envoi en cours...",
+      "submit": "Envoyer le lien",
+      "errSend": "Erreur lors de l'envoi"
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisis un nouveau mot de passe pour ton compte.",
+      "success": "Mot de passe mis à jour ! Tu vas être redirigé vers la connexion...",
+      "loginLink": "Se connecter",
+      "passwordLabel": "Nouveau mot de passe",
+      "critMinLength": "8 caractères minimum",
+      "confirmLabel": "Confirmer le mot de passe",
+      "submitLoading": "Mise à jour...",
+      "submit": "Réinitialiser le mot de passe",
+      "errCriteria": "Le mot de passe ne respecte pas les critères requis.",
+      "errMismatch": "Les mots de passe ne correspondent pas.",
+      "errReset": "Erreur lors de la réinitialisation"
+    },
+    "verifyCode": {
+      "title": "Vérification de votre email",
+      "sentTo": "Un code à 6 chiffres a été envoyé à",
+      "errPasteFormat": "Le code doit contenir exactement 6 chiffres",
+      "errIncomplete": "Veuillez saisir les 6 chiffres du code",
+      "errInvalid": "Code invalide ou expiré. Veuillez réessayer.",
+      "verifying": "Vérification...",
+      "submit": "Valider",
+      "resendSuccess": "Code renvoyé avec succès !",
+      "errResend": "Erreur lors du renvoi du code. Veuillez réessayer.",
+      "notReceived": "Vous n'avez pas reçu le code ?",
+      "resending": "Envoi en cours...",
+      "resend": "Renvoyer le code",
+      "backTo": "Retour à"
+    },
+    "verifyEmail": {
+      "title": "Vérifiez votre email",
+      "body": "Nous avons envoyé un email de confirmation à votre adresse. Cliquez sur le lien dans l'email pour activer votre compte.",
+      "importantLabel": "Important :",
+      "importantBody": "Vérifiez également votre dossier de spam si vous ne trouvez pas l'email dans votre boîte de réception.",
+      "notReceived": "Vous n'avez pas reçu l'email ?",
+      "resendLink": "Renvoyer l'email de confirmation",
+      "backHome": "← Retour à l'accueil"
     }
+  },
+  "AgeGate": {
+    "title": "Etes-vous majeur(e) ?",
+    "warningLabel": "ATTENTION",
+    "warningBody": "Ce site contient des pronostics sportifs qui peuvent créer une <hl>forte dépendance</hl>.",
+    "warningSub": "Des scènes de classements serrés et de remontadas spectaculaires peuvent heurter la sensibilité des mauvais perdants.",
+    "acceptLine1": "J'ai 18 ans ou +",
+    "acceptLine2": "Entrer",
+    "declineLine1": "Je suis mineur",
+    "declineLine2": "Quitter",
+    "legalPre": "En continuant, vous confirmez avoir 18 ans ou plus et acceptez nos",
+    "cguLink": "Conditions Générales",
+    "legalMid": "et notre",
+    "privacyLink": "Politique de confidentialité"
   },
   "Dashboard": {
     "meta": {

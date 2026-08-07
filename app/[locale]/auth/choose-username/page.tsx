@@ -6,8 +6,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { trackUsernameChosen } from '@/lib/analytics'
 import posthog from 'posthog-js'
+import { useTranslations } from 'next-intl'
 
 function ChooseUsernameForm() {
+  const t = useTranslations('Auth')
   const [newUsername, setNewUsername] = useState('')
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null)
   const [checkingUsername, setCheckingUsername] = useState(false)
@@ -125,18 +127,18 @@ function ChooseUsernameForm() {
     }
 
     if (newUsername.length < 3) {
-      setUsernameError('Au moins 3 caractères requis')
+      setUsernameError(t('chooseUsername.minChars'))
       return
     }
     if (usernameAvailable !== true) {
-      setUsernameError('Ce nom d\'utilisateur est déjà pris')
+      setUsernameError(t('chooseUsername.usernameTaken'))
       return
     }
 
     setSavingUsername(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Non connecté')
+      if (!user) throw new Error(t('chooseUsername.notLoggedIn'))
 
       const { error: profileError } = await supabase
         .from('profiles')
@@ -191,10 +193,10 @@ function ChooseUsernameForm() {
       <div className="relative z-10 flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-[420px] rounded-[14px] p-8 shadow-[0_15px_50px_rgba(0,0,0,0.75)] bg-[#1a1a2e] border border-white/10">
           <h2 className="text-2xl font-bold text-center mb-2 text-white">
-            Choisis ton flocage
+            {t('chooseUsername.title')}
           </h2>
           <p className="text-center text-gray-400 mb-6 text-sm">
-            Il te suivra toute ta carrière
+            {t('chooseUsername.subtitle')}
           </p>
 
           {/* Maillot avec flocage dynamique */}
@@ -208,7 +210,7 @@ function ChooseUsernameForm() {
             />
             <img
               src="/images/jersey-auth.png"
-              alt="Maillot"
+              alt={t('chooseUsername.jerseyAlt')}
               className="relative w-full h-full object-contain drop-shadow-[0_0_20px_rgba(255,180,50,0.4)]"
             />
             {newUsername && (
@@ -261,18 +263,18 @@ function ChooseUsernameForm() {
               {newUsername.length > 0 && (
                 <div className="mt-2">
                   {checkingUsername && (
-                    <p className="text-xs text-gray-400">Vérification...</p>
+                    <p className="text-xs text-gray-400">{t('chooseUsername.checking')}</p>
                   )}
                   {!checkingUsername && newUsername.length >= 3 && usernameAvailable === true && (
-                    <p className="text-xs text-green-400">&#10003; ça sent le futur ballon d&apos;or</p>
+                    <p className="text-xs text-green-400">&#10003; {t('chooseUsername.available')}</p>
                   )}
                   {!checkingUsername && newUsername.length >= 3 && usernameAvailable === false && (
-                    <p className="text-xs text-red-400">&#10007; Ce nom d&apos;utilisateur est déjà pris</p>
+                    <p className="text-xs text-red-400">&#10007; {t('chooseUsername.usernameTaken')}</p>
                   )}
                   {newUsername.length < 3 && (
-                    <p className="text-xs text-gray-400">Au moins 3 caractères requis</p>
+                    <p className="text-xs text-gray-400">{t('chooseUsername.minChars')}</p>
                   )}
-                  <p className="text-xs text-[#666] mt-0.5">3 à 12 caractères max</p>
+                  <p className="text-xs text-[#666] mt-0.5">{t('chooseUsername.lengthHint')}</p>
                 </div>
               )}
             </div>
@@ -282,7 +284,7 @@ function ChooseUsernameForm() {
               disabled={savingUsername || usernameAvailable !== true}
               className="auth-btn-primary disabled:shadow-none"
             >
-              {savingUsername ? 'Enregistrement...' : 'Valider'}
+              {savingUsername ? t('chooseUsername.saving') : t('chooseUsername.submit')}
             </button>
           </form>
         </div>
