@@ -70,8 +70,16 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
+    // Récupérer la locale de l'invité s'il a déjà un compte (sinon défaut 'fr')
+    const { data: invitee } = await supabase
+      .from('profiles')
+      .select('locale')
+      .eq('email', email)
+      .maybeSingle()
+
     // Envoyer l'email d'invitation
     const result = await sendTournamentInviteEmail(email, {
+      locale: (invitee as any)?.locale === 'en' ? 'en' : 'fr',
       username: profile?.username,
       tournamentName: tournament.name,
       inviteCode: tournament.invite_code,

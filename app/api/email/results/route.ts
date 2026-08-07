@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
         profiles (
           email,
           username,
-          notification_preferences
+          notification_preferences,
+          locale
         )
       `)
       .eq('tournament_id', tournamentId)
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
       if (prefs && prefs.email_results === false) continue
 
       const result = await sendResultsNotificationEmail(profile.email, {
+        locale: profile.locale === 'en' ? 'en' : 'fr',
         username: profile.username,
         tournamentName: tournament.name,
         competitionName: (tournament.competitions as any)?.name,

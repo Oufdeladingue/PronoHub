@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { type } = body
+    const locale: 'fr' | 'en' = body.locale === 'en' ? 'en' : 'fr'
     const username = profile?.username || 'Joueur'
 
     // L'email est toujours envoyé à l'adresse de l'utilisateur connecté
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
     switch (type) {
       case 'reminder':
         result = await sendDetailedReminderEmail(email, {
+          locale,
           username,
           tournamentName: 'Ligue des Champions 2024/25',
           tournamentSlug: 'ligue-des-champions-2024',
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
       case 'reminder_multi':
         // Test du nouveau template multi-tournois
         result = await sendMultiTournamentReminderEmail(email, {
+          locale,
           username,
           tournaments: [
             {
@@ -139,6 +142,7 @@ export async function POST(request: NextRequest) {
 
       case 'tournament_started':
         result = await sendTournamentStartedEmail(email, {
+          locale,
           username,
           tournamentName: 'Ligue des Champions 2024/25',
           tournamentSlug: 'ligue-des-champions-2024',
@@ -171,6 +175,7 @@ export async function POST(request: NextRequest) {
 
       case 'matchday_recap':
         result = await sendMatchdayRecapEmail(email, {
+          locale,
           username,
           tournamentName: 'Ligue des Champions 2024/25',
           tournamentSlug: 'ligue-des-champions-2024',
@@ -206,6 +211,7 @@ export async function POST(request: NextRequest) {
 
       case 'tournament_end':
         result = await sendTournamentEndEmail(email, {
+          locale,
           username,
           tournamentName: 'Ligue des Champions 2024/25',
           tournamentSlug: 'ligue-des-champions-2024',
@@ -237,6 +243,7 @@ export async function POST(request: NextRequest) {
 
       case 'invite':
         result = await sendTournamentInviteDetailedEmail(email, {
+          locale,
           inviterUsername: 'Alex',
           tournamentName: 'Ligue 1 - Saison 2024/25',
           tournamentSlug: 'ligue-1-2024',
@@ -264,6 +271,7 @@ export async function POST(request: NextRequest) {
 
       case 'new_player':
         result = await sendNewPlayerJoinedEmail(email, {
+          locale,
           captainUsername: username,
           tournamentName: 'Euro 2024',
           tournamentSlug: 'euro-2024',

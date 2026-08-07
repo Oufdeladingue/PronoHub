@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     // Récupérer le profil pour avoir le username
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username, email')
+      .select('username, email, locale')
       .eq('id', user.id)
       .single()
 
@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Envoyer l'email de bienvenue
-    const result = await sendWelcomeEmail(email, { username })
+    const result = await sendWelcomeEmail(email, {
+      locale: (profile as any)?.locale === 'en' ? 'en' : 'fr',
+      username
+    })
 
     if (!result.success) {
       console.error('Failed to send welcome email:', result.error)

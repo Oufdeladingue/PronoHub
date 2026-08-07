@@ -155,7 +155,7 @@ export async function sendEmail(
 // Email de bienvenue après inscription
 export async function sendWelcomeEmail(
   to: string,
-  props: Pick<EmailTemplateProps, 'username'>
+  props: Pick<EmailTemplateProps, 'username' | 'locale'>
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getWelcomeEmailTemplate(props)
   return sendEmail(to, subject, html, text)
@@ -164,7 +164,7 @@ export async function sendWelcomeEmail(
 // Email d'invitation à un tournoi
 export async function sendTournamentInviteEmail(
   to: string,
-  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'inviteCode' | 'competitionName'>
+  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'inviteCode' | 'competitionName' | 'locale'>
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getTournamentInviteTemplate(props)
   return sendEmail(to, subject, html, text)
@@ -173,7 +173,7 @@ export async function sendTournamentInviteEmail(
 // Email de rappel de pronostics
 export async function sendMatchReminderEmail(
   to: string,
-  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'matchDate' | 'competitionName' | 'actionUrl'>
+  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'matchDate' | 'competitionName' | 'actionUrl' | 'locale'>
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getMatchReminderTemplate(props)
   return sendEmail(to, subject, html, text)
@@ -182,7 +182,7 @@ export async function sendMatchReminderEmail(
 // Email de notification de résultats
 export async function sendResultsNotificationEmail(
   to: string,
-  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'competitionName' | 'actionUrl'>
+  props: Pick<EmailTemplateProps, 'username' | 'tournamentName' | 'competitionName' | 'actionUrl' | 'locale'>
 ): Promise<SendEmailResult> {
   const { html, text, subject } = getResultsNotificationTemplate(props)
   return sendEmail(to, subject, html, text)

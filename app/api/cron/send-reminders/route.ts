@@ -40,6 +40,7 @@ interface UserMissingMatches {
   email: string
   username: string
   fcm_token: string | null
+  locale: string | null
   tournaments: {
     id: string
     name: string
@@ -311,7 +312,7 @@ export async function GET(request: NextRequest) {
     const tournamentIds = relevantTournaments.map(t => t.id)
     const { data: allParticipants } = await supabase
       .from('tournament_participants')
-      .select('tournament_id, user_id, profiles(id, username, email, notification_preferences, fcm_token)')
+      .select('tournament_id, user_id, profiles(id, username, email, notification_preferences, fcm_token, locale)')
       .in('tournament_id', tournamentIds)
 
     if (!allParticipants || allParticipants.length === 0) {
@@ -404,6 +405,7 @@ export async function GET(request: NextRequest) {
             email: profile.email,
             username: profile.username || 'Joueur',
             fcm_token: profile.fcm_token,
+            locale: profile.locale || null,
             tournaments: []
           })
         }
@@ -584,6 +586,7 @@ export async function GET(request: NextRequest) {
 
         try {
           const result = await withTimeout(sendMultiTournamentReminderEmail(userData.email, {
+            locale: userData.locale === 'en' ? 'en' : 'fr',
             username: userData.username,
             tournaments: userData.tournaments.map(t => ({
               name: t.name,

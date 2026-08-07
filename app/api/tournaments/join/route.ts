@@ -656,7 +656,7 @@ export async function POST(request: NextRequest) {
       // Récupérer les infos du capitaine (créateur du tournoi)
       const { data: captain } = await supabase
         .from('profiles')
-        .select('id, username, email, fcm_token, notification_preferences')
+        .select('id, username, email, fcm_token, notification_preferences, locale')
         .eq('id', tournament.creator_id)
         .single()
 
@@ -707,6 +707,7 @@ export async function POST(request: NextRequest) {
         const canLaunch = currentParticipants >= 2 // Minimum 2 joueurs pour lancer
 
         await sendNewPlayerJoinedEmail(captain.email, {
+          locale: (captain as any).locale === 'en' ? 'en' : 'fr',
           captainUsername: captain.username || 'Capitaine',
           tournamentName: tournament.name,
           tournamentSlug: `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`,

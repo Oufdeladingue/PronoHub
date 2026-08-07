@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
           profiles (
             email,
             username,
-            notification_preferences
+            notification_preferences,
+            locale
           )
         `)
         .eq('tournament_id', tId)
@@ -165,6 +166,7 @@ export async function POST(request: NextRequest) {
         })
 
         const result = await sendMatchReminderEmail(profile.email, {
+          locale: profile.locale === 'en' ? 'en' : 'fr',
           username: profile.username,
           tournamentName: tournament.name,
           matchDate: `${nextMatch.home_team} vs ${nextMatch.away_team} - ${matchDate}`,

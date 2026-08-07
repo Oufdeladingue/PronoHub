@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       // Récupérer les participants avec profils
       const { data: participants } = await supabase
         .from('tournament_participants')
-        .select('user_id, profiles(id, username, avatar, email, fcm_token, notification_preferences)')
+        .select('user_id, profiles(id, username, avatar, email, fcm_token, notification_preferences, locale)')
         .eq('tournament_id', tournament.id)
 
       if (!participants || participants.length === 0) {
@@ -258,6 +258,7 @@ export async function GET(request: NextRequest) {
 
             try {
               const emailResult = await sendTournamentEndEmail(email, {
+                locale: profile?.locale === 'en' ? 'en' : 'fr',
                 username,
                 tournamentName: tournament.name,
                 tournamentSlug: tournament.slug,

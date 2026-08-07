@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
         email,
         username,
         fcm_token,
+        locale,
         created_at,
         inactive_reminder_sent_at
       `)
@@ -154,6 +155,7 @@ export async function GET(request: NextRequest) {
         // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendInactiveUserReminderEmail(user.email, {
+            locale: (user as any).locale === 'en' ? 'en' : 'fr',
             username: user.username || ''
           })
 

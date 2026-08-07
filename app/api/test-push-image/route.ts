@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
   const trophyType = searchParams.get('trophy') || 'exact_score'
   const mode = searchParams.get('mode') || 'push' // push, email, both
   const notifType = searchParams.get('type') || 'badge_unlocked'
+  const locale: 'fr' | 'en' = searchParams.get('locale') === 'en' ? 'en' : 'fr'
 
   if (!email) {
     return NextResponse.json({ error: 'Email requis (?email=ton@email.com)' }, { status: 400 })
@@ -214,6 +215,7 @@ export async function GET(request: NextRequest) {
     // --- EMAIL (badge_unlocked uniquement pour l'instant) ---
     if ((mode === 'email' || mode === 'both') && notifType !== 'new_matches') {
       const emailResult = await sendBadgeUnlockedEmail(email, {
+        locale,
         username: profile.username || 'champion',
         trophyName: trophyInfo.name,
         trophyDescription: trophyInfo.description,

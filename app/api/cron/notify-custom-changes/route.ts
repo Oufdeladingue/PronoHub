@@ -235,7 +235,8 @@ export async function GET(request: NextRequest) {
             email,
             username,
             fcm_token,
-            notification_preferences
+            notification_preferences,
+            locale
           )
         )
       `)
@@ -299,6 +300,7 @@ export async function GET(request: NextRequest) {
         username: string | null
         fcm_token: string | null
         notification_preferences: any
+        locale?: string | null
       }
       matchdayId: string
       matchdayNumber: number
@@ -337,7 +339,8 @@ export async function GET(request: NextRequest) {
               email: profile.email,
               username: profile.username,
               fcm_token: profile.fcm_token,
-              notification_preferences: profile.notification_preferences || {}
+              notification_preferences: profile.notification_preferences || {},
+              locale: profile.locale || null
             },
             matchdayId,
             matchdayNumber: matchdayInfo.number,
@@ -459,6 +462,7 @@ export async function GET(request: NextRequest) {
         // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendMatchdayChangesEmail(user.email, {
+            locale: user.locale === 'en' ? 'en' : 'fr',
             username: user.username || 'Joueur',
             tournamentName: tournament.name,
             tournamentSlug: tournament.slug,

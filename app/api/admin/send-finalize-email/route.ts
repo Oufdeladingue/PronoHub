@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     // Récupérer les users qui n'ont pas choisi leur pseudo
     let query = adminClient
       .from('profiles')
-      .select('id, username, email')
+      .select('id, username, email, locale')
       .eq('has_chosen_username', false)
 
     if (emailFilter && emailFilter.length > 0) {
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       }
 
       const result = await sendFinalizeRegistrationEmail(u.email, {
+        locale: (u as any).locale === 'en' ? 'en' : 'fr',
         username: u.username,
         email: u.email,
       })

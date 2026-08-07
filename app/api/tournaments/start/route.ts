@@ -456,7 +456,7 @@ async function sendTournamentLaunchNotifications(
       .from('tournament_participants')
       .select(`
         user_id,
-        profiles!inner(id, email, username, notification_preferences)
+        profiles!inner(id, email, username, notification_preferences, locale)
       `)
       .eq('tournament_id', tournamentId)
 
@@ -584,6 +584,7 @@ async function sendTournamentLaunchNotifications(
 
       try {
         await sendTournamentStartedEmail(profile.email, {
+          locale: profile.locale === 'en' ? 'en' : 'fr',
           username: profile.username || 'Champion',
           tournamentName: tournament.name,
           tournamentSlug: tournament.slug,

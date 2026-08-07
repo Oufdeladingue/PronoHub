@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
         // Récupérer les participants avec profils
         const { data: participants } = await supabase
           .from('tournament_participants')
-          .select('user_id, profiles(id, username, email, notification_preferences, fcm_token)')
+          .select('user_id, profiles(id, username, email, notification_preferences, fcm_token, locale)')
           .eq('tournament_id', tournament.id)
 
         if (!participants || participants.length === 0) continue
@@ -228,6 +228,7 @@ export async function GET(request: NextRequest) {
                     await new Promise(resolve => setTimeout(resolve, 600))
 
                     const emailResult = await sendBadgeUnlockedEmail(email, {
+                      locale: profile?.locale === 'en' ? 'en' : 'fr',
                       username: profile?.username || 'champion',
                       trophyName: trophyInfo.name,
                       trophyDescription: trophyInfo.description,
