@@ -543,6 +543,9 @@ export async function GET(request: NextRequest) {
             } else if (loc === 'de') {
               title = `⚽ ${totalMissingMatches} Spiel${totalMissingMatches > 1 ? 'e' : ''} zu tippen`
               body = `Vergiss deine Tipps für ${t.name} nicht vor ${deadlineStr}!`
+            } else if (loc === 'it') {
+              title = `⚽ ${totalMissingMatches} partit${totalMissingMatches > 1 ? 'e' : 'a'} da pronosticare`
+              body = `Non dimenticare i tuoi pronostici per ${t.name} prima delle ${deadlineStr}!`
             } else {
               title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
               body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
@@ -558,6 +561,9 @@ export async function GET(request: NextRequest) {
             } else if (loc === 'de') {
               title = `⚽ ${totalMissingMatches} Spiele zu tippen`
               body = `${userData.tournaments.length} offene Turniere: ${tournamentNames}. Frist: ${deadlineStr}`
+            } else if (loc === 'it') {
+              title = `⚽ ${totalMissingMatches} partite da pronosticare`
+              body = `${userData.tournaments.length} tornei in sospeso: ${tournamentNames}. Scadenza: ${deadlineStr}`
             } else {
               title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
               body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`

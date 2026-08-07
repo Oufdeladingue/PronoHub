@@ -17,6 +17,8 @@ const PUSH_TITLE_ES = '🗣️ ¿Experto en fútbol?'
 const PUSH_BODY_ES = 'Muchos debates, cero torneos. PronoHub se preocupa.'
 const PUSH_TITLE_DE = '🗣️ Fußballexperte?'
 const PUSH_BODY_DE = 'Viele Debatten, null Turniere. PronoHub macht sich Sorgen.'
+const PUSH_TITLE_IT = '🗣️ Esperto di calcio?'
+const PUSH_BODY_IT = 'Tanti dibattiti, zero tornei. PronoHub si preoccupa.'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -141,8 +143,8 @@ export async function GET(request: NextRequest) {
           const loc = (user as any).locale
           const pushResult = await sendPushNotification(
             user.fcm_token,
-            loc === 'en' ? PUSH_TITLE_EN : loc === 'es' ? PUSH_TITLE_ES : loc === 'de' ? PUSH_TITLE_DE : PUSH_TITLE,
-            loc === 'en' ? PUSH_BODY_EN : loc === 'es' ? PUSH_BODY_ES : loc === 'de' ? PUSH_BODY_DE : PUSH_BODY,
+            loc === 'en' ? PUSH_TITLE_EN : loc === 'es' ? PUSH_TITLE_ES : loc === 'de' ? PUSH_TITLE_DE : loc === 'it' ? PUSH_TITLE_IT : PUSH_TITLE,
+            loc === 'en' ? PUSH_BODY_EN : loc === 'es' ? PUSH_BODY_ES : loc === 'de' ? PUSH_BODY_DE : loc === 'it' ? PUSH_BODY_IT : PUSH_BODY,
             { type: 'inactive_reminder', url: '/vestiaire' }
           )
 

@@ -14,7 +14,7 @@ import { defineRouting } from 'next-intl/routing'
  * Ajouter une langue = ajouter son code ici + le fichier messages/<code>.json.
  */
 export const routing = defineRouting({
-  locales: ['fr', 'en', 'es', 'de'],
+  locales: ['fr', 'en', 'es', 'de', 'it'],
   defaultLocale: 'fr',
   localePrefix: 'as-needed',
   localeCookie: {

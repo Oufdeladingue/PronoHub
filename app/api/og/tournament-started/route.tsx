@@ -32,13 +32,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { title1: 'Let the', title2: 'competition', title3: 'begin!', cta: 'CONFIRM YOUR PICKS' }
       : locale === 'es'
       ? { title1: '¡Que empiece', title2: 'la competición', title3: '!', cta: 'CONFIRMA TUS PRONÓSTICOS' }
       : locale === 'de'
       ? { title1: 'Möge der', title2: 'Wettkampf', title3: 'beginnen!', cta: 'BESTÄTIGE DEINE TIPPS' }
+      : locale === 'it'
+      ? { title1: 'Che la', title2: 'competizione', title3: 'abbia inizio!', cta: 'CONFERMA I TUOI PRONOSTICI' }
       : { title1: 'Que la', title2: 'compétition', title3: 'commence !', cta: 'VALIDE TES PRONOS' }
 
     // Paramètres

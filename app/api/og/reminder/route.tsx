@@ -40,6 +40,14 @@ const CATCHPHRASES_DE = [
   'Wir wissen schon, wer daneben liegt…',
   'Lass die anderen nicht für dich entscheiden.',
 ]
+const CATCHPHRASES_IT = [
+  'Allora, chi sbaglierà stavolta?',
+  'Gli esperti sono attesi…',
+  'Fai il tuo pronostico prima di pentirtene.',
+  'È il momento di dimostrare che te ne intendi.',
+  'Sappiamo già chi sbaglierà…',
+  'Non lasciare che gli altri decidano al posto tuo.',
+]
 
 // Charger la police Inter depuis Google Fonts
 // Police Inter mutualisée + mise en cache (lib/og-fonts)
@@ -68,15 +76,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { until: 'You have until:', other: (n: number) => `+ ${n} more match${n > 1 ? 'es' : ''}` }
       : locale === 'es'
       ? { until: 'Tienes hasta:', other: (n: number) => `+ ${n} partido${n > 1 ? 's' : ''} más` }
       : locale === 'de'
       ? { until: 'Du hast Zeit bis:', other: (n: number) => `+ ${n} weitere${n > 1 ? '' : 's'} Spiel${n > 1 ? 'e' : ''}` }
+      : locale === 'it'
+      ? { until: 'Hai tempo fino a:', other: (n: number) => `+ ${n} altr${n > 1 ? 'i incontri' : 'o incontro'}` }
       : { until: "Tu as jusqu'à :", other: (n: number) => `+ ${n} autre${n > 1 ? 's' : ''} rencontre${n > 1 ? 's' : ''}` }
-    const catchphrases = locale === 'en' ? CATCHPHRASES_EN : locale === 'es' ? CATCHPHRASES_ES : locale === 'de' ? CATCHPHRASES_DE : CATCHPHRASES
+    const catchphrases = locale === 'en' ? CATCHPHRASES_EN : locale === 'es' ? CATCHPHRASES_ES : locale === 'de' ? CATCHPHRASES_DE : locale === 'it' ? CATCHPHRASES_IT : CATCHPHRASES
 
     // Récupérer les paramètres
     const homeTeam = searchParams.get('home') || 'Équipe A'

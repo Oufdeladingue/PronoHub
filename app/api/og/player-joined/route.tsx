@@ -32,13 +32,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { title1: 'New', title2: 'contract signed', title3: 'for', consult: 'VIEW', exclaim: '!' }
       : locale === 'es'
       ? { title1: '¡Nuevo', title2: 'contrato firmado', title3: 'para', consult: 'VER', exclaim: '!' }
       : locale === 'de'
       ? { title1: 'Neuer', title2: 'Vertrag', title3: 'für', consult: 'ANSEHEN', exclaim: '!' }
+      : locale === 'it'
+      ? { title1: 'Nuovo', title2: 'contratto firmato', title3: 'per', consult: 'GUARDA', exclaim: '!' }
       : { title1: 'Nouveau', title2: 'contrat signé', title3: 'pour', consult: 'CONSULTER', exclaim: ' !' }
 
     // Paramètres

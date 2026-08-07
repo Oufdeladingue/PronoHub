@@ -601,7 +601,151 @@ const DE: Guide[] = [
   },
 ]
 
-export const GUIDES: Partial<Record<string, Guide[]>> & { fr: Guide[] } = { fr: FR, en: EN, es: ES, de: DE }
+const IT: Guide[] = [
+  {
+    slug: 'organiser-tournoi-pronostics-entre-amis',
+    title: 'Come organizzare un gioco di pronostici tra amici | PronoHub',
+    h1: 'Come organizzare un gioco di pronostici tra amici',
+    description: 'La guida completa per organizzare un gioco di pronostici di calcio tra amici: scegli la competizione, fissa le regole, invita tutti e segui la classifica. Gratis.',
+    lede: "Organizzare un gioco di pronostici tra amici è il modo migliore per rendere ogni weekend di calcio più intenso. Ecco come mettere in piedi il tuo in pochi minuti, senza complicazioni e senza spendere un centesimo.",
+    sections: [
+      {
+        h2: '1. Scegli la competizione',
+        paragraphs: [
+          "Tutto parte da qui. Un campionato che dura tutta la stagione (Serie A, Premier League, Liga…) è perfetto per una sfida a lungo termine, dove la tensione sale giornata dopo giornata. Vuoi qualcosa di corto e intenso? Punta sulla fase a eliminazione della Champions League o su un Mondiale.",
+          "La mossa giusta: scegli una competizione che la maggior parte del gruppo segue già. Più le persone conoscono le squadre, più si divertono a pronosticare e a prendersi in giro tra loro.",
+        ],
+      },
+      {
+        h2: '2. Fissa le regole e il punteggio',
+        paragraphs: [
+          "Una schedina tra amici vive del suo punteggio. Il più comune: punti per aver azzeccato il risultato (1, X o 2) e un bonus per il risultato esatto. Così premi sia il fiuto sia il coraggio.",
+          "Puoi rendere il tutto più piccante con una partita bonus (punti raddoppiati) o un premio per chi pronostica in anticipo. L'importante: che le regole siano chiare per tutti fin dall'inizio.",
+        ],
+      },
+      {
+        h2: '3. Invita i tuoi amici',
+        paragraphs: [
+          "È il passaggio che fa o disfa una sfida. Il segreto: zero attriti. Condividi un semplice link (WhatsApp, SMS, gruppo…) e lascia che i tuoi amici entrino con un clic. Più è semplice, più partecipano.",
+          "Punta ad almeno 3-4 partecipanti perché la competizione sia viva. Un gioco di pronostici si gioca in tanti: è il confronto delle classifiche a creare l'atmosfera.",
+        ],
+      },
+      {
+        h2: '4. Segui la classifica in tempo reale',
+        paragraphs: [
+          "Non c'è niente di peggio di una sfida in cui nessuno sa chi sta vincendo. Una classifica aggiornata automaticamente dopo ogni partita alimenta la rivalità e fa venire voglia di tornare a controllare la propria posizione.",
+          "Aggiungi un pizzico di competizione: trofei da sbloccare, miglior pronosticatore di giornata, rimonte spettacolari… sono questi dettagli a trasformare un semplice gioco in un appuntamento atteso.",
+        ],
+      },
+      {
+        h2: '5. Fai durare il divertimento',
+        paragraphs: [
+          "Lo sfottò fa parte del gioco. Uno spazio per chiacchierare dove ognuno può prendere in giro l'ultimo in classifica o vantarsi dopo un risultato esatto, e la tua sfida diventa un vero filo conduttore tra amici per tutta la stagione.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Bisogna pagare per organizzare un gioco di pronostici?', a: 'No. Su PronoHub, creare una sfida, invitare i tuoi amici e giocare è 100% gratis. Esistono piani a pagamento solo per gruppi molto grandi.' },
+      { q: 'Quanti partecipanti servono?', a: 'Da 2, ma una sfida prende davvero vita a partire da 3-4 giocatori. Il confronto delle classifiche è ciò che crea il divertimento.' },
+      { q: 'Si può giocare senza scommettere soldi?', a: 'Sì, ed è proprio il principio. Si gioca per la classifica, i trofei e l\'orgoglio, mai per soldi.' },
+    ],
+    related: ['ligue-1', 'ligue-des-champions', 'premier-league'],
+  },
+  {
+    slug: 'jeux-de-pronos-groupe-whatsapp',
+    title: 'Idee di giochi di pronostici per un gruppo WhatsApp | PronoHub',
+    h1: 'Idee di giochi di pronostici per il tuo gruppo WhatsApp',
+    description: 'Il tuo gruppo WhatsApp di amici merita di meglio di un foglio di calcolo. Scopri le migliori idee di giochi di pronostici di calcio da lanciare con il tuo gruppo, gratis.',
+    lede: "Il tuo gruppo WhatsApp si infiamma a ogni partita? Trasforma quell'energia in una competizione. Ecco idee di giochi di pronostici perfette per un gruppo di amici, e perché una vera app batte il foglio di calcolo o i conteggi a mano.",
+    sections: [
+      {
+        h2: 'Il torneo di stagione',
+        paragraphs: [
+          "Il grande classico: ognuno pronostica tutte le partite di un campionato, si accumulano punti e la classifica si decide su tutta la stagione. Ideale per un gruppo che segue la Serie A o la Premier League da agosto a maggio.",
+        ],
+      },
+      {
+        h2: 'Il pronostico speciale competizione',
+        paragraphs: [
+          "Per un evento corto e intenso: Mondiale, Europeo, fase a eliminazione della Champions League. Tutti pronosticano dalla prima partita alla finale, l'atmosfera sale in crescendo e si conosce il grande vincitore in poche settimane.",
+        ],
+      },
+      {
+        h2: 'La sfida di giornata',
+        paragraphs: [
+          "Più leggero: ogni settimana si pronosticano solo i big match del weekend. Perfetto per i gruppi che non vogliono impegnarsi su un'intera stagione ma adorano sfidarsi partita dopo partita.",
+        ],
+      },
+      {
+        h2: 'Perché un\'app invece di WhatsApp a mano?',
+        list: [
+          "Basta punteggi sepolti in un foglio di calcolo che nessuno aggiorna.",
+          "La classifica si calcola da sola dopo ogni partita: zero litigi sui punti.",
+          "Ognuno inserisce i suoi pronostici dove e quando vuole, senza intasare il gruppo.",
+          "Trofei, statistiche e storico: cose che un thread WhatsApp non potrà mai offrire.",
+        ],
+        paragraphs: [
+          "Tieni il tuo gruppo WhatsApp per lo sfottò, e lascia che l'app gestisca i pronostici e la classifica. Il meglio dei due mondi.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Come lancio un gioco di pronostici con il mio gruppo WhatsApp?', a: 'Crea una sfida su PronoHub, scegli la competizione, poi condividi il link d\'invito direttamente nel tuo gruppo WhatsApp. I tuoi amici entrano con un clic.' },
+      { q: 'È gratis?', a: 'Sì, totalmente. Nessun costo per creare il gioco, invitare il gruppo e seguire la classifica.' },
+      { q: 'Tutti devono installare un\'app?', a: 'No, PronoHub funziona anche dal browser. Esiste un\'app Android per chi la preferisce.' },
+    ],
+    related: ['ligue-1', 'coupe-du-monde', 'ligue-des-champions'],
+  },
+  {
+    slug: 'regles-bareme-concours-pronostics',
+    title: 'Regole e punteggio di un concorso di pronostici tra amici | PronoHub',
+    h1: 'Regole e punteggio di un concorso di pronostici tra amici',
+    description: 'Come fissare le regole e il punteggio di un concorso di pronostici di calcio tra amici: risultato giusto, risultato esatto, bonus, parità. La guida chiara.',
+    lede: "Un buon concorso di pronostici si basa su regole chiare. Ecco come costruire un punteggio equilibrato, che premia sia la costanza sia il coraggio, senza mai provocare litigi tra amici.",
+    sections: [
+      {
+        h2: 'Il punteggio di base: il risultato giusto',
+        paragraphs: [
+          "Il mattone di partenza: guadagni punti quando indovini l'esito della partita — vittoria in casa, pareggio o vittoria in trasferta (1, X, 2). Di solito 1 punto. Semplice, chiaro, tutti capiscono.",
+        ],
+      },
+      {
+        h2: 'Il risultato esatto: la ricompensa del coraggio',
+        paragraphs: [
+          "Per distinguere i giocatori, si aggiunge un bonus quando il risultato pronosticato è esattamente quello giusto (per esempio 3 punti invece di 1). È ciò che spinge a osare un 2-1 invece di giocare sul sicuro, e crea le rimonte più belle in classifica.",
+        ],
+      },
+      {
+        h2: 'I bonus per renderlo più piccante',
+        list: [
+          "Partita bonus: i punti di un match scelto vengono raddoppiati.",
+          "Premio anticipo: qualche punto in più per chi pronostica ben prima del fischio d'inizio.",
+          "Bonus qualificata: nella fase a eliminazione, punti per aver indicato la squadra che passa il turno.",
+        ],
+      },
+      {
+        h2: 'Gestire le parità',
+        paragraphs: [
+          "In caso di ex aequo alla fine, prevedi un criterio di spareggio annunciato fin dall'inizio: numero di risultati esatti azzeccati, poi numero di risultati giusti. L'essenziale è che la regola sia nota a tutti prima della fine, mai decisa a posteriori.",
+        ],
+      },
+      {
+        h2: 'Durata e ritmo',
+        paragraphs: [
+          "Decidi in anticipo se il concorso dura tutta la stagione o un numero definito di giornate. Un formato corto mantiene alta l'attenzione; uno lungo premia la costanza. Entrambi funzionano: scegli in base alla voglia del tuo gruppo.",
+        ],
+      },
+    ],
+    faq: [
+      { q: 'Quale punteggio scegliere per iniziare?', a: 'Il più semplice ed efficace: 1 punto per il risultato giusto (1/X/2) e 3 punti per il risultato esatto. Poi lo aggiusti secondo i gusti del gruppo.' },
+      { q: 'Bisogna calcolare i punti a mano?', a: 'No. Su PronoHub il punteggio viene applicato automaticamente e la classifica si aggiorna dopo ogni partita, senza errori né litigi.' },
+      { q: 'Si possono personalizzare le regole?', a: 'Sì, puoi attivare opzioni come la partita bonus o il premio anticipo a seconda dello stile di gioco che vuoi dare al tuo concorso.' },
+    ],
+    related: ['ligue-1', 'serie-a', 'liga'],
+  },
+]
+
+export const GUIDES: Partial<Record<string, Guide[]>> & { fr: Guide[] } = { fr: FR, en: EN, es: ES, de: DE, it: IT }
 
 /** Liste des guides pour la locale donnée (repli FR si langue non traduite). */
 export function getGuides(locale: string = 'fr'): Guide[] {

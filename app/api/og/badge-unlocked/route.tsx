@@ -46,13 +46,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { defaultBadge: 'Trophy', prono: 'Pick:' }
       : locale === 'es'
       ? { defaultBadge: 'Trofeo', prono: 'Pronóstico:' }
       : locale === 'de'
       ? { defaultBadge: 'Trophäe', prono: 'Tipp:' }
+      : locale === 'it'
+      ? { defaultBadge: 'Trofeo', prono: 'Pronostico:' }
       : { defaultBadge: 'Trophée', prono: 'Prono :' }
 
     // Paramètres
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
     if (matchDate) {
       try {
         const d = new Date(matchDate)
-        formattedDate = d.toLocaleDateString(locale === 'en' ? 'en-GB' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : 'fr-FR', {
+        formattedDate = d.toLocaleDateString(locale === 'en' ? 'en-GB' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : locale === 'it' ? 'it-IT' : 'fr-FR', {
           day: 'numeric',
           month: 'short',
           timeZone: 'Europe/Paris',

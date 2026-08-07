@@ -242,7 +242,7 @@ export interface MultiTournamentReminderEmailProps {
 // Template: Email de bienvenue après inscription
 export function getWelcomeEmailTemplate({ username, locale }: EmailTemplateProps) {
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const html = `
 <!DOCTYPE html>
 <html lang="${loc}">
@@ -354,7 +354,7 @@ export function getTournamentInviteTemplate({
   locale
 }: EmailTemplateProps) {
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const html = `
 <!DOCTYPE html>
 <html lang="${loc}">
@@ -465,7 +465,7 @@ export function getMatchReminderTemplate({
   locale
 }: EmailTemplateProps) {
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const html = `
 <!DOCTYPE html>
 <html lang="${loc}">
@@ -595,7 +595,7 @@ export function getResultsNotificationTemplate({
   locale
 }: EmailTemplateProps) {
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const html = `
 <!DOCTYPE html>
 <html lang="${loc}">
@@ -706,7 +706,7 @@ export function getDetailedReminderTemplate(props: ReminderEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const actionUrl = `https://www.pronohub.club/${tournamentSlug}/opposition`
 
@@ -891,7 +891,7 @@ export function getTournamentStartedTemplate(props: TournamentStartedEmailProps)
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
@@ -1204,7 +1204,7 @@ export function getMatchdayRecapTemplate(props: MatchdayRecapEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
@@ -1542,7 +1542,7 @@ export function getTournamentEndTemplate(props: TournamentEndEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
@@ -1744,7 +1744,7 @@ export function getTournamentInviteDetailedTemplate(props: TournamentInviteDetai
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const joinUrl = `${baseUrl}/join?code=${inviteCode}`
@@ -1917,7 +1917,7 @@ export function getNewPlayerJoinedTemplate(props: NewPlayerJoinedEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
@@ -2087,7 +2087,7 @@ export function getCaptainTransferTemplate(props: CaptainTransferEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/vestiaire/${tournamentSlug}/echauffement`
@@ -2242,7 +2242,7 @@ export function getMentionTemplate(props: MentionEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
   const chatUrl = `${baseUrl}/${tournamentSlug}/opposition?tab=tchat`
@@ -2373,7 +2373,7 @@ export function getMultiTournamentReminderTemplate(props: MultiTournamentReminde
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const totalMatches = tournaments.reduce((sum, tt) => sum + tt.matches.length, 0)
   const actionUrl = 'https://www.pronohub.club/dashboard'
@@ -2600,7 +2600,7 @@ export interface InactiveUserReminderEmailProps {
 export function getInactiveUserReminderTemplate(props: InactiveUserReminderEmailProps) {
   const { username, locale } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const html = `
 <!DOCTYPE html>
@@ -2816,7 +2816,7 @@ export function getMatchdayChangesTemplate(props: MatchdayChangesEmailProps) {
     locale
   } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
 
   const baseUrl = 'https://www.pronohub.club'
   const tournamentUrl = `${baseUrl}/${tournamentSlug}/opposition`
@@ -3055,7 +3055,7 @@ export interface BadgeUnlockedEmailProps {
 export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
   const { username, trophyName, trophyDescription, trophyImageUrl, triggerMatch, locale } = props
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.pronohub.club'
   const trophiesUrl = `${baseUrl}/profile?tab=trophees`
 
@@ -3064,7 +3064,7 @@ export function getBadgeUnlockedTemplate(props: BadgeUnlockedEmailProps) {
   if (triggerMatch?.matchDate) {
     try {
       const d = new Date(triggerMatch.matchDate)
-      formattedMatchDate = d.toLocaleDateString(loc === 'en' ? 'en-GB' : loc === 'es' ? 'es-ES' : loc === 'de' ? 'de-DE' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })
+      formattedMatchDate = d.toLocaleDateString(loc === 'en' ? 'en-GB' : loc === 'es' ? 'es-ES' : loc === 'de' ? 'de-DE' : loc === 'it' ? 'it-IT' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' })
     } catch { formattedMatchDate = '' }
   }
 
@@ -3213,7 +3213,7 @@ ${t('common.footerShort', { year: new Date().getFullYear() })}`
 // Template: Email de finalisation d'inscription (pour users OAuth avec pseudo auto-généré)
 export function getFinalizeRegistrationTemplate({ username, email, locale }: FinalizeRegistrationEmailProps) {
   const t = emailT(locale)
-  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : 'fr'
+  const loc = locale === 'en' ? 'en' : locale === 'es' ? 'es' : locale === 'de' ? 'de' : locale === 'it' ? 'it' : 'fr'
   const html = `
 <!DOCTYPE html>
 <html lang="${loc}">

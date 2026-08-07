@@ -140,13 +140,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { finished: 'Finished', live: '● Live', upcoming: 'Upcoming', matchday: 'Matchday', defaultTag: 'default', locked: '🔒 Predictions revealed 30 min before kickoff', king: "Who's the prediction king?", others: (n: number) => `+${n} more`, pts: 'pts', home: 'Home', away: 'Away', player: 'Player' }
       : locale === 'es'
       ? { finished: 'Terminado', live: '● En directo', upcoming: 'Próximamente', matchday: 'Jornada', defaultTag: 'defecto', locked: '🔒 Pronósticos revelados 30 min antes del inicio', king: '¿Quién es el rey del pronóstico?', others: (n: number) => `+${n} más`, pts: 'pts', home: 'Local', away: 'Visitante', player: 'Jugador' }
       : locale === 'de'
       ? { finished: 'Beendet', live: '● Live', upcoming: 'Demnächst', matchday: 'Spieltag', defaultTag: 'Standard', locked: '🔒 Tipps werden 30 Min vor Anpfiff enthüllt', king: 'Wer ist der Tipp-König?', others: (n: number) => `+${n} weitere`, pts: 'Pkt', home: 'Heim', away: 'Auswärts', player: 'Spieler' }
+      : locale === 'it'
+      ? { finished: 'Terminato', live: '● In diretta', upcoming: 'In arrivo', matchday: 'Giornata', defaultTag: 'predefinito', locked: '🔒 Pronostici rivelati 30 min prima del calcio d’inizio', king: 'Chi è il re del pronostico?', others: (n: number) => `+${n} altri`, pts: 'pt', home: 'Casa', away: 'Trasferta', player: 'Giocatore' }
       : { finished: 'Terminé', live: '● En direct', upcoming: 'À venir', matchday: 'Journée', defaultTag: 'défaut', locked: '🔒 Pronostics révélés 30 min avant le coup d’envoi', king: 'C’est qui le roi du Prono ?', others: (n: number) => `+${n} autres`, pts: 'pts', home: 'Domicile', away: 'Extérieur', player: 'Joueur' }
     const tournamentId = searchParams.get('tournamentId')
     const matchId = searchParams.get('matchId')
@@ -331,7 +333,7 @@ export async function GET(request: NextRequest) {
 
     // Métadonnées du match : jour, heure, journée, poule
     const md = match.utc_date ? new Date(match.utc_date) : null
-    const dateLoc = locale === 'en' ? 'en-GB' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : 'fr-FR'
+    const dateLoc = locale === 'en' ? 'en-GB' : locale === 'es' ? 'es-ES' : locale === 'de' ? 'de-DE' : locale === 'it' ? 'it-IT' : 'fr-FR'
     const dayLabel = md ? md.toLocaleDateString(dateLoc, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }) : ''
     const dayCap = dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : ''
     const timeLabel = md ? md.toLocaleTimeString(dateLoc, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : ''

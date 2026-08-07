@@ -34,13 +34,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
 
     const raw = searchParams.get('locale')
-    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
     const L = locale === 'en'
       ? { title1: 'The coach', title2: 'calls for a', title3: 'substitution...', other: (n: number) => `${n} more match${n > 1 ? 'es' : ''}` }
       : locale === 'es'
       ? { title1: 'El entrenador', title2: 'pide un', title3: 'cambio...', other: (n: number) => `${n} partido${n > 1 ? 's' : ''} más` }
       : locale === 'de'
       ? { title1: 'Der Trainer', title2: 'fordert eine', title3: 'Auswechslung...', other: (n: number) => `${n} weitere${n > 1 ? '' : 's'} Spiel${n > 1 ? 'e' : ''}` }
+      : locale === 'it'
+      ? { title1: 'L’allenatore', title2: 'chiede un', title3: 'cambio...', other: (n: number) => `${n} altr${n > 1 ? 'e partite' : 'a partita'}` }
       : { title1: 'Le coach', title2: 'demande un', title3: 'changement...', other: (n: number) => `${n} autre${n > 1 ? 's' : ''} match${n > 1 ? 's' : ''}` }
 
     // Paramètres

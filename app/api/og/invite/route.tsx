@@ -37,7 +37,7 @@ async function emblemDataUri(emblem: string | null): Promise<string | null> {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const raw = searchParams.get('locale')
-  const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : 'fr'
+  const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : raw === 'de' ? 'de' : raw === 'it' ? 'it' : 'fr'
   const L = locale === 'en'
     ? {
         defaultName: 'a prediction tournament',
@@ -67,6 +67,16 @@ export async function GET(request: Request) {
         players: 'Spieler',
         joinCta: 'Tritt dem Turnier bei  →',
         tagline: 'pronohub.club — Fußball-Tipps mit Freunden, kostenlos',
+      }
+    : locale === 'it'
+    ? {
+        defaultName: 'un torneo di pronostici',
+        defaultCreator: 'Un amico',
+        invitesYou: 'ti invita a',
+        theirTournament: 'il suo torneo di pronostici 🏆',
+        players: 'giocatori',
+        joinCta: 'Unisciti al torneo  →',
+        tagline: 'pronohub.club — pronostici di calcio tra amici, gratis',
       }
     : {
         defaultName: 'un tournoi de pronos',

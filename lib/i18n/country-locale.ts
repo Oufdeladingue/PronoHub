@@ -29,6 +29,14 @@ const GERMAN_COUNTRIES = new Set([
 ])
 
 /**
+ * Pays italophones → langue IT par défaut.
+ * (Italie, Saint-Marin, Vatican. La Suisse reste mappée FR ci-dessus.)
+ */
+const ITALIAN_COUNTRIES = new Set([
+  'IT', 'SM', 'VA',
+])
+
+/**
  * Langue par défaut à partir du pays détecté (cf-ipcountry).
  * - Pays francophone → 'fr'
  * - Autre marché ouvert → 'en' (langue passerelle tant qu'ES/IT/DE ne sont pas produites)
@@ -43,5 +51,6 @@ export function localeForCountry(country: string | null | undefined): Locale {
   if (FRENCH_COUNTRIES.has(cc)) return 'fr'
   if (SPANISH_COUNTRIES.has(cc)) return 'es'
   if (GERMAN_COUNTRIES.has(cc)) return 'de'
+  if (ITALIAN_COUNTRIES.has(cc)) return 'it'
   return 'en'
 }
