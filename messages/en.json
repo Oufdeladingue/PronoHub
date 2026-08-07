@@ -1638,5 +1638,279 @@
     "rankingTrophies": "Leaderboard, trophies, banter",
     "joinNamed": "Join {name}",
     "ownTournament": "Want your own tournament with your mates? <link>This way</link>."
+  },
+  "Privacy": {
+    "meta": {
+      "title": "Privacy Policy - PronoHub Football",
+      "description": "Learn how PronoHub protects your personal data. Our privacy policy details the collection and use of your information."
+    },
+    "backHome": "Back to home",
+    "h1": "Privacy and Cookie Policy",
+    "lastUpdated": "Last updated: February 4, 2026",
+    "s1": {
+      "title": "1. Introduction",
+      "body": "PronoHub is committed to protecting the privacy of its users. This policy explains how we collect, use and protect your personal data, in accordance with the General Data Protection Regulation (GDPR)."
+    },
+    "s2": {
+      "title": "2. Data collected",
+      "intro": "We collect the following data:",
+      "items": [
+        {
+          "label": "Registration data:",
+          "text": "Email, username, avatar"
+        },
+        {
+          "label": "Usage data:",
+          "text": "Predictions, scores, trophies, game statistics"
+        },
+        {
+          "label": "Technical data:",
+          "text": "IP address, browser type, preferences (light/dark theme)"
+        },
+        {
+          "label": "Payment data:",
+          "text": "Handled exclusively by Stripe (we do not store your banking details)"
+        }
+      ]
+    },
+    "s3": {
+      "title": "3. Purpose of processing",
+      "intro": "Your data is used to:",
+      "items": [
+        "Manage your account and authenticate your logins",
+        "Run the prediction tournaments",
+        "Calculate and display rankings",
+        "Send important notifications (match reminders, results)",
+        "Improve our service and fix bugs"
+      ]
+    },
+    "s4": {
+      "title": "4. Legal basis",
+      "intro": "The processing of your data is based on:",
+      "items": [
+        {
+          "label": "Performance of the contract:",
+          "text": "To provide the prediction service"
+        },
+        {
+          "label": "Consent:",
+          "text": "For sending marketing communications (optional)"
+        },
+        {
+          "label": "Legitimate interest:",
+          "text": "To improve our service and prevent fraud"
+        }
+      ]
+    },
+    "s5": {
+      "title": "5. Cookies",
+      "intro": "PronoHub uses cookies to:",
+      "items": [
+        {
+          "label": "Essential cookies:",
+          "text": "User session, authentication, theme preferences"
+        },
+        {
+          "label": "Functional cookies:",
+          "text": "Remembering your choices (language, display)"
+        }
+      ],
+      "noAds": "We do <b>not</b> use advertising cookies or third-party trackers.",
+      "management": "<b>Cookie management:</b> By accepting our entry banner, you consent to the use of essential cookies. You can delete them at any time via your browser settings."
+    },
+    "s6": {
+      "title": "6. Data retention",
+      "intro": "Your data is retained:",
+      "items": [
+        {
+          "label": "Active account:",
+          "text": "As long as your account exists"
+        },
+        {
+          "label": "Deleted account:",
+          "text": "30 days after deletion (to allow recovery)"
+        },
+        {
+          "label": "Payment data:",
+          "text": "In accordance with legal obligations (10 years for invoices)"
+        }
+      ]
+    },
+    "s7": {
+      "title": "7. Your rights",
+      "intro": "In accordance with the GDPR, you have the following rights:",
+      "items": [
+        {
+          "label": "Right of access:",
+          "text": "Obtain a copy of your data"
+        },
+        {
+          "label": "Right to rectification:",
+          "text": "Correct your information"
+        },
+        {
+          "label": "Right to erasure (right to be forgotten):",
+          "text": "Delete your account and your data"
+        },
+        {
+          "label": "Right to data portability:",
+          "text": "Retrieve your data in a usable format"
+        },
+        {
+          "label": "Right to object:",
+          "text": "Refuse certain processing"
+        }
+      ],
+      "exercise": "To exercise these rights, contact us via our <contact>contact form</contact>."
+    },
+    "s8": {
+      "title": "8. Security",
+      "intro": "We implement appropriate security measures:",
+      "items": [
+        "Secure HTTPS connection",
+        "Hashed and salted passwords",
+        "Secure authentication via Supabase",
+        "Payments handled by Stripe (PCI-DSS certified)"
+      ]
+    },
+    "s9": {
+      "title": "9. Data sharing",
+      "intro": "Your data is <b>never sold</b>. It may be shared with:",
+      "items": [
+        {
+          "label": "Supabase:",
+          "text": "Database hosting (EU servers)"
+        },
+        {
+          "label": "Stripe:",
+          "text": "Payment processing"
+        },
+        {
+          "label": "Hetzner:",
+          "text": "Website hosting (EU servers)"
+        },
+        {
+          "label": "Google:",
+          "text": "Authentication via Google Sign-In"
+        }
+      ],
+      "outro": "These providers are GDPR-compliant and process your data solely according to our instructions."
+    },
+    "s10": {
+      "title": "10. Minors",
+      "body": "PronoHub is reserved for adults (18 years and older). We do not knowingly collect data concerning minors. If you are a parent and believe your child has created an account, contact us to have it deleted."
+    },
+    "s11": {
+      "title": "11. Changes",
+      "body": "This policy may be updated. In the event of a substantial change, you will be informed by email or notification on the site."
+    },
+    "s12": {
+      "title": "12. DPO Contact",
+      "body": "For any questions regarding your personal data, you can contact our Data Protection Officer via our <contact>contact form</contact>.",
+      "cnil": "If you believe your rights are not being respected, you may lodge a complaint with the CNIL (the French data protection authority — Commission Nationale de l'Informatique et des Libertés)."
+    }
+  },
+  "Cgv": {
+    "meta": {
+      "title": "Terms and Conditions - PronoHub Football",
+      "description": "Read PronoHub's terms and conditions of sale and use, the football prediction app to play with friends."
+    },
+    "backHome": "Back to home",
+    "h1": "Terms and Conditions of Use",
+    "lastUpdated": "Last updated: November 24, 2025",
+    "s1": {
+      "title": "1. Purpose",
+      "body": "These Terms and Conditions of Use (T&C) govern the use of the PronoHub site, a sports prediction platform for recreational purposes. By accessing the site, you accept these terms without reservation."
+    },
+    "s2": {
+      "title": "2. Description of the service",
+      "intro": "PronoHub is a platform that allows users to:",
+      "items": [
+        "Create and join sports prediction tournaments",
+        "Predict the results of football matches",
+        "View rankings among friends or colleagues",
+        "Win virtual trophies and track their statistics"
+      ],
+      "important": "<b>Important:</b> PronoHub is a free prediction game with no financial stake. No monetary winnings can be obtained through the platform."
+    },
+    "s3": {
+      "title": "3. Access to the service",
+      "body1": "Access to PronoHub is reserved for adults (18 years and older). By using this site, you confirm that you are of the required legal age.",
+      "body2": "Registration requires a valid email address and the creation of a user account. You are responsible for the confidentiality of your login credentials."
+    },
+    "s4": {
+      "title": "4. Plans and pricing",
+      "intro": "PronoHub offers several plans:",
+      "items": [
+        {
+          "label": "Free:",
+          "text": "Limited access with a maximum of 3 tournaments and 10 players per tournament"
+        },
+        {
+          "label": "One-Shot:",
+          "text": "One-time payment for a premium tournament"
+        },
+        {
+          "label": "Key Player:",
+          "text": "Monthly or annual subscription with extended features"
+        },
+        {
+          "label": "Enterprise:",
+          "text": "Tailor-made solution for large organizations"
+        }
+      ],
+      "outro": "Payments are secure and handled by Stripe. Displayed prices include all taxes."
+    },
+    "s5": {
+      "title": "5. Right of withdrawal",
+      "body1": "In accordance with Article L221-28 of the French Consumer Code, the right of withdrawal cannot be exercised for services fully performed before the end of the withdrawal period and whose performance began after the consumer's express prior consent.",
+      "body2": "By subscribing to a paid offer, you acknowledge and accept that the service begins immediately after payment is validated."
+    },
+    "s6": {
+      "title": "6. Termination",
+      "body": "You can cancel your subscription at any time from your customer area. Termination will take effect at the end of the current period. No pro-rata refund will be made."
+    },
+    "s7": {
+      "title": "7. User conduct",
+      "intro": "Users agree to:",
+      "items": [
+        "Respect other users and refrain from insulting remarks",
+        "Not use offensive usernames",
+        "Not attempt to manipulate results or the system",
+        "Not use the service for unauthorized commercial purposes"
+      ],
+      "outro": "PronoHub reserves the right to suspend or delete any account in the event of a violation of these rules, without notice or refund."
+    },
+    "s8": {
+      "title": "8. Intellectual property",
+      "body1": "All content on the PronoHub site (logos, texts, graphics, features) is protected by copyright. Any unauthorized reproduction is prohibited.",
+      "body2": "The logos of competitions and sports teams belong to their respective owners and are used for informational purposes only."
+    },
+    "s9": {
+      "title": "9. Data protection",
+      "body": "PronoHub collects and processes your personal data in accordance with the GDPR. For more information, see our <privacy>Privacy Policy</privacy>."
+    },
+    "s10": {
+      "title": "10. Limitation of liability",
+      "intro": "PronoHub cannot be held liable for:",
+      "items": [
+        "Service interruptions or technical bugs",
+        "The accuracy of the sports data displayed",
+        "Decisions made by users based on their predictions",
+        "Data loss in the event of force majeure"
+      ]
+    },
+    "s11": {
+      "title": "11. Changes to the T&C",
+      "body": "PronoHub reserves the right to modify these T&C at any time. Users will be informed of any significant change by email or notification on the site."
+    },
+    "s12": {
+      "title": "12. Governing law",
+      "body": "These T&C are governed by French law. In the event of a dispute, the French courts shall have sole jurisdiction."
+    },
+    "s13": {
+      "title": "13. Contact",
+      "body": "For any questions regarding these T&C, you can contact us via our <contact>contact form</contact>."
+    }
   }
 }

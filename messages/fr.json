@@ -1638,5 +1638,279 @@
     "rankingTrophies": "Classement, trophées, chambrage",
     "joinNamed": "Rejoindre {name}",
     "ownTournament": "Envie de ton propre tournoi entre potes ? <link>C'est par ici</link>."
+  },
+  "Privacy": {
+    "meta": {
+      "title": "Politique de Confidentialité - PronoHub Football",
+      "description": "Découvrez comment PronoHub protège vos données personnelles. Notre politique de confidentialité détaille la collecte et l'utilisation de vos informations."
+    },
+    "backHome": "Retour à l'accueil",
+    "h1": "Politique de Confidentialité et Cookies",
+    "lastUpdated": "Dernière mise à jour : 4 février 2026",
+    "s1": {
+      "title": "1. Introduction",
+      "body": "PronoHub s'engage à protéger la vie privée de ses utilisateurs. Cette politique explique comment nous collectons, utilisons et protégeons vos données personnelles, conformément au Règlement Général sur la Protection des Données (RGPD)."
+    },
+    "s2": {
+      "title": "2. Données collectées",
+      "intro": "Nous collectons les données suivantes :",
+      "items": [
+        {
+          "label": "Données d'inscription :",
+          "text": "Email, nom d'utilisateur, avatar"
+        },
+        {
+          "label": "Données d'utilisation :",
+          "text": "Pronostics, scores, trophées, statistiques de jeu"
+        },
+        {
+          "label": "Données techniques :",
+          "text": "Adresse IP, type de navigateur, préférences (thème clair/sombre)"
+        },
+        {
+          "label": "Données de paiement :",
+          "text": "Gérées exclusivement par Stripe (nous ne stockons pas vos coordonnées bancaires)"
+        }
+      ]
+    },
+    "s3": {
+      "title": "3. Finalité du traitement",
+      "intro": "Vos données sont utilisées pour :",
+      "items": [
+        "Gérer votre compte et authentifier vos connexions",
+        "Faire fonctionner les tournois de pronostics",
+        "Calculer et afficher les classements",
+        "Envoyer des notifications importantes (rappels de matchs, résultats)",
+        "Améliorer notre service et corriger les bugs"
+      ]
+    },
+    "s4": {
+      "title": "4. Base légale",
+      "intro": "Le traitement de vos données repose sur :",
+      "items": [
+        {
+          "label": "Exécution du contrat :",
+          "text": "Pour fournir le service de pronostics"
+        },
+        {
+          "label": "Consentement :",
+          "text": "Pour l'envoi de communications marketing (optionnel)"
+        },
+        {
+          "label": "Intérêt légitime :",
+          "text": "Pour améliorer notre service et prévenir la fraude"
+        }
+      ]
+    },
+    "s5": {
+      "title": "5. Cookies",
+      "intro": "PronoHub utilise des cookies pour :",
+      "items": [
+        {
+          "label": "Cookies essentiels :",
+          "text": "Session utilisateur, authentification, préférences de thème"
+        },
+        {
+          "label": "Cookies fonctionnels :",
+          "text": "Mémorisation de vos choix (langue, affichage)"
+        }
+      ],
+      "noAds": "Nous n'utilisons <b>pas</b> de cookies publicitaires ni de traceurs tiers.",
+      "management": "<b>Gestion des cookies :</b> En acceptant notre bandeau d'entrée, vous consentez à l'utilisation des cookies essentiels. Vous pouvez les supprimer à tout moment via les paramètres de votre navigateur."
+    },
+    "s6": {
+      "title": "6. Conservation des données",
+      "intro": "Vos données sont conservées :",
+      "items": [
+        {
+          "label": "Compte actif :",
+          "text": "Tant que votre compte existe"
+        },
+        {
+          "label": "Compte supprimé :",
+          "text": "30 jours après suppression (pour permettre la récupération)"
+        },
+        {
+          "label": "Données de paiement :",
+          "text": "Selon les obligations légales (10 ans pour les factures)"
+        }
+      ]
+    },
+    "s7": {
+      "title": "7. Vos droits",
+      "intro": "Conformément au RGPD, vous disposez des droits suivants :",
+      "items": [
+        {
+          "label": "Droit d'accès :",
+          "text": "Obtenir une copie de vos données"
+        },
+        {
+          "label": "Droit de rectification :",
+          "text": "Corriger vos informations"
+        },
+        {
+          "label": "Droit à l'effacement :",
+          "text": "Supprimer votre compte et vos données"
+        },
+        {
+          "label": "Droit à la portabilité :",
+          "text": "Récupérer vos données dans un format exploitable"
+        },
+        {
+          "label": "Droit d'opposition :",
+          "text": "Refuser certains traitements"
+        }
+      ],
+      "exercise": "Pour exercer ces droits, contactez-nous via notre <contact>formulaire de contact</contact>."
+    },
+    "s8": {
+      "title": "8. Sécurité",
+      "intro": "Nous mettons en œuvre des mesures de sécurité appropriées :",
+      "items": [
+        "Connexion sécurisée HTTPS",
+        "Mots de passe hashés et salés",
+        "Authentification sécurisée via Supabase",
+        "Paiements gérés par Stripe (certifié PCI-DSS)"
+      ]
+    },
+    "s9": {
+      "title": "9. Partage des données",
+      "intro": "Vos données ne sont <b>jamais vendues</b>. Elles peuvent être partagées avec :",
+      "items": [
+        {
+          "label": "Supabase :",
+          "text": "Hébergement de la base de données (serveurs UE)"
+        },
+        {
+          "label": "Stripe :",
+          "text": "Traitement des paiements"
+        },
+        {
+          "label": "Hetzner :",
+          "text": "Hébergement du site web (serveurs UE)"
+        },
+        {
+          "label": "Google :",
+          "text": "Authentification via Google Sign-In"
+        }
+      ],
+      "outro": "Ces prestataires sont conformes au RGPD et traitent vos données uniquement selon nos instructions."
+    },
+    "s10": {
+      "title": "10. Mineurs",
+      "body": "PronoHub est réservé aux personnes majeures (18 ans et plus). Nous ne collectons pas sciemment de données concernant des mineurs. Si vous êtes parent et pensez que votre enfant a créé un compte, contactez-nous pour le faire supprimer."
+    },
+    "s11": {
+      "title": "11. Modifications",
+      "body": "Cette politique peut être mise à jour. En cas de modification substantielle, vous serez informé par email ou notification sur le site."
+    },
+    "s12": {
+      "title": "12. Contact DPO",
+      "body": "Pour toute question relative à vos données personnelles, vous pouvez contacter notre Délégué à la Protection des Données via notre <contact>formulaire de contact</contact>.",
+      "cnil": "Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL (Commission Nationale de l'Informatique et des Libertés)."
+    }
+  },
+  "Cgv": {
+    "meta": {
+      "title": "Conditions Générales de Vente - PronoHub Football",
+      "description": "Consultez les conditions générales de vente et d'utilisation de PronoHub, l'application de pronostics football entre amis."
+    },
+    "backHome": "Retour à l'accueil",
+    "h1": "Conditions Générales d'Utilisation",
+    "lastUpdated": "Dernière mise à jour : 24 novembre 2025",
+    "s1": {
+      "title": "1. Objet",
+      "body": "Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation du site PronoHub, une plateforme de pronostics sportifs à but ludique. En accédant au site, vous acceptez sans réserve les présentes conditions."
+    },
+    "s2": {
+      "title": "2. Description du service",
+      "intro": "PronoHub est une plateforme permettant aux utilisateurs de :",
+      "items": [
+        "Créer et rejoindre des tournois de pronostics sportifs",
+        "Prédire les résultats de matchs de football",
+        "Consulter des classements entre amis ou collègues",
+        "Gagner des trophées virtuels et suivre leurs statistiques"
+      ],
+      "important": "<b>Important :</b> PronoHub est un jeu de pronostics gratuit sans enjeu financier. Aucun gain monétaire ne peut être obtenu via la plateforme."
+    },
+    "s3": {
+      "title": "3. Accès au service",
+      "body1": "L'accès à PronoHub est réservé aux personnes majeures (18 ans et plus). En utilisant ce site, vous confirmez avoir l'âge légal requis.",
+      "body2": "L'inscription nécessite une adresse email valide et la création d'un compte utilisateur. Vous êtes responsable de la confidentialité de vos identifiants de connexion."
+    },
+    "s4": {
+      "title": "4. Formules et tarifs",
+      "intro": "PronoHub propose plusieurs formules :",
+      "items": [
+        {
+          "label": "Gratuit :",
+          "text": "Accès limité avec 3 tournois maximum et 10 joueurs par tournoi"
+        },
+        {
+          "label": "One-Shot :",
+          "text": "Paiement unique pour un tournoi premium"
+        },
+        {
+          "label": "Joueur-clé :",
+          "text": "Abonnement mensuel ou annuel avec fonctionnalités étendues"
+        },
+        {
+          "label": "Entreprise :",
+          "text": "Solution sur mesure pour les grandes organisations"
+        }
+      ],
+      "outro": "Les paiements sont sécurisés et gérés par Stripe. Les prix affichés sont TTC."
+    },
+    "s5": {
+      "title": "5. Droit de rétractation",
+      "body1": "Conformément à l'article L221-28 du Code de la consommation, le droit de rétractation ne peut être exercé pour les services pleinement exécutés avant la fin du délai de rétractation et dont l'exécution a commencé après accord préalable exprès du consommateur.",
+      "body2": "En souscrivant à une offre payante, vous reconnaissez et acceptez que le service commence immédiatement après validation du paiement."
+    },
+    "s6": {
+      "title": "6. Résiliation",
+      "body": "Vous pouvez résilier votre abonnement à tout moment depuis votre espace client. La résiliation prendra effet à la fin de la période en cours. Aucun remboursement au prorata ne sera effectué."
+    },
+    "s7": {
+      "title": "7. Comportement des utilisateurs",
+      "intro": "Les utilisateurs s'engagent à :",
+      "items": [
+        "Respecter les autres utilisateurs et ne pas tenir de propos injurieux",
+        "Ne pas utiliser de pseudonymes offensants",
+        "Ne pas tenter de manipuler les résultats ou le système",
+        "Ne pas utiliser le service à des fins commerciales non autorisées"
+      ],
+      "outro": "PronoHub se réserve le droit de suspendre ou supprimer tout compte en cas de violation de ces règles, sans préavis ni remboursement."
+    },
+    "s8": {
+      "title": "8. Propriété intellectuelle",
+      "body1": "L'ensemble du contenu du site PronoHub (logos, textes, graphismes, fonctionnalités) est protégé par le droit d'auteur. Toute reproduction non autorisée est interdite.",
+      "body2": "Les logos des compétitions et équipes sportives appartiennent à leurs propriétaires respectifs et sont utilisés à titre informatif uniquement."
+    },
+    "s9": {
+      "title": "9. Protection des données",
+      "body": "PronoHub collecte et traite vos données personnelles conformément au RGPD. Pour plus d'informations, consultez notre <privacy>Politique de confidentialité</privacy>."
+    },
+    "s10": {
+      "title": "10. Limitation de responsabilité",
+      "intro": "PronoHub ne saurait être tenu responsable :",
+      "items": [
+        "Des interruptions de service ou bugs techniques",
+        "De l'exactitude des données sportives affichées",
+        "Des décisions prises par les utilisateurs sur la base de leurs pronostics",
+        "Des pertes de données en cas de force majeure"
+      ]
+    },
+    "s11": {
+      "title": "11. Modification des CGU",
+      "body": "PronoHub se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification importante par email ou notification sur le site."
+    },
+    "s12": {
+      "title": "12. Droit applicable",
+      "body": "Les présentes CGU sont soumises au droit français. En cas de litige, les tribunaux français seront seuls compétents."
+    },
+    "s13": {
+      "title": "13. Contact",
+      "body": "Pour toute question relative aux présentes CGU, vous pouvez nous contacter via notre <contact>formulaire de contact</contact>."
+    }
   }
 }
