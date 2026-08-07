@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { fetchWithAuth } from '@/lib/supabase/client'
 import { openExternalUrl } from '@/lib/capacitor'
 
@@ -15,6 +16,7 @@ export default function StatsExplanationModal({
   returnUrl,
   onClose
 }: StatsExplanationModalProps) {
+  const t = useTranslations('StatsModal')
   const [loading, setLoading] = useState<'tournament' | 'lifetime' | null>(null)
 
   const handlePurchase = async (type: 'tournament' | 'lifetime') => {
@@ -65,7 +67,7 @@ export default function StatsExplanationModal({
                 </svg>
               </div>
               <h3 className="text-lg font-bold theme-text">
-                Statistiques du match
+                {t('title')}
               </h3>
             </div>
             <button
@@ -82,7 +84,7 @@ export default function StatsExplanationModal({
         {/* Content */}
         <div className="p-5 space-y-5">
           <p className="theme-text-secondary text-sm leading-relaxed">
-            Accédez aux statistiques avancées pour affiner vos pronostics :
+            {t('intro')}
           </p>
 
           <ul className="space-y-3">
@@ -91,7 +93,7 @@ export default function StatsExplanationModal({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-sm theme-text">
-                <strong>Forme des équipes</strong> - Les 5 derniers résultats de chaque équipe dans la compétition
+                <strong>{t('formTitle')}</strong> - {t('formDesc')}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -99,7 +101,7 @@ export default function StatsExplanationModal({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-sm theme-text">
-                <strong>Tendances des pronostics</strong> - Découvrez ce que la communauté pronostique pour ce match
+                <strong>{t('trendsTitle')}</strong> - {t('trendsDesc')}
               </span>
             </li>
           </ul>
@@ -112,8 +114,8 @@ export default function StatsExplanationModal({
               className="w-full flex items-center justify-between p-4 theme-bg rounded-lg border-2 theme-border hover:border-[#ff9900] transition-colors disabled:opacity-50"
             >
               <div className="text-left">
-                <p className="font-semibold theme-text">Pour ce tournoi</p>
-                <p className="text-xs theme-text-secondary">Accès aux stats pour ce tournoi uniquement</p>
+                <p className="font-semibold theme-text">{t('forTournament')}</p>
+                <p className="text-xs theme-text-secondary">{t('forTournamentDesc')}</p>
               </div>
               <div className="text-right">
                 {loading === 'tournament' ? (
@@ -131,12 +133,12 @@ export default function StatsExplanationModal({
             >
               <div className="text-left">
                 <div className="flex items-center gap-2">
-                  <p className="font-semibold theme-text">Pour tous mes tournois</p>
+                  <p className="font-semibold theme-text">{t('forAll')}</p>
                   <span className="px-1.5 py-0.5 bg-[#ff9900] text-black text-[10px] font-bold rounded uppercase">
-                    Recommandé
+                    {t('recommended')}
                   </span>
                 </div>
-                <p className="text-xs theme-text-secondary">Accès à vie pour tous vos tournois actuels et futurs</p>
+                <p className="text-xs theme-text-secondary">{t('forAllDesc')}</p>
               </div>
               <div className="text-right">
                 {loading === 'lifetime' ? (
@@ -149,7 +151,7 @@ export default function StatsExplanationModal({
           </div>
 
           <p className="text-xs theme-text-secondary text-center">
-            Fonctionnalité gratuite pour les tournois Elite et Platinium
+            {t('freeNote')}
           </p>
         </div>
 
@@ -160,7 +162,7 @@ export default function StatsExplanationModal({
             disabled={loading !== null}
             className="w-full px-4 py-2.5 theme-bg theme-text rounded-lg border theme-border hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium disabled:opacity-50"
           >
-            Fermer
+            {t('close')}
           </button>
         </div>
       </div>

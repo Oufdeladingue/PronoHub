@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { X, Minus, Plus } from 'lucide-react'
 import { fetchWithAuth } from '@/lib/supabase/client'
@@ -30,6 +31,7 @@ export function DurationExtensionBanner({
   tournamentType,
   tournamentStatus
 }: DurationExtensionBannerProps) {
+  const t = useTranslations('DurationExtension')
   const searchParams = useSearchParams()
   const [info, setInfo] = useState<DurationExtensionInfo | null>(null)
   const [loading, setLoading] = useState(true)
@@ -118,12 +120,12 @@ export function DurationExtensionBanner({
         await openExternalUrl(data.url)
         // Le spinner sera reset par visibilitychange quand l'user revient
       } else {
-        alert(data.error || 'Erreur lors de la création du paiement')
+        alert(data.error || t('paymentError'))
         setBuying(false)
       }
     } catch (error) {
       console.error('Error creating checkout session:', error)
-      alert('Erreur lors de la création du paiement')
+      alert(t('paymentError'))
       setBuying(false)
     }
   }
@@ -156,11 +158,11 @@ export function DurationExtensionBanner({
         setShowModal(false)
         handleBuyCredit()
       } else {
-        alert(data.error || 'Erreur lors de l\'extension')
+        alert(data.error || t('extensionError'))
       }
     } catch (error) {
       console.error('Error applying duration extension:', error)
-      alert('Erreur lors de l\'extension')
+      alert(t('extensionError'))
     } finally {
       setConfirming(false)
     }
@@ -190,14 +192,14 @@ export function DurationExtensionBanner({
               </div>
               <div>
                 <p className="font-medium upgrade-banner-title text-sm md:text-base">
-                  Prolongez votre tournoi !
+                  {t('bannerTitle')}
                 </p>
                 <p className="text-xs md:text-sm upgrade-banner-subtitle">
                   <span className="md:hidden">
-                    +{maxAdd} journées disponibles
+                    {t('availableShort', { n: maxAdd })}
                   </span>
                   <span className="hidden md:inline">
-                    Jusqu&apos;à {maxAdd} journées supplémentaires disponibles
+                    {t('availableLong', { n: maxAdd })}
                   </span>
                 </p>
               </div>
@@ -212,7 +214,7 @@ export function DurationExtensionBanner({
               } rounded-lg text-sm font-medium ${
                 info.hasCredit ? 'text-blue-400' : 'text-orange-400'
               } transition-all shrink-0 disabled:opacity-50`}
-              title={info.hasCredit ? 'Choisir la durée' : `Acheter (${info.price}€)`}
+              title={info.hasCredit ? t('chooseDuration') : t('buy', { price: info.price })}
             >
               {buying ? (
                 <span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -231,7 +233,7 @@ export function DurationExtensionBanner({
                     </span>
                   )}
                   <span className="hidden md:inline">
-                    {info.hasCredit ? 'Prolonger' : `${info.price}€`}
+                    {info.hasCredit ? t('extend') : t('price', { price: info.price })}
                   </span>
                 </>
               )}
@@ -241,7 +243,7 @@ export function DurationExtensionBanner({
           <button
             onClick={handleDismiss}
             className="absolute top-2 right-2 p-1 rounded hover:bg-white/10 dark:hover:bg-white/10 transition-colors"
-            title="Fermer"
+            title={t('close')}
           >
             <X className="w-4 h-4 text-gray-400 hover:text-gray-200" />
           </button>
@@ -267,10 +269,10 @@ export function DurationExtensionBanner({
               </div>
               <div>
                 <h3 className="font-semibold theme-text text-lg">
-                  Prolonger le tournoi
+                  {t('modalTitle')}
                 </h3>
                 <p className="text-xs theme-text-secondary">
-                  Choisissez le nombre de journées
+                  {t('modalSubtitle')}
                 </p>
               </div>
               <button
@@ -296,7 +298,7 @@ export function DurationExtensionBanner({
                   {matchdaysToAdd}
                 </span>
                 <p className="text-xs theme-text-secondary mt-1">
-                  journée{matchdaysToAdd > 1 ? 's' : ''}
+                  {t('matchdaysCount', { n: matchdaysToAdd })}
                 </p>
               </div>
 
@@ -312,16 +314,16 @@ export function DurationExtensionBanner({
             {/* Infos */}
             <div className="bg-[var(--border-color)]/30 rounded-xl p-3 mb-5 space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span className="theme-text-secondary">Fin actuelle</span>
-                <span className="theme-text font-medium">Journée {info.currentEndMatchday}</span>
+                <span className="theme-text-secondary">{t('currentEnd')}</span>
+                <span className="theme-text font-medium">{t('matchdayN', { n: info.currentEndMatchday })}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="theme-text-secondary">Nouvelle fin</span>
-                <span className="text-[#ff9900] font-semibold">Journée {info.currentEndMatchday + matchdaysToAdd}</span>
+                <span className="theme-text-secondary">{t('newEnd')}</span>
+                <span className="text-[#ff9900] font-semibold">{t('matchdayN', { n: info.currentEndMatchday + matchdaysToAdd })}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="theme-text-secondary">Compétition</span>
-                <span className="theme-text-secondary">jusqu&apos;à la journée {info.newEndMatchday}</span>
+                <span className="theme-text-secondary">{t('competition')}</span>
+                <span className="theme-text-secondary">{t('untilMatchday', { n: info.newEndMatchday })}</span>
               </div>
             </div>
 
@@ -332,7 +334,7 @@ export function DurationExtensionBanner({
                 disabled={confirming}
                 className="flex-1 py-2.5 px-4 rounded-lg border border-[var(--border-color)] theme-text font-medium hover:bg-[var(--border-color)]/30 transition-colors disabled:opacity-50"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={handleConfirmExtension}
@@ -342,7 +344,7 @@ export function DurationExtensionBanner({
                 {confirming ? (
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  'Confirmer'
+                  t('confirm')
                 )}
               </button>
             </div>

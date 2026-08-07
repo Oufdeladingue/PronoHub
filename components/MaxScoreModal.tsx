@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useTheme } from '@/contexts/ThemeContext'
 import { isCapacitor } from '@/lib/capacitor'
@@ -10,15 +11,10 @@ interface MaxScoreModalProps {
   onClose: () => void
 }
 
-const funnyMessages = [
-  "Ce score déclenche un visionnage de la VAR : et c'est refusé pour quelques centimètres...",
-  "Tu tentes de débloquer le badge 'Humiliation gratuite' ? C'est trop pour une seule équipe...",
-  "À ce niveau-là, on ne parle plus de football mais de baby-foot ! Concentre-toi",
-  "Tu penses que le gardien adverse va rater le bus ?",
-  "Ce score est historiquement possible… mais statistiquement suspect et logiquement refusé ! "
-]
+const FUNNY_KEYS = ['funny1', 'funny2', 'funny3', 'funny4', 'funny5'] as const
 
 export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
+  const t = useTranslations('MaxScore')
   const { theme } = useTheme()
   const [randomMessage, setRandomMessage] = useState('')
   const [isMobile, setIsMobile] = useState(false)
@@ -35,8 +31,8 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
   // Choisir un message aléatoire à chaque ouverture
   useEffect(() => {
     if (isOpen) {
-      const message = funnyMessages[Math.floor(Math.random() * funnyMessages.length)]
-      setRandomMessage(message)
+      const key = FUNNY_KEYS[Math.floor(Math.random() * FUNNY_KEYS.length)]
+      setRandomMessage(t(key))
     }
   }, [isOpen])
 
@@ -105,7 +101,7 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
           <button
             onClick={onClose}
             className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors"
-            aria-label="Fermer"
+            aria-label={t('close')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -121,7 +117,7 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
               className={isMobile || isApp ? 'w-7 h-7' : 'w-8 h-8'}
             />
             <h2 className={`${fontSize} font-bold drop-shadow-lg`} style={{ color: isDark ? '#000000' : '#ffffff' }}>
-              Ça fait beaucoup là non ?
+              {t('title')}
             </h2>
           </div>
         </div>
@@ -139,7 +135,7 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
             >
               <Image
                 src="https://c.tenor.com/qxVAbTWrqMEAAAAd/tenor.gif"
-                alt="Réaction surprise"
+                alt={t('imageAlt')}
                 width={300}
                 height={200}
                 className="w-full h-auto"
@@ -164,7 +160,7 @@ export default function MaxScoreModal({ isOpen, onClose }: MaxScoreModalProps) {
                 : '0 0 20px rgba(0, 85, 255, 0.2)'
             }}
           >
-            Je reste lucide
+            {t('button')}
           </button>
         </div>
       </div>

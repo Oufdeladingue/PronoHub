@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
@@ -17,7 +18,9 @@ interface ShareImageModalProps {
   onClose: () => void
 }
 
-export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title = 'Partager', modes, onShared, onClose }: ShareImageModalProps) {
+export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloadName = 'pronohub.png', title, modes, onShared, onClose }: ShareImageModalProps) {
+  const t = useTranslations('ShareModal')
+  const resolvedTitle = title ?? t('title')
   const [mounted, setMounted] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [blob, setBlob] = useState<Blob | null>(null)
@@ -163,8 +166,8 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b theme-border flex items-center justify-between shrink-0">
-          <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900]">{title}</h3>
-          <button onClick={onClose} className="p-2 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label="Fermer">
+          <h3 className="text-base font-bold text-blue-600 dark:text-[#ff9900]">{resolvedTitle}</h3>
+          <button onClick={onClose} className="p-2 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" aria-label={t('close')}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -193,13 +196,13 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
             {loading ? (
               <div className="py-12 flex flex-col items-center gap-3">
                 <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-blue-500 dark:border-[#ff9900]" />
-                <span className="text-xs theme-text-secondary">Génération de l’image…</span>
+                <span className="text-xs theme-text-secondary">{t('generating')}</span>
               </div>
             ) : error ? (
-              <p className="py-10 text-sm text-red-500 px-4 text-center">Impossible de générer l’image. Réessaie plus tard.</p>
+              <p className="py-10 text-sm text-red-500 px-4 text-center">{t('error')}</p>
             ) : previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={previewUrl} alt="Aperçu" className="w-full h-auto" />
+              <img src={previewUrl} alt={t('preview')} className="w-full h-auto" />
             ) : null}
           </div>
         </div>
@@ -219,13 +222,13 @@ export default function ShareImageModal({ imageUrl, shareUrl, shareText, downloa
           {canNativeShare && (
             <button onClick={handleNativeShare} disabled={loading} className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition hover:opacity-90 disabled:opacity-50 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-              Plus d’options…
+              {t('moreOptions')}
             </button>
           )}
 
           <button onClick={handleDownload} disabled={loading || !blob} className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition hover:opacity-90 disabled:opacity-50 border-2 border-[#ff9900] text-[#ff9900]">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            Télécharger l’image
+            {t('download')}
           </button>
         </div>
       </div>
