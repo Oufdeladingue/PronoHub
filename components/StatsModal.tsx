@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { createPortal } from 'react-dom'
 import StandingsModal from './StandingsModal'
 import { fetchWithAuth } from '@/lib/supabase/client'
@@ -98,10 +99,12 @@ function MatchDetailCard({
 }: {
   match: TeamFormMatch | null
 }) {
+  const t = useTranslations('StatsMatch')
+  const locale = useLocale()
   if (!match) {
     return (
       <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-center min-h-[72px] flex items-center justify-center">
-        <p className="text-xs text-slate-500 dark:text-slate-400">Cliquez sur un rond</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{t('clickCircle')}</p>
       </div>
     )
   }
@@ -109,7 +112,7 @@ function MatchDetailCard({
   const resultBg = match.result === 'W' ? 'bg-green-500/10 border-green-500/30' :
                    match.result === 'D' ? 'bg-yellow-500/10 border-yellow-500/30' :
                    'bg-red-500/10 border-red-500/30'
-  const resultText = match.result === 'W' ? 'Victoire' : match.result === 'D' ? 'Nul' : 'Défaite'
+  const resultText = match.result === 'W' ? t('win') : match.result === 'D' ? t('draw') : t('loss')
 
   // Logo pour thème clair: custom coloré
   // Logo pour thème sombre: custom blanc
@@ -125,7 +128,7 @@ function MatchDetailCard({
           {logoLight && (
             <img
               src={logoLight}
-              alt="Competition"
+              alt={t('competitionAlt')}
               className="w-10 h-10 object-contain dark:hidden"
             />
           )}
@@ -133,7 +136,7 @@ function MatchDetailCard({
           {logoDark && (
             <img
               src={logoDark}
-              alt="Competition"
+              alt={t('competitionAlt')}
               className="w-10 h-10 object-contain hidden dark:block"
             />
           )}
@@ -161,7 +164,7 @@ function MatchDetailCard({
         </div>
         <div className="flex items-center justify-between text-[10px]">
           <span className="theme-text-secondary">
-            {new Date(match.utcDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {new Date(match.utcDate).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short' })}
           </span>
           <span className={`font-medium ${
             match.result === 'W' ? 'text-green-500 dark:text-green-400' :
@@ -194,6 +197,7 @@ function TeamFormSection({
   dotColor: string
   position: number | null
 }) {
+  const t = useTranslations('StatsMatch')
   // Inverser les matchs pour avoir le plus ancien a gauche, plus recent a droite
   const reversedMatches = [...matches].reverse()
 
@@ -212,7 +216,7 @@ function TeamFormSection({
         <span className="text-sm font-semibold theme-text truncate">{teamName}</span>
         {position && (
           <span className="text-xs theme-text-secondary bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded shrink-0">
-            {position}{position === 1 ? 'er' : 'ème'}
+            {position}{position === 1 ? t('ordFirst') : t('ordOther')}
           </span>
         )}
       </div>
@@ -220,7 +224,7 @@ function TeamFormSection({
       {/* Ronds de resultat */}
       {matches.length === 0 ? (
         <div className="text-xs theme-text-secondary text-center py-2">
-          Aucun match
+          {t('noMatch')}
         </div>
       ) : (
         <>
@@ -273,6 +277,7 @@ function TrendsSemiCircle({
   homeTeamCrest: string | null
   awayTeamCrest: string | null
 }) {
+  const t = useTranslations('StatsMatch')
   // Fonction pour créer un arc SVG
   const createArc = (startAngle: number, endAngle: number, radius: number, cx: number, cy: number) => {
     const start = {
@@ -312,7 +317,7 @@ function TrendsSemiCircle({
       {/* Logo + % équipe domicile (gauche) */}
       <div className="shrink-0 flex flex-col items-center gap-1">
         {homeTeamCrest ? (
-          <img src={homeTeamCrest} alt="Domicile" className="w-8 h-8 object-contain" />
+          <img src={homeTeamCrest} alt={t('homeAlt')} className="w-8 h-8 object-contain" />
         ) : (
           <div className="w-8 h-8 bg-blue-500 rounded-full" />
         )}
@@ -363,7 +368,7 @@ function TrendsSemiCircle({
               textAnchor="middle"
               className="fill-slate-400 dark:fill-slate-500 text-[9px]"
             >
-              Nul
+              {t('draw')}
             </text>
             <text
               x={cx}
@@ -380,7 +385,7 @@ function TrendsSemiCircle({
       {/* Logo + % équipe extérieur (droite) */}
       <div className="shrink-0 flex flex-col items-center gap-1">
         {awayTeamCrest ? (
-          <img src={awayTeamCrest} alt="Extérieur" className="w-8 h-8 object-contain" />
+          <img src={awayTeamCrest} alt={t('awayAlt')} className="w-8 h-8 object-contain" />
         ) : (
           <div className="w-8 h-8 bg-[#ff9900] rounded-full" />
         )}
@@ -400,6 +405,7 @@ export default function StatsModal({
   awayTeamName,
   onClose
 }: StatsModalProps) {
+  const t = useTranslations('StatsMatch')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<StatsData | null>(null)
@@ -480,7 +486,7 @@ export default function StatsModal({
         const response = await fetchWithAuth(`/api/stats/match/${matchId}?${params}`)
 
         if (!response.ok) {
-          throw new Error('Erreur lors du chargement des statistiques')
+          throw new Error(t('loadError'))
         }
 
         const statsData = await response.json()
@@ -501,7 +507,7 @@ export default function StatsModal({
           setShowStandings(true)
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Une erreur est survenue')
+        setError(err instanceof Error ? err.message : t('genericError'))
       } finally {
         setLoading(false)
       }
@@ -552,7 +558,7 @@ export default function StatsModal({
           <div className="px-4 py-2 border-b theme-border shrink-0">
             <div className="flex items-center justify-between">
               <div className="w-8" />
-              <h3 className="text-sm font-bold text-blue-600 dark:text-[#ff9900] text-center flex-1">Stats du match</h3>
+              <h3 className="text-sm font-bold text-blue-600 dark:text-[#ff9900] text-center flex-1">{t('headerTitle')}</h3>
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg theme-text-secondary hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
@@ -589,7 +595,7 @@ export default function StatsModal({
                   onClick={onClose}
                   className="mt-4 px-4 py-2 bg-blue-500 dark:bg-[#ff9900] text-white dark:text-black rounded-lg text-sm hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors"
                 >
-                  Fermer
+                  {t('close')}
                 </button>
               </div>
             ) : data ? (
@@ -601,7 +607,7 @@ export default function StatsModal({
                       <svg className="w-4 h-4 text-blue-600 dark:text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                       </svg>
-                      Forme récente
+                      {t('recentForm')}
                     </h4>
                     <div className="space-y-4">
                       <TeamFormSection
@@ -636,7 +642,7 @@ export default function StatsModal({
                     <rect x="9.5" y="10" width="5" height="11" rx="1" />
                     <rect x="16" y="3" width="5" height="18" rx="1" />
                   </svg>
-                  Voir le classement
+                  {t('viewStandings')}
                 </button>
 
                 {/* Tendances de pronostics - masqué si moins de 5 pronostics */}
@@ -648,7 +654,7 @@ export default function StatsModal({
                         <rect x="10" y="4" width="4" height="16" rx="1" />
                         <rect x="16" y="8" width="4" height="12" rx="1" />
                       </svg>
-                      <span>Tendances des joueurs <span className="font-normal theme-text-secondary text-xs">(basé sur {data.predictionTrends.totalPredictions} pronostics)</span></span>
+                      <span>{t('playerTrends')} <span className="font-normal theme-text-secondary text-xs">{t('basedOn', { n: data.predictionTrends.totalPredictions })}</span></span>
                     </h4>
                     <div className="py-2 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                       <TrendsSemiCircle
@@ -672,7 +678,7 @@ export default function StatsModal({
               onClick={onClose}
               className="w-full px-4 py-2.5 bg-blue-500 dark:bg-[#ff9900] text-white dark:text-black rounded-lg hover:bg-blue-600 dark:hover:bg-[#e68a00] transition-colors font-medium text-sm"
             >
-              Fermer
+              {t('close')}
             </button>
           </div>
         </div>

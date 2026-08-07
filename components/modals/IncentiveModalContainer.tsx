@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { DebugModalType } from '@/lib/debug-modals'
 import { usePurchaseModal } from '@/lib/hooks/use-purchase-modal'
 import { X } from 'lucide-react'
@@ -17,6 +18,7 @@ export default function IncentiveModalContainer({
   tournamentId,
   onClose
 }: IncentiveModalContainerProps) {
+  const t = useTranslations('Incentive')
   const { handlePurchase, loading } = usePurchaseModal()
 
   if (!modalType) return null
@@ -79,16 +81,16 @@ export default function IncentiveModalContainer({
             <>
               <h2 className="text-white text-[26px] font-black leading-tight uppercase mb-0"
                   style={{ textShadow: '0 10px 26px rgba(0,0,0,.55)' }}>
-                LA SAISON EST TROP COURTE ?<br />
+                {t('durTitle1')}<br />
                 <span className="text-[#ffb000]" style={{ textShadow: '0 0 18px rgba(255,176,0,.22)' }}>
-                  PROLONGE-LA.
+                  {t('durTitle2')}
                 </span>
               </h2>
 
               <div className="w-[250px] max-w-full mx-auto my-0 flex items-center justify-center">
                 <Image
                   src="/images/modals/calendar-ext.png"
-                  alt="Calendrier"
+                  alt={t('calendarAlt')}
                   width={250}
                   height={250}
                   className="h-auto"
@@ -112,8 +114,8 @@ export default function IncentiveModalContainer({
                 />
                 <p className="relative text-white/85 text-[18px] leading-[1.45] text-center z-[1]"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  <span className="text-[#ff9900] font-extrabold">Ton tournoi</span> arrive touche à sa fin...<br/>
-                  Prolonge-le pour continuer à écraser tes potes.
+                  <span className="text-[#ff9900] font-extrabold">{t('durBold')}</span>{t('durAfter')}<br/>
+                  {t('durLine2')}
                 </p>
               </div>
 
@@ -124,13 +126,13 @@ export default function IncentiveModalContainer({
                 style={{
                   boxShadow: '0 16px 34px rgba(0,0,0,.40), 0 0 0 1px rgba(0,0,0,.18), 0 0 18px rgba(255,153,0,.12)'
                 }}>
-                {loading ? 'Chargement...' : 'Prolonger le tournoi'}
+                {loading ? t('loading') : t('durCta')}
               </button>
 
               <div className="relative">
                 <p className="relative text-white/70 text-xs text-center"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  Plus de journées = plus de points = plus de suspense
+                  {t('durFootnote')}
                 </p>
               </div>
             </>
@@ -141,14 +143,14 @@ export default function IncentiveModalContainer({
               <h2 className="text-white text-[26px] font-black leading-tight uppercase mb-0"
                   style={{ textShadow: '0 10px 26px rgba(0,0,0,.55)' }}>
                 <span className="text-[#ffb000]" style={{ textShadow: '0 0 18px rgba(255,176,0,.22)' }}>
-                  TON TOURNOI
-                </span> VA SE JOUER<br />À GUICHETS FERMÉS
+                  {t('playerTitleBold')}
+                </span>{t('playerTitleRest')}<br />{t('playerTitleLine2')}
               </h2>
 
               <div className="w-[250px] max-w-full mx-auto my-0 flex items-center justify-center">
                 <Image
                   src="/images/modals/capacity-ext.png"
-                  alt="Capacité"
+                  alt={t('capacityAlt')}
                   width={250}
                   height={250}
                   className="h-auto"
@@ -172,7 +174,7 @@ export default function IncentiveModalContainer({
                 />
                 <p className="relative text-white/85 text-[18px] leading-[1.45] text-center z-[1]"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  Passe à <span className="text-[#ff9900] font-extrabold">l'extension</span> pour inviter encore plus de joueurs et rendre la victoire encore plus savoureuse.
+                  {t('playerDescBefore')}<span className="text-[#ff9900] font-extrabold">{t('playerDescBold')}</span>{t('playerDescAfter')}
                 </p>
               </div>
 
@@ -183,13 +185,13 @@ export default function IncentiveModalContainer({
                 style={{
                   boxShadow: '0 16px 34px rgba(0,0,0,.40), 0 0 0 1px rgba(0,0,0,.18), 0 0 18px rgba(255,153,0,.12)'
                 }}>
-                {loading ? 'Chargement...' : 'Ajouter des places'}
+                {loading ? t('loading') : t('playerCta')}
               </button>
 
               <div className="relative">
                 <p className="relative text-white/70 text-xs text-center"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  Plus de joueurs = plus de fun
+                  {t('playerFootnote')}
                 </p>
               </div>
             </>
@@ -199,16 +201,16 @@ export default function IncentiveModalContainer({
             <>
               <h2 className="text-white text-[26px] font-black leading-tight uppercase mb-0"
                   style={{ textShadow: '0 10px 26px rgba(0,0,0,.55)' }}>
-                LES ROIS JOUENT…<br />
+                {t('statsTitle1')}<br />
                 <span className="text-[#ffb000]" style={{ textShadow: '0 0 18px rgba(255,176,0,.22)' }}>
-                  LES STRATÈGES GAGNENT.
+                  {t('statsTitle2')}
                 </span>
               </h2>
 
               <div className="w-[250px] max-w-full mx-auto my-0 flex items-center justify-center">
                 <Image
                   src="/images/modals/stats-ext.png"
-                  alt="Statistiques"
+                  alt={t('statsAlt')}
                   width={250}
                   height={250}
                   className="h-auto"
@@ -232,7 +234,7 @@ export default function IncentiveModalContainer({
                 />
                 <p className="relative text-white/85 text-[18px] leading-[1.45] text-center z-[1]"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  Débloque <span className="text-[#ff9900] font-extrabold">les statistiques avancées</span> et les tendances des pronos pour prendre l'avantage.
+                  {t('statsDescBefore')}<span className="text-[#ff9900] font-extrabold">{t('statsDescBold')}</span>{t('statsDescAfter')}
                 </p>
               </div>
 
@@ -243,13 +245,13 @@ export default function IncentiveModalContainer({
                 style={{
                   boxShadow: '0 16px 34px rgba(0,0,0,.40), 0 0 0 1px rgba(0,0,0,.18), 0 0 18px rgba(255,153,0,.12)'
                 }}>
-                {loading ? 'Chargement...' : 'Débloquer les stats'}
+                {loading ? t('loading') : t('statsCta')}
               </button>
 
               <div className="relative">
                 <p className="relative text-white/70 text-xs text-center"
                    style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-                  Une option oubliée par Raymond Domenech...
+                  {t('statsFootnote')}
                 </p>
               </div>
             </>

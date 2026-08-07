@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { AlertTriangle, Calendar, TrendingDown } from 'lucide-react'
 
 interface MatchdayWarningModalProps {
@@ -23,6 +24,7 @@ export default function MatchdayWarningModal({
   onStartWithAdjustment,
   onCancel
 }: MatchdayWarningModalProps) {
+  const t = useTranslations('MatchdayWarning')
   if (!isOpen) return null
 
   const canAdjust = remainingMatchdays > 0
@@ -38,10 +40,10 @@ export default function MatchdayWarningModal({
             </div>
             <div>
               <h2 className="text-2xl font-bold text-white">
-                Attention : Ajustement requis
+                {t('title')}
               </h2>
               <p className="text-white/90 text-sm mt-1">
-                Nombre de journées insuffisant
+                {t('subtitle')}
               </p>
             </div>
           </div>
@@ -54,17 +56,17 @@ export default function MatchdayWarningModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-gray-700">
                 <Calendar className="w-5 h-5" />
-                <span className="font-medium">Situation actuelle</span>
+                <span className="font-medium">{t('currentSituation')}</span>
               </div>
               <span className="text-sm text-gray-500">
-                Journée {currentMatchday}/{totalMatchdays}
+                {t('matchdayProgress', { current: currentMatchday, total: totalMatchdays })}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="bg-white rounded-lg p-3 border-2 border-red-200">
                 <div className="text-red-600 text-sm font-medium mb-1">
-                  Tours prévus
+                  {t('plannedRounds')}
                 </div>
                 <div className="text-3xl font-bold text-red-700">
                   {plannedMatchdays}
@@ -73,7 +75,7 @@ export default function MatchdayWarningModal({
 
               <div className="bg-white rounded-lg p-3 border-2 border-orange-200">
                 <div className="text-orange-600 text-sm font-medium mb-1">
-                  Journées restantes
+                  {t('remainingMatchdays')}
                 </div>
                 <div className="text-3xl font-bold text-orange-700">
                   {remainingMatchdays}
@@ -87,11 +89,9 @@ export default function MatchdayWarningModal({
             <div className="flex gap-3">
               <TrendingDown className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-900">
-                <p className="font-medium mb-2">Que s'est-il passé ?</p>
+                <p className="font-medium mb-2">{t('whatHappened')}</p>
                 <p className="text-blue-800">
-                  Entre la création de votre tournoi et maintenant, la compétition a continué.
-                  Il ne reste plus que <strong>{remainingMatchdays} journée(s)</strong> de championnat,
-                  alors que vous aviez prévu <strong>{plannedMatchdays} tours</strong>.
+                  {t('explainLead')}<strong>{t('explainRemaining', { n: remainingMatchdays })}</strong>{t('explainMiddle')}<strong>{t('explainPlanned', { n: plannedMatchdays })}</strong>{t('explainEnd')}
                 </p>
               </div>
             </div>
@@ -100,7 +100,7 @@ export default function MatchdayWarningModal({
           {/* Options */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-900 text-lg">
-              Que souhaitez-vous faire ?
+              {t('whatToDo')}
             </h3>
 
             {canAdjust ? (
@@ -112,14 +112,14 @@ export default function MatchdayWarningModal({
                 >
                   <div className="text-left">
                     <div className="text-lg">
-                      Démarrer avec {remainingMatchdays} tours
+                      {t('startWith', { n: remainingMatchdays })}
                     </div>
                     <div className="text-sm text-white/80 mt-1">
-                      Ajuster automatiquement le nombre de tours
+                      {t('adjustAuto')}
                     </div>
                   </div>
                   <div className="bg-white/20 px-3 py-1 rounded-full text-sm group-hover:bg-white/30 transition-colors">
-                    Recommandé
+                    {t('recommended')}
                   </div>
                 </button>
 
@@ -129,9 +129,9 @@ export default function MatchdayWarningModal({
                   className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-4 px-6 rounded-lg transition-colors duration-200 border border-gray-300"
                 >
                   <div className="text-left">
-                    <div>Annuler le démarrage</div>
+                    <div>{t('cancelStart')}</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      Revenir à la page d'échauffement
+                      {t('backToWarmup')}
                     </div>
                   </div>
                 </button>
@@ -140,16 +140,16 @@ export default function MatchdayWarningModal({
               /* Aucune journée restante */
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6 text-center">
                 <div className="text-red-600 font-semibold text-lg mb-2">
-                  Impossible de démarrer le tournoi
+                  {t('cannotStart')}
                 </div>
                 <p className="text-red-700 text-sm mb-4">
-                  Il n'y a plus de journées disponibles dans cette compétition pour la saison en cours.
+                  {t('noMatchdaysLeft')}
                 </p>
                 <button
                   onClick={onCancel}
                   className="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
                 >
-                  Fermer
+                  {t('close')}
                 </button>
               </div>
             )}
@@ -157,8 +157,7 @@ export default function MatchdayWarningModal({
 
           {/* Info supplémentaire */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded p-3">
-            <strong>💡 Astuce :</strong> Pour éviter ce problème à l'avenir, démarrez votre tournoi
-            dès que vous avez le nombre minimum de participants requis.
+            <strong>{t('tipLabel')}</strong> {t('tipText')}
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import StatsModal from './StatsModal'
 import StatsExplanationModal from './StatsExplanationModal'
 
@@ -48,6 +49,7 @@ export default function StatsButton({
   size = 'md',
   returnUrl
 }: StatsButtonProps) {
+  const t = useTranslations('StatsMatch')
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [showExplanationModal, setShowExplanationModal] = useState(false)
 
@@ -72,7 +74,7 @@ export default function StatsButton({
             ? 'border-blue-400 dark:border-[#ff9900] text-blue-500 dark:text-[#ff9900] hover:border-blue-500 hover:text-blue-600 dark:hover:border-[#ffaa33] dark:hover:text-[#ffaa33] hover:bg-blue-50 dark:hover:bg-orange-900/20'
             : 'border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-500 dark:hover:text-slate-400'
         }`}
-        title={hasAccess ? 'Voir les stats du match' : 'Débloquer les statistiques'}
+        title={hasAccess ? t('openTitle') : t('unlockTitle')}
         style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
       >
         <StatsIcon size={iconSize} />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { X } from 'lucide-react'
 import Image from 'next/image'
 
@@ -17,6 +18,7 @@ export default function DurationExtensionModal({
   tournamentId,
   onApply
 }: DurationExtensionModalProps) {
+  const t = useTranslations('DurationExtension')
   const [selectedJourneys, setSelectedJourneys] = useState(10)
   const [loading, setLoading] = useState(false)
 
@@ -91,16 +93,16 @@ export default function DurationExtensionModal({
         >
           <h2 className="text-white text-[24px] font-black leading-tight uppercase mb-2"
               style={{ textShadow: '0 10px 26px rgba(0,0,0,.55)' }}>
-            COMBIEN DE JOURNÉES<br />
+            {t('modalTitleLine1')}<br />
             <span className="text-[#ffb000]" style={{ textShadow: '0 0 18px rgba(255,176,0,.22)' }}>
-              VEUX-TU AJOUTER ?
+              {t('modalTitleLine2')}
             </span>
           </h2>
 
           <div className="w-[200px] max-w-full mx-auto my-2 flex items-center justify-center">
             <Image
               src="/images/modals/calendar-ext.png"
-              alt="Calendrier"
+              alt={t('calendarAlt')}
               width={200}
               height={200}
               className="h-auto"
@@ -122,7 +124,7 @@ export default function DurationExtensionModal({
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
                   } disabled:opacity-50`}
                 >
-                  {count}J
+                  {t('dayBadge', { n: count })}
                 </button>
               ))}
             </div>
@@ -144,8 +146,8 @@ export default function DurationExtensionModal({
             />
             <p className="relative text-white/85 text-[16px] leading-[1.45] text-center z-[1]"
                style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-              Tu as acheté un crédit d'extension.<br/>
-              Choisis combien de journées tu veux ajouter.
+              {t('creditBought')}<br/>
+              {t('chooseHint')}
             </p>
           </div>
 
@@ -156,13 +158,13 @@ export default function DurationExtensionModal({
             style={{
               boxShadow: '0 16px 34px rgba(0,0,0,.40), 0 0 0 1px rgba(0,0,0,.18), 0 0 18px rgba(255,153,0,.12)'
             }}>
-            {loading ? 'Application...' : `Ajouter ${selectedJourneys} journées`}
+            {loading ? t('applying') : t('addMatchdays', { n: selectedJourneys })}
           </button>
 
           <div className="relative">
             <p className="relative text-white/70 text-xs text-center"
                style={{ textShadow: '0 2px 8px rgba(0,0,0,.65), 0 10px 30px rgba(0,0,0,.45)' }}>
-              Tu pourras toujours ajouter plus de journées plus tard
+              {t('laterNote')}
             </p>
           </div>
         </div>

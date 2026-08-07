@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/avatars'
 import { fetchWithAuth } from '@/lib/supabase/client'
@@ -76,6 +77,8 @@ export default function TeamsManager({
   tournamentStatus,
   onTeamsChange
 }: TeamsManagerProps) {
+  const t = useTranslations('TeamsManager')
+  const locale = useLocale()
   const [teamsEnabled, setTeamsEnabled] = useState(false)
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -185,7 +188,7 @@ export default function TeamsManager({
       if (response.ok) {
         fetchTeamRequests()
       } else {
-        alert(data.error || 'Erreur lors de la demande')
+        alert(data.error || t('errApply'))
       }
     } catch (error) {
       console.error('Error applying to team:', error)
@@ -218,7 +221,7 @@ export default function TeamsManager({
         setSuggestTeamAvatar('team1')
         fetchTeamRequests()
       } else {
-        alert(data.error || 'Erreur lors de la suggestion')
+        alert(data.error || t('errSuggest'))
       }
     } catch (error) {
       console.error('Error suggesting team:', error)
@@ -269,7 +272,7 @@ export default function TeamsManager({
         fetchTeams()
         onTeamsChange?.()
       } else {
-        alert(data.error || 'Erreur lors du traitement')
+        alert(data.error || t('errProcess'))
       }
     } catch (error) {
       console.error('Error processing request:', error)
@@ -327,7 +330,7 @@ export default function TeamsManager({
         setShowCreateForm(false)
       } else {
         const data = await response.json()
-        alert(data.error || 'Erreur lors de la création de l\'équipe')
+        alert(data.error || t('errCreate'))
       }
     } catch (error) {
       console.error('Error creating team:', error)
@@ -360,7 +363,7 @@ export default function TeamsManager({
 
   const deleteTeam = async (teamId: string) => {
     if (!canEdit) return
-    if (!confirm('Supprimer cette équipe ? Les membres seront retirés.')) return
+    if (!confirm(t('confirmDelete'))) return
 
     try {
       const response = await fetchWithAuth(`/api/tournaments/${tournamentId}/teams/${teamId}`, {
@@ -392,7 +395,7 @@ export default function TeamsManager({
         onTeamsChange?.()
       } else {
         const data = await response.json()
-        alert(data.error || 'Erreur lors de l\'ajout du membre')
+        alert(data.error || t('errAddMember'))
       }
     } catch (error) {
       console.error('Error adding member:', error)
@@ -475,7 +478,7 @@ export default function TeamsManager({
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="theme-accent-text">
             <path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M21 17.0004C21 15.7702 19.7659 14.7129 18 14.25M3 17.0004C3 15.7702 4.2341 14.7129 6 14.25M18 10.2361C18.6137 9.68679 19 8.8885 19 8C19 6.34315 17.6569 5 16 5C15.2316 5 14.5308 5.28885 14 5.76389M6 10.2361C5.38625 9.68679 5 8.8885 5 8C5 6.34315 6.34315 5 8 5C8.76835 5 9.46924 5.28885 10 5.76389M12 14C10.3431 14 9 12.6569 9 11C9 9.34315 10.3431 8 12 8C13.6569 8 15 9.34315 15 11C15 12.6569 13.6569 14 12 14Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span className="theme-accent-text">Équipes</span>
+          <span className="theme-accent-text">{t('title')}</span>
         </h2>
 
         {/* Toggle pour activer/desactiver les equipes (capitaine uniquement) */}
@@ -500,8 +503,8 @@ export default function TeamsManager({
         <div className="text-center py-6 theme-text-secondary">
           <p className="text-sm">
             {canEdit
-              ? 'Activez les équipes pour permettre aux participants de jouer en groupe'
-              : 'Le mode équipe n\'est pas activé pour ce tournoi'}
+              ? t('enableHint')
+              : t('notEnabled')}
           </p>
         </div>
       )}
@@ -535,7 +538,7 @@ export default function TeamsManager({
                       onChange={(e) => setEditTeamName(e.target.value)}
                       maxLength={15}
                       className="px-2 py-1 rounded border theme-border theme-bg theme-text text-sm"
-                      placeholder="Nom de l'équipe"
+                      placeholder={t('teamNamePlaceholder')}
                     />
                     <div className="flex gap-1 flex-wrap">
                       {TEAM_AVATARS.map(avatar => {
@@ -549,7 +552,7 @@ export default function TeamsManager({
                             className={`w-7 h-7 rounded border-2 ${
                               editTeamAvatar === avatar ? 'border-[#ff9900]' : 'border-transparent'
                             } ${isUsedByOther ? 'opacity-30 cursor-not-allowed' : ''}`}
-                            title={isUsedByOther ? 'Avatar déjà utilisé' : avatar}
+                            title={isUsedByOther ? t('avatarUsed') : avatar}
                           >
                             <img
                               src={`/images/team-avatars/${avatar}.svg`}
@@ -571,7 +574,7 @@ export default function TeamsManager({
                         onClick={() => setEditingTeam(null)}
                         className="px-2 py-1 bg-gray-500 text-white rounded text-sm"
                       >
-                        Annuler
+                        {t('cancel')}
                       </button>
                     </div>
                   </div>
@@ -589,7 +592,7 @@ export default function TeamsManager({
                         />
                         <div>
                           <span className="font-bold theme-text">{team.name}</span>
-                          <span className="text-xs theme-text-secondary ml-2">({team.members.length} membre{team.members.length > 1 ? 's' : ''})</span>
+                          <span className="text-xs theme-text-secondary ml-2">({t('membersCount', { n: team.members.length })})</span>
                         </div>
                       </div>
                       {canEdit && (
@@ -601,7 +604,7 @@ export default function TeamsManager({
                               setEditTeamAvatar(team.avatar)
                             }}
                             className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                            title="Modifier"
+                            title={t('edit')}
                           >
                             <svg className="w-4 h-4 theme-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -610,7 +613,7 @@ export default function TeamsManager({
                           <button
                             onClick={() => deleteTeam(team.id)}
                             className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                            title="Supprimer"
+                            title={t('delete')}
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -632,7 +635,7 @@ export default function TeamsManager({
                         draggedPlayer ? 'border-[#ff9900] bg-[#ff9900]/10' : 'theme-border'
                       }`}>
                         <p className="text-sm theme-text-secondary">
-                          Glissez des joueurs ici
+                          {t('dragHere')}
                         </p>
                       </div>
                     ) : null
@@ -655,7 +658,7 @@ export default function TeamsManager({
                         <button
                           onClick={() => removeMemberFromTeam(team.id, member.userId)}
                           className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
-                          title="Retirer"
+                          title={t('remove')}
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -695,14 +698,14 @@ export default function TeamsManager({
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                           </svg>
-                          Demande en attente
+                          {t('requestPending')}
                         </span>
                         <button
                           onClick={cancelMyRequest}
                           disabled={requestLoading}
                           className="text-xs px-2 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
                         >
-                          Annuler
+                          {t('cancel')}
                         </button>
                       </div>
                     ) : !myPendingRequest ? (
@@ -714,7 +717,7 @@ export default function TeamsManager({
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                         </svg>
-                        Postuler à cette équipe
+                        {t('applyToTeam')}
                       </button>
                     ) : null}
                   </div>
@@ -735,10 +738,10 @@ export default function TeamsManager({
                       onChange={(e) => setNewTeamName(e.target.value)}
                       maxLength={15}
                       className="px-3 py-2 rounded border theme-border theme-bg theme-text"
-                      placeholder="Nom de l'équipe (max 15 car.)"
+                      placeholder={t('teamNamePlaceholderMax')}
                     />
                     <div className="flex items-center gap-2">
-                      <span className="text-sm theme-text-secondary">Avatar:</span>
+                      <span className="text-sm theme-text-secondary">{t('avatarLabel')}</span>
                       <div className="flex gap-1 flex-wrap">
                         {TEAM_AVATARS.map(avatar => {
                           const isUsed = usedAvatars.has(avatar)
@@ -750,7 +753,7 @@ export default function TeamsManager({
                               className={`w-8 h-8 rounded border-2 ${
                                 newTeamAvatar === avatar ? 'border-[#ff9900]' : 'border-transparent'
                               } ${isUsed ? 'opacity-30 cursor-not-allowed' : ''}`}
-                              title={isUsed ? 'Avatar déjà utilisé' : avatar}
+                              title={isUsed ? t('avatarUsed') : avatar}
                             >
                               <img
                                 src={`/images/team-avatars/${avatar}.svg`}
@@ -771,13 +774,13 @@ export default function TeamsManager({
                         disabled={!newTeamName.trim()}
                         className="flex-1 px-3 py-2 bg-[#ff9900] text-[#111] rounded font-semibold hover:bg-[#e68a00] transition disabled:opacity-50"
                       >
-                        Créer l'équipe
+                        {t('createTeam')}
                       </button>
                       <button
                         onClick={() => setShowCreateForm(false)}
                         className="px-3 py-2 bg-gray-500 text-white rounded font-semibold hover:bg-gray-600 transition"
                       >
-                        Annuler
+                        {t('cancel')}
                       </button>
                     </div>
                   </div>
@@ -791,7 +794,7 @@ export default function TeamsManager({
                   className="w-full px-4 py-3 border-2 border-dashed theme-border rounded-lg hover:border-[#ff9900] transition flex items-center justify-center gap-2"
                 >
                   <span className="text-xl theme-accent-text">+</span>
-                  <span className="theme-accent-text font-semibold">Créer une équipe</span>
+                  <span className="theme-accent-text font-semibold">{t('createTeamCta')}</span>
                 </button>
               )}
             </div>
@@ -801,7 +804,7 @@ export default function TeamsManager({
           {canEdit && unassignedPlayers.length > 0 && (
             <div className="border-t-2 theme-border pt-4">
               <h3 className="text-sm font-semibold theme-text-secondary mb-2">
-                Joueurs sans équipe ({unassignedPlayers.length})
+                {t('unassignedPlayers', { n: unassignedPlayers.length })}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {unassignedPlayers.map(player => (
@@ -815,13 +818,13 @@ export default function TeamsManager({
                     <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#ff9900]">
                       <Image
                         src={getAvatarUrl(player.profiles?.avatar || 'avatar1')}
-                        alt={player.profiles?.username || 'Joueur'}
+                        alt={player.profiles?.username || t('playerFallback')}
                         fill
                         className="object-cover"
                         sizes="24px"
                       />
                     </div>
-                    <span className="text-sm theme-text">{player.profiles?.username || 'Joueur'}</span>
+                    <span className="text-sm theme-text">{player.profiles?.username || t('playerFallback')}</span>
                   </div>
                 ))}
               </div>
@@ -835,9 +838,9 @@ export default function TeamsManager({
                 <svg className="w-5 h-5 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
-                Tous les joueurs sont dans une équipe
+                {t('allAssigned')}
               </div>
-              <p className="text-xs theme-text-secondary mt-2">Faîtes glisser les joueurs dans leurs équipes</p>
+              <p className="text-xs theme-text-secondary mt-2">{t('dragHint')}</p>
             </div>
           )}
 
@@ -851,14 +854,14 @@ export default function TeamsManager({
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                       </svg>
-                      Suggestion en attente
+                      {t('suggestionPending')}
                     </span>
                     <button
                       onClick={cancelMyRequest}
                       disabled={requestLoading}
                       className="text-xs px-2 py-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
                     >
-                      Annuler
+                      {t('cancel')}
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
@@ -881,7 +884,7 @@ export default function TeamsManager({
                   <svg className="w-5 h-5 text-[#ff9900]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  <span className="text-[#ff9900] font-semibold">Suggérer une équipe</span>
+                  <span className="text-[#ff9900] font-semibold">{t('suggestTeam')}</span>
                 </button>
               ) : null}
             </div>
@@ -897,7 +900,7 @@ export default function TeamsManager({
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                Demandes en attente
+                {t('pendingRequestsBtn')}
                 <span className="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-sm">{pendingRequestsCount}</span>
               </button>
             </div>
@@ -910,28 +913,28 @@ export default function TeamsManager({
         <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-md w-full p-6 animate-in border-2 border-[#ff9900]">
             <div className="text-center mb-6">
-              <h3 className="text-xl font-bold theme-text mb-2">Suggérer une équipe</h3>
+              <h3 className="text-xl font-bold theme-text mb-2">{t('suggestTeam')}</h3>
               <p className="text-sm theme-text-secondary">
-                Proposez une nouvelle équipe au capitaine
+                {t('suggestModalDesc')}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium theme-text mb-1">Nom de l'équipe</label>
+                <label className="block text-sm font-medium theme-text mb-1">{t('teamNameLabel')}</label>
                 <input
                   type="text"
                   value={suggestTeamName}
                   onChange={(e) => setSuggestTeamName(e.target.value)}
                   maxLength={15}
                   className="w-full px-3 py-2 rounded border theme-border theme-bg theme-text"
-                  placeholder="Ex: Les Champions"
+                  placeholder={t('suggestNamePlaceholder')}
                 />
-                <p className="text-xs theme-text-secondary mt-1">{suggestTeamName.length}/15 caractères</p>
+                <p className="text-xs theme-text-secondary mt-1">{t('charCount', { n: suggestTeamName.length })}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium theme-text mb-2">Avatar</label>
+                <label className="block text-sm font-medium theme-text mb-2">{t('avatar')}</label>
                 <div className="flex gap-2 flex-wrap">
                   {TEAM_AVATARS.map(avatar => {
                     const isUsed = usedAvatars.has(avatar)
@@ -943,7 +946,7 @@ export default function TeamsManager({
                         className={`w-10 h-10 rounded border-2 ${
                           suggestTeamAvatar === avatar ? 'border-[#ff9900]' : 'border-transparent'
                         } ${isUsed ? 'opacity-30 cursor-not-allowed' : ''}`}
-                        title={isUsed ? 'Avatar déjà utilisé' : ''}
+                        title={isUsed ? t('avatarUsed') : ''}
                       >
                         <img
                           src={`/images/team-avatars/${avatar}.svg`}
@@ -965,14 +968,14 @@ export default function TeamsManager({
                 }}
                 className="modal-btn-cancel"
               >
-                Annuler
+                {t('cancel')}
               </button>
               <button
                 onClick={suggestTeam}
                 disabled={!suggestTeamName.trim() || requestLoading}
                 className="flex-1 px-4 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold disabled:opacity-50"
               >
-                {requestLoading ? 'Envoi...' : 'Suggérer'}
+                {requestLoading ? t('sending') : t('suggest')}
               </button>
             </div>
           </div>
@@ -984,7 +987,7 @@ export default function TeamsManager({
         <div className="modal-backdrop">
           <div className="theme-card rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in border-2 border-[#ff9900] max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold theme-text">Demandes d'équipe</h3>
+              <h3 className="text-xl font-bold theme-text">{t('requestsTitle')}</h3>
               <button
                 onClick={() => setShowRequestsModal(false)}
                 className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
@@ -997,7 +1000,7 @@ export default function TeamsManager({
 
             <div className="space-y-4">
               {teamRequests.filter(r => r.status === 'pending').length === 0 ? (
-                <p className="text-center theme-text-secondary py-8">Aucune demande en attente</p>
+                <p className="text-center theme-text-secondary py-8">{t('noPendingRequests')}</p>
               ) : (
                 teamRequests.filter(r => r.status === 'pending').map(request => (
                   <div key={request.id} className="p-4 dark-bg-primary dark-border-primary border-2 rounded-lg">
@@ -1014,7 +1017,7 @@ export default function TeamsManager({
                       <div>
                         <p className="font-semibold theme-text">{request.username}</p>
                         <p className="text-xs theme-text-secondary">
-                          {new Date(request.createdAt).toLocaleDateString('fr-FR', {
+                          {new Date(request.createdAt).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', {
                             day: 'numeric',
                             month: 'short',
                             hour: '2-digit',
@@ -1027,12 +1030,12 @@ export default function TeamsManager({
                     {request.requestType === 'join' ? (
                       <div className="mb-3 p-2 bg-blue-500/10 rounded">
                         <p className="text-sm theme-text">
-                          Souhaite rejoindre <span className="font-semibold">{request.targetTeamName}</span>
+                          {t('wantsToJoin')}<span className="font-semibold">{request.targetTeamName}</span>
                         </p>
                       </div>
                     ) : (
                       <div className="mb-3 p-2 bg-purple-500/10 rounded">
-                        <p className="text-sm theme-text mb-2">Suggère une nouvelle équipe :</p>
+                        <p className="text-sm theme-text mb-2">{t('suggestsNewTeam')}</p>
                         <div className="flex items-center gap-2">
                           <img
                             src={`/images/team-avatars/${request.suggestedTeamAvatar || 'team1'}.svg`}
@@ -1050,14 +1053,14 @@ export default function TeamsManager({
                         disabled={processingRequestId === request.id}
                         className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-semibold disabled:opacity-50"
                       >
-                        {processingRequestId === request.id ? '...' : 'Approuver'}
+                        {processingRequestId === request.id ? '...' : t('approve')}
                       </button>
                       <button
                         onClick={() => processRequest(request.id, 'reject')}
                         disabled={processingRequestId === request.id}
                         className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-semibold disabled:opacity-50"
                       >
-                        Refuser
+                        {t('reject')}
                       </button>
                     </div>
                   </div>
@@ -1069,7 +1072,7 @@ export default function TeamsManager({
               onClick={() => setShowRequestsModal(false)}
               className="w-full mt-6 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-semibold"
             >
-              Fermer
+              {t('close')}
             </button>
           </div>
         </div>

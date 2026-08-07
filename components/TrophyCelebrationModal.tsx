@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { createPortal } from 'react-dom'
 import { isCapacitor, openExternalUrl } from '@/lib/capacitor'
 
@@ -40,6 +41,8 @@ interface TrophyCelebrationModalProps {
 
 export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebrationModalProps) {
   // Tous les hooks DOIVENT être appelés avant tout return conditionnel
+  const t = useTranslations('TrophyCelebration')
+  const locale = useLocale()
   const [isVisible, setIsVisible] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -107,7 +110,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
   }, [onClose])
 
   // Date FR
-  const unlockedDate = new Intl.DateTimeFormat('fr-FR', {
+  const unlockedDate = new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -140,7 +143,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
       header.style.cssText = 'text-align:center; margin-bottom: 12px;'
       header.innerHTML = `
         <img src="/images/logo.png" style="height: 28px; width: auto; margin: 0 auto 8px; display: block;" />
-        <div style="font-size: 16px; font-weight: 900; color: ${themeColor}; letter-spacing: 0.14em; text-transform: uppercase;">TROPHÉE DÉBLOQUÉ</div>
+        <div style="font-size: 16px; font-weight: 900; color: ${themeColor}; letter-spacing: 0.14em; text-transform: uppercase;">${t('imageUnlockedLabel')}</div>
       `
       captureDiv.appendChild(header)
 
@@ -199,7 +202,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             letter-spacing: 0.05em;
             padding: 0 12px;
             background: linear-gradient(180deg, #0B0B0C 0%, #050506 100%);
-          ">Match décisif</div>
+          ">${t('decisiveMatch')}</div>
 
           <div style="display:flex; align-items:center; justify-content:space-between;">
             <div style="flex:1; text-align:center;">
@@ -248,7 +251,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           </div>
 
           <div style="font-size: 11px; color: rgba(255,255,255,0.52); text-align:center; margin-top: 10px;">
-            Débloqué le ${unlockedDate}
+            ${t('unlockedOn', { date: unlockedDate })}
           </div>
         `
         captureDiv.appendChild(matchCard)
@@ -310,7 +313,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
             const file = new File([blob], filename, { type: 'image/png' })
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({
-                title: `Trophée PronoHub - ${trophy.name}`,
+                title: t('shareTitle', { name: trophy.name }),
                 files: [file]
               })
               setIsDownloading(false)
@@ -345,7 +348,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
   // Share
   const handleShare = async (platform: 'whatsapp' | 'facebook' | 'messenger') => {
-    const text = `🏆 J'ai débloqué le trophée "${trophy.name}" sur PronoHub !\n\n${trophy.description}\n\nMerci le talent ou la chatte à Dédé ? 😏\n\n👉 Rejoins-moi sur pronohub.club`
+    const text = t('shareText', { name: trophy.name, description: trophy.description })
 
     // Capacitor : Web Share API fichier indispo (canShare false) et window.open('_blank')
     // n'échappe pas fiablement la WebView → on ouvre l'URL https de partage via le plugin
@@ -573,7 +576,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           }}
           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
           onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)'}
-          aria-label="Fermer"
+          aria-label={t('close')}
         >
           <svg className="w-5 h-5 text-white/55" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -594,7 +597,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               className="mt-2 text-[15px] font-extrabold uppercase tracking-[0.16em]"
               style={{ color: themeColor }}
             >
-              Trophée débloqué
+              {t('unlockedTitle')}
             </h1>
           </div>
 
@@ -683,7 +686,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                     zIndex: 10
                   }}
                 >
-                  Match décisif
+                  {t('decisiveMatch')}
                 </div>
 
                 {/* Contenu du match */}
@@ -752,7 +755,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
 
               {/* Date en dessous */}
               <p className="mt-3 text-xs text-white/55 text-center">
-                Débloqué le {unlockedDate}
+                {t('unlockedOn', { date: unlockedDate })}
               </p>
             </div>
           )}
@@ -760,7 +763,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
           {/* Share Zone */}
           <div className="mt-5">
             <p className="text-sm text-white/85 font-medium text-center mb-3">
-              🔥 Partage ton exploit
+              {t('shareExploit')}
             </p>
             <div className="flex justify-center gap-4">
               {/* WhatsApp */}
@@ -768,7 +771,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 onClick={() => handleShare('whatsapp')}
                 className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] bg-black/20"
                 style={{ border: `1px solid ${themeColor}50` }}
-                aria-label="Partager sur WhatsApp"
+                aria-label={t('shareWhatsapp')}
                 title="WhatsApp"
               >
                 <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
@@ -781,7 +784,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 onClick={() => handleShare('facebook')}
                 className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] bg-black/20"
                 style={{ border: `1px solid ${themeColor}50` }}
-                aria-label="Partager sur Facebook"
+                aria-label={t('shareFacebook')}
                 title="Facebook"
               >
                 <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
@@ -794,7 +797,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                 onClick={() => handleShare('messenger')}
                 className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] bg-black/20"
                 style={{ border: `1px solid ${themeColor}50` }}
-                aria-label="Partager sur Messenger"
+                aria-label={t('shareMessenger')}
                 title="Messenger"
               >
                 <svg className="w-6 h-6" fill={themeColor} viewBox="0 0 24 24">
@@ -819,8 +822,8 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
                   disabled={isDownloading}
                   className="h-12 w-12 rounded-full flex items-center justify-center transition hover:bg-white/5 active:scale-[0.98] disabled:opacity-50 bg-black/20"
                   style={{ border: `1px solid ${themeColor}50` }}
-                  aria-label="Télécharger l'image"
-                  title="Télécharger"
+                  aria-label={t('downloadImage')}
+                  title={t('download')}
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={themeColor} strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -840,7 +843,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
               '--tw-ring-color': `${themeColor}85`
             } as React.CSSProperties}
           >
-            CONTINUER →
+            {t('continue')}
           </button>
         </div>
       </div>

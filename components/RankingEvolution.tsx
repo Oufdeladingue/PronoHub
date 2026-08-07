@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { fetchWithAuth, createClient } from '@/lib/supabase/client'
 import { getAvatarUrl } from '@/lib/avatars'
 import { translateTeamName } from '@/lib/translations'
@@ -20,6 +21,8 @@ const COLORS = [
 ]
 
 export default function RankingEvolution({ tournamentId, tournamentName }: { tournamentId: string; tournamentName?: string }) {
+  const t = useTranslations('RankingEvolution')
+  const locale = useLocale()
   const [granularity, setGranularity] = useState<'matchday' | 'match'>('matchday')
   const [data, setData] = useState<EvoData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -137,9 +140,9 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     return m
   }, [data])
 
-  if (loading) return <div className="text-center py-8 theme-text-secondary text-sm">Chargement de l'évolution…</div>
+  if (loading) return <div className="text-center py-8 theme-text-secondary text-sm">{t('loading')}</div>
   if (error) return <div className="text-center py-8 text-red-400 text-sm">{error}</div>
-  if (!data || stepCount === 0) return <div className="text-center py-8 theme-text-secondary text-sm">Pas encore de données (aucune journée terminée).</div>
+  if (!data || stepCount === 0) return <div className="text-center py-8 theme-text-secondary text-sm">{t('noData')}</div>
 
   const N = data.users.length
   // Coordonnées virtuelles (SVG en viewBox, avatars en overlay % → responsive sans mesurer)
@@ -172,7 +175,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
       ctx.drawImage(emblem, 18, 8, 30, 30); nameX = 18 + 30 + 8
     }
     ctx.fillStyle = '#ff9900'; ctx.font = 'bold 18px sans-serif'
-    ctx.fillText(tournamentName || 'Classement', nameX, 16)
+    ctx.fillText(tournamentName || t('defaultTitle'), nameX, 16)
     const logo = logoRef.current
     if (logo && logo.complete && logo.naturalWidth) {
       const lw = 120, lh = Math.round(lw * (logo.naturalHeight / logo.naturalWidth))
@@ -253,7 +256,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
   }
 
   const fmtDateLocal = (iso?: string) => iso
-    ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    ? new Date(iso).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     : ''
 
   const exportVideo = async () => {
@@ -321,7 +324,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
     rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : rank === 3 ? '#CD7F32' : rank === lastRank ? '#EF4444' : undefined
   // Ordre d'affichage (haut→bas) selon le rang interpolé
   const fmtDate = (iso?: string) => iso
-    ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    ? new Date(iso).toLocaleDateString(locale === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
     : ''
 
   // User mis en avant : survol souris > tap sélectionné > case "m'isoler". null = personne (tout normal).
@@ -341,28 +344,28 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
           {(['matchday', 'match'] as const).map(g => (
             <button key={g} onClick={() => setGranularity(g)}
               className={`px-3 py-1.5 text-xs font-semibold ${granularity === g ? 'bg-[#ff9900] text-black' : 'theme-text-secondary'}`}>
-              {g === 'matchday' ? 'Par journée' : 'Par match'}
+              {g === 'matchday' ? t('byMatchday') : t('byMatch')}
             </button>
           ))}
         </div>
         <button onClick={() => (playing ? setPlaying(false) : play())}
           className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#ff9900] text-black">
-          {playing ? '⏸ Pause' : (pos >= maxPos ? '↻ Rejouer' : '▶ Lecture')}
+          {playing ? t('pause') : (pos >= maxPos ? t('replay') : t('play'))}
         </button>
         <label className="flex items-center gap-1 text-xs theme-text-secondary">
-          Vitesse
+          {t('speed')}
           <input type="range" min={150} max={1500} step={50} value={1650 - msPerStep}
             onChange={e => setMsPerStep(1650 - parseInt(e.target.value))} className="w-20 accent-[#ff9900]" />
         </label>
         {currentUserId && data.users.some(u => u.id === currentUserId) && (
           <label className="flex items-center gap-1.5 text-xs theme-text-secondary cursor-pointer select-none">
             <input type="checkbox" checked={isolateMe} onChange={e => setIsolateMe(e.target.checked)} className="accent-[#ff9900]" />
-            M'isoler
+            {t('isolateMe')}
           </label>
         )}
         <button onClick={exportVideo} disabled={exporting}
           className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-700 text-white disabled:opacity-60">
-          {exporting ? `⏺ Export… ${exportPct}%` : '⬇ Exporter (vidéo)'}
+          {exporting ? t('exporting', { pct: exportPct }) : t('exportVideo')}
         </button>
         {selectedUsers.map(uid => (
           <button key={`chip-${uid}`} onClick={() => setSelectedUsers(arr => arr.filter(x => x !== uid))}
@@ -373,7 +376,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
         {selectedUsers.length > 1 && (
           <button onClick={() => setSelectedUsers([])}
             className="text-xs px-2 py-1 rounded-full theme-text-secondary underline">
-            tout effacer
+            {t('clearAll')}
           </button>
         )}
         <span className="text-xs theme-text-secondary ml-auto">
@@ -480,7 +483,7 @@ export default function RankingEvolution({ tournamentId, tournamentName }: { tou
       )}
 
       <p className="mt-2 text-[11px] theme-text-secondary opacity-70">
-        ⬇ L'export génère une vidéo (.webm) de <b>toute l'animation</b> (~12 s). Garde l'onglet au premier plan pendant l'encodage.
+        {t('exportNotePre')}<b>{t('exportNoteBold')}</b>{t('exportNoteAfter')}
       </p>
 
       {/* Canvas d'encodage — visible pendant l'export (un canvas display:none n'émet pas de frames) */}

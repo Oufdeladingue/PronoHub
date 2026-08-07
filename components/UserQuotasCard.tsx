@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, Loader2, Trophy, Users, PlusCircle, Eye, Wallet } from 'lucide-react'
 import Link from 'next/link'
@@ -52,6 +53,7 @@ interface ZoneVIPData {
 }
 
 export default function UserQuotasCard() {
+  const t = useTranslations('UserQuotas')
   const router = useRouter()
   const [data, setData] = useState<ZoneVIPData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -86,7 +88,7 @@ export default function UserQuotasCard() {
   if (!data) {
     return (
       <div className="text-center py-8 theme-text-secondary">
-        Impossible de charger les données
+        {t('loadError')}
       </div>
     )
   }
@@ -119,7 +121,7 @@ export default function UserQuotasCard() {
       const plat = (data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)
       parts.push(`${plat} Platinium`)
     }
-    return parts.length > 0 ? parts.join(' · ') : 'Aucun crédit'
+    return parts.length > 0 ? parts.join(' · ') : t('noCredit')
   }
 
   // Construire le résumé pour "Rejoindre"
@@ -128,23 +130,23 @@ export default function UserQuotasCard() {
 
     // Slots Free-Kick gratuits
     if (freeKickJoinSlots > 0) {
-      parts.push(`${freeKickJoinSlots} Free-Kick gratuit${freeKickJoinSlots > 1 ? 's' : ''}`)
+      parts.push(t('freeKickFree', { n: freeKickJoinSlots }))
     }
 
     // Invitation premium gratuite
     if (premiumFreeInvite > 0) {
-      parts.push('1 invitation premium')
+      parts.push(t('premiumInvite'))
     }
 
     // Slots payants
     if (paidJoinSlots > 0) {
-      parts.push(`${paidJoinSlots} slot${paidJoinSlots > 1 ? 's' : ''} acheté${paidJoinSlots > 1 ? 's' : ''}`)
+      parts.push(t('paidSlots', { n: paidJoinSlots }))
     }
 
     if (parts.length > 0) {
       return parts.join(' · ')
     }
-    return 'Quota atteint'
+    return t('quotaReached')
   }
 
   // Calculer le total des crédits
@@ -170,7 +172,7 @@ export default function UserQuotasCard() {
     <div className="space-y-4">
       {/* Titre simplifié */}
       <div className="text-center pb-4">
-        <h3 className="text-lg font-bold theme-text">Que voulez-vous faire ?</h3>
+        <h3 className="text-lg font-bold theme-text">{t('whatToDo')}</h3>
       </div>
 
       {/* Action 1: Créer un tournoi */}
@@ -183,9 +185,9 @@ export default function UserQuotasCard() {
             <Trophy className="w-6 h-6 text-[#ff9900]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold theme-text">Créer un tournoi</p>
+            <p className="font-semibold theme-text">{t('createTournament')}</p>
             <p className="text-sm theme-text-secondary truncate">
-              {totalCreationCredits > 0 ? getCreateSummary() : 'Quota atteint'}
+              {totalCreationCredits > 0 ? getCreateSummary() : t('quotaReached')}
             </p>
           </div>
           <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'create' ? 'rotate-90' : ''}`} />
@@ -204,7 +206,7 @@ export default function UserQuotasCard() {
                 <div>
                   <span className="theme-text">Free-Kick</span>
                   {freeCreationSlots === 0 && (
-                    <p className="text-xs theme-text-secondary">Quota de {data.free_tournaments_max} atteint</p>
+                    <p className="text-xs theme-text-secondary">{t('quotaOfReached', { n: data.free_tournaments_max })}</p>
                   )}
                 </div>
               </div>
@@ -212,9 +214,9 @@ export default function UserQuotasCard() {
                 {freeCreationSlots > 0 ? (
                   <>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
-                      {freeCreationSlots} dispo
+                      {t('available', { n: freeCreationSlots })}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">Gratuit</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">{t('free')}</span>
                   </>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">0,99€</span>
@@ -235,7 +237,7 @@ export default function UserQuotasCard() {
               <div className="flex items-center gap-2">
                 {(data.credits?.oneshot || 0) > 0 ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
-                    {data.credits?.oneshot} crédit{(data.credits?.oneshot || 0) > 1 ? 's' : ''}
+                    {t('creditsCount', { n: data.credits?.oneshot || 0 })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">4,99€</span>
@@ -256,7 +258,7 @@ export default function UserQuotasCard() {
               <div className="flex items-center gap-2">
                 {(data.credits?.elite || 0) > 0 ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">
-                    {data.credits?.elite} crédit{(data.credits?.elite || 0) > 1 ? 's' : ''}
+                    {t('creditsCount', { n: data.credits?.elite || 0 })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">9,99€</span>
@@ -277,7 +279,7 @@ export default function UserQuotasCard() {
               <div className="flex items-center gap-2">
                 {((data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)) > 0 ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
-                    {(data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)} crédit{((data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0)) > 1 ? 's' : ''}
+                    {t('creditsCount', { n: (data.credits?.platinium_solo || 0) + (data.credits?.platinium_group || 0) })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">6,99€</span>
@@ -291,18 +293,18 @@ export default function UserQuotasCard() {
               <div className="flex items-center gap-3">
                 <img src="/images/icons/event.svg" alt="" className="w-5 h-5 icon-filter-rose" />
                 <div>
-                  <span className="theme-text">Événement</span>
-                  <p className="text-xs theme-text-secondary">Compétitions spéciales</p>
+                  <span className="theme-text">{t('event')}</span>
+                  <p className="text-xs theme-text-secondary">{t('specialCompetitions')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {data.can_join_event_free ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
-                    1 gratuit
+                    {t('oneFree')}
                   </span>
                 ) : data.event_slots_available > 0 ? (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
-                    {data.event_slots_available} slot{data.event_slots_available > 1 ? 's' : ''}
+                    {t('slotsCount', { n: data.event_slots_available })}
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
@@ -318,7 +320,7 @@ export default function UserQuotasCard() {
                 href="/pricing"
                 className="text-xs theme-text-secondary hover-accent hover-underline transition"
               >
-                + d'infos sur les offres
+                {t('moreInfoOffers')}
               </Link>
             </div>
           </div>
@@ -335,7 +337,7 @@ export default function UserQuotasCard() {
             <Users className="w-6 h-6 text-green-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold theme-text">Rejoindre un tournoi</p>
+            <p className="font-semibold theme-text">{t('joinTournament')}</p>
             <p className="text-sm theme-text-secondary truncate">
               {getJoinSummary()}
             </p>
@@ -355,10 +357,10 @@ export default function UserQuotasCard() {
               <Eye className="w-6 h-6 text-blue-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold theme-text">Mes tournois actifs</p>
+              <p className="font-semibold theme-text">{t('myActiveTournaments')}</p>
               <p className="text-sm theme-text-secondary">
-                {data.total_active_tournaments} tournoi{data.total_active_tournaments > 1 ? 's' : ''}
-                {data.total_as_captain > 0 && ` · ${data.total_as_captain} en capitaine`}
+                {t('tournamentsCount', { n: data.total_active_tournaments })}
+                {data.total_as_captain > 0 && t('asCaptain', { n: data.total_as_captain })}
               </p>
             </div>
             <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'tournaments' ? 'rotate-90' : ''}`} />
@@ -394,9 +396,9 @@ export default function UserQuotasCard() {
                     <div className="min-w-0">
                       <p className="theme-text text-sm font-medium truncate">{tournament.name}</p>
                       <p className="text-xs theme-text-secondary">
-                        {tournament.current_players}/{tournament.max_players} joueurs
+                        {t('playersCount', { current: tournament.current_players, max: tournament.max_players })}
                         {tournament.participant_role === 'captain' && (
-                          <span className="text-[#ff9900] ml-1">· Capitaine</span>
+                          <span className="text-[#ff9900] ml-1">{t('captainSuffix')}</span>
                         )}
                       </p>
                     </div>
@@ -409,8 +411,8 @@ export default function UserQuotasCard() {
                         ? 'bg-yellow-500/20 text-yellow-600 dark:text-yellow-400'
                         : 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
                     }`}>
-                      {tournament.status === 'active' ? 'En cours' :
-                       tournament.status === 'warmup' ? 'Échauffement' : 'En attente'}
+                      {tournament.status === 'active' ? t('statusActive') :
+                       tournament.status === 'warmup' ? t('statusWarmup') : t('statusPending')}
                     </span>
                     <ChevronRight className="w-4 h-4 theme-text-secondary opacity-0 group-hover:opacity-100 transition" />
                   </div>
@@ -431,9 +433,9 @@ export default function UserQuotasCard() {
             <Wallet className="w-6 h-6 text-purple-500" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold theme-text">Mes crédits</p>
+            <p className="font-semibold theme-text">{t('myCredits')}</p>
             <p className="text-sm theme-text-secondary">
-              {getTotalCredits()} crédit{getTotalCredits() > 1 ? 's' : ''} disponible{getTotalCredits() > 1 ? 's' : ''}
+              {t('creditsAvailable', { n: getTotalCredits() })}
             </p>
           </div>
           <ChevronRight className={`w-5 h-5 theme-text-secondary transition-transform ${expandedSection === 'credits' ? 'rotate-90' : ''}`} />
@@ -444,7 +446,7 @@ export default function UserQuotasCard() {
           <div className="px-4 pb-4 space-y-3 border-t theme-border pt-3">
             {/* Crédits de création */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Création de tournoi</p>
+              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">{t('creationSection')}</p>
 
               {/* Free-Kick slots */}
               <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
@@ -452,22 +454,22 @@ export default function UserQuotasCard() {
                   <img src="/images/icons/free-tour.svg" alt="" className="w-4 h-4 icon-filter-blue" />
                   <div>
                     <span className="text-sm theme-text">Free-Kick</span>
-                    <p className="text-xs theme-text-secondary">Max {data.free_tournaments_max} actifs</p>
+                    <p className="text-xs theme-text-secondary">{t('maxActive', { n: data.free_tournaments_max })}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {freeCreationSlots > 0 ? (
                     <>
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
-                        {freeCreationSlots} dispo
+                        {t('available', { n: freeCreationSlots })}
                       </span>
                       <Link href="/vestiaire?type=free" className="text-xs text-blue-500 hover:underline">
-                        Créer
+                        {t('create')}
                       </Link>
                     </>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
+                      {t('none')}
                     </span>
                   )}
                 </div>
@@ -483,15 +485,15 @@ export default function UserQuotasCard() {
                   {(data.credits?.oneshot || 0) > 0 ? (
                     <>
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
-                        {data.credits?.oneshot} crédit{(data.credits?.oneshot || 0) > 1 ? 's' : ''}
+                        {t('creditsCount', { n: data.credits?.oneshot || 0 })}
                       </span>
                       <Link href="/vestiaire?type=oneshot&use_credit=true" className="text-xs text-green-500 hover:underline">
-                        Créer
+                        {t('create')}
                       </Link>
                     </>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
+                      {t('none')}
                     </span>
                   )}
                 </div>
@@ -507,15 +509,15 @@ export default function UserQuotasCard() {
                   {(data.credits?.elite || 0) > 0 ? (
                     <>
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#ff9900]/20 text-[#ff9900]">
-                        {data.credits?.elite} crédit{(data.credits?.elite || 0) > 1 ? 's' : ''}
+                        {t('creditsCount', { n: data.credits?.elite || 0 })}
                       </span>
                       <Link href="/vestiaire?type=elite&use_credit=true" className="text-xs text-[#ff9900] hover:underline">
-                        Créer
+                        {t('create')}
                       </Link>
                     </>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
+                      {t('none')}
                     </span>
                   )}
                 </div>
@@ -531,15 +533,15 @@ export default function UserQuotasCard() {
                   {(data.credits?.platinium_solo || 0) > 0 ? (
                     <>
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
-                        {data.credits?.platinium_solo} crédit{(data.credits?.platinium_solo || 0) > 1 ? 's' : ''}
+                        {t('creditsCount', { n: data.credits?.platinium_solo || 0 })}
                       </span>
                       <Link href="/vestiaire?type=platinium&use_credit=true" className="text-xs text-yellow-500 hover:underline">
-                        Créer
+                        {t('create')}
                       </Link>
                     </>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
+                      {t('none')}
                     </span>
                   )}
                 </div>
@@ -549,21 +551,21 @@ export default function UserQuotasCard() {
               <div className="flex items-center justify-between p-2 rounded-lg theme-bg">
                 <div className="flex items-center gap-2">
                   <img src="/images/icons/premium-tour.svg" alt="" className="w-4 h-4 icon-filter-yellow" />
-                  <span className="text-sm theme-text">Platinium Groupe (11 places)</span>
+                  <span className="text-sm theme-text">{t('platiniumGroupLabel')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {(data.credits?.platinium_group || 0) > 0 ? (
                     <>
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-500">
-                        {data.credits?.platinium_group} crédit{(data.credits?.platinium_group || 0) > 1 ? 's' : ''}
+                        {t('creditsCount', { n: data.credits?.platinium_group || 0 })}
                       </span>
                       <Link href="/vestiaire?type=platinium&use_credit=true&group=true" className="text-xs text-yellow-500 hover:underline">
-                        Créer
+                        {t('create')}
                       </Link>
                     </>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Aucun
+                      {t('none')}
                     </span>
                   )}
                 </div>
@@ -574,22 +576,22 @@ export default function UserQuotasCard() {
                 <div className="flex items-center gap-2">
                   <img src="/images/icons/event.svg" alt="" className="w-4 h-4 icon-filter-rose" />
                   <div>
-                    <span className="text-sm theme-text">Événement</span>
-                    <p className="text-xs theme-text-secondary">1 participation gratuite</p>
+                    <span className="text-sm theme-text">{t('event')}</span>
+                    <p className="text-xs theme-text-secondary">{t('oneFreeParticipation')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {data.can_join_event_free ? (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
-                      1 gratuit
+                      {t('oneFree')}
                     </span>
                   ) : data.event_slots_available > 0 ? (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-pink-500/20 text-pink-500">
-                      {data.event_slots_available} slot{data.event_slots_available > 1 ? 's' : ''}
+                      {t('slotsCount', { n: data.event_slots_available })}
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                      Utilisé
+                      {t('used')}
                     </span>
                   )}
                 </div>
@@ -598,7 +600,7 @@ export default function UserQuotasCard() {
 
             {/* Crédits pour rejoindre */}
             <div className="space-y-2 pt-2 border-t theme-border">
-              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Rejoindre un tournoi</p>
+              <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">{t('joinTournament')}</p>
 
               {/* Invitation gratuite premium */}
               <div className="p-2 rounded-lg theme-bg">
@@ -606,28 +608,28 @@ export default function UserQuotasCard() {
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Users className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-sm theme-text">Invitation gratuite</span>
-                      <p className="text-xs theme-text-secondary hidden sm:block">1 par tournoi premium</p>
+                      <span className="text-sm theme-text">{t('freeInvitation')}</span>
+                      <p className="text-xs theme-text-secondary hidden sm:block">{t('onePerPremium')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {data.can_join_premium_free ? (
                       <>
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500 whitespace-nowrap">
-                          1 dispo
+                          {t('oneAvailable')}
                         </span>
                         <Link href="/rejoindre" className="text-xs text-green-500 hover:underline whitespace-nowrap">
-                          Rejoindre
+                          {t('join')}
                         </Link>
                       </>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                        Utilisée
+                        {t('usedFem')}
                       </span>
                     )}
                   </div>
                 </div>
-                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">1 par tournoi premium</p>
+                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">{t('onePerPremium')}</p>
               </div>
 
               {/* Slots invités payés */}
@@ -636,35 +638,35 @@ export default function UserQuotasCard() {
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Users className="w-4 h-4 text-purple-500 flex-shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-sm theme-text">Slots invités achetés</span>
-                      <p className="text-xs theme-text-secondary hidden sm:block">Pour rejoindre des tournois payants</p>
+                      <span className="text-sm theme-text">{t('paidInviteSlots')}</span>
+                      <p className="text-xs theme-text-secondary hidden sm:block">{t('toJoinPaid')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {(data.credits?.slot_invite || 0) > 0 ? (
                       <>
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-500 whitespace-nowrap">
-                          {data.credits?.slot_invite} dispo
+                          {t('available', { n: data.credits?.slot_invite || 0 })}
                         </span>
                         <Link href="/rejoindre" className="text-xs text-purple-500 hover:underline whitespace-nowrap">
-                          Rejoindre
+                          {t('join')}
                         </Link>
                       </>
                     ) : (
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 theme-text-secondary">
-                        Aucun
+                        {t('none')}
                       </span>
                     )}
                   </div>
                 </div>
-                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">Pour rejoindre des tournois payants</p>
+                <p className="text-xs theme-text-secondary sm:hidden mt-1 ml-6">{t('toJoinPaid')}</p>
               </div>
             </div>
 
             {/* Crédits d'extension */}
             {((data.credits?.duration_extension || 0) > 0 || (data.credits?.player_extension || 0) > 0) && (
               <div className="space-y-2 pt-2 border-t theme-border">
-                <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">Extensions de tournoi</p>
+                <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wide">{t('extensionsSection')}</p>
 
                 {/* Extension de durée */}
                 {(data.credits?.duration_extension || 0) > 0 && (
@@ -672,12 +674,12 @@ export default function UserQuotasCard() {
                     <div className="flex items-center gap-2">
                       <img src="/images/icons/calendar.svg" alt="" className="w-4 h-4 icon-filter-blue" />
                       <div>
-                        <span className="text-sm theme-text">Extension durée</span>
-                        <p className="text-xs theme-text-secondary">Jusqu'à +10 journées</p>
+                        <span className="text-sm theme-text">{t('durationExtension')}</span>
+                        <p className="text-xs theme-text-secondary">{t('upTo10Matchdays')}</p>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-500">
-                      {data.credits?.duration_extension} crédit{(data.credits?.duration_extension || 0) > 1 ? 's' : ''}
+                      {t('creditsCount', { n: data.credits?.duration_extension || 0 })}
                     </span>
                   </div>
                 )}
@@ -688,12 +690,12 @@ export default function UserQuotasCard() {
                     <div className="flex items-center gap-2">
                       <Users className="w-4 h-4 text-green-500" />
                       <div>
-                        <span className="text-sm theme-text">Extension joueurs</span>
-                        <p className="text-xs theme-text-secondary">+5 places par extension</p>
+                        <span className="text-sm theme-text">{t('playerExtension')}</span>
+                        <p className="text-xs theme-text-secondary">{t('plus5Seats')}</p>
                       </div>
                     </div>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
-                      {data.credits?.player_extension} crédit{(data.credits?.player_extension || 0) > 1 ? 's' : ''}
+                      {t('creditsCount', { n: data.credits?.player_extension || 0 })}
                     </span>
                   </div>
                 )}
@@ -712,12 +714,12 @@ export default function UserQuotasCard() {
         className="flex items-center justify-center gap-2 w-full p-4 rounded-xl bg-gradient-to-r from-[#ff9900] to-[#e68a00] text-black font-semibold hover:brightness-110 transition"
       >
         <PlusCircle className="w-5 h-5" />
-        Acheter des crédits
+        {t('buyCredits')}
       </Link>
 
       {/* Note explicative */}
       <p className="text-xs theme-text-secondary text-center">
-        Les extensions de tournoi sont disponibles depuis la page de chaque tournoi
+        {t('extensionsNote')}
       </p>
     </div>
   )
