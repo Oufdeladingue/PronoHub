@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client'
 const LANGS = [
   { code: 'fr', label: 'Français' },
   { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
 ] as const
 
 /** Drapeaux SVG (fiables sur toutes les plateformes, contrairement aux emojis). */
@@ -27,6 +28,15 @@ function Flag({ code }: { code: string }) {
         <rect width="3" height="2" fill="#fff" />
         <rect width="1" height="2" fill="#0055A4" />
         <rect width="1" height="2" x="2" fill="#EF4135" />
+      </svg>
+    )
+  }
+  if (code === 'es') {
+    // ES → drapeau espagnol (rojigualda) simplifié : rouge / jaune (double) / rouge
+    return (
+      <svg viewBox="0 0 3 2" className="w-5 h-[14px] rounded-[2px] shrink-0 ring-1 ring-black/10" aria-hidden="true">
+        <rect width="3" height="2" fill="#AA151B" />
+        <rect width="3" height="1" y="0.5" fill="#F1BF00" />
       </svg>
     )
   }
