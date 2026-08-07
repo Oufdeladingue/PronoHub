@@ -8,6 +8,7 @@ import ShareImageModal from '@/components/ShareImageModal'
 import { trackRankingShared } from '@/lib/analytics'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 import { slugify, fileDateStamp } from '@/lib/slug'
+import { useTranslations } from 'next-intl'
 import RankingEvolution from './RankingEvolution'
 
 interface PlayerStats {
@@ -66,6 +67,7 @@ interface TournamentRankingsProps {
 }
 
 export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition, matchdayDisplayMap }: TournamentRankingsProps) {
+  const t = useTranslations('Rankings')
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [showEvolution, setShowEvolution] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -314,7 +316,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   return (
     <div className="theme-card">
       <div className="flex items-center justify-between mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-bold theme-text">Classement</h2>
+        <h2 className="text-xl md:text-2xl font-bold theme-text">{t('title')}</h2>
         {!isCustomCompetition && (
           <button
             onClick={() => setShowEvolution(v => !v)}
@@ -322,7 +324,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               showEvolution ? 'bg-[#ff9900] text-[#111]' : 'bg-gray-100 dark:bg-gray-700 theme-text-secondary hover:bg-[#ff9900] hover:text-[#111]'
             }`}
           >
-            📈 Évolution
+            {t('evolution')}
           </button>
         )}
       </div>
@@ -341,7 +343,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             <button
               onClick={() => scrollViews('left')}
               className="absolute left-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-r from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
-              aria-label="Vues précédentes"
+              aria-label={t('prevViews')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -363,7 +365,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-[#ff9900] hover:text-[#111]'
               }`}
             >
-              Général
+              {t('general')}
             </button>
             {/* Bouton Équipes (uniquement si supporte et active) */}
             {supportsTeams && teamsEnabled && (
@@ -378,7 +380,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M21 17C21 15.77 19.77 14.71 18 14.25M3 17C3 15.77 4.23 14.71 6 14.25M18 10.24C18.61 9.69 19 8.89 19 8C19 6.34 17.66 5 16 5C15.23 5 14.53 5.29 14 5.76M6 10.24C5.39 9.69 5 8.89 5 8C5 6.34 6.34 5 8 5C8.77 5 9.47 5.29 10 5.76M12 14C10.34 14 9 12.66 9 11C9 9.34 10.34 8 12 8C13.66 8 15 9.34 15 11C15 12.66 13.66 14 12 14Z" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                Équipes
+                {t('teams')}
               </button>
             )}
             {availableMatchdays
@@ -412,7 +414,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             <button
               onClick={() => scrollViews('right')}
               className="absolute right-0 z-10 flex items-center justify-center w-8 h-full bg-gradient-to-l from-slate-800 via-slate-800 to-transparent hover:from-slate-700"
-              aria-label="Vues suivantes"
+              aria-label={t('nextViews')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -426,7 +428,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       {loading ? (
         <div className="text-center py-12">
           <div className="loading-spinner-inline"></div>
-          <p className="mt-4 theme-text-secondary">Chargement du classement...</p>
+          <p className="mt-4 theme-text-secondary">{t('loading')}</p>
         </div>
       ) : error ? (
         <div className="text-center py-12">
@@ -440,7 +442,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               <path d="M17 20C17 18.3431 14.7614 17 12 17C9.23858 17 7 18.3431 7 20M21 17C21 15.77 19.77 14.71 18 14.25M3 17C3 15.77 4.23 14.71 6 14.25M18 10.24C18.61 9.69 19 8.89 19 8C19 6.34 17.66 5 16 5C15.23 5 14.53 5.29 14 5.76M6 10.24C5.39 9.69 5 8.89 5 8C5 6.34 6.34 5 8 5C8.77 5 9.47 5.29 10 5.76M12 14C10.34 14 9 12.66 9 11C9 9.34 10.34 8 12 8C13.66 8 15 9.34 15 11C15 12.66 13.66 14 12 14Z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <p className="theme-text-secondary">
-              Aucune equipe creee pour le moment.
+              {t('noTeams')}
             </p>
             <p className="text-sm theme-text-secondary mt-2">
               Le capitaine doit creer des equipes sur la page d&apos;echauffement.
@@ -456,7 +458,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 </p>
                 <button onClick={() => setShareOpen(true)} className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                  Partager
+                  {t('share')}
                 </button>
               </div>
             </div>
@@ -467,22 +469,22 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 <thead>
                   <tr className="border-b-2 theme-border">
                     <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">#</th>
-                    <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Équipe</th>
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Moyenne Points">
-                      <span className="md:hidden">Pts</span>
-                      <span className="hidden md:inline">Moy. Points</span>
+                    <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">{t('colTeam')}</th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('avgPointsTitle')}>
+                      <span className="md:hidden">{t('pts')}</span>
+                      <span className="hidden md:inline">{t('avgPoints')}</span>
                     </th>
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Bons résultats">
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('correctResults')}>
                       <span className="md:hidden">✓</span>
-                      <span className="hidden md:inline">Bons résultats</span>
+                      <span className="hidden md:inline">{t('correctResults')}</span>
                     </th>
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Scores exacts">
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('exactScores')}>
                       <span className="md:hidden flex justify-center">
-                        <img src="/images/icons/target.svg" alt="Scores exacts" className="w-4 h-4 icon-filter-theme" />
+                        <img src="/images/icons/target.svg" alt={t('exactScores')} className="w-4 h-4 icon-filter-theme" />
                       </span>
-                      <span className="hidden md:inline">Scores exacts</span>
+                      <span className="hidden md:inline">{t('exactScores')}</span>
                     </th>
-                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base hidden md:table-cell">Membres</th>
+                    <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base hidden md:table-cell">{t('members')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -561,11 +563,11 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
               <div className="space-y-1">
                 <p className="text-xs theme-text-secondary flex items-center gap-1">
                   <span>* ✓ =</span>
-                  <span>total bons résultats</span>
+                  <span>{t('totalCorrectResults')}</span>
                 </p>
                 <p className="text-xs theme-text-secondary flex items-center gap-1">
                   <span>*</span>
-                  <img src="/images/icons/target.svg" alt="Target" className="w-3 h-3 inline-block icon-filter-theme" />
+                  <img src="/images/icons/target.svg" alt={t('targetAlt')} className="w-3 h-3 inline-block icon-filter-theme" />
                   <span>= total scores exacts</span>
                 </p>
               </div>
@@ -575,13 +577,13 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       ) : !rankingsData ? (
         <div className="text-center py-12">
           <p className="theme-text-secondary">
-            Aucune donnée de classement disponible pour le moment.
+            {t('noData')}
           </p>
         </div>
       ) : rankingsData.rankings.length === 0 ? (
         <div className="text-center py-12">
           <p className="theme-text-secondary">
-            Aucun participant inscrit à ce tournoi.
+            {t('noParticipants')}
           </p>
         </div>
       ) : (
@@ -593,27 +595,27 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 {selectedView === 'general' ? (
                   // Vue générale du tournoi
                   <>
-                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {t('matchesPlayed', { n: rankingsData.matchesFinished })}
                     {' / '}
-                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} du tournoi{tournamentName ? ` ${tournamentName}` : ''}
-                    {rankingsData.matchesFinished === rankingsData.matchesTotal && rankingsData.matchesTotal > 0 && !rankingsData.hasPendingMatchdays && ' : classement final'}
+                    {t('ofTournament', { n: rankingsData.matchesTotal, name: tournamentName ? ` ${tournamentName}` : '' })}
+                    {rankingsData.matchesFinished === rankingsData.matchesTotal && rankingsData.matchesTotal > 0 && !rankingsData.hasPendingMatchdays && t('finalRanking')}
                   </>
                 ) : rankingsData.matchesFinished === 0 ? (
                   // Journée où aucun match n'a encore eu lieu
-                  <>Aucune rencontre n&apos;a encore eu lieu pour la journée {selectedView}</>
+                  <>{t('noMatchesYet', { md: selectedView })}</>
                 ) : rankingsData.matchesFinished === rankingsData.matchesTotal ? (
                   // Journée terminée (tous les matchs terminés)
                   <>
-                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {t('matchesPlayed', { n: rankingsData.matchesFinished })}
                     {' / '}
-                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} sur la journée {selectedView} : classement final
+                    {t('ofMatchday', { n: rankingsData.matchesTotal, md: selectedView })}{t('finalRanking')}
                   </>
                 ) : (
                   // Journée en cours (au moins un match terminé mais pas tous)
                   <>
-                    {rankingsData.matchesFinished} match{rankingsData.matchesFinished > 1 ? 's' : ''} joué{rankingsData.matchesFinished > 1 ? 's' : ''}
+                    {t('matchesPlayed', { n: rankingsData.matchesFinished })}
                     {' / '}
-                    {rankingsData.matchesTotal} match{rankingsData.matchesTotal > 1 ? 's' : ''} sur la journée {selectedView} : classement provisoire
+                    {t('ofMatchday', { n: rankingsData.matchesTotal, md: selectedView })}{t('provisionalRanking')}
                   </>
                 )}
               </p>
@@ -624,13 +626,13 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
                     <span className="text-xs font-semibold quota-warning-title">
-                      Classement provisoire - Matchs en cours
+                      {t('provisionalInProgress')}
                     </span>
                   </div>
                 )}
                 <button onClick={() => setShareOpen(true)} className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#ff9900] text-slate-900 hover:bg-[#e68a00] transition">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                  Partager
+                  {t('share')}
                 </button>
               </div>
             </div>
@@ -645,18 +647,18 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                   {selectedView === 'general' && (
                     <th className="text-center py-2 md:py-3 px-0.5 md:px-1 theme-text font-semibold w-6 md:w-8"></th>
                   )}
-                  <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">Joueur</th>
-                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Points">
-                    <span className="md:hidden">Pts</span>
-                    <span className="hidden md:inline">Points</span>
+                  <th className="text-left py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base">{t('colPlayer')}</th>
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('points')}>
+                    <span className="md:hidden">{t('pts')}</span>
+                    <span className="hidden md:inline">{t('points')}</span>
                   </th>
-                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Bons résultats">
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('correctResults')}>
                     <span className="md:hidden">✓</span>
                     <span className="hidden md:inline">Bons résultats</span>
                   </th>
-                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title="Scores exacts">
+                  <th className="text-center py-2 md:py-3 px-1 md:px-2 theme-text font-semibold text-xs md:text-base" title={t('exactScores')}>
                     <span className="md:hidden flex justify-center">
-                      <img src="/images/icons/target.svg" alt="Scores exacts" className="w-4 h-4 icon-filter-theme" />
+                      <img src="/images/icons/target.svg" alt={t('exactScores')} className="w-4 h-4 icon-filter-theme" />
                     </span>
                     <span className="hidden md:inline">Scores exacts</span>
                   </th>
@@ -761,11 +763,11 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
             <div className="space-y-1">
               <p className="text-xs theme-text-secondary flex items-center gap-1">
                 <span>* ✓ =</span>
-                <span>nombre de bons résultats</span>
+                <span>{t('numCorrectResults')}</span>
               </p>
               <p className="text-xs theme-text-secondary flex items-center gap-1">
                 <span>*</span>
-                <img src="/images/icons/target.svg" alt="Target" className="w-3 h-3 inline-block icon-filter-theme" />
+                <img src="/images/icons/target.svg" alt={t('targetAlt')} className="w-3 h-3 inline-block icon-filter-theme" />
                 <span>= nombre de scores exacts</span>
               </p>
             </div>
@@ -776,14 +778,14 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
       {shareOpen && (() => {
         const mode = selectedView === 'teams' ? 'teams' : selectedView === 'general' ? 'general' : 'matchday'
         const mdParam = typeof selectedView === 'number' ? `&matchday=${selectedView}` : ''
-        const ctx = mode === 'teams' ? 'par équipes' : mode === 'matchday' ? `Journée ${selectedView}` : 'général'
+        const ctx = mode === 'teams' ? t('ctxTeams') : mode === 'matchday' ? t('ctxMatchday', { n: selectedView }) : t('ctxGeneral')
         return (
           <ShareImageModal
             imageUrl={`/api/og/ranking?tournamentId=${tournamentId}&mode=${mode}${mdParam}`}
             shareUrl={`https://www.pronohub.club/share/ranking/${tournamentId}?mode=${mode}${mdParam}`}
-            shareText={`Classement ${ctx}${tournamentName ? ' de ' + tournamentName : ''} sur PronoHub 👀`}
+            shareText={tournamentName ? t('shareTextRankingNamed', { ctx, name: tournamentName }) : t('shareTextRanking', { ctx })}
             downloadName={`classement-${slugify(tournamentName)}-${slugify(ctx)}-${fileDateStamp()}.png`}
-            title="Partager le classement"
+            title={t('shareRanking')}
             onShared={(m) => trackRankingShared({ method: m, tournamentId, mode })}
             onClose={() => setShareOpen(false)}
           />
