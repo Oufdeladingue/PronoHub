@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { isCapacitor } from '@/lib/capacitor'
 
 interface NotificationPermissionModalProps {
@@ -12,6 +13,7 @@ export default function NotificationPermissionModal({
   onAccept,
   onDecline,
 }: NotificationPermissionModalProps) {
+  const t = useTranslations('NotifPermission')
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
@@ -63,31 +65,31 @@ export default function NotificationPermissionModal({
 
         {/* Titre */}
         <h2 className="text-xl font-bold text-white text-center mb-2">
-          Reste dans le match !
+          {t('title')}
         </h2>
 
         {/* Description */}
         <p className="text-gray-400 text-center text-sm mb-4">
-          Active les notifications pour ne rien manquer :
+          {t('subtitle')}
         </p>
 
         {/* Liste des avantages */}
         <ul className="space-y-2 mb-6">
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">⚽</span>
-            <span>Rappels avant les matchs</span>
+            <span>{t('benefit1')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">🏆</span>
-            <span>Résultats et classements en direct</span>
+            <span>{t('benefit2')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">👥</span>
-            <span>Invitations de tes amis</span>
+            <span>{t('benefit3')}</span>
           </li>
           <li className="flex items-center gap-3 text-sm text-gray-300">
             <span className="text-[#ff9900]">🎯</span>
-            <span>Nouveaux tournois disponibles</span>
+            <span>{t('benefit4')}</span>
           </li>
         </ul>
 
@@ -97,13 +99,13 @@ export default function NotificationPermissionModal({
             onClick={handleAccept}
             className="w-full py-3 px-4 bg-[#ff9900] hover:bg-[#e68a00] text-black font-semibold rounded-xl transition-colors"
           >
-            Activer les notifications
+            {t('accept')}
           </button>
           <button
             onClick={handleDecline}
             className="w-full py-3 px-4 bg-transparent hover:bg-white/5 text-gray-400 font-medium rounded-xl transition-colors"
           >
-            Plus tard
+            {t('later')}
           </button>
         </div>
       </div>

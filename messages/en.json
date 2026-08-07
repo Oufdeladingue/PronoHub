@@ -885,6 +885,16 @@
     "freeNote": "Free feature for Elite and Platinium tournaments",
     "close": "Close"
   },
+  "NotifPermission": {
+    "title": "Stay in the game!",
+    "subtitle": "Turn on notifications so you don't miss a thing:",
+    "benefit1": "Reminders before matches",
+    "benefit2": "Live results and leaderboards",
+    "benefit3": "Invites from your friends",
+    "benefit4": "New tournaments available",
+    "accept": "Enable notifications",
+    "later": "Later"
+  },
   "ShareModal": {
     "title": "Share",
     "close": "Close",

@@ -885,6 +885,16 @@
     "freeNote": "Fonctionnalité gratuite pour les tournois Elite et Platinium",
     "close": "Fermer"
   },
+  "NotifPermission": {
+    "title": "Reste dans le match !",
+    "subtitle": "Active les notifications pour ne rien manquer :",
+    "benefit1": "Rappels avant les matchs",
+    "benefit2": "Résultats et classements en direct",
+    "benefit3": "Invitations de tes amis",
+    "benefit4": "Nouveaux tournois disponibles",
+    "accept": "Activer les notifications",
+    "later": "Plus tard"
+  },
   "ShareModal": {
     "title": "Partager",
     "close": "Fermer",
