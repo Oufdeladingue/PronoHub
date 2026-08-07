@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import createMiddleware from 'next-intl/middleware'
 import { routing } from '@/i18n/routing'
 import { updateSession } from '@/lib/supabase/middleware'
@@ -25,15 +26,57 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request, NextResponse.next({ request }))
   }
 
-  // Détection PAYS → langue par défaut : si l'utilisateur n'a pas encore de langue
-  // mémorisée (cookie NEXT_LOCALE), on la déduit du pays (cf-ipcountry, fourni par
-  // Cloudflare, edge-safe). next-intl la lira ce tour-ci et la persistera.
-  // L'utilisateur pourra toujours changer via le sélecteur de langue.
+  // Détermination de la langue quand aucune n'est encore mémorisée (cookie NEXT_LOCALE
+  // absent = premier passage / nouvel appareil / cookies effacés). Priorité :
+  //   1. Préférence ENREGISTRÉE du compte (profiles.locale) → persistance cross-device
+  //   2. PAYS détecté (cf-ipcountry Cloudflare, edge-safe)
+  // next-intl lira le cookie ce tour-ci (appliqué dès cette requête, sans flash) et le
+  // persistera. L'utilisateur peut toujours changer via le sélecteur de langue.
+  let seededLocale: string | null = null
   if (!request.cookies.get('NEXT_LOCALE')) {
-    const cfCountry = request.headers.get('cf-ipcountry')
-    if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
-      request.cookies.set('NEXT_LOCALE', localeForCountry(cfCountry))
+    let seeded: string | null = null
+
+    // 1. Préférence du compte connecté (autoritaire). getUser uniquement ici (chemin rare
+    //    « pas de cookie »), donc coût négligeable ; setAll no-op car lecture seule
+    //    (updateSession rafraîchira/persistera la session juste après).
+    try {
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } }
+      )
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('locale').eq('id', user.id).single()
+        if (profile?.locale && (routing.locales as readonly string[]).includes(profile.locale)) {
+          seeded = profile.locale
+        }
+      }
+    } catch {
+      // best-effort : on retombe sur la détection pays
     }
+
+    // 2. Détection pays si pas de préférence enregistrée
+    if (!seeded) {
+      const cfCountry = request.headers.get('cf-ipcountry')
+      if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
+        seeded = localeForCountry(cfCountry)
+      }
+    }
+
+    if (seeded) {
+      request.cookies.set('NEXT_LOCALE', seeded)
+      seededLocale = seeded
+    }
+  }
+
+  // Persiste la locale semée sur la réponse pour que les requêtes suivantes aient le
+  // cookie (le getUser ci-dessus ne s'exécute donc qu'une seule fois par appareil).
+  const persistSeed = (res: NextResponse) => {
+    if (seededLocale) {
+      res.cookies.set('NEXT_LOCALE', seededLocale, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
+    }
+    return res
   }
 
   // Routing i18n (locale, préfixe /en, cookie NEXT_LOCALE)
@@ -42,11 +85,11 @@ export async function middleware(request: NextRequest) {
   // Si next-intl décide une redirection (normalisation / détection de langue),
   // on la laisse passer telle quelle.
   if (response.headers.has('location')) {
-    return response
+    return persistSeed(response)
   }
 
   // Session Supabase + gardes d'accès, par-dessus la réponse i18n (locale-aware)
-  return await updateSession(request, response)
+  return persistSeed(await updateSession(request, response))
 }
 
 export const config = {
