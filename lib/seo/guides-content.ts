@@ -313,13 +313,157 @@ const EN: Guide[] = [
   },
 ]
 
-export const GUIDES: Record<'fr' | 'en', Guide[]> = { fr: FR, en: EN }
+const ES: Guide[] = [
+  {
+    slug: 'organiser-tournoi-pronostics-entre-amis',
+    title: 'Cómo organizar un juego de pronósticos de fútbol entre amigos | PronoHub',
+    h1: 'Cómo organizar un juego de pronósticos de fútbol entre amigos',
+    description: 'La guía completa para montar una porra de fútbol entre amigos: elegir la competición, fijar las reglas, invitar a todos y seguir la clasificación en directo. Gratis.',
+    lede: "Organizar un juego de pronósticos entre amigos es la mejor forma de vivir cada jornada de fútbol con más intensidad. Así puedes montar el tuyo en unos minutos, sin complicaciones y sin gastarte un euro.",
+    sections: [
+      {
+        h2: '1. Elige la competición',
+        paragraphs: [
+          "Todo empieza aquí. Una liga que dura toda la temporada (LaLiga, Premier League, Ligue 1…) es perfecta para una porra de largo recorrido, donde la emoción crece jornada tras jornada. ¿Quieres algo corto e intenso? Apunta a las eliminatorias de la Champions League o a un Mundial.",
+          "El buen consejo: elige una competición que la mayoría del grupo ya siga. Cuanto mejor conozca la gente a los equipos, más disfruta pronosticando y picándose entre sí.",
+        ],
+      },
+      {
+        h2: '2. Fija las reglas y la puntuación',
+        paragraphs: [
+          "Una porra de pronósticos vive por su sistema de puntos. Lo más habitual: puntos por acertar el resultado (1, X o 2) y un extra por el resultado exacto. Así se premia tanto el olfato como la valentía.",
+          "Puedes darle chispa con un partido bonus (puntos dobles) o una prima para quienes pronostican pronto. Lo importante: que las reglas queden claras para todos desde el principio.",
+        ],
+      },
+      {
+        h2: '3. Invita a tus amigos',
+        paragraphs: [
+          "Esta es la etapa que hace o deshace una porra. El secreto: cero fricción. Comparte un simple enlace (WhatsApp, SMS, grupo…) y deja que tus amigos se unan con un clic. Cuanto más fácil, más gente se apunta.",
+          "Apunta al menos a 3-4 participantes para que la competición esté viva. Una porra se juega en grupo: es la comparación de clasificaciones lo que crea el ambiente.",
+        ],
+      },
+      {
+        h2: '4. Sigue la clasificación en directo',
+        paragraphs: [
+          "No hay nada peor que una porra donde nadie sabe quién va ganando. Una clasificación que se actualiza automáticamente después de cada partido mantiene viva la rivalidad y dan ganas de volver a mirar tu posición.",
+          "Añade una pizca de competición: trofeos por desbloquear, mejor pronosticador de la jornada, remontadas espectaculares… son esos detalles los que convierten un simple juego en una cita esperada.",
+        ],
+      },
+      {
+        h2: '5. Haz que dure la diversión',
+        paragraphs: [
+          "El pique forma parte del juego. Un espacio para charlar donde cada uno pueda vacilar al último de la clasificación o presumir tras clavar un resultado exacto, y tu porra se convierte en un hilo conductor entre amigos durante toda la temporada.",
+        ],
+      },
+    ],
+    faq: [
+      { q: '¿Hay que pagar para organizar un juego de pronósticos?', a: 'No. En PronoHub, crear una porra, invitar a tus amigos y jugar es 100% gratis. Solo existen planes de pago para grupos muy grandes.' },
+      { q: '¿Cuántos participantes hacen falta?', a: 'A partir de 2, pero una porra cobra vida de verdad a partir de 3-4 jugadores. La comparación de clasificaciones es lo que genera la diversión.' },
+      { q: '¿Se puede jugar sin apostar dinero?', a: 'Sí, y es justo la idea. Se juega por la clasificación, los trofeos y el orgullo, nunca por dinero.' },
+    ],
+    related: ['ligue-1', 'ligue-des-champions', 'premier-league'],
+  },
+  {
+    slug: 'jeux-de-pronos-groupe-whatsapp',
+    title: 'Ideas de juegos de pronósticos para un grupo de WhatsApp | PronoHub',
+    h1: 'Ideas de juegos de pronósticos para tu grupo de WhatsApp',
+    description: 'Tu grupo de WhatsApp de amigos merece algo mejor que una hoja de cálculo. Descubre las mejores ideas de porras de fútbol para lanzar con tu grupo, gratis.',
+    lede: "¿Tu grupo de WhatsApp se enciende con cada partido? Convierte esa energía en competición. Aquí tienes ideas de juegos de pronósticos perfectas para un grupo de amigos, y por qué una app de verdad gana a la hoja de cálculo o a apuntar los puntos a mano.",
+    sections: [
+      {
+        h2: 'La porra de la temporada',
+        paragraphs: [
+          "El gran clásico: cada uno pronostica todos los partidos de una liga, se suman puntos, y la clasificación se decide durante toda la temporada. Ideal para un grupo que sigue LaLiga o la Premier League de agosto a mayo.",
+        ],
+      },
+      {
+        h2: 'El pronóstico de competición especial',
+        paragraphs: [
+          "Para un evento corto e intenso: Mundial, Eurocopa, eliminatorias de la Champions League. Todos pronostican del primer partido a la final, el ambiente sube en crescendo y se conoce al gran ganador en unas semanas.",
+        ],
+      },
+      {
+        h2: 'El reto de la jornada',
+        paragraphs: [
+          "Más ligero: cada semana solo se pronostican los partidazos del fin de semana. Perfecto para grupos que no quieren comprometerse toda una temporada pero adoran picarse partido a partido.",
+        ],
+      },
+      {
+        h2: '¿Por qué una app en lugar de WhatsApp a mano?',
+        list: [
+          "Se acabaron los marcadores apuntados en una hoja de cálculo que nadie actualiza.",
+          "La clasificación se calcula sola después de cada partido: cero discusiones por los puntos.",
+          "Cada uno mete sus pronósticos donde quiera y cuando quiera, sin saturar el grupo.",
+          "Trofeos, estadísticas e historial: lo que un hilo de WhatsApp nunca podrá ofrecer.",
+        ],
+        paragraphs: [
+          "Te quedas con tu grupo de WhatsApp para el pique, y dejas que la app gestione los pronósticos y la clasificación. Lo mejor de los dos mundos.",
+        ],
+      },
+    ],
+    faq: [
+      { q: '¿Cómo lanzo un juego de pronósticos con mi grupo de WhatsApp?', a: 'Crea una porra en PronoHub, elige la competición y comparte el enlace de invitación directamente en tu grupo de WhatsApp. Tus amigos se unen con un clic.' },
+      { q: '¿Es gratis?', a: 'Sí, totalmente. Sin coste para crear el juego, invitar al grupo y seguir la clasificación.' },
+      { q: '¿Todos tienen que instalar una app?', a: 'No, PronoHub también funciona desde el navegador. Existe una app de Android para quienes la prefieran.' },
+    ],
+    related: ['ligue-1', 'coupe-du-monde', 'ligue-des-champions'],
+  },
+  {
+    slug: 'regles-bareme-concours-pronostics',
+    title: 'Reglas y puntuación de un concurso de pronósticos entre amigos | PronoHub',
+    h1: 'Reglas y puntuación de un concurso de pronósticos entre amigos',
+    description: 'Cómo fijar las reglas y la puntuación de un concurso de pronósticos de fútbol entre amigos: acierto de resultado, resultado exacto, bonus, empates. La guía clara.',
+    lede: "Un buen concurso de pronósticos se apoya en reglas claras. Así puedes construir un sistema de puntos equilibrado, que premie tanto la regularidad como la valentía, sin provocar jamás una discusión entre amigos.",
+    sections: [
+      {
+        h2: 'La puntuación básica: el resultado acertado',
+        paragraphs: [
+          "El ladrillo de partida: se ganan puntos cuando aciertas el desenlace del partido: victoria local, empate o victoria visitante (1, X, 2). Normalmente 1 punto. Sencillo, claro, todos lo entienden.",
+        ],
+      },
+      {
+        h2: 'El resultado exacto: la recompensa a la valentía',
+        paragraphs: [
+          "Para desempatar a los jugadores, se añade un extra cuando el resultado pronosticado es exactamente el correcto (por ejemplo 3 puntos en vez de 1). Es lo que empuja a atreverse con un 2-1 en lugar de jugar a lo seguro, y crea las mejores remontadas en la clasificación.",
+        ],
+      },
+      {
+        h2: 'Los bonus para darle chispa',
+        list: [
+          "Partido bonus: los puntos de un partido elegido se duplican.",
+          "Prima anticipada: unos puntos extra para quienes pronostican mucho antes del pitido inicial.",
+          "Bonus clasificado: en las eliminatorias, puntos por acertar el equipo que pasa de ronda.",
+        ],
+      },
+      {
+        h2: 'Gestionar los empates',
+        paragraphs: [
+          "En caso de empate al final, prevé un criterio de desempate anunciado desde el principio: número de resultados exactos acertados, luego número de resultados acertados. Lo esencial es que la regla la conozcan todos antes del final, nunca decidida a posteriori.",
+        ],
+      },
+      {
+        h2: 'Duración y ritmo',
+        paragraphs: [
+          "Decide de antemano si el concurso dura toda la temporada o un número concreto de jornadas. Un formato corto mantiene la atención; uno largo premia la regularidad. Los dos funcionan: elige según las ganas de tu grupo.",
+        ],
+      },
+    ],
+    faq: [
+      { q: '¿Qué puntuación elegir para empezar?', a: 'La más sencilla y eficaz: 1 punto por el resultado acertado (1/X/2) y 3 puntos por el resultado exacto. Luego la ajustas según los gustos del grupo.' },
+      { q: '¿Hay que calcular los puntos a mano?', a: 'No. En PronoHub la puntuación se aplica automáticamente y la clasificación se actualiza después de cada partido, sin errores ni discusiones.' },
+      { q: '¿Se pueden personalizar las reglas?', a: 'Sí, puedes activar opciones como el partido bonus o la prima anticipada según el estilo de juego que quieras darle a tu concurso.' },
+    ],
+    related: ['ligue-1', 'serie-a', 'liga'],
+  },
+]
 
-/** Liste des guides pour la locale donnée (défaut FR pour rétrocompat). */
-export function getGuides(locale: 'fr' | 'en' = 'fr'): Guide[] {
+export const GUIDES: Partial<Record<string, Guide[]>> & { fr: Guide[] } = { fr: FR, en: EN, es: ES }
+
+/** Liste des guides pour la locale donnée (repli FR si langue non traduite). */
+export function getGuides(locale: string = 'fr'): Guide[] {
   return GUIDES[locale] ?? GUIDES.fr
 }
 
-export function getGuide(slug: string, locale: 'fr' | 'en' = 'fr'): Guide | undefined {
+export function getGuide(slug: string, locale: string = 'fr'): Guide | undefined {
   return getGuides(locale).find((g) => g.slug === slug)
 }

@@ -24,6 +24,14 @@ const CATCHPHRASES_EN = [
   'We already know who will slip up…',
   "Don't let the others decide for you.",
 ]
+const CATCHPHRASES_ES = [
+  '¿Quién se equivocará esta vez?',
+  'Se esperan a los expertos…',
+  'Haz tu pronóstico antes de arrepentirte.',
+  'Es el momento de demostrar que sabes.',
+  'Ya sabemos quién va a fallar…',
+  'No dejes que otros decidan por ti.',
+]
 
 // Charger la police Inter depuis Google Fonts
 // Police Inter mutualisée + mise en cache (lib/og-fonts)
@@ -51,11 +59,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
-    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const raw = searchParams.get('locale')
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : 'fr'
     const L = locale === 'en'
       ? { until: 'You have until:', other: (n: number) => `+ ${n} more match${n > 1 ? 'es' : ''}` }
+      : locale === 'es'
+      ? { until: 'Tienes hasta:', other: (n: number) => `+ ${n} partido${n > 1 ? 's' : ''} más` }
       : { until: "Tu as jusqu'à :", other: (n: number) => `+ ${n} autre${n > 1 ? 's' : ''} rencontre${n > 1 ? 's' : ''}` }
-    const catchphrases = locale === 'en' ? CATCHPHRASES_EN : CATCHPHRASES
+    const catchphrases = locale === 'en' ? CATCHPHRASES_EN : locale === 'es' ? CATCHPHRASES_ES : CATCHPHRASES
 
     // Récupérer les paramètres
     const homeTeam = searchParams.get('home') || 'Équipe A'

@@ -5,6 +5,7 @@ import { sendTournamentEndEmail } from '@/lib/email/send'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NOTIFICATION_CONFIG } from '@/lib/notifications'
 import { postDiscordEmbed } from '@/lib/integrations/discord'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Adresses email de test à ne pas inclure (économie quota Resend)
 const EMAIL_BLACKLIST = new Set([
@@ -195,13 +196,13 @@ export async function GET(request: NextRequest) {
               avatar: avatarPath,
               rank: String(rank),
               totalPlayers: String(totalPlayers),
-              locale: (profile as any)?.locale === 'en' ? 'en' : 'fr',
+              locale: toAppLocale((profile as any)?.locale),
             })
             const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
 
-            const isEn = (profile as any)?.locale === 'en'
-            const title = isEn ? config.defaultTitleEn : config.defaultTitle
-            const body = (isEn ? config.defaultBodyEn : config.defaultBody).replace('{tournamentName}', tournament.name)
+            const loc = (profile as any)?.locale
+            const title = loc === 'en' ? config.defaultTitleEn : loc === 'es' ? config.defaultTitleEs : config.defaultTitle
+            const body = (loc === 'en' ? config.defaultBodyEn : loc === 'es' ? config.defaultBodyEs : config.defaultBody).replace('{tournamentName}', tournament.name)
 
             try {
               const success = await sendPushNotification(
@@ -260,7 +261,7 @@ export async function GET(request: NextRequest) {
 
             try {
               const emailResult = await sendTournamentEndEmail(email, {
-                locale: profile?.locale === 'en' ? 'en' : 'fr',
+                locale: toAppLocale(profile?.locale),
                 username,
                 tournamentName: tournament.name,
                 tournamentSlug: tournament.slug,

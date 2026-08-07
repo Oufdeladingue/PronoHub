@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendInactiveUserReminderEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'utilisateurs à traiter par exécution
@@ -12,6 +13,8 @@ const PUSH_TITLE = '🗣️ Expert foot ?'
 const PUSH_BODY = 'Beaucoup de débats, zéro tournoi. PronoHub s\'inquiète.'
 const PUSH_TITLE_EN = '🗣️ Football expert?'
 const PUSH_BODY_EN = 'Plenty of debates, zero tournaments. PronoHub is getting worried.'
+const PUSH_TITLE_ES = '🗣️ ¿Experto en fútbol?'
+const PUSH_BODY_ES = 'Muchos debates, cero torneos. PronoHub se preocupa.'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -133,11 +136,11 @@ export async function GET(request: NextRequest) {
       if (user.fcm_token) {
         // --- PUSH (prioritaire si FCM token) ---
         try {
-          const isEn = (user as any).locale === 'en'
+          const loc = (user as any).locale
           const pushResult = await sendPushNotification(
             user.fcm_token,
-            isEn ? PUSH_TITLE_EN : PUSH_TITLE,
-            isEn ? PUSH_BODY_EN : PUSH_BODY,
+            loc === 'en' ? PUSH_TITLE_EN : loc === 'es' ? PUSH_TITLE_ES : PUSH_TITLE,
+            loc === 'en' ? PUSH_BODY_EN : loc === 'es' ? PUSH_BODY_ES : PUSH_BODY,
             { type: 'inactive_reminder', url: '/vestiaire' }
           )
 
@@ -158,7 +161,7 @@ export async function GET(request: NextRequest) {
         // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendInactiveUserReminderEmail(user.email, {
-            locale: (user as any).locale === 'en' ? 'en' : 'fr',
+            locale: toAppLocale((user as any).locale),
             username: user.username || ''
           })
 

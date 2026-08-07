@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail, sendEmail } from '@/lib/email'
 import { getNewUserAlertTemplate, ADMIN_EMAIL } from '@/lib/email/admin-templates'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Envoyer l'email de bienvenue
     const result = await sendWelcomeEmail(email, {
-      locale: (profile as any)?.locale === 'en' ? 'en' : 'fr',
+      locale: toAppLocale((profile as any)?.locale),
       username
     })
 

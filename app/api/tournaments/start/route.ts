@@ -4,6 +4,7 @@ import { sendTournamentStartedEmail, sendTournamentStartedAdminAlert } from '@/l
 import { sendTournamentStarted } from '@/lib/notifications'
 import { postDiscordEmbed } from '@/lib/integrations/discord'
 import { recalculateTournamentEndingDate } from '@/lib/tournament-duration'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 interface StartTournamentRequest {
   tournamentId: string
@@ -584,7 +585,7 @@ async function sendTournamentLaunchNotifications(
 
       try {
         await sendTournamentStartedEmail(profile.email, {
-          locale: profile.locale === 'en' ? 'en' : 'fr',
+          locale: toAppLocale(profile.locale),
           username: profile.username || 'Champion',
           tournamentName: tournament.name,
           tournamentSlug: tournament.slug,

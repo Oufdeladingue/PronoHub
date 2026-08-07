@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendTournamentInviteEmail } from '@/lib/email'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Envoyer l'email d'invitation
     const result = await sendTournamentInviteEmail(email, {
-      locale: (invitee as any)?.locale === 'en' ? 'en' : 'fr',
+      locale: toAppLocale((invitee as any)?.locale),
       username: profile?.username,
       tournamentName: tournament.name,
       inviteCode: tournament.invite_code,

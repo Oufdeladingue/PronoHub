@@ -5,6 +5,7 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 import { getTrophyInfo, TROPHY_TYPE_UUIDS } from '@/lib/trophy-info'
 import { NOTIFICATION_CONFIG } from '@/lib/notifications'
 import { calculateTrophiesForTournament, type TriggerMatchInfo } from '@/lib/trophy-calculator'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
 
@@ -155,7 +156,7 @@ export async function GET(request: NextRequest) {
             const triggerMatch = result.trophyTriggerMatches[trophyType]
 
             // Construire l'URL de l'image OG dynamique
-            const imageUrl = buildBadgeImageUrl(trophyInfo, triggerMatch, (profile as any)?.locale === 'en' ? 'en' : 'fr')
+            const imageUrl = buildBadgeImageUrl(trophyInfo, triggerMatch, toAppLocale((profile as any)?.locale))
 
             // Canal : push si FCM token, sinon email (jamais les deux)
             if (profile?.fcm_token) {
@@ -172,10 +173,12 @@ export async function GET(request: NextRequest) {
 
               if (!existingPushLog || existingPushLog.length === 0) {
                 try {
-                  const isEn = (profile as any)?.locale === 'en'
-                  const title = isEn ? 'Trophy unlocked! 🏅' : 'Trophée débloqué ! 🏅'
-                  const body = isEn
+                  const loc = (profile as any)?.locale
+                  const title = loc === 'en' ? 'Trophy unlocked! 🏅' : loc === 'es' ? '¡Trofeo desbloqueado! 🏅' : 'Trophée débloqué ! 🏅'
+                  const body = loc === 'en'
                     ? `One more line on your record! Badge ${trophyInfo.name} unlocked`
+                    : loc === 'es'
+                    ? `¡Una línea más en tu palmarés! Insignia ${trophyInfo.name} desbloqueada`
                     : `Une ligne de plus sur ton palmarès ! Badge ${trophyInfo.name} déverrouillé`
                   const data = {
                     type: 'badge_unlocked',
@@ -231,7 +234,7 @@ export async function GET(request: NextRequest) {
                     await new Promise(resolve => setTimeout(resolve, 600))
 
                     const emailResult = await sendBadgeUnlockedEmail(email, {
-                      locale: profile?.locale === 'en' ? 'en' : 'fr',
+                      locale: toAppLocale(profile?.locale),
                       username: profile?.username || 'champion',
                       trophyName: trophyInfo.name,
                       trophyDescription: trophyInfo.description,
@@ -310,7 +313,7 @@ export async function GET(request: NextRequest) {
 function buildBadgeImageUrl(
   trophyInfo: { name: string; description: string; imagePath: string },
   triggerMatch?: TriggerMatchInfo,
-  locale: 'fr' | 'en' = 'fr'
+  locale: string = 'fr'
 ): string {
   const params = new URLSearchParams({
     badgeName: trophyInfo.name,

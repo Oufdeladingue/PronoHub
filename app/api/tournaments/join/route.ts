@@ -6,6 +6,7 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 import { getAvatarUrl } from '@/lib/avatars'
 import { NOTIFICATION_CONFIG } from '@/lib/notifications'
 import { postDiscordEmbed } from '@/lib/integrations/discord'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // =====================================================
 // Système de join tournoi v2
@@ -707,7 +708,7 @@ export async function POST(request: NextRequest) {
         const canLaunch = currentParticipants >= 2 // Minimum 2 joueurs pour lancer
 
         await sendNewPlayerJoinedEmail(captain.email, {
-          locale: (captain as any).locale === 'en' ? 'en' : 'fr',
+          locale: toAppLocale((captain as any).locale),
           captainUsername: captain.username || 'Capitaine',
           tournamentName: tournament.name,
           tournamentSlug: `${tournament.name.toLowerCase().replace(/\s+/g, '-')}_${tournament.slug || tournament.invite_code}`,

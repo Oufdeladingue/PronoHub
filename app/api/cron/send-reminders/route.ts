@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendMultiTournamentReminderEmail } from '@/lib/email/send'
 import { sendPushNotification } from '@/lib/firebase-admin'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Configuration
 const BATCH_SIZE = 50 // Nombre d'utilisateurs à traiter par exécution
@@ -530,21 +531,27 @@ export async function GET(request: NextRequest) {
           let title: string
           let body: string
 
-          const isEn = (userData as any).locale === 'en'
+          const loc = (userData as any).locale
           if (userData.tournaments.length === 1) {
             const t = userData.tournaments[0]
-            if (isEn) {
+            if (loc === 'en') {
               title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 'es' : ''} to predict`
               body = `Don't forget your predictions for ${t.name} before ${deadlineStr}!`
+            } else if (loc === 'es') {
+              title = `⚽ ${totalMissingMatches} partido${totalMissingMatches > 1 ? 's' : ''} por pronosticar`
+              body = `No olvides tus pronósticos para ${t.name} antes de las ${deadlineStr}!`
             } else {
               title = `⚽ ${totalMissingMatches} match${totalMissingMatches > 1 ? 's' : ''} à pronostiquer`
               body = `N'oublie pas tes pronostics pour ${t.name} avant ${deadlineStr} !`
             }
           } else {
             const tournamentNames = userData.tournaments.map(t => t.name).join(', ')
-            if (isEn) {
+            if (loc === 'en') {
               title = `⚽ ${totalMissingMatches} matches to predict`
               body = `${userData.tournaments.length} tournaments pending: ${tournamentNames}. Deadline: ${deadlineStr}`
+            } else if (loc === 'es') {
+              title = `⚽ ${totalMissingMatches} partidos por pronosticar`
+              body = `${userData.tournaments.length} torneos pendientes: ${tournamentNames}. Límite: ${deadlineStr}`
             } else {
               title = `⚽ ${totalMissingMatches} matchs à pronostiquer`
               body = `${userData.tournaments.length} tournois en attente : ${tournamentNames}. Limite : ${deadlineStr}`
@@ -572,7 +579,7 @@ export async function GET(request: NextRequest) {
             time: matchTime,
             deadline: deadlineTime,
             otherCount: String(allMatchesWithTournament.length - 1),
-            locale: userData.locale === 'en' ? 'en' : 'fr'
+            locale: toAppLocale(userData.locale)
           })
           const imageUrl = `${baseUrl}/api/og/reminder?${imageParams.toString()}`
 
@@ -598,7 +605,7 @@ export async function GET(request: NextRequest) {
 
         try {
           const result = await withTimeout(sendMultiTournamentReminderEmail(userData.email, {
-            locale: userData.locale === 'en' ? 'en' : 'fr',
+            locale: toAppLocale(userData.locale),
             username: userData.username,
             tournaments: userData.tournaments.map(t => ({
               name: t.name,

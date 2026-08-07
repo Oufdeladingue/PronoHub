@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendMatchdayChangesEmail } from '@/lib/email/send'
 import { sendNotificationToUser } from '@/lib/notifications'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Configuration
 const DELAY_HOURS = 1 // Délai avant notification (1 heure)
@@ -414,7 +415,7 @@ export async function GET(request: NextRequest) {
           competitionLogo: logos?.competition_emblem || '',
           time: matchTimeStr,
           otherCount: String(Math.max(0, addedChanges.length - 1)),
-          locale: user.locale === 'en' ? 'en' : 'fr',
+          locale: toAppLocale(user.locale),
         })
 
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.pronohub.club'
@@ -442,7 +443,7 @@ export async function GET(request: NextRequest) {
               bodyParams: {
                 matchCount: String(matchCount),
                 tournamentName: tournament.name,
-                plural: { fr: matchCount > 1 ? 's' : '', en: matchCount > 1 ? 'es' : '' },
+                plural: { fr: matchCount > 1 ? 's' : '', en: matchCount > 1 ? 'es' : '', es: matchCount > 1 ? 's' : '' },
               },
               tournamentSlug: tournament.slug,
               imageUrl,
@@ -468,7 +469,7 @@ export async function GET(request: NextRequest) {
         // --- EMAIL (seulement si pas de FCM token) ---
         try {
           const result = await sendMatchdayChangesEmail(user.email, {
-            locale: user.locale === 'en' ? 'en' : 'fr',
+            locale: toAppLocale(user.locale),
             username: user.username || 'Joueur',
             tournamentName: tournament.name,
             tournamentSlug: tournament.slug,

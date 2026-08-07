@@ -247,13 +247,126 @@ const EN: CompetitionSeo[] = [
   },
 ]
 
-export const COMPETITIONS_SEO: Record<'fr' | 'en', CompetitionSeo[]> = { fr: FR, en: EN }
+const ES: CompetitionSeo[] = [
+  {
+    slug: 'ligue-1',
+    competitionId: 2015,
+    dbName: 'Ligue 1',
+    name: 'la Ligue 1',
+    short: 'Ligue 1',
+    title: 'Pronósticos Ligue 1 entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos Ligue 1 entre amigos',
+    description: 'Crea una porra de pronósticos de la Ligue 1 entre amigos, 100% gratis y sin dinero. Reta a tus amigos jornada tras jornada, sube en la clasificación y arrasa con los trofeos.',
+    intro: "La liga francesa es el terreno de juego ideal para una porra de pronósticos entre amigos: 34 jornadas, choques OM-PSG, y cada fin de semana una ocasión de demostrar que lees el fútbol mejor que tus colegas. En PronoHub creas tu porra de la Ligue 1 en un minuto, invitas a tu pandilla y a jugar, gratis.",
+  },
+  {
+    slug: 'ligue-des-champions',
+    competitionId: 2001,
+    dbName: 'UEFA Champions League',
+    name: 'la Champions League',
+    short: 'Champions League',
+    title: 'Pronósticos Champions League entre amigos — gratis | PronoHub',
+    h1: 'Pronósticos Champions League entre amigos',
+    description: 'Lanza una porra de pronósticos de la Champions League entre amigos, gratis y sin dinero. De la fase de grupos a la final, suma puntos y apunta a lo más alto de la clasificación.',
+    intro: "Las grandes noches europeas se viven aún mejor en grupo. Crea una porra de pronósticos de la Champions League y convierte cada martes y miércoles por la noche en un reto entre amigos: ¿quién habrá visto el atraco, la goleada, la clasificación imposible? En PronoHub es gratis desde el primer partido de grupos hasta la final.",
+  },
+  {
+    slug: 'coupe-du-monde',
+    competitionId: 2000,
+    dbName: 'FIFA World Cup',
+    name: 'el Mundial',
+    short: 'Mundial',
+    title: 'Pronósticos Mundial 2026 entre amigos — gratis | PronoHub',
+    h1: 'Pronósticos del Mundial entre amigos',
+    description: "Organiza tu porra de pronósticos del Mundial entre amigos o compañeros de trabajo, gratis. De la fase de grupos a la final, la cita futbolera de una generación.",
+    intro: "Un Mundial no se ve solo en un rincón. Monta la porra de pronósticos de la Copa del Mundo con tus amigos, tu familia o toda la oficina: fase de grupos, octavos, cuartos… cada partido cuenta para la clasificación. Creación gratuita, invitaciones con un enlace y el ambiente de una competición que dura todo el verano.",
+  },
+  {
+    slug: 'premier-league',
+    competitionId: 2021,
+    dbName: 'Premier League',
+    name: 'la Premier League',
+    short: 'Premier League',
+    title: 'Pronósticos Premier League entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos Premier League entre amigos',
+    description: 'Crea una porra de pronósticos de la Premier League entre amigos, gratis y sin dinero. 38 jornadas de fútbol inglés para decidir quién manda en tu pandilla.',
+    intro: "La liga más impredecible del mundo merece una porra de verdad entre amigos. Big Six, outsiders que roban puntos, remontadas del sábado a las 16h: en PronoHub creas tu porra de pronósticos de la Premier League gratis y por fin descubres quién domina de verdad el fútbol inglés.",
+  },
+  {
+    slug: 'liga',
+    competitionId: 2014,
+    dbName: 'Primera Division',
+    name: 'la Liga',
+    short: 'Liga',
+    title: 'Pronósticos LaLiga entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos LaLiga entre amigos',
+    description: 'Lanza una porra de pronósticos de LaLiga entre amigos, 100% gratis. Real, Barça, Atlético… pronostica el campeonato español y reta a tus colegas.',
+    intro: "Clásicos, derbis madrileños y sorpresas andaluzas: LaLiga lo tiene todo para una porra de pronósticos animada. Crea tu competición de pronósticos del campeonato español en PronoHub, invita a tus amigos y mira cómo se dibuja la clasificación jornada tras jornada, gratis.",
+  },
+  {
+    slug: 'serie-a',
+    competitionId: 2019,
+    dbName: 'Serie A',
+    name: 'la Serie A',
+    short: 'Serie A',
+    title: 'Pronósticos Serie A entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos Serie A entre amigos',
+    description: 'Crea una porra de pronósticos de la Serie A entre amigos, gratis y sin dinero. El calcio como terreno de juego para decidir quién manda en tu pandilla.',
+    intro: "Táctica, goles inesperados y defensas de hierro: el calcio premia a quienes ven de verdad los partidos. Monta tu porra de pronósticos de la Serie A entre amigos en PronoHub, gratis, y demuestra que conoces la Italia del fútbol mejor que tus colegas.",
+  },
+  {
+    slug: 'bundesliga',
+    competitionId: 2002,
+    dbName: 'Bundesliga',
+    name: 'la Bundesliga',
+    short: 'Bundesliga',
+    title: 'Pronósticos Bundesliga entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos Bundesliga entre amigos',
+    description: 'Organiza una porra de pronósticos de la Bundesliga entre amigos, gratis. Goles a espuertas y fútbol alemán para retar a tu pandilla cada fin de semana.',
+    intro: "La liga de los estadios llenos y los partidos con lluvia de goles es perfecta para pronosticar. Crea tu porra de pronósticos de la Bundesliga con tus amigos en PronoHub: creación gratuita, invitaciones con un clic y una clasificación que se dispara desde la primera jornada.",
+  },
+  {
+    slug: 'liga-portugal',
+    competitionId: 2017,
+    dbName: 'Primeira Liga',
+    name: 'la Liga Portugal',
+    short: 'Primeira Liga',
+    title: 'Pronósticos Liga Portugal entre amigos — gratis | PronoHub',
+    h1: 'Pronósticos Liga Portugal entre amigos',
+    description: 'Crea una porra de pronósticos de la Liga Portugal (Primeira Liga) entre amigos, gratis y sin dinero. Benfica, Porto, Sporting… te toca jugar.',
+    intro: "Benfica, Porto, Sporting y las perlas del mañana: la Liga Portugal reserva su ración de sorpresas. Lanza tu porra de pronósticos del campeonato portugués entre amigos en PronoHub, gratis, y sigue quién domina la carrera por el título… en versión pronósticos.",
+  },
+  {
+    slug: 'eredivisie',
+    competitionId: 2003,
+    dbName: 'Eredivisie',
+    name: 'la Eredivisie',
+    short: 'Eredivisie',
+    title: 'Pronósticos Eredivisie entre amigos — porra gratis | PronoHub',
+    h1: 'Pronósticos Eredivisie entre amigos',
+    description: "Lanza una porra de pronósticos de la Eredivisie entre amigos, gratis. El espectacular fútbol neerlandés para decidir quién manda en tu pandilla.",
+    intro: "Ajax, PSV, Feyenoord y un fútbol ofensivo que da espectáculo: la Eredivisie es un placer para pronosticar. Crea tu porra de pronósticos del campeonato neerlandés entre amigos en PronoHub, gratis, y descubre quién anticipa mejor las goleadas del fin de semana.",
+  },
+  {
+    slug: 'championnat-bresilien',
+    competitionId: 2013,
+    dbName: 'Campeonato Brasileiro Série A',
+    name: 'el Brasileirão',
+    short: 'Brasileirão',
+    title: 'Pronósticos del Brasileirão entre amigos — gratis | PronoHub',
+    h1: 'Pronósticos del campeonato brasileño entre amigos',
+    description: 'Crea una porra de pronósticos del Brasileirão entre amigos, gratis y sin dinero. El fútbol brasileño para retar a tu pandilla toda la temporada.',
+    intro: "Flamengo, Palmeiras, Corinthians: el Brasileirão es pasión en estado puro y resultados nunca escritos de antemano. Monta tu porra de pronósticos del campeonato brasileño entre amigos en PronoHub, gratis, y enfrenta tu olfato al de tus colegas.",
+  },
+]
 
-/** Liste des compétitions pour la locale donnée (défaut FR pour rétrocompat). */
-export function getCompetitions(locale: 'fr' | 'en' = 'fr'): CompetitionSeo[] {
+export const COMPETITIONS_SEO: Partial<Record<string, CompetitionSeo[]>> & { fr: CompetitionSeo[] } = { fr: FR, en: EN, es: ES }
+
+/** Liste des compétitions pour la locale donnée (repli FR si langue non traduite). */
+export function getCompetitions(locale: string = 'fr'): CompetitionSeo[] {
   return COMPETITIONS_SEO[locale] ?? COMPETITIONS_SEO.fr
 }
 
-export function getCompetitionSeo(slug: string, locale: 'fr' | 'en' = 'fr'): CompetitionSeo | undefined {
+export function getCompetitionSeo(slug: string, locale: string = 'fr'): CompetitionSeo | undefined {
   return getCompetitions(locale).find((c) => c.slug === slug)
 }

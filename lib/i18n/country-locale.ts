@@ -10,6 +10,16 @@ const FRENCH_COUNTRIES = new Set([
 ])
 
 /**
+ * Pays hispanophones → langue ES par défaut.
+ * (Espagne + Amérique latine hispanophone + Guinée équatoriale.)
+ */
+const SPANISH_COUNTRIES = new Set([
+  'ES',
+  'MX', 'AR', 'CO', 'CL', 'PE', 'VE', 'EC', 'GT', 'CU', 'BO',
+  'DO', 'HN', 'PY', 'SV', 'NI', 'CR', 'PA', 'UY', 'PR', 'GQ',
+])
+
+/**
  * Langue par défaut à partir du pays détecté (cf-ipcountry).
  * - Pays francophone → 'fr'
  * - Autre marché ouvert → 'en' (langue passerelle tant qu'ES/IT/DE ne sont pas produites)
@@ -22,5 +32,6 @@ export function localeForCountry(country: string | null | undefined): Locale {
   if (!country) return routing.defaultLocale
   const cc = country.toUpperCase()
   if (FRENCH_COUNTRIES.has(cc)) return 'fr'
+  if (SPANISH_COUNTRIES.has(cc)) return 'es'
   return 'en'
 }

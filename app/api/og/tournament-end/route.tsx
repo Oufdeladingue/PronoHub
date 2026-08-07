@@ -48,9 +48,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
-    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const raw = searchParams.get('locale')
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : 'fr'
     const L = locale === 'en'
       ? { title1: 'Final', title2: 'whistle,', title3: "it's time", title4: 'for the recap!', place: (r: number) => `${r}${getRankSuffixEn(r)} place`, finalRanking: 'FINAL RANKING' }
+      : locale === 'es'
+      ? { title1: '¡Pitido', title2: 'final,', title3: 'es la hora', title4: 'del balance!', place: (r: number) => `${r}º puesto`, finalRanking: 'CLASIFICACIÓN FINAL' }
       : { title1: 'Coup de', title2: 'sifflet final,', title3: "c'est l'heure", title4: 'du bilan !', place: (r: number) => `${r}${getRankSuffix(r)} place`, finalRanking: 'CLASSEMENT FINAL' }
 
     // Paramètres

@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { sendMatchdayRecapEmail } from '@/lib/email/send'
 import { calculatePoints, type PointsSettings } from '@/lib/scoring'
 import { postDiscordEmbed } from '@/lib/integrations/discord'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Mettre CRON_ENABLED=true dans les variables d'environnement pour activer
 const CRON_ENABLED = process.env.CRON_ENABLED === 'true'
@@ -325,7 +326,7 @@ export async function GET(request: NextRequest) {
               await new Promise(resolve => setTimeout(resolve, 600))
 
               const result = await sendMatchdayRecapEmail(email, {
-                locale: profile?.locale === 'en' ? 'en' : 'fr',
+                locale: toAppLocale(profile?.locale),
                 username,
                 tournamentName: tournament.name,
                 tournamentSlug: tournament.slug,

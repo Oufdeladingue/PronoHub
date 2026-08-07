@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sendTournamentStartedEmail } from '@/lib/email'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 /**
  * API admin pour tester l'envoi d'email de lancement de tournoi
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { email, type = 'tournament_started', isCustomCompetition = false } = body
-    const locale: 'fr' | 'en' = body.locale === 'en' ? 'en' : 'fr'
+    const locale = toAppLocale(body.locale)
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 })

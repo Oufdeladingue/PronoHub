@@ -14,9 +14,11 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
   prefKey: string
   defaultTitle: string
   defaultBody: string
-  // Variantes anglaises (bilinguisme push). FR = défaut, EN utilisé si profiles.locale === 'en'.
+  // Variantes localisées (push multilingue). FR = défaut ; EN/ES selon profiles.locale.
   defaultTitleEn: string
   defaultBodyEn: string
+  defaultTitleEs: string
+  defaultBodyEs: string
   // URL à ouvrir au clic (relative)
   clickAction?: string
 }> = {
@@ -26,6 +28,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'Des matchs sont à pronostiquer dans {tournamentName}, un oubli et c\'est toute ta prépa qui tombe à l\'eau...',
     defaultTitleEn: 'Now or never!',
     defaultBodyEn: 'There are matches to predict in {tournamentName} — forget them and all your prep goes down the drain...',
+    defaultTitleEs: '¡Ahora o nunca!',
+    defaultBodyEs: 'Hay partidos por pronosticar en {tournamentName}, un olvido y toda tu preparación se va al garete...',
     clickAction: '/dashboard',
   },
   tournament_started: {
@@ -34,6 +38,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'Le tournoi {tournamentName} démarre {firstMatchDate}. En piste champion !',
     defaultTitleEn: 'Game on, the tournament is kicking off! ⚽',
     defaultBodyEn: 'The {tournamentName} tournament starts {firstMatchDate}. Get out there, champ!',
+    defaultTitleEs: '¡A jugar, el torneo empieza! ⚽',
+    defaultBodyEs: 'El torneo {tournamentName} empieza {firstMatchDate}. ¡A por ello, campeón!',
     clickAction: '/dashboard',
   },
   day_recap: {
@@ -42,6 +48,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'Les résultats de la journée sont tombés. Découvre ton classement et prépare ta revanche.',
     defaultTitleEn: 'Today\'s recap: who comes out on top? 📊',
     defaultBodyEn: 'The matchday results are in. Check your ranking and plan your comeback.',
+    defaultTitleEs: 'Resumen del día: ¿quién manda? 📊',
+    defaultBodyEs: 'Ya están los resultados de la jornada. Mira tu clasificación y prepara la revancha.',
     clickAction: '/dashboard',
   },
   tournament_end: {
@@ -50,6 +58,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'Le tournoi {tournamentName} est terminé, c\'est le moment de voir qui est n°1 dans ta team...',
     defaultTitleEn: 'So… who\'s the champion? 🏆',
     defaultBodyEn: 'The {tournamentName} tournament is over — time to see who\'s no. 1 in your crew...',
+    defaultTitleEs: '¿Y bien? ¿Quién es el campeón? 🏆',
+    defaultBodyEs: 'El torneo {tournamentName} ha terminado, es hora de ver quién es el nº 1 de tu grupo...',
     clickAction: '/dashboard',
   },
   invite: {
@@ -58,6 +68,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: '{captainName} t\'invite à rejoindre {tournamentName}. Tu es partant ?',
     defaultTitleEn: 'We need you on the team! 🎯',
     defaultBodyEn: '{captainName} is inviting you to join {tournamentName}. Are you in?',
+    defaultTitleEs: '¡Te necesitamos en el equipo! 🎯',
+    defaultBodyEs: '{captainName} te invita a unirte a {tournamentName}. ¿Te apuntas?',
     clickAction: '/vestiaire/rejoindre',
   },
   player_joined: {
@@ -66,6 +78,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: '{playerName} vient de rejoindre {tournamentName}. La concurrence s\'intensifie.',
     defaultTitleEn: 'A new player in the locker room! 👋',
     defaultBodyEn: '{playerName} just joined {tournamentName}. The competition is heating up.',
+    defaultTitleEs: '¡Un nuevo jugador en el vestuario! 👋',
+    defaultBodyEs: '{playerName} acaba de unirse a {tournamentName}. La competencia se calienta.',
     clickAction: '/dashboard',
   },
   mention: {
@@ -74,6 +88,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: '{senderName} t\'a mentionné dans {tournamentName}. Va voir ce qu\'il se dit.',
     defaultTitleEn: 'People are talking about you in the locker room! 💬',
     defaultBodyEn: '{senderName} mentioned you in {tournamentName}. Go see what\'s being said.',
+    defaultTitleEs: '¡Hablan de ti en el vestuario! 💬',
+    defaultBodyEs: '{senderName} te ha mencionado en {tournamentName}. Ve a ver qué se dice.',
     clickAction: '/dashboard', // Sera remplacé dynamiquement par /{tournamentSlug}/opposition?tab=tchat
   },
   badge_unlocked: {
@@ -82,6 +98,8 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: 'GG {username} ! Tu viens de décrocher le badge "{badgeName}". Continue sur ta lancée.',
     defaultTitleEn: 'Trophy unlocked! 🏅',
     defaultBodyEn: 'GG {username}! You just earned the "{badgeName}" badge. Keep it up.',
+    defaultTitleEs: '¡Trofeo desbloqueado! 🏅',
+    defaultBodyEs: '¡GG {username}! Acabas de conseguir la insignia "{badgeName}". Sigue así.',
     clickAction: '/profile?tab=trophees',
   },
   new_matches: {
@@ -90,32 +108,35 @@ export const NOTIFICATION_CONFIG: Record<NotificationType, {
     defaultBody: "Le juge de ligne a levé son drapeau : il signale {matchCount} nouveau{plural} match{plural} ajouté{plural} dans {tournamentName}. N'oublie pas de les renseigner...",
     defaultTitleEn: 'New fixtures to predict! ⚽',
     defaultBodyEn: "The linesman raised his flag: {matchCount} new match{plural} added in {tournamentName}. Don't forget to fill them in...",
+    defaultTitleEs: '¡Nuevos partidos por pronosticar! ⚽',
+    defaultBodyEs: 'El juez de línea ha levantado el banderín: señala {matchCount} partido{plural} nuevo{plural} añadido{plural} en {tournamentName}. No olvides rellenarlos...',
     clickAction: '/dashboard',
   },
 }
 
-// ---- Bilinguisme push : helpers de localisation (défaut FR) ----
-export type NotifLocale = 'fr' | 'en'
-// Une valeur de paramètre peut être une string (identique FR/EN) ou un couple {fr,en}
-type LocalizedValue = string | { fr: string; en: string }
+// ---- Push multilingue : helpers de localisation (défaut FR) ----
+export type NotifLocale = 'fr' | 'en' | 'es'
+// Une valeur de paramètre peut être une string (identique partout) ou un objet
+// par langue ({fr} requis, en/es optionnels → repli FR).
+type LocalizedValue = string | { fr: string; en?: string; es?: string }
 type LocalizedParams = Record<string, LocalizedValue>
 
 function pickNotifLocale(locale?: string | null): NotifLocale {
-  return locale === 'en' ? 'en' : 'fr'
+  return locale === 'en' || locale === 'es' ? locale : 'fr'
 }
 
 function notifStrings(type: NotificationType, locale: NotifLocale): { title: string; body: string } {
   const c = NOTIFICATION_CONFIG[type]
-  return locale === 'en'
-    ? { title: c.defaultTitleEn, body: c.defaultBodyEn }
-    : { title: c.defaultTitle, body: c.defaultBody }
+  if (locale === 'en') return { title: c.defaultTitleEn, body: c.defaultBodyEn }
+  if (locale === 'es') return { title: c.defaultTitleEs, body: c.defaultBodyEs }
+  return { title: c.defaultTitle, body: c.defaultBody }
 }
 
 function applyNotifParams(str: string, params: LocalizedParams | undefined, locale: NotifLocale): string {
   if (!params) return str
   let out = str
   for (const [k, v] of Object.entries(params)) {
-    const val = typeof v === 'string' ? v : (locale === 'en' ? v.en : v.fr)
+    const val = typeof v === 'string' ? v : (v[locale] ?? v.fr)
     out = out.split(`{${k}}`).join(val)
   }
   return out
@@ -340,9 +361,10 @@ export async function sendTournamentStarted(
     .limit(1)
     .single()
 
-  // Formater la date par langue (FR: "samedi 15 mars à 21h00" ; EN: "Saturday 15 March at 21:00")
+  // Formater la date par langue (FR: "samedi 15 mars à 21h00" ; EN: "Saturday 15 March at 21:00" ; ES: "sábado 15 de marzo a las 21:00")
   let firstMatchDateFr = ''
   let firstMatchDateEn = ''
+  let firstMatchDateEs = ''
   let matchTime = '21:00'
   if (firstMatch?.scheduled_at) {
     const date = new Date(firstMatch.scheduled_at)
@@ -358,10 +380,13 @@ export async function sendTournamentStarted(
     firstMatchDateFr = new Intl.DateTimeFormat('fr-FR', options).format(date).replace(':', 'h')
     // EN: on retire l'éventuelle virgule après le jour de semaine pour rester lisible
     firstMatchDateEn = new Intl.DateTimeFormat('en-GB', options).format(date).replace(/^(\w+),/, '$1')
+    // ES: format espagnol
+    firstMatchDateEs = new Intl.DateTimeFormat('es-ES', options).format(date)
     matchTime = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
   } else {
     firstMatchDateFr = 'bientôt'
     firstMatchDateEn = 'soon'
+    firstMatchDateEs = 'pronto'
   }
 
   // Récupérer les logos depuis imported_matches si disponible
@@ -409,7 +434,7 @@ export async function sendTournamentStarted(
   return sendNotificationToTournament(tournamentId, 'tournament_started', {
     bodyParams: {
       tournamentName,
-      firstMatchDate: { fr: firstMatchDateFr, en: firstMatchDateEn },
+      firstMatchDate: { fr: firstMatchDateFr, en: firstMatchDateEn, es: firstMatchDateEs },
     },
     tournamentSlug,
     excludeUserId: captainId,

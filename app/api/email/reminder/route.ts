@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendMatchReminderEmail } from '@/lib/email'
 import { isValidCronAuth } from '@/lib/cron-auth'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Cette route peut être appelée par un cron job (ex: Vercel Cron)
 // ou manuellement depuis le panel admin
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
         })
 
         const result = await sendMatchReminderEmail(profile.email, {
-          locale: profile.locale === 'en' ? 'en' : 'fr',
+          locale: toAppLocale(profile.locale),
           username: profile.username,
           tournamentName: tournament.name,
           matchDate: `${nextMatch.home_team} vs ${nextMatch.away_team} - ${matchDate}`,

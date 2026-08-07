@@ -31,9 +31,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
-    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const raw = searchParams.get('locale')
+    const locale = raw === 'en' ? 'en' : raw === 'es' ? 'es' : 'fr'
     const L = locale === 'en'
       ? { title1: 'Let the', title2: 'competition', title3: 'begin!', cta: 'CONFIRM YOUR PICKS' }
+      : locale === 'es'
+      ? { title1: '¡Que empiece', title2: 'la competición', title3: '!', cta: 'CONFIRMA TUS PRONÓSTICOS' }
       : { title1: 'Que la', title2: 'compétition', title3: 'commence !', cta: 'VALIDE TES PRONOS' }
 
     // Paramètres

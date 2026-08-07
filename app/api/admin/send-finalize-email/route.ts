@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { isSuperAdmin } from '@/lib/auth-helpers'
 import { UserRole } from '@/types'
 import { sendFinalizeRegistrationEmail } from '@/lib/email/send'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 export async function POST(request: Request) {
   try {
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
       }
 
       const result = await sendFinalizeRegistrationEmail(u.email, {
-        locale: (u as any).locale === 'en' ? 'en' : 'fr',
+        locale: toAppLocale((u as any).locale),
         username: u.username,
         email: u.email,
       })

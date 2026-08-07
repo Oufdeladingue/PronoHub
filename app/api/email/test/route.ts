@@ -9,6 +9,7 @@ import {
   sendTournamentInviteDetailedEmail,
   sendNewPlayerJoinedEmail
 } from '@/lib/email'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // API de test pour prévisualiser et envoyer des emails
 // Usage: POST /api/email/test avec { type: 'reminder' | 'tournament_started' | 'matchday_recap' | 'tournament_end' | 'invite' | 'new_player' }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { type } = body
-    const locale: 'fr' | 'en' = body.locale === 'en' ? 'en' : 'fr'
+    const locale = toAppLocale(body.locale)
     const username = profile?.username || 'Joueur'
 
     // L'email est toujours envoyé à l'adresse de l'utilisateur connecté

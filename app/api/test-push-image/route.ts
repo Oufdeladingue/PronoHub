@@ -5,6 +5,7 @@ import { sendPushNotification } from '@/lib/firebase-admin'
 import { sendBadgeUnlockedEmail } from '@/lib/email/send'
 import { getTrophyInfo } from '@/lib/trophy-info'
 import { getAvatarUrl } from '@/lib/avatars'
+import { toAppLocale } from '@/lib/i18n/app-locale'
 
 // Comparaison à temps constant (évite l'oracle de timing sur le secret)
 function safeEqual(a: string, b: string): boolean {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
   const trophyType = searchParams.get('trophy') || 'exact_score'
   const mode = searchParams.get('mode') || 'push' // push, email, both
   const notifType = searchParams.get('type') || 'badge_unlocked'
-  const locale: 'fr' | 'en' = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+  const locale = toAppLocale(searchParams.get('locale'))
 
   if (!email) {
     return NextResponse.json({ error: 'Email requis (?email=ton@email.com)' }, { status: 400 })
