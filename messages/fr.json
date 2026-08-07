@@ -682,6 +682,16 @@
     },
     "prevMatchdays": "Journées précédentes",
     "nextMatchdays": "Journées suivantes",
+    "notFoundTitle": "Tournoi introuvable",
+    "notFoundDesc": "Ce tournoi n'existe pas ou a été supprimé.",
+    "backToDashboard": "Retour au dashboard",
+    "missingPredictionsAlt": "Pronostics manquants",
+    "missingPredictionsTitle": "Vous avez des pronostics manquants pour cette journée",
+    "hidden": "Masqué",
+    "hiddenUntilKickoff": "Masqué jusqu'au coup d'envoi",
+    "teamsComposition": "Composition des équipes",
+    "loadingTeams": "Chargement des équipes...",
+    "noTeams": "Aucune équipe n'a été constituée pour ce tournoi.",
     "status": {
       "upcoming": "À venir",
       "finished": "Terminée",
@@ -742,6 +752,15 @@
     "shareModeRanking": "Classement",
     "shareTextMatch": "Les pronos de {home} - {away} sur PronoHub 👀",
     "shareTextInvite": "Rejoins « {name} » sur PronoHub — le tournoi de pronos ouvert à tous, gratuit ! 🏆",
+    "extendBtnTitle": "De nouvelles journées sont disponibles",
+    "extendBtnShort": "Étendre",
+    "qualifierModal": {
+      "title": "Qui va se qualifier ?",
+      "hint": "+1 point bonus si vous trouvez le qualifié",
+      "firstLeg": "Score aller : ",
+      "yourReturn": "Votre score retour :",
+      "skip": "Ignorer"
+    },
     "rules": {
       "title": "Règles du tournoi",
       "captain": "Capitaine du tournoi : <b>{name}</b>",

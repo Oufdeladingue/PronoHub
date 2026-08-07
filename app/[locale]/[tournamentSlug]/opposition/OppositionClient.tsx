@@ -2098,13 +2098,13 @@ export default function OppositionClient({
       <div className="min-h-screen theme-bg flex items-center justify-center">
         <div className="text-center theme-card max-w-md p-8">
           <div className="text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold theme-text mb-2">Tournoi introuvable</h2>
-          <p className="theme-text-secondary mb-6">{error || 'Ce tournoi n\'existe pas ou a été supprimé.'}</p>
+          <h2 className="text-2xl font-bold theme-text mb-2">{t('notFoundTitle')}</h2>
+          <p className="theme-text-secondary mb-6">{error || t('notFoundDesc')}</p>
           <Link
             href="/dashboard"
             className="inline-block px-6 py-3 bg-[#ff9900] text-[#111] rounded-lg hover:bg-[#e68a00] transition font-semibold"
           >
-            Retour au dashboard
+            {t('backToDashboard')}
           </Link>
         </div>
       </div>
@@ -2339,9 +2339,9 @@ export default function OppositionClient({
                             {showWarning && (
                               <img
                                 src="/images/icons/exclamation.svg"
-                                alt="Pronostics manquants"
+                                alt={t('missingPredictionsAlt')}
                                 className={`absolute top-1 right-1 w-4 h-4 ${isActive ? 'animate-blink-warning-active' : 'animate-blink-warning'}`}
-                                title="Vous avez des pronostics manquants pour cette journée"
+                                title={t('missingPredictionsTitle')}
                               />
                             )}
                             <span className={isKnockoutStage(stage) ? "text-[11px] md:text-xs leading-tight" : "text-lg md:text-xl"}>{matchdayLabel}</span>
@@ -2368,11 +2368,11 @@ export default function OppositionClient({
                             setShowExtendModal(true)
                           }}
                           className="px-4 py-3 md:px-5 md:py-4 rounded-xl font-bold transition-all whitespace-nowrap flex flex-col items-center min-w-[70px] md:min-w-[90px] flex-shrink-0 bg-green-600 hover:bg-green-500 text-white border-2 border-dashed border-green-400"
-                          title="De nouvelles journées sont disponibles"
+                          title={t('extendBtnTitle')}
                         >
                           <span className="text-lg md:text-xl">+{availableToAdd}</span>
                           <span className="text-[10px] md:text-xs mt-1 font-medium text-green-100">
-                            Étendre
+                            {t('extendBtnShort')}
                           </span>
                         </button>
                       )}
@@ -3484,7 +3484,7 @@ export default function OppositionClient({
                                                     {playerPred.masked ? (
                                                       <div className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500 dark:text-slate-400">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
-                                                        <span className="text-xs font-medium">Masqué</span>
+                                                        <span className="text-xs font-medium">{t('hidden')}</span>
                                                       </div>
                                                     ) : playerPred.hasPronostic ? (
                                                       <>
@@ -3551,7 +3551,7 @@ export default function OppositionClient({
                                                     {playerPred.masked ? (
                                                       <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500 dark:text-slate-400">
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg>
-                                                        <span className="text-xs font-medium">Masqué jusqu'au coup d'envoi</span>
+                                                        <span className="text-xs font-medium">{t('hiddenUntilKickoff')}</span>
                                                       </div>
                                                     ) : playerPred.hasPronostic ? (
                                                       <>
@@ -3644,12 +3644,12 @@ export default function OppositionClient({
 
           {activeTab === 'equipes' && tournament?.teams_enabled && (
             <div className="theme-card">
-              <h2 className="text-2xl font-bold theme-accent-text mb-6">Composition des équipes</h2>
+              <h2 className="text-2xl font-bold theme-accent-text mb-6">{t('teamsComposition')}</h2>
 
               {loadingTeams ? (
                 <div className="text-center py-12">
                   <div className="loading-spinner-inline"></div>
-                  <p className="mt-4 theme-text-secondary">Chargement des équipes...</p>
+                  <p className="mt-4 theme-text-secondary">{t('loadingTeams')}</p>
                 </div>
               ) : teams.length === 0 ? (
                 <div className="text-center py-12">
@@ -3658,7 +3658,7 @@ export default function OppositionClient({
                     alt="Équipes"
                     className="w-16 h-16 mx-auto mb-4 icon-filter-slate opacity-50"
                   />
-                  <p className="theme-text-secondary">Aucune équipe n'a été constituée pour ce tournoi.</p>
+                  <p className="theme-text-secondary">{t('noTeams')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -4005,9 +4005,9 @@ export default function OppositionClient({
           return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQualifierModal(null)}>
               <div className="theme-dark-bg rounded-xl p-5 mx-4 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold text-center mb-2 text-blue-600 dark:text-[#ff9900]">Qui va se qualifier ?</h3>
+                <h3 className="text-lg font-bold text-center mb-2 text-blue-600 dark:text-[#ff9900]">{t('qualifierModal.title')}</h3>
                 <p className="text-sm theme-text-secondary text-center mb-4">
-                  +1 point bonus si vous trouvez le qualifié
+                  {t('qualifierModal.hint')}
                 </p>
 
                 {/* Scores : aller + votre retour */}
@@ -4015,7 +4015,7 @@ export default function OppositionClient({
                   {/* Score du match aller pour les retours */}
                   {firstLegScore && firstLegScore.home !== null && (
                     <div className="text-center p-2 theme-secondary-bg rounded-lg">
-                      <span className="text-xs theme-text-secondary">Score aller : </span>
+                      <span className="text-xs theme-text-secondary">{t('qualifierModal.firstLeg')}</span>
                       <span className="text-sm font-bold theme-text">
                         {translateTeamName(match.away_team_name)} {firstLegScore.home} - {firstLegScore.away} {translateTeamName(match.home_team_name)}
                       </span>
@@ -4025,7 +4025,7 @@ export default function OppositionClient({
                   {/* Score retour saisi par l'utilisateur */}
                   {userPrediction && userPrediction.predicted_home_score !== null && (
                     <div className="text-center p-2 theme-secondary-bg rounded-lg">
-                      <div className="text-xs theme-text-secondary">Votre score retour :</div>
+                      <div className="text-xs theme-text-secondary">{t('qualifierModal.yourReturn')}</div>
                       <div className="text-sm font-bold theme-text">
                         {translateTeamName(match.home_team_name)} {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score} {translateTeamName(match.away_team_name)}
                       </div>
@@ -4073,7 +4073,7 @@ export default function OppositionClient({
                   onClick={() => setShowQualifierModal(null)}
                   className="w-full py-2 text-sm theme-text-secondary hover:theme-text transition text-center"
                 >
-                  Ignorer
+                  {t('qualifierModal.skip')}
                 </button>
               </div>
             </div>

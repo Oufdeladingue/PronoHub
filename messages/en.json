@@ -682,6 +682,16 @@
     },
     "prevMatchdays": "Previous matchdays",
     "nextMatchdays": "Next matchdays",
+    "notFoundTitle": "Tournament not found",
+    "notFoundDesc": "This tournament doesn't exist or has been deleted.",
+    "backToDashboard": "Back to dashboard",
+    "missingPredictionsAlt": "Missing predictions",
+    "missingPredictionsTitle": "You have missing predictions for this matchday",
+    "hidden": "Hidden",
+    "hiddenUntilKickoff": "Hidden until kick-off",
+    "teamsComposition": "Team compositions",
+    "loadingTeams": "Loading teams...",
+    "noTeams": "No team has been created for this tournament.",
     "status": {
       "upcoming": "Upcoming",
       "finished": "Finished",
@@ -742,6 +752,15 @@
     "shareModeRanking": "Ranking",
     "shareTextMatch": "The predictions for {home} - {away} on PronoHub 👀",
     "shareTextInvite": "Join \"{name}\" on PronoHub — the free prediction tournament open to all! 🏆",
+    "extendBtnTitle": "New matchdays are available",
+    "extendBtnShort": "Extend",
+    "qualifierModal": {
+      "title": "Who will qualify?",
+      "hint": "+1 bonus point if you pick the qualifier",
+      "firstLeg": "First leg: ",
+      "yourReturn": "Your return leg score:",
+      "skip": "Skip"
+    },
     "rules": {
       "title": "Tournament rules",
       "captain": "Tournament captain: <b>{name}</b>",
