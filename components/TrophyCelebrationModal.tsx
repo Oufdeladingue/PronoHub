@@ -294,7 +294,7 @@ export default function TrophyCelebrationModal({ trophy, onClose }: TrophyCelebr
     // dans le navigateur système → appui long pour l'enregistrer. Plugin Browser déjà présent
     // dans l'APK → aucun rebuild nécessaire.
     if (isCapacitor()) {
-      const ogUrl = `https://www.pronohub.club/api/og/badge-unlocked?badgeName=${encodeURIComponent(trophy.name)}&badgeDescription=${encodeURIComponent(trophy.description)}&badgeImage=${encodeURIComponent(trophy.imagePath)}`
+      const ogUrl = `https://www.pronohub.club/api/og/badge-unlocked?badgeName=${encodeURIComponent(trophy.name)}&badgeDescription=${encodeURIComponent(trophy.description)}&badgeImage=${encodeURIComponent(trophy.imagePath)}&locale=${locale}`
       void openExternalUrl(ogUrl)
       return
     }

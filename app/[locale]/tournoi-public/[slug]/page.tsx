@@ -77,11 +77,12 @@ function fmtDate(iso: string, locale: string): string {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const tr = await getTranslations('PublicTournament.meta')
+  const locale = await getLocale()
   const t = await getPublic(slug)
   if (!t) return { title: tr('fallbackTitle'), robots: { index: false, follow: true } }
   const title = tr('title', { name: t.name })
   const description = t.description || tr('description', { name: t.name })
-  const image = `${BASE}/api/og/ranking?tournamentId=${t.id}&mode=general`
+  const image = `${BASE}/api/og/ranking?tournamentId=${t.id}&mode=general${locale === 'en' ? '&locale=en' : ''}`
   return {
     title,
     description,
@@ -138,7 +139,7 @@ export default async function PublicTournamentPage({ params }: { params: Promise
         <h2 className="text-xl font-bold text-white text-center mb-4">{tr('liveRanking')}</h2>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={`/api/og/ranking?tournamentId=${t.id}&mode=general`}
+          src={`/api/og/ranking?tournamentId=${t.id}&mode=general${locale === 'en' ? '&locale=en' : ''}`}
           alt={tr('rankingAlt', { name: t.name })}
           className="w-full rounded-2xl border border-white/10 shadow-2xl"
         />

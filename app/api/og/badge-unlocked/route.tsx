@@ -45,8 +45,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { defaultBadge: 'Trophy', prono: 'Pick:' }
+      : { defaultBadge: 'Trophée', prono: 'Prono :' }
+
     // Paramètres
-    const badgeName = searchParams.get('badgeName') || 'Trophée'
+    const badgeName = searchParams.get('badgeName') || L.defaultBadge
     const badgeDescription = searchParams.get('badgeDescription') || ''
     const badgeImagePath = searchParams.get('badgeImage') || '/trophy/default.png'
     const homeTeam = searchParams.get('home') || ''
@@ -95,7 +100,7 @@ export async function GET(request: NextRequest) {
     if (matchDate) {
       try {
         const d = new Date(matchDate)
-        formattedDate = d.toLocaleDateString('fr-FR', {
+        formattedDate = d.toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR', {
           day: 'numeric',
           month: 'short',
           timeZone: 'Europe/Paris',
@@ -295,7 +300,7 @@ export async function GET(request: NextRequest) {
                                         fontWeight: 400,
                                         color: '#94a3b8',
                                       },
-                                      children: 'Prono :',
+                                      children: L.prono,
                                     },
                                   },
                                   {

@@ -33,6 +33,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { title1: 'The coach', title2: 'calls for a', title3: 'substitution...', other: (n: number) => `${n} more match${n > 1 ? 'es' : ''}` }
+      : { title1: 'Le coach', title2: 'demande un', title3: 'changement...', other: (n: number) => `${n} autre${n > 1 ? 's' : ''} match${n > 1 ? 's' : ''}` }
+
     // Paramètres
     const tournament = searchParams.get('tournament') || 'Tournoi'
     const homeTeam = searchParams.get('home') || 'Équipe A'
@@ -115,7 +120,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'Le coach',
+                    children: L.title1,
                   },
                 },
                 {
@@ -128,7 +133,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'demande un',
+                    children: L.title2,
                   },
                 },
                 {
@@ -141,7 +146,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(255,153,0,0.6), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'changement...',
+                    children: L.title3,
                   },
                 },
               ],
@@ -392,7 +397,7 @@ export async function GET(request: NextRequest) {
                                 fontWeight: 700,
                                 color: '#ff9900',
                               },
-                              children: `${otherCount} autre${otherCount > 1 ? 's' : ''} match${otherCount > 1 ? 's' : ''}`,
+                              children: L.other(otherCount),
                             },
                           },
                         },

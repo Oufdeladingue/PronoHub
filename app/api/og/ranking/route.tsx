@@ -99,6 +99,10 @@ type RRow = { rank: number; name: string; avatar: string | null; pointsStr: stri
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { players: 'players', teams: 'teams', teamRanking: 'Team ranking', matchdayRanking: (m: string | null) => `Ranking · Matchday ${m}`, generalRanking: 'Overall ranking', liveRanking: '● Live ranking', matchesPlayed: 'matches played', member: (n: number) => `· ${n} player${n > 1 ? 's' : ''}`, king: "Who's the prediction king?", others: (n: number) => `+${n} more`, avgPoints: 'Average points', points: 'Points', goodResults: 'Correct results', exactScores: 'Exact scores', defaultPlayer: 'Player', defaultTeam: 'Team' }
+      : { players: 'joueurs', teams: 'équipes', teamRanking: 'Classement par équipes', matchdayRanking: (m: string | null) => `Classement · Journée ${m}`, generalRanking: 'Classement général', liveRanking: '● Classement live', matchesPlayed: 'matchs joués', member: (n: number) => `· ${n} joueur${n > 1 ? 's' : ''}`, king: 'C’est qui le roi du Prono ?', others: (n: number) => `+${n} autres`, avgPoints: 'Moyenne de points', points: 'Points', goodResults: 'Bons résultats', exactScores: 'Scores exacts', defaultPlayer: 'Joueur', defaultTeam: 'Équipe' }
     const tournamentId = searchParams.get('tournamentId')
     const mode = (searchParams.get('mode') || 'general') as 'general' | 'teams' | 'matchday'
     const matchdayParam = searchParams.get('matchday')
@@ -121,7 +125,7 @@ export async function GET(request: NextRequest) {
     let isLive = false
     let matchesFinished = 0
     let matchesTotal = 0
-    let unit = 'joueurs'
+    let unit = L.players
 
     // Appel in-process des handlers de classement (pas de HTTP vers soi-même → robuste derrière le proxy)
     const callRoute = async (handler: typeof rankingsGET, url: string) => {
@@ -137,10 +141,10 @@ export async function GET(request: NextRequest) {
       isLive = !!gJson.hasInProgressMatches
       matchesFinished = gJson.matchesFinished || 0
       matchesTotal = gJson.matchesTotal || 0
-      unit = 'équipes'
+      unit = L.teams
       rows = (tJson.rankings || []).map((t: any) => ({
         rank: t.rank,
-        name: t.teamName || 'Équipe',
+        name: t.teamName || L.defaultTeam,
         avatar: t.teamAvatar ? `/images/team-avatars/${t.teamAvatar}.svg` : null,
         // Moyenne de points par joueur (équité entre équipes d'effectifs différents)
         pointsStr: (t.avgPoints ?? 0).toFixed(1),
@@ -158,7 +162,7 @@ export async function GET(request: NextRequest) {
       matchesTotal = json.matchesTotal || 0
       rows = (json.rankings || []).map((p: any) => ({
         rank: p.rank,
-        name: p.playerName || 'Joueur',
+        name: p.playerName || L.defaultPlayer,
         avatar: getAvatarUrl(p.avatar || 'avatar1'),
         pointsStr: `${p.totalPoints ?? 0}`,
         corrects: p.correctResults ?? 0,
@@ -181,7 +185,7 @@ export async function GET(request: NextRequest) {
     ])
     const [fr, fb, fblack] = fonts
 
-    const contextLabel = mode === 'teams' ? 'Classement par équipes' : mode === 'matchday' ? `Classement · Journée ${matchdayParam}` : 'Classement général'
+    const contextLabel = mode === 'teams' ? L.teamRanking : mode === 'matchday' ? L.matchdayRanking(matchdayParam) : L.generalRanking
 
     // ---- Header ----
     const logoW = logo ? logo.w : 0
@@ -199,9 +203,9 @@ export async function GET(request: NextRequest) {
     const ctxBar = el('div', { height: `${CTX_H}px`, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', gap: '6px' }, [
       el('div', { alignItems: 'center', gap: '12px' }, [
         txt(contextLabel, { fontSize: '26px', fontWeight: 900, color: COLORS.orange }),
-        ...(isLive ? [el('div', { background: 'rgba(239,68,68,0.18)', borderRadius: '7px', padding: '3px 10px', alignItems: 'center' }, [txt('● Classement live', { fontSize: '15px', fontWeight: 700, color: COLORS.red })])] : []),
+        ...(isLive ? [el('div', { background: 'rgba(239,68,68,0.18)', borderRadius: '7px', padding: '3px 10px', alignItems: 'center' }, [txt(L.liveRanking, { fontSize: '15px', fontWeight: 700, color: COLORS.red })])] : []),
       ]),
-      txt(`${matchesFinished} / ${matchesTotal} matchs joués     ·     ${rows.length} ${unit}`, { fontSize: '16px', color: COLORS.sub }),
+      txt(`${matchesFinished} / ${matchesTotal} ${L.matchesPlayed}     ·     ${rows.length} ${unit}`, { fontSize: '16px', color: COLORS.sub }),
     ])
 
     // ---- Ligne ----
@@ -218,7 +222,7 @@ export async function GET(request: NextRequest) {
           avatars[idx] ? [img(avatars[idx] as string, 32, 32)] : [txt((r.name[0] || '?').toUpperCase(), { fontSize: '15px', fontWeight: 900, color: COLORS.text })]),
         el('div', { alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }, [
           txt(r.name, { fontSize: '19px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
-          ...(r.members !== undefined ? [txt(`· ${r.members} joueur${r.members > 1 ? 's' : ''}`, { fontSize: '14px', color: COLORS.sub, flexShrink: 0, whiteSpace: 'nowrap' })] : []),
+          ...(r.members !== undefined ? [txt(L.member(r.members), { fontSize: '14px', color: COLORS.sub, flexShrink: 0, whiteSpace: 'nowrap' })] : []),
         ]),
         el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 12px', flexShrink: 0 }, [txt(r.pointsStr, { fontSize: '20px', fontWeight: 900, color: COLORS.orange })]),
         el('div', { width: '38px', justifyContent: 'center', flexShrink: 0 }, [txt(`${r.corrects}`, { fontSize: '19px', fontWeight: 700, color: COLORS.green })]),
@@ -241,7 +245,7 @@ export async function GET(request: NextRequest) {
 
     const FOOTER_H = 26
     const footer = el('div', { height: `${FOOTER_H}px`, width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
-      txt(extra > 0 ? `C’est qui le roi du Prono ?  ·  +${extra} autres` : 'C’est qui le roi du Prono ?', { fontSize: '17px', fontWeight: 700, color: COLORS.text }),
+      txt(extra > 0 ? `${L.king}  ·  ${L.others(extra)}` : L.king, { fontSize: '17px', fontWeight: 700, color: COLORS.text }),
       txt('pronohub.club', { fontSize: '18px', fontWeight: 700, color: COLORS.orange }),
     ])
 
@@ -252,9 +256,9 @@ export async function GET(request: NextRequest) {
     ])
     const LEGEND_H = 22
     const legend = el('div', { height: `${LEGEND_H}px`, width: '100%', justifyContent: 'center', alignItems: 'center', gap: '28px' }, [
-      legendItem(COLORS.orange, mode === 'teams' ? 'Moyenne de points' : 'Points'),
-      legendItem(COLORS.green, 'Bons résultats'),
-      legendItem(COLORS.gold, 'Scores exacts'),
+      legendItem(COLORS.orange, mode === 'teams' ? L.avgPoints : L.points),
+      legendItem(COLORS.green, L.goodResults),
+      legendItem(COLORS.gold, L.exactScores),
     ])
 
     const PAD_V = 26

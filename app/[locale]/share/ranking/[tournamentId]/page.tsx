@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 const BASE = 'https://www.pronohub.club'
 
-type Params = { tournamentId: string }
+type Params = { tournamentId: string; locale?: string }
 type Search = { mode?: string; matchday?: string }
 
 async function getTournament(id: string) {
@@ -23,19 +23,20 @@ function ctxLabel(mode?: string, matchday?: string) {
   return 'général'
 }
 
-function ogPath(tournamentId: string, sp: Search) {
+function ogPath(tournamentId: string, sp: Search, locale?: string) {
   const md = sp.matchday ? `&matchday=${sp.matchday}` : ''
-  return `/api/og/ranking?tournamentId=${tournamentId}&mode=${sp.mode || 'general'}${md}`
+  const loc = locale === 'en' ? '&locale=en' : ''
+  return `/api/og/ranking?tournamentId=${tournamentId}&mode=${sp.mode || 'general'}${md}${loc}`
 }
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<Search> }): Promise<Metadata> {
-  const { tournamentId } = await params
+  const { tournamentId, locale } = await params
   const sp = await searchParams
   const t = await getTournament(tournamentId)
   const ctx = ctxLabel(sp.mode, sp.matchday)
   const title = `Classement ${ctx}${t?.name ? ' · ' + t.name : ''} | PronoHub`
   const description = 'Le classement des pronostiqueurs sur PronoHub.'
-  const ogUrl = `${BASE}${ogPath(tournamentId, sp)}`
+  const ogUrl = `${BASE}${ogPath(tournamentId, sp, locale)}`
   return {
     title,
     description,
@@ -45,7 +46,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
 }
 
 export default async function ShareRankingPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<Search> }) {
-  const { tournamentId } = await params
+  const { tournamentId, locale } = await params
   const sp = await searchParams
   const t = await getTournament(tournamentId)
   const ctx = ctxLabel(sp.mode, sp.matchday)
@@ -63,7 +64,7 @@ export default async function ShareRankingPage({ params, searchParams }: { param
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={ogPath(tournamentId, sp)}
+        src={ogPath(tournamentId, sp, locale)}
         alt={`Classement ${ctx}`}
         className="w-full max-w-3xl rounded-2xl border border-slate-700 shadow-2xl"
       />

@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { title1: 'Let the', title2: 'competition', title3: 'begin!', cta: 'CONFIRM YOUR PICKS' }
+      : { title1: 'Que la', title2: 'compétition', title3: 'commence !', cta: 'VALIDE TES PRONOS' }
+
     // Paramètres
     const tournament = searchParams.get('tournament') || 'Tournoi'
     const homeTeam = searchParams.get('home') || 'Équipe 1'
@@ -111,7 +116,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'Que la',
+                    children: L.title1,
                   },
                 },
                 {
@@ -124,7 +129,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(255,153,0,0.6), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'compétition',
+                    children: L.title2,
                   },
                 },
                 {
@@ -137,7 +142,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'commence !',
+                    children: L.title3,
                   },
                 },
               ],
@@ -388,7 +393,7 @@ export async function GET(request: NextRequest) {
                           letterSpacing: '1px',
                           whiteSpace: 'nowrap',
                         },
-                        children: 'VALIDE TES PRONOS',
+                        children: L.cta,
                       },
                     },
                   },

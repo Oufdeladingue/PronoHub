@@ -571,7 +571,8 @@ export async function GET(request: NextRequest) {
             competitionLogo: firstMatch.competition_emblem || '',
             time: matchTime,
             deadline: deadlineTime,
-            otherCount: String(allMatchesWithTournament.length - 1)
+            otherCount: String(allMatchesWithTournament.length - 1),
+            locale: userData.locale === 'en' ? 'en' : 'fr'
           })
           const imageUrl = `${baseUrl}/api/og/reminder?${imageParams.toString()}`
 

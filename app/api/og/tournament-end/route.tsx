@@ -32,9 +32,26 @@ function getRankSuffix(rank: number): string {
   return 'ème'
 }
 
+// Ordinal anglais : 1st, 2nd, 3rd, 4th… (gère 11/12/13 → th)
+function getRankSuffixEn(rank: number): string {
+  const mod100 = rank % 100
+  if (mod100 >= 11 && mod100 <= 13) return 'th'
+  switch (rank % 10) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { title1: 'Final', title2: 'whistle,', title3: "it's time", title4: 'for the recap!', place: (r: number) => `${r}${getRankSuffixEn(r)} place`, finalRanking: 'FINAL RANKING' }
+      : { title1: 'Coup de', title2: 'sifflet final,', title3: "c'est l'heure", title4: 'du bilan !', place: (r: number) => `${r}${getRankSuffix(r)} place`, finalRanking: 'CLASSEMENT FINAL' }
 
     // Paramètres
     const tournament = searchParams.get('tournament') || 'Tournoi'
@@ -112,7 +129,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'Coup de',
+                    children: L.title1,
                   },
                 },
                 {
@@ -125,7 +142,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(255,153,0,0.6), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'sifflet final,',
+                    children: L.title2,
                   },
                 },
                 {
@@ -138,7 +155,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: "c'est l'heure",
+                    children: L.title3,
                   },
                 },
                 {
@@ -151,7 +168,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'du bilan !',
+                    children: L.title4,
                   },
                 },
               ],
@@ -258,7 +275,7 @@ export async function GET(request: NextRequest) {
                       textAlign: 'center',
                       textShadow: '0px 0px 12px rgba(255,255,255,0.3), 2px 2px 4px rgba(0,0,0,0.8)',
                     },
-                    children: `${rank}${getRankSuffix(rank)} place`,
+                    children: L.place(rank),
                   },
                 },
 
@@ -286,7 +303,7 @@ export async function GET(request: NextRequest) {
                           letterSpacing: '1px',
                           whiteSpace: 'nowrap',
                         },
-                        children: 'CLASSEMENT FINAL',
+                        children: L.finalRanking,
                       },
                     },
                   },

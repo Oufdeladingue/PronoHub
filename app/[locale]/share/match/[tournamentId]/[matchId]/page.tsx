@@ -4,7 +4,7 @@ import { translateTeamName } from '@/lib/translations'
 
 export const dynamic = 'force-dynamic'
 
-type Params = { tournamentId: string; matchId: string }
+type Params = { tournamentId: string; matchId: string; locale?: string }
 
 const BASE = 'https://www.pronohub.club'
 
@@ -23,12 +23,12 @@ async function getMatch(matchId: string) {
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-  const { tournamentId, matchId } = await params
+  const { tournamentId, matchId, locale } = await params
   const match = await getMatch(matchId)
   const teams = match ? `${translateTeamName(match.home_team_name)} - ${translateTeamName(match.away_team_name)}` : 'du match'
   const title = `Pronos ${teams} | PronoHub`
   const description = 'Découvre les pronostics des joueurs sur PronoHub.'
-  const ogUrl = `${BASE}/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`
+  const ogUrl = `${BASE}/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}${locale === 'en' ? '&locale=en' : ''}`
 
   return {
     title,
@@ -39,10 +39,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 }
 
 export default async function SharePronosPage({ params }: { params: Promise<Params> }) {
-  const { tournamentId, matchId } = await params
+  const { tournamentId, matchId, locale } = await params
   const match = await getMatch(matchId)
   const teams = match ? `${translateTeamName(match.home_team_name)} — ${translateTeamName(match.away_team_name)}` : 'Pronostics du match'
-  const ogUrl = `/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}`
+  const ogUrl = `/api/og/match-pronos?tournamentId=${tournamentId}&matchId=${matchId}${locale === 'en' ? '&locale=en' : ''}`
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 py-10" style={{ background: '#0f172a' }}>

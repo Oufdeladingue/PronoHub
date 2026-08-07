@@ -36,8 +36,28 @@ async function emblemDataUri(emblem: string | null): Promise<string | null> {
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const name = (searchParams.get('name') || 'un tournoi de pronos').slice(0, 60)
-  const creator = (searchParams.get('creator') || 'Un ami').slice(0, 30)
+  const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+  const L = locale === 'en'
+    ? {
+        defaultName: 'a prediction tournament',
+        defaultCreator: 'A friend',
+        invitesYou: 'invites you to',
+        theirTournament: 'their prediction tournament 🏆',
+        players: 'players',
+        joinCta: 'Join the tournament  →',
+        tagline: 'pronohub.club — football predictions with friends, free',
+      }
+    : {
+        defaultName: 'un tournoi de pronos',
+        defaultCreator: 'Un ami',
+        invitesYou: "t'invite à",
+        theirTournament: 'son tournoi de pronos 🏆',
+        players: 'joueurs',
+        joinCta: 'Rejoins le tournoi  →',
+        tagline: 'pronohub.club — pronos foot entre potes, gratuit',
+      }
+  const name = (searchParams.get('name') || L.defaultName).slice(0, 60)
+  const creator = (searchParams.get('creator') || L.defaultCreator).slice(0, 30)
   const players = (searchParams.get('players') || '').slice(0, 10)
   const competition = (searchParams.get('competition') || '').slice(0, 40)
   const emblem = searchParams.get('emblem')
@@ -89,10 +109,10 @@ export async function GET(request: Request) {
 
         {/* Accroche */}
         <div style={{ display: 'flex', fontSize: 36, color: '#94a3b8', marginBottom: 2 }}>
-          {creator} t'invite à
+          {creator} {L.invitesYou}
         </div>
         <div style={{ display: 'flex', fontSize: 26, color: '#94a3b8', marginBottom: 16 }}>
-          son tournoi de pronos 🏆
+          {L.theirTournament}
         </div>
 
         {/* Carte tournoi */}
@@ -117,7 +137,7 @@ export async function GET(request: Request) {
           </div>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center', fontSize: 26, color: '#e0e0e0' }}>
             {competition ? <span style={{ display: 'flex', color: '#ff9900' }}>{competition}</span> : null}
-            {players ? <span style={{ display: 'flex' }}>👥 {players} joueurs</span> : null}
+            {players ? <span style={{ display: 'flex' }}>👥 {players} {L.players}</span> : null}
           </div>
         </div>
 
@@ -137,11 +157,11 @@ export async function GET(request: Request) {
             boxShadow: '0 10px 30px rgba(255,153,0,0.45)',
           }}
         >
-          Rejoins le tournoi  →
+          {L.joinCta}
         </div>
 
         <div style={{ display: 'flex', marginTop: 20, fontSize: 18, color: '#64748b' }}>
-          pronohub.club — pronos foot entre potes, gratuit
+          {L.tagline}
         </div>
       </div>
     ),

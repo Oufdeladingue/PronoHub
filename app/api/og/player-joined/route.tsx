@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { title1: 'New', title2: 'contract signed', title3: 'for', consult: 'VIEW', exclaim: '!' }
+      : { title1: 'Nouveau', title2: 'contrat signé', title3: 'pour', consult: 'CONSULTER', exclaim: ' !' }
+
     // Paramètres
     const tournament = searchParams.get('tournament') || 'Tournoi'
     const username = searchParams.get('username') || 'Joueur'
@@ -105,7 +110,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'Nouveau',
+                    children: L.title1,
                   },
                 },
                 {
@@ -118,7 +123,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(255,153,0,0.6), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'contrat signé',
+                    children: L.title2,
                   },
                 },
                 {
@@ -131,7 +136,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: 'pour',
+                    children: L.title3,
                   },
                 },
                 {
@@ -144,7 +149,7 @@ export async function GET(request: NextRequest) {
                       lineHeight: 1.15,
                       textShadow: '0px 0px 32px rgba(0,0,0,1), 3px 3px 8px rgba(0,0,0,0.9)',
                     },
-                    children: `${username} !`,
+                    children: `${username}${L.exclaim}`,
                   },
                 },
               ],
@@ -264,7 +269,7 @@ export async function GET(request: NextRequest) {
                           letterSpacing: '1px',
                           whiteSpace: 'nowrap',
                         },
-                        children: 'CONSULTER',
+                        children: L.consult,
                       },
                     },
                   },

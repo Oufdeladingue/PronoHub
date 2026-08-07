@@ -139,6 +139,10 @@ type Row = { uid: string; name: string; avatar: string; ph: number; pa: number; 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { finished: 'Finished', live: '● Live', upcoming: 'Upcoming', matchday: 'Matchday', defaultTag: 'default', locked: '🔒 Predictions revealed 30 min before kickoff', king: "Who's the prediction king?", others: (n: number) => `+${n} more`, pts: 'pts', home: 'Home', away: 'Away', player: 'Player' }
+      : { finished: 'Terminé', live: '● En direct', upcoming: 'À venir', matchday: 'Journée', defaultTag: 'défaut', locked: '🔒 Pronostics révélés 30 min avant le coup d’envoi', king: 'C’est qui le roi du Prono ?', others: (n: number) => `+${n} autres`, pts: 'pts', home: 'Domicile', away: 'Extérieur', player: 'Joueur' }
     const tournamentId = searchParams.get('tournamentId')
     const matchId = searchParams.get('matchId')
     const sort = searchParams.get('sort') === 'classement' ? 'classement' : 'alpha'
@@ -202,7 +206,7 @@ export async function GET(request: NextRequest) {
       const nameById = new Map<string, string>()
       const avatarById = new Map<string, string>()
       for (const p of (profsRes.data as Array<{ id: string; username: string | null; avatar: string | null }>) || []) {
-        nameById.set(p.id, p.username || 'Joueur')
+        nameById.set(p.id, p.username || L.player)
         avatarById.set(p.id, p.avatar || 'avatar1')
       }
 
@@ -231,7 +235,7 @@ export async function GET(request: NextRequest) {
         const ph = hasPred ? (p!.predicted_home_score ?? 0) : 0
         const pa = hasPred ? (p!.predicted_away_score ?? 0) : 0
         const rk = rankByUser.get(uid)
-        const base: Row = { uid, name: nameById.get(uid) || 'Joueur', avatar: avatarById.get(uid) || 'avatar1', ph, pa, status: 'neutral', points: null, isDefault, rank: rk?.rank ?? null, totalPoints: rk?.totalPoints ?? null, rankDelta: null, predictedQualifier: hasPred ? ((p!.predicted_qualifier as 'home' | 'away' | null) ?? null) : null }
+        const base: Row = { uid, name: nameById.get(uid) || L.player, avatar: avatarById.get(uid) || 'avatar1', ph, pa, status: 'neutral', points: null, isDefault, rank: rk?.rank ?? null, totalPoints: rk?.totalPoints ?? null, rankDelta: null, predictedQualifier: hasPred ? ((p!.predicted_qualifier as 'home' | 'away' | null) ?? null) : null }
 
         if (isFinished && settings) {
           const hs = (isKnockout && match.home_score_90 != null ? match.home_score_90 : match.home_score) as number
@@ -317,16 +321,17 @@ export async function GET(request: NextRequest) {
     const scoreLabel = isFinished
       ? `${match.home_score_90 ?? match.home_score ?? 0} - ${match.away_score_90 ?? match.away_score ?? 0}`
       : isLive ? `${match.home_score ?? 0} - ${match.away_score ?? 0}` : 'VS'
-    const stateTag = isFinished ? 'Terminé' : isLive ? '● En direct' : 'À venir'
+    const stateTag = isFinished ? L.finished : isLive ? L.live : L.upcoming
     const stateColor = isFinished ? COLORS.sub : isLive ? COLORS.red : COLORS.sub
 
     // Métadonnées du match : jour, heure, journée, poule
     const md = match.utc_date ? new Date(match.utc_date) : null
-    const dayLabel = md ? md.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }) : ''
+    const dateLoc = locale === 'en' ? 'en-GB' : 'fr-FR'
+    const dayLabel = md ? md.toLocaleDateString(dateLoc, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }) : ''
     const dayCap = dayLabel ? dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1) : ''
-    const timeLabel = md ? md.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : ''
+    const timeLabel = md ? md.toLocaleTimeString(dateLoc, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }) : ''
     const grouped = !!(match.stage && isGroupStage(match.stage as StageType))
-    const journeeLabel = grouped ? `Journée ${match.matchday ?? 1}` : (getStageLabel((match.stage as StageType) || null) || '')
+    const journeeLabel = grouped ? `${L.matchday} ${match.matchday ?? 1}` : (getStageLabel((match.stage as StageType) || null) || '')
     const pouleLabel = formatGroupName(match.group_name)
     const metaLine = [dayCap && timeLabel ? `${dayCap} · ${timeLabel}` : (dayCap || timeLabel), journeeLabel, pouleLabel].filter(Boolean).join('     ·     ')
 
@@ -360,9 +365,9 @@ export async function GET(request: NextRequest) {
       { height: `${MATCHBAR_H}px`, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', background: COLORS.card, borderRadius: '16px', gap: '6px' },
       [
         el('div', { alignItems: 'center', justifyContent: 'center', width: '100%', gap: '18px' }, [
-          teamBlock(translateTeamName(match.home_team_name || 'Domicile'), homeCrest, 'flex-end'),
+          teamBlock(translateTeamName(match.home_team_name || L.home), homeCrest, 'flex-end'),
           txt(scoreLabel, { fontSize: '30px', fontWeight: 900, color: COLORS.orange, padding: '0 10px', whiteSpace: 'nowrap' }),
-          teamBlock(translateTeamName(match.away_team_name || 'Extérieur'), awayCrest, 'flex-start'),
+          teamBlock(translateTeamName(match.away_team_name || L.away), awayCrest, 'flex-start'),
         ]),
         txt(stateTag, { fontSize: '15px', fontWeight: 700, color: stateColor }),
         ...(metaLine ? [txt(metaLine, { fontSize: '15px', color: COLORS.sub })] : []),
@@ -404,10 +409,10 @@ export async function GET(request: NextRequest) {
         avatarEl,
         el('div', { alignItems: 'center', gap: '7px', flex: 1, overflow: 'hidden' }, [
           txt(p.name, { fontSize: '18px', fontWeight: 700, color: COLORS.text, overflow: 'hidden', whiteSpace: 'nowrap' }),
-          ...(p.isDefault ? [el('div', { background: 'rgba(250,204,21,0.16)', borderRadius: '5px', padding: '1px 7px', flexShrink: 0 }, [txt('défaut', { fontSize: '12px', fontWeight: 700, color: COLORS.gold })])] : []),
+          ...(p.isDefault ? [el('div', { background: 'rgba(250,204,21,0.16)', borderRadius: '5px', padding: '1px 7px', flexShrink: 0 }, [txt(L.defaultTag, { fontSize: '12px', fontWeight: 700, color: COLORS.gold })])] : []),
         ]),
         // Total de points du tournoi (mode classement)
-        ...(isClassement ? [el('div', { width: '70px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.totalPoints ?? 0} pts`, { fontSize: '16px', fontWeight: 900, color: COLORS.text })])] : []),
+        ...(isClassement ? [el('div', { width: '70px', justifyContent: 'flex-end', flexShrink: 0 }, [txt(`${p.totalPoints ?? 0} ${L.pts}`, { fontSize: '16px', fontWeight: 900, color: COLORS.text })])] : []),
         // Pronostic du match
         el('div', { background: '#0f172a', borderRadius: '7px', padding: '3px 11px', alignItems: 'center', gap: '5px', flexShrink: 0 }, [
           txt(`${p.ph}`, { fontSize: '19px', fontWeight: 900, color: statusColor(p.status) }),
@@ -431,7 +436,7 @@ export async function GET(request: NextRequest) {
     if (!revealed) {
       bodyH = 160
       body = el('div', { height: `${bodyH}px`, width: '100%', justifyContent: 'center', alignItems: 'center' }, [
-        txt('🔒 Pronostics révélés 30 min avant le coup d’envoi', { fontSize: '24px', fontWeight: 700, color: COLORS.sub }),
+        txt(L.locked, { fontSize: '24px', fontWeight: 700, color: COLORS.sub }),
       ])
     } else {
       const colStyle = { flexDirection: 'column' as const, gap: `${ROW_GAP}px`, flex: 1 }
@@ -451,7 +456,7 @@ export async function GET(request: NextRequest) {
     // ---- Footer ----
     const FOOTER_H = 26
     const footer = el('div', { height: `${FOOTER_H}px`, width: '100%', justifyContent: 'space-between', alignItems: 'center' }, [
-      txt(extra > 0 ? `C’est qui le roi du Prono ?  ·  +${extra} autres` : 'C’est qui le roi du Prono ?', { fontSize: '17px', fontWeight: 700, color: COLORS.text, maxWidth: '820px', overflow: 'hidden' }),
+      txt(extra > 0 ? `${L.king}  ·  ${L.others(extra)}` : L.king, { fontSize: '17px', fontWeight: 700, color: COLORS.text, maxWidth: '820px', overflow: 'hidden' }),
       txt('pronohub.club', { fontSize: '18px', fontWeight: 700, color: COLORS.orange }),
     ])
 

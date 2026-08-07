@@ -414,6 +414,7 @@ export async function GET(request: NextRequest) {
           competitionLogo: logos?.competition_emblem || '',
           time: matchTimeStr,
           otherCount: String(Math.max(0, addedChanges.length - 1)),
+          locale: user.locale === 'en' ? 'en' : 'fr',
         })
 
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.pronohub.club'

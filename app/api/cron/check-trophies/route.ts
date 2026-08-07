@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
             const triggerMatch = result.trophyTriggerMatches[trophyType]
 
             // Construire l'URL de l'image OG dynamique
-            const imageUrl = buildBadgeImageUrl(trophyInfo, triggerMatch)
+            const imageUrl = buildBadgeImageUrl(trophyInfo, triggerMatch, (profile as any)?.locale === 'en' ? 'en' : 'fr')
 
             // Canal : push si FCM token, sinon email (jamais les deux)
             if (profile?.fcm_token) {
@@ -309,11 +309,13 @@ export async function GET(request: NextRequest) {
  */
 function buildBadgeImageUrl(
   trophyInfo: { name: string; description: string; imagePath: string },
-  triggerMatch?: TriggerMatchInfo
+  triggerMatch?: TriggerMatchInfo,
+  locale: 'fr' | 'en' = 'fr'
 ): string {
   const params = new URLSearchParams({
     badgeName: trophyInfo.name,
     badgeDescription: trophyInfo.description,
+    locale,
     badgeImage: trophyInfo.imagePath,
   })
 

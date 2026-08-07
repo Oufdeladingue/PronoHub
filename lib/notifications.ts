@@ -403,6 +403,7 @@ export async function sendTournamentStarted(
     competitionLogo,
     time: matchTime,
   })
+  // OG image reste en fr (broadcast multi-langue : une seule image pour tous les destinataires)
   const imageUrl = `${baseUrl}/api/og/tournament-started?${ogParams.toString()}`
 
   return sendNotificationToTournament(tournamentId, 'tournament_started', {
@@ -483,16 +484,17 @@ export async function sendTournamentEnd(
     // Construire l'URL de l'image OG personnalisée
     const avatarPath = getAvatarUrl(avatar)
 
+    const loc = pickNotifLocale(profile.locale)
     const ogParams = new URLSearchParams({
       tournament: tournamentName,
       username,
       avatar: avatarPath,
       rank: String(rank),
       totalPlayers: String(totalPlayers),
+      locale: loc,
     })
     const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
 
-    const loc = pickNotifLocale(profile.locale)
     const strings = notifStrings('tournament_end', loc)
     const title = strings.title
     const body = applyNotifParams(strings.body, { tournamentName }, loc)

@@ -3953,10 +3953,10 @@ export default function OppositionClient({
         {/* Modale de partage des pronos du match */}
         {shareModalMatch && tournament && (
           <ShareImageModal
-            imageUrl={`/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}`}
+            imageUrl={`/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&locale=${locale}`}
             modes={[
-              { key: 'alpha', label: t('shareModeAlpha'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}` },
-              { key: 'classement', label: t('shareModeRanking'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&sort=classement` },
+              { key: 'alpha', label: t('shareModeAlpha'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&locale=${locale}` },
+              { key: 'classement', label: t('shareModeRanking'), imageUrl: `/api/og/match-pronos?tournamentId=${tournament.id}&matchId=${shareModalMatch.id}&sort=classement&locale=${locale}` },
             ]}
             shareUrl={`https://www.pronohub.club/share/match/${tournament.id}/${shareModalMatch.id}`}
             shareText={t('shareTextMatch', { home: translateTeamName(shareModalMatch.home_team_name), away: translateTeamName(shareModalMatch.away_team_name) })}
@@ -3969,7 +3969,7 @@ export default function OppositionClient({
         {/* Modale d'invitation au tournoi public (onglet Inviter) */}
         {showInviteModal && (
           <ShareImageModal
-            imageUrl={`/api/og/ranking?tournamentId=${tournament.id}&mode=general`}
+            imageUrl={`/api/og/ranking?tournamentId=${tournament.id}&mode=general&locale=${locale}`}
             shareUrl={`https://www.pronohub.club/tournoi-public/${tournament.invite_code || tournament.slug}`}
             shareText={t('shareTextInvite', { name: tournament.name })}
             downloadName={`tournoi-public-${tournament.invite_code || tournament.slug}.png`}

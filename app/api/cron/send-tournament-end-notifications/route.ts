@@ -195,6 +195,7 @@ export async function GET(request: NextRequest) {
               avatar: avatarPath,
               rank: String(rank),
               totalPlayers: String(totalPlayers),
+              locale: (profile as any)?.locale === 'en' ? 'en' : 'fr',
             })
             const imageUrl = `${baseUrl}/api/og/tournament-end?${ogParams.toString()}`
 

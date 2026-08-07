@@ -16,6 +16,14 @@ const CATCHPHRASES = [
   'On sait déjà qui va se tromper…',
   'Ne laisse pas les autres décider à ta place.',
 ]
+const CATCHPHRASES_EN = [
+  'So, who gets it wrong this time?',
+  'The experts are expected…',
+  'Make your pick before you regret it.',
+  'Time to prove you know your football.',
+  'We already know who will slip up…',
+  "Don't let the others decide for you.",
+]
 
 // Charger la police Inter depuis Google Fonts
 // Police Inter mutualisée + mise en cache (lib/og-fonts)
@@ -43,6 +51,12 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
+    const locale = searchParams.get('locale') === 'en' ? 'en' : 'fr'
+    const L = locale === 'en'
+      ? { until: 'You have until:', other: (n: number) => `+ ${n} more match${n > 1 ? 'es' : ''}` }
+      : { until: "Tu as jusqu'à :", other: (n: number) => `+ ${n} autre${n > 1 ? 's' : ''} rencontre${n > 1 ? 's' : ''}` }
+    const catchphrases = locale === 'en' ? CATCHPHRASES_EN : CATCHPHRASES
+
     // Récupérer les paramètres
     const homeTeam = searchParams.get('home') || 'Équipe A'
     const awayTeam = searchParams.get('away') || 'Équipe B'
@@ -54,7 +68,7 @@ export async function GET(request: NextRequest) {
     const otherCount = parseInt(searchParams.get('otherCount') || '0', 10)
 
     // Choisir une phrase d'accroche aléatoire
-    const catchphrase = CATCHPHRASES[Math.floor(Math.random() * CATCHPHRASES.length)]
+    const catchphrase = catchphrases[Math.floor(Math.random() * catchphrases.length)]
 
     // Charger les polices (regular et bold)
     let fontDataRegular: ArrayBuffer
@@ -405,7 +419,7 @@ export async function GET(request: NextRequest) {
                       fontSize: '22px',
                       color: '#94a3b8',
                     },
-                    children: "Tu as jusqu'à :",
+                    children: L.until,
                   },
                 },
                 {
@@ -440,7 +454,7 @@ export async function GET(request: NextRequest) {
                       color: '#ffffff',
                       textShadow: '1px 1px 4px rgba(0,0,0,0.7)',
                     },
-                    children: `+ ${otherCount} autre${otherCount > 1 ? 's' : ''} rencontre${otherCount > 1 ? 's' : ''}`,
+                    children: L.other(otherCount),
                   },
                 },
               ]

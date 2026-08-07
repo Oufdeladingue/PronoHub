@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 const BASE = 'https://www.pronohub.club'
 
-type Params = { code: string }
+type Params = { code: string; locale?: string }
 
 interface Preview {
   name: string
@@ -59,22 +59,23 @@ async function getPreview(code: string): Promise<Preview | null> {
   }
 }
 
-function ogUrl(p: Preview): string {
+function ogUrl(p: Preview, locale?: string): string {
   const q = new URLSearchParams({ name: p.name, creator: p.creator, players: `${p.current}/${p.max}` })
   if (p.competition) q.set('competition', p.competition)
   if (p.emblem) q.set('emblem', p.emblem)
+  if (locale === 'en') q.set('locale', 'en')
   return `${BASE}/api/og/invite?${q.toString()}`
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
-  const { code } = await params
+  const { code, locale } = await params
   const p = await getPreview(code)
   if (!p) {
     return { title: 'Invitation · PronoHub', robots: { index: false, follow: true } }
   }
   const title = `${p.creator} t'invite sur "${p.name}" | PronoHub`
   const description = `Rejoins le tournoi de pronos "${p.name}"${p.competition ? ` sur ${p.competition}` : ''} et défie ${p.creator} & les autres. Gratuit.`
-  const image = ogUrl(p)
+  const image = ogUrl(p, locale)
   return {
     title,
     description,

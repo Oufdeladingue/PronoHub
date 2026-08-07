@@ -8,7 +8,7 @@ import ShareImageModal from '@/components/ShareImageModal'
 import { trackRankingShared } from '@/lib/analytics'
 import { getStageShortLabel, getLegNumber, type StageType } from '@/lib/stage-formatter'
 import { slugify, fileDateStamp } from '@/lib/slug'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import RankingEvolution from './RankingEvolution'
 
 interface PlayerStats {
@@ -68,6 +68,7 @@ interface TournamentRankingsProps {
 
 export default function TournamentRankings({ tournamentId, availableMatchdays, tournamentName, allMatches, teamsEnabled, tournamentType, currentUserId: propUserId, isCustomCompetition, matchdayDisplayMap }: TournamentRankingsProps) {
   const t = useTranslations('Rankings')
+  const locale = useLocale()
   const [selectedView, setSelectedView] = useState<'general' | 'teams' | number>('general')
   const [showEvolution, setShowEvolution] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -781,7 +782,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
         const ctx = mode === 'teams' ? t('ctxTeams') : mode === 'matchday' ? t('ctxMatchday', { n: selectedView }) : t('ctxGeneral')
         return (
           <ShareImageModal
-            imageUrl={`/api/og/ranking?tournamentId=${tournamentId}&mode=${mode}${mdParam}`}
+            imageUrl={`/api/og/ranking?tournamentId=${tournamentId}&mode=${mode}${mdParam}&locale=${locale}`}
             shareUrl={`https://www.pronohub.club/share/ranking/${tournamentId}?mode=${mode}${mdParam}`}
             shareText={tournamentName ? t('shareTextRankingNamed', { ctx, name: tournamentName }) : t('shareTextRanking', { ctx })}
             downloadName={`classement-${slugify(tournamentName)}-${slugify(ctx)}-${fileDateStamp()}.png`}
