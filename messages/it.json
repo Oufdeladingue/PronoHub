@@ -1068,6 +1068,18 @@
     "moreOptions": "Altre opzioni…",
     "download": "Scarica l’immagine"
   },
+  "Referral": {
+    "title": "Sblocca le statistiche di questo torneo 🔓",
+    "intro": "Invita {n} amici con il tuo link personale e sblocca le Statistiche avanzate (forma delle squadre, tendenze dei pronostici) su questo torneo.",
+    "progress": "{count} di {threshold} amici invitati",
+    "linkLabel": "Il tuo link d'invito personale",
+    "copy": "Copia",
+    "copied": "Copiato!",
+    "shareWhatsApp": "Condividi su WhatsApp",
+    "shareText": "Unisciti a me nel torneo \"{name}\" su PronoHub! 🏆",
+    "later": "Più tardi",
+    "footnote": "Gli amici che entrano con IL TUO link contano per te."
+  },
   "Chat": {
     "loading": "Caricamento della chiacchierata...",
     "empty": "Nessun messaggio al momento.",

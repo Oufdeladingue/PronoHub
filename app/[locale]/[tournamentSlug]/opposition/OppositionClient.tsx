@@ -15,6 +15,7 @@ import { getAvatarUrl } from '@/lib/avatars'
 import { getStageShortLabel, getLegNumber, isKnockoutStage, formatGroupName, type StageType } from '@/lib/stage-formatter'
 import { deriveMatchPhase, MATCH_PHASE_LABELS } from '@/lib/football-data-score'
 import ShareImageModal from '@/components/ShareImageModal'
+import ReferralStatsModal from '@/components/ReferralStatsModal'
 import { translateTeamName as translateTeamNameRaw } from '@/lib/translations'
 import { slugify, fileDateStamp } from '@/lib/slug'
 import Footer from '@/components/Footer'
@@ -3970,11 +3971,22 @@ export default function OppositionClient({
         {showInviteModal && (
           <ShareImageModal
             imageUrl={`/api/og/ranking?tournamentId=${tournament.id}&mode=general&locale=${locale}`}
-            shareUrl={`https://www.pronohub.club/tournoi-public/${tournament.invite_code || tournament.slug}`}
+            shareUrl={`https://www.pronohub.club/tournoi-public/${tournament.invite_code || tournament.slug}${userId ? `?ref=${userId}` : ''}`}
             shareText={t('shareTextInvite', { name: tournament.name })}
             downloadName={`tournoi-public-${tournament.invite_code || tournament.slug}.png`}
             title={t('shareInviteTitle')}
             onClose={() => setShowInviteModal(false)}
+          />
+        )}
+
+        {/* Parrainage (tournois publics, pas de phase d'échauffement) : invite 2 amis → stats */}
+        {tournament?.is_public && userId && (
+          <ReferralStatsModal
+            active={!!tournament.is_public && !!userId}
+            tournamentId={tournament.id}
+            tournamentCode={tournament.invite_code || tournament.slug}
+            tournamentName={tournament.name}
+            userId={userId}
           />
         )}
 

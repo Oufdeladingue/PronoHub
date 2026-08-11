@@ -1068,6 +1068,18 @@
     "moreOptions": "More options…",
     "download": "Download image"
   },
+  "Referral": {
+    "title": "Unlock this tournament's stats 🔓",
+    "intro": "Invite {n} friends with your personal link and unlock advanced Statistics (team form, prediction trends) on this tournament.",
+    "progress": "{count} of {threshold} friends invited",
+    "linkLabel": "Your personal invite link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "shareWhatsApp": "Share on WhatsApp",
+    "shareText": "Join me in the \"{name}\" tournament on PronoHub! 🏆",
+    "later": "Later",
+    "footnote": "Friends who join via YOUR link count towards you."
+  },
   "Chat": {
     "loading": "Loading chat...",
     "empty": "No messages yet.",

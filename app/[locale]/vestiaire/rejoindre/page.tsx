@@ -35,6 +35,7 @@ function RejoindreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const codeFromUrl = searchParams.get('code')?.toUpperCase() || ''
+  const refFromUrl = searchParams.get('ref') || '' // parrain (lien d'invitation personnalisé)
   const supabase = createClient()
 
   const [code, setCode] = useState(codeFromUrl)
@@ -123,7 +124,7 @@ function RejoindreContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ inviteCode: joinCode }),
+        body: JSON.stringify({ inviteCode: joinCode, ref: refFromUrl || undefined }),
       })
 
       const data = await response.json()
@@ -166,7 +167,8 @@ function RejoindreContent() {
 
   // Construire l'URL de retour pour après connexion
   const getRedirectUrl = () => {
-    const currentUrl = `/vestiaire/rejoindre?code=${code || codeFromUrl}`
+    // Préserver le parrain à travers login/signup pour ne pas perdre l'attribution
+    const currentUrl = `/vestiaire/rejoindre?code=${code || codeFromUrl}${refFromUrl ? `&ref=${refFromUrl}` : ''}`
     return encodeURIComponent(currentUrl)
   }
 

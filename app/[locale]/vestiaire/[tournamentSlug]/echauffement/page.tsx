@@ -1026,7 +1026,8 @@ function EchauffementPageContent() {
 
   // Landing publique avec aperçu riche (OG) quand partagée sur WhatsApp/réseaux → meilleur taux de clic.
   // Le QR code et l'entrée manuelle du code continuent d'utiliser le flux /vestiaire/rejoindre.
-  const getInviteUrl = () => `${window.location.origin}/share/invite/${tournamentCode}`
+  // Lien d'invitation avec parrain (?ref=) → débloque les stats du parrain au 2e filleul.
+  const getInviteUrl = () => `${window.location.origin}/share/invite/${tournamentCode}${currentUserId ? `?ref=${currentUserId}` : ''}`
 
   const copyShareUrl = () => {
     navigator.clipboard.writeText(getInviteUrl())
@@ -2073,7 +2074,7 @@ function EchauffementPageContent() {
                 <div className="bg-white inline-block p-4 rounded-lg">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                      `${window.location.origin}/vestiaire/rejoindre?code=${tournamentCode}`
+                      `${window.location.origin}/vestiaire/rejoindre?code=${tournamentCode}${currentUserId ? `&ref=${currentUserId}` : ''}`
                     )}`}
                     alt="QR Code"
                     className="w-48 h-48 mx-auto"

@@ -86,10 +86,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   }
 }
 
-export default async function ShareInvitePage({ params }: { params: Promise<Params> }) {
+export default async function ShareInvitePage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<{ ref?: string }> }) {
   const { code } = await params
+  const { ref } = await searchParams
   const p = await getPreview(code)
-  const joinUrl = `/vestiaire/rejoindre?code=${encodeURIComponent(code)}`
+  // Transmettre le parrain (?ref=) jusqu'à la page de jonction pour l'attribution des filleuls.
+  const joinUrl = `/vestiaire/rejoindre?code=${encodeURIComponent(code)}${ref ? `&ref=${encodeURIComponent(ref)}` : ''}`
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-5 py-12" style={{ background: '#0f172a' }}>

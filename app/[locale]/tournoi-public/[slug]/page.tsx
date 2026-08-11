@@ -92,14 +92,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-export default async function PublicTournamentPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PublicTournamentPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ ref?: string }> }) {
   const { slug } = await params
+  const { ref } = await searchParams
   const tr = await getTranslations('PublicTournament')
   const locale = await getLocale()
   const t = await getPublic(slug)
   if (!t) notFound()
 
-  const joinUrl = `/vestiaire/rejoindre?code=${encodeURIComponent(t.invite_code || t.slug)}`
+  const joinUrl = `/vestiaire/rejoindre?code=${encodeURIComponent(t.invite_code || t.slug)}${ref ? `&ref=${encodeURIComponent(ref)}` : ''}`
   const bold = (c: React.ReactNode) => <strong className="text-white">{c}</strong>
 
   return (

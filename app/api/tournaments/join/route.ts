@@ -24,6 +24,7 @@ interface JoinTournamentRequest {
   inviteCode: string
   stripe_session_id?: string // Pour les paiements Stripe
   useSlotId?: string         // Pour utiliser un slot déjà acheté
+  ref?: string               // Parrain (profiles.id) via lien d'invitation personnalisé ?ref=
 }
 
 interface JoinResult {
@@ -284,7 +285,7 @@ async function checkEventJoinEligibility(
 export async function POST(request: NextRequest) {
   try {
     const body: JoinTournamentRequest = await request.json()
-    const { inviteCode, stripe_session_id, useSlotId } = body
+    const { inviteCode, stripe_session_id, useSlotId, ref } = body
 
     if (!inviteCode || inviteCode.length !== 8) {
       return NextResponse.json(
@@ -554,7 +555,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Préparer les données du participant avec le tracking de paiement
+    // Valider le parrain (lien d'invitation personnalisé ?ref=). Le parrain doit être
+    // un UUID différent du joueur ET déjà participant de CE tournoi (sinon on ignore).
+    let referredBy: string | null = null
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (ref && UUID_RE.test(ref) && ref !== user.id) {
+      const { data: refParticipant } = await supabase
+        .from('tournament_participants')
+        .select('user_id')
+        .eq('tournament_id', tournament.id)
+        .eq('user_id', ref)
+        .maybeSingle()
+      if (refParticipant) referredBy = ref
+    }
+
+    // Préparer les données du participant avec le tracking de paiement.
+    // NB: `referred_by` est posé APRÈS l'insert (update best-effort) pour ne PAS bloquer
+    // l'inscription si la migration de colonne n'est pas encore appliquée.
     const participantData: {
       tournament_id: string
       user_id: string
@@ -611,6 +628,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Mémoriser le parrain (best-effort, hors chemin critique) : si la colonne referred_by
+    // n'existe pas encore (migration non appliquée), on ignore sans casser l'inscription.
+    if (referredBy) {
+      try {
+        const adminRef = createAdminClient()
+        await adminRef
+          .from('tournament_participants')
+          .update({ referred_by: referredBy })
+          .eq('tournament_id', tournament.id)
+          .eq('user_id', user.id)
+      } catch (e) {
+        console.error('[JOIN] referred_by non enregistré (colonne absente ?):', e)
+      }
+    }
+
     // RÉCOMPENSE VIRALE : quand un tournoi GRATUIT atteint 3 participants (créateur + 2 invités),
     // débloque les Stats avancées pour le CRÉATEUR, sur CE tournoi uniquement. Coût nul (feature
     // déjà gérée par /api/stats/access via une ligne stats_access_tournament). Insert via service
@@ -649,6 +681,48 @@ export async function POST(request: NextRequest) {
       }
     } catch (rewardError) {
       console.error('[JOIN] Erreur récompense stats:', rewardError)
+    }
+
+    // RÉCOMPENSE VIRALE PAR-UTILISATEUR (parrainage tracké) : quand le PARRAIN atteint
+    // 2 filleuls sur CE tournoi (joueurs venus via son lien ?ref=), il débloque les Stats
+    // avancées sur ce tournoi. Fonctionne sur tous les types de tournois (notamment publics),
+    // sauf ceux qui incluent déjà les stats (elite/platinium). Coût nul, idempotent.
+    if (referredBy) {
+      try {
+        const type = tournament.tournament_type
+        if (type !== 'elite' && type !== 'platinium') {
+          const admin = createAdminClient()
+          const { count: filleuls } = await admin
+            .from('tournament_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('tournament_id', tournament.id)
+            .eq('referred_by', referredBy)
+          if ((filleuls || 0) >= 2) {
+            const { data: existing } = await admin
+              .from('tournament_purchases')
+              .select('id')
+              .eq('user_id', referredBy)
+              .eq('tournament_id', tournament.id)
+              .eq('purchase_type', 'stats_access_tournament')
+              .eq('status', 'completed')
+              .limit(1)
+            if (!existing || existing.length === 0) {
+              await admin.from('tournament_purchases').insert({
+                user_id: referredBy,
+                tournament_id: tournament.id,
+                purchase_type: 'stats_access_tournament',
+                amount: 0,
+                currency: 'eur',
+                status: 'completed',
+                stripe_checkout_session_id: 'referral_reward',
+              })
+              console.log(`[JOIN] Stats débloquées (parrainage 2 filleuls) — parrain ${referredBy}, tournoi ${tournament.id}`)
+            }
+          }
+        }
+      } catch (refError) {
+        console.error('[JOIN] Erreur récompense parrainage:', refError)
+      }
     }
 
     // Envoyer un email au capitaine pour l'informer du nouveau joueur

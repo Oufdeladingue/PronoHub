@@ -1068,6 +1068,18 @@
     "moreOptions": "Weitere Optionen…",
     "download": "Bild herunterladen"
   },
+  "Referral": {
+    "title": "Schalte die Statistiken dieses Turniers frei 🔓",
+    "intro": "Lade {n} Freunde mit deinem persönlichen Link ein und schalte die erweiterten Statistiken (Team-Form, Tipp-Trends) für dieses Turnier frei.",
+    "progress": "{count} von {threshold} Freunden eingeladen",
+    "linkLabel": "Dein persönlicher Einladungslink",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "shareWhatsApp": "Auf WhatsApp teilen",
+    "shareText": "Mach mit beim Turnier \"{name}\" auf PronoHub! 🏆",
+    "later": "Später",
+    "footnote": "Freunde, die über DEINEN Link beitreten, zählen für dich."
+  },
   "Chat": {
     "loading": "Kabinengespräch wird geladen...",
     "empty": "Derzeit keine Nachrichten.",
