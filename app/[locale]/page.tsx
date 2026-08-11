@@ -8,18 +8,20 @@ import { AnimatedCounter } from './AnimatedCounter'
 import { ShareButtons } from './ShareButtons'
 import { getCompetitions } from '@/lib/seo/pronostics-content'
 import type { Locale } from '@/i18n/routing'
+import { buildAlternates, localizedUrl } from '@/lib/seo/alternates'
 import { getFeaturedPublicTournament } from '@/lib/public-tournament'
 import './landing.css'
 
-export async function generateMetadata() {
-  const t = await getTranslations('Landing.meta')
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'Landing.meta' })
   return {
     title: t('title'),
     description: t('description'),
     openGraph: {
       title: t('title'),
       description: t('ogDescription'),
-      url: 'https://www.pronohub.club',
+      url: localizedUrl(locale, '/'),
       siteName: 'PronoHub',
       type: 'website',
       images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'PronoHub' }],
@@ -30,9 +32,7 @@ export async function generateMetadata() {
       description: t('ogDescription'),
       images: ['/opengraph-image'],
     },
-    alternates: {
-      canonical: 'https://www.pronohub.club',
-    },
+    alternates: buildAlternates('/', locale),
   }
 }
 

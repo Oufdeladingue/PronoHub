@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server'
 import { getCompetitions, getCompetitionSeo } from '@/lib/seo/pronostics-content'
 import { fetchEmblem, SeoHeader, HowItWorks, WhyPronoHub, SeoCta, SeoFooter } from '@/components/seo/PronosticsChrome'
 import type { Locale } from '@/i18n/routing'
+import { buildAlternates } from '@/lib/seo/alternates'
 
 export const revalidate = 86400 // ISR : régénère au plus une fois/jour
 const BASE = 'https://www.pronohub.club'
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: c.title,
     description: c.description,
-    alternates: { canonical: url },
+    alternates: buildAlternates(`/pronostics/${c.slug}`, locale),
     openGraph: { title: c.title, description: c.description, url, type: 'website', images: [{ url: '/opengraph-image' }] },
     twitter: { card: 'summary_large_image', title: c.title, description: c.description, images: ['/opengraph-image'] },
   }

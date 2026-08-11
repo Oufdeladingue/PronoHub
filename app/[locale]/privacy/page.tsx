@@ -4,19 +4,15 @@ import { ArrowLeft } from 'lucide-react'
 import Footer from '@/components/Footer'
 import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/routing'
-
-const BASE = 'https://www.pronohub.club'
+import { buildAlternates } from '@/lib/seo/alternates'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'Privacy.meta' })
-  const url = locale === 'fr' ? `${BASE}/privacy` : `${BASE}/${locale}/privacy`
   return {
     title: t('title'),
     description: t('description'),
-    alternates: {
-      canonical: url,
-    },
+    alternates: buildAlternates('/privacy', locale),
     robots: {
       index: true,
       follow: true,

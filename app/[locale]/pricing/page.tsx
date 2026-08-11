@@ -7,19 +7,20 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import PricingClient from './PricingClient'
 import PricingCapacitorWrapper from '@/components/PricingCapacitorWrapper'
 import { getTranslations } from 'next-intl/server'
+import type { Locale } from '@/i18n/routing'
+import { buildAlternates, localizedUrl } from '@/lib/seo/alternates'
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('Pricing.meta')
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'Pricing.meta' })
   return {
     title: t('title'),
     description: t('description'),
-    alternates: {
-      canonical: 'https://www.pronohub.club/pricing',
-    },
+    alternates: buildAlternates('/pricing', locale),
     openGraph: {
       title: t('title'),
       description: t('ogDescription'),
-      url: 'https://www.pronohub.club/pricing',
+      url: localizedUrl(locale, '/pricing'),
     },
   }
 }

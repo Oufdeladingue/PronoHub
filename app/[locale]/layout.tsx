@@ -66,14 +66,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: {
-    canonical: 'https://www.pronohub.club',
-    languages: {
-      'fr-FR': 'https://www.pronohub.club',
-      'en': 'https://www.pronohub.club/en',
-      'x-default': 'https://www.pronohub.club',
-    },
-  },
+  // NB: pas d'`alternates` ici — un layout ne connaît pas le chemin de la page, donc
+  // il ne peut pas fixer une canonique/hreflang correcte. Chaque page indexable définit
+  // ses propres `alternates` (canonical auto-référent + hreflang) via lib/seo/alternates.
   verification: {
     google: 'YxdZzPQhmS94lQs6REKEJA6J6chP2bGEeQ3Zf5bgmjs',
   },

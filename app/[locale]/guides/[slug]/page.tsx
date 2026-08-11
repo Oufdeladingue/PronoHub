@@ -6,6 +6,7 @@ import { getGuide, getGuides } from '@/lib/seo/guides-content'
 import { getCompetitions } from '@/lib/seo/pronostics-content'
 import { SeoHeader, SeoCta, SeoFooter } from '@/components/seo/PronosticsChrome'
 import type { Locale } from '@/i18n/routing'
+import { buildAlternates } from '@/lib/seo/alternates'
 
 export const revalidate = 86400
 const BASE = 'https://www.pronohub.club'
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: g.title,
     description: g.description,
-    alternates: { canonical: url },
+    alternates: buildAlternates(`/guides/${g.slug}`, locale),
     openGraph: { title: g.title, description: g.description, url, type: 'article', images: [{ url: '/opengraph-image' }] },
     twitter: { card: 'summary_large_image', title: g.title, description: g.description, images: ['/opengraph-image'] },
   }
