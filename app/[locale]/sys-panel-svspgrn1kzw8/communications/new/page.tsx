@@ -746,7 +746,14 @@ export default function NewCommunicationPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Notification Push */}
             <div className="admin-card">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Contenu Notification Push</h2>
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Contenu Notification Push</h2>
+                {activeLang !== 'fr' && (
+                  <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded">
+                    {activeLang.toUpperCase()} · repli FR si vide
+                  </span>
+                )}
+              </div>
 
               <div className="space-y-4">
                 <div>
