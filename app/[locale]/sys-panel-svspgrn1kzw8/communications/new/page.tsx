@@ -19,11 +19,13 @@ type TransLang = 'en' | 'es' | 'de' | 'it'
 type TransField =
   | 'email_subject'
   | 'email_preview_text'
+  | 'email_content_html'
   | 'email_body_html'
   | 'email_cta_text'
   | 'notification_title'
   | 'notification_body'
 type TranslationsState = Record<TransLang, Partial<Record<TransField, string>>>
+const TRANS_LANGS: TransLang[] = ['en', 'es', 'de', 'it']
 
 const LANGS: Array<{ code: 'fr' | TransLang; label: string; flag: string }> = [
   { code: 'fr', label: 'FR', flag: '🇫🇷' },
@@ -32,19 +34,6 @@ const LANGS: Array<{ code: 'fr' | TransLang; label: string; flag: string }> = [
   { code: 'de', label: 'DE', flag: '🇩🇪' },
   { code: 'it', label: 'IT', flag: '🇮🇹' },
 ]
-
-/** Retire les langues (et champs) entièrement vides avant persistance. */
-function cleanTranslations(tr: TranslationsState): Record<string, Record<string, string>> {
-  const out: Record<string, Record<string, string>> = {}
-  for (const [lang, fields] of Object.entries(tr)) {
-    const nonEmpty: Record<string, string> = {}
-    for (const [k, v] of Object.entries(fields || {})) {
-      if (typeof v === 'string' && v.trim()) nonEmpty[k] = v
-    }
-    if (Object.keys(nonEmpty).length > 0) out[lang] = nonEmpty
-  }
-  return out
-}
 
 interface FormData {
   title: string
@@ -95,6 +84,8 @@ export default function NewCommunicationPage() {
   const [translations, setTranslations] = useState<TranslationsState>({ en: {}, es: {}, de: {}, it: {} })
   const [translating, setTranslating] = useState(false)
   const [translateError, setTranslateError] = useState<string | null>(null)
+  // Force le remount des éditeurs visuels après une traduction (TipTap n'écoute pas value)
+  const [translateNonce, setTranslateNonce] = useState(0)
 
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
@@ -226,7 +217,8 @@ export default function NewCommunicationPage() {
           fields: {
             email_subject: formData.email_subject,
             email_preview_text: formData.email_preview_text,
-            email_body_html: getFullEmailHtml(),
+            // On ne traduit QUE le contenu interne (pas tout le document HTML)
+            email_content_html: formData.email_content_html,
             email_cta_text: formData.email_cta_text,
             notification_title: formData.notification_title,
             notification_body: formData.notification_body
@@ -238,6 +230,7 @@ export default function NewCommunicationPage() {
         throw new Error(data?.error || `Erreur serveur (HTTP ${response.status})`)
       }
       setTranslations(prev => ({ ...prev, ...data.translations }))
+      setTranslateNonce(n => n + 1)
       if (Array.isArray(data.errors) && data.errors.length > 0) {
         setTranslateError(`Traduction partielle : ${data.errors.join(' ; ')}`)
       }
@@ -250,23 +243,58 @@ export default function NewCommunicationPage() {
   }
 
   // Remplacer les variables pour la preview
-  const previewText = (text: string) => {
+  const previewText = (text: string, ctaText?: string) => {
     return text
       .replace(/\[username\]/gi, profile?.username || 'JohnDoe')
       .replace(/\[email\]/gi, profile?.email || 'john@example.com')
-      .replace(/\[CTA_TEXT\]/gi, formData.email_cta_text || 'Découvrir')
+      .replace(/\[CTA_TEXT\]/gi, ctaText || formData.email_cta_text || 'Découvrir')
       .replace(/\[CTA_URL\]/gi, formData.email_cta_url || 'https://www.pronohub.club/dashboard')
   }
 
-  // Construire le HTML complet de l'email (template + contenu)
-  const getFullEmailHtml = () => {
-    return buildEmailHtml(
+  // --- Valeurs par langue (repli FR champ par champ) ---
+  const contentForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.email_content_html : (translations[lang].email_content_html || '')
+  const subjectForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.email_subject : (translations[lang].email_subject || formData.email_subject)
+  const previewForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.email_preview_text : (translations[lang].email_preview_text || formData.email_preview_text)
+  const ctaForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.email_cta_text : (translations[lang].email_cta_text || formData.email_cta_text)
+  const notifTitleForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.notification_title : (translations[lang].notification_title || formData.notification_title)
+  const notifBodyForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? formData.notification_body : (translations[lang].notification_body || formData.notification_body)
+
+  // Construire le HTML complet de l'email pour une langue (template + contenu, replis FR)
+  const buildHtmlForLang = (lang: 'fr' | TransLang): string =>
+    buildEmailHtml(
       formData.email_template_id || null,
-      formData.email_content_html,
-      formData.email_cta_text,
+      contentForLang(lang) || formData.email_content_html,
+      ctaForLang(lang),
       formData.email_cta_url,
-      formData.email_subject
+      subjectForLang(lang)
     )
+
+  // Construire le HTML complet FR (template + contenu) — pour email_body_html en base
+  const getFullEmailHtml = () => buildHtmlForLang('fr')
+
+  /** Prépare le JSONB translations : champs traduits + email_body_html reconstruit par langue. */
+  const buildTranslationsForSave = (): Record<string, Record<string, string>> => {
+    const out: Record<string, Record<string, string>> = {}
+    for (const lang of TRANS_LANGS) {
+      const t = translations[lang] || {}
+      const entry: Record<string, string> = {}
+      for (const f of ['email_subject', 'email_preview_text', 'email_content_html', 'email_cta_text', 'notification_title', 'notification_body'] as TransField[]) {
+        const v = t[f]
+        if (typeof v === 'string' && v.trim()) entry[f] = v
+      }
+      // Corps complet pour l'envoi (dès qu'un champ email traduit existe)
+      if (entry.email_subject || entry.email_content_html || entry.email_cta_text) {
+        entry.email_body_html = buildHtmlForLang(lang)
+      }
+      if (Object.keys(entry).length > 0) out[lang] = entry
+    }
+    return out
   }
 
   const handleSaveDraft = async () => {
@@ -308,7 +336,7 @@ export default function NewCommunicationPage() {
           notification_image_url: formData.notification_image_url || null,
           notification_click_url: formData.notification_click_url || '/dashboard',
           targeting_filters: formData.targeting_filters,
-          translations: cleanTranslations(translations),
+          translations: buildTranslationsForSave(),
           created_by: user.id
         })
         .select()
@@ -597,28 +625,22 @@ export default function NewCommunicationPage() {
                   </p>
                 </div>
 
-                {activeLang === 'fr' ? (
+                <div>
                   <EmailEditor
-                    value={formData.email_content_html}
-                    onChange={(value) => handleChange('email_content_html', value)}
+                    key={`${activeLang}-${translateNonce}`}
+                    value={contentForLang(activeLang)}
+                    onChange={(value) =>
+                      activeLang === 'fr'
+                        ? handleChange('email_content_html', value)
+                        : setTransField(activeLang, 'email_content_html', value)
+                    }
                   />
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Corps de l'email (HTML complet)
-                    </label>
-                    <textarea
-                      value={translations[activeLang].email_body_html || ''}
-                      onChange={(e) => setTransField(activeLang, 'email_body_html', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white"
-                      rows={12}
-                      placeholder="<html>...</html>"
-                    />
+                  {activeLang !== 'fr' && (
                     <p className="text-xs text-gray-500 mt-1">
-                      HTML complet de l'email traduit. Laisse vide pour utiliser le FR. Utilise « 🌐 Traduire automatiquement » pour pré-remplir.
+                      Laisse vide pour utiliser le corps FR à l'envoi. Le gabarit (couleurs, logo, bouton) est repris automatiquement.
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Champs CTA */}
                 <div className="border-t border-gray-200 pt-4 mt-4">
@@ -666,24 +688,29 @@ export default function NewCommunicationPage() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
-                {formData.email_subject || formData.email_content_html ? (
+                {activeLang !== 'fr' && (
+                  <p className="text-[11px] text-purple-700 bg-purple-50 px-4 py-1.5 border-b border-purple-100">
+                    Aperçu en {activeLang.toUpperCase()} (repli FR pour les champs vides)
+                  </p>
+                )}
+                {subjectForLang(activeLang) || contentForLang(activeLang) ? (
                   <div className="space-y-3">
                     <div className="px-4 pt-4">
                       <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{previewText(formData.email_subject)}</p>
+                      <p className="font-semibold text-gray-900">{previewText(subjectForLang(activeLang), ctaForLang(activeLang))}</p>
                     </div>
-                    {formData.email_preview_text && (
+                    {previewForLang(activeLang) && (
                       <div className="px-4">
                         <p className="text-xs text-gray-500">Prévisualisation:</p>
-                        <p className="text-sm text-gray-600">{previewText(formData.email_preview_text)}</p>
+                        <p className="text-sm text-gray-600">{previewText(previewForLang(activeLang), ctaForLang(activeLang))}</p>
                       </div>
                     )}
-                    {formData.email_content_html && (
+                    {(contentForLang(activeLang) || formData.email_content_html) && (
                       <div className="border-t border-gray-200">
                         <p className="text-xs text-gray-500 px-4 pt-3 mb-2">Corps:</p>
                         {formData.email_template_id && formData.email_template_id !== 'blank' ? (
                           <iframe
-                            srcDoc={previewText(getFullEmailHtml())}
+                            srcDoc={previewText(buildHtmlForLang(activeLang), ctaForLang(activeLang))}
                             className="w-full border-0"
                             style={{ minHeight: '200px' }}
                             title="Aperçu email"
@@ -697,7 +724,7 @@ export default function NewCommunicationPage() {
                         ) : (
                           <div
                             className="prose prose-sm max-w-none px-4 pb-4"
-                            dangerouslySetInnerHTML={{ __html: previewText(formData.email_content_html) }}
+                            dangerouslySetInnerHTML={{ __html: previewText(contentForLang(activeLang) || formData.email_content_html, ctaForLang(activeLang)) }}
                           />
                         )}
                       </div>
@@ -811,7 +838,7 @@ export default function NewCommunicationPage() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Notification</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {formData.notification_title ? (
+                {notifTitleForLang(activeLang) ? (
                   <div className="bg-white rounded-lg shadow-md p-4 max-w-sm">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0">
@@ -820,11 +847,11 @@ export default function NewCommunicationPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-500 mb-1">PronoHub</p>
                         <p className="text-sm font-semibold text-gray-900 mb-1">
-                          {previewText(formData.notification_title)}
+                          {previewText(notifTitleForLang(activeLang))}
                         </p>
-                        {formData.notification_body && (
+                        {notifBodyForLang(activeLang) && (
                           <p className="text-sm text-gray-600">
-                            {previewText(formData.notification_body)}
+                            {previewText(notifBodyForLang(activeLang))}
                           </p>
                         )}
                         {formData.notification_image_url && (

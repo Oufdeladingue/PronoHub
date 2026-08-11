@@ -13,9 +13,13 @@ const DEEPL_KEY = process.env.DEEPL_API_KEY
 const MODEL = process.env.COMM_TRANSLATE_MODEL || 'claude-opus-5'
 
 // Champs traduisibles d'une communication (mêmes clés que le composer/JSON translations).
+// `email_content_html` = contenu interne WYSIWYG (nouveau flux, éditeur visuel) ;
+// `email_body_html` = HTML complet (records legacy en HTML brut). On envoie l'un OU l'autre
+// selon le record ; les champs vides sont ignorés → un seul aller-retour.
 const FIELDS = [
   'email_subject',
   'email_preview_text',
+  'email_content_html',
   'email_body_html',
   'email_cta_text',
   'notification_title',
@@ -111,7 +115,7 @@ const SYSTEM = `You are a professional translator for PronoHub, a football-predi
 Translate the given FRENCH marketing content into the target language. Return ONLY the translated fields, as JSON matching the schema.
 
 Rules:
-- "email_body_html" is HTML: preserve ALL tags, attributes, inline styles and structure EXACTLY; translate only the human-visible text between tags.
+- "email_content_html" and "email_body_html" are HTML: preserve ALL tags, attributes, inline styles and structure EXACTLY; translate only the human-visible text between tags.
 - Preserve these placeholders verbatim wherever they appear, in any field: [username], [email], [HEADER_TITLE], [CTA_TEXT], [CTA_URL], and any {{...}} shortcodes. Never translate or alter them.
 - Do NOT translate: brand/product names (PronoHub, WhatsApp, Facebook, Stripe, Free-Kick, One-Shot, Elite Team, Platinium, Premium), URLs, or prices (keep the French format, e.g. "4,99€").
 - Natural, idiomatic, warm football wording. Use informal address (tu/du/tú) where the language supports it.

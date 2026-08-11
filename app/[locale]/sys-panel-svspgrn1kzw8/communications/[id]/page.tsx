@@ -19,11 +19,13 @@ type TransLang = 'en' | 'es' | 'de' | 'it'
 type TransField =
   | 'email_subject'
   | 'email_preview_text'
+  | 'email_content_html'
   | 'email_body_html'
   | 'email_cta_text'
   | 'notification_title'
   | 'notification_body'
 type TranslationsState = Record<TransLang, Partial<Record<TransField, string>>>
+const TRANS_LANGS: TransLang[] = ['en', 'es', 'de', 'it']
 
 const LANGS: Array<{ code: 'fr' | TransLang; label: string; flag: string }> = [
   { code: 'fr', label: 'FR', flag: '🇫🇷' },
@@ -42,19 +44,6 @@ function normalizeTranslations(raw: any): TranslationsState {
     de: r.de || {},
     it: r.it || {},
   }
-}
-
-/** Retire les langues (et champs) entièrement vides avant persistance. */
-function cleanTranslations(tr: TranslationsState): Record<string, Record<string, string>> {
-  const out: Record<string, Record<string, string>> = {}
-  for (const [lang, fields] of Object.entries(tr)) {
-    const nonEmpty: Record<string, string> = {}
-    for (const [k, v] of Object.entries(fields || {})) {
-      if (typeof v === 'string' && v.trim()) nonEmpty[k] = v
-    }
-    if (Object.keys(nonEmpty).length > 0) out[lang] = nonEmpty
-  }
-  return out
 }
 
 interface Communication {
@@ -136,6 +125,8 @@ export default function EditCommunicationPage() {
   const [translations, setTranslations] = useState<TranslationsState>({ en: {}, es: {}, de: {}, it: {} })
   const [translating, setTranslating] = useState(false)
   const [translateError, setTranslateError] = useState<string | null>(null)
+  // Force le remount des éditeurs visuels après une traduction (TipTap n'écoute pas value)
+  const [translateNonce, setTranslateNonce] = useState(0)
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendChannels, setSendChannels] = useState({ email: true, push: true })
   const [avoidDoubleSend, setAvoidDoubleSend] = useState(false) // Push prioritaire : pas d'email si l'user a l'app
@@ -301,6 +292,7 @@ export default function EditCommunicationPage() {
     setTranslateError(null)
     setTranslating(true)
     try {
+      const legacy = !communication.email_content_html && !!communication.email_body_html
       const response = await fetch('/api/admin/communications/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -308,7 +300,10 @@ export default function EditCommunicationPage() {
           fields: {
             email_subject: communication.email_subject || '',
             email_preview_text: communication.email_preview_text || '',
-            email_body_html: getFullEmailHtml(),
+            // Nouveau record : on traduit le contenu interne ; legacy : le HTML complet.
+            ...(legacy
+              ? { email_body_html: communication.email_body_html || '' }
+              : { email_content_html: communication.email_content_html || '' }),
             email_cta_text: communication.email_cta_text || '',
             notification_title: communication.notification_title || '',
             notification_body: communication.notification_body || ''
@@ -320,6 +315,7 @@ export default function EditCommunicationPage() {
         throw new Error(data?.error || `Erreur serveur (HTTP ${response.status})`)
       }
       setTranslations(prev => ({ ...prev, ...data.translations }))
+      setTranslateNonce(n => n + 1)
       if (Array.isArray(data.errors) && data.errors.length > 0) {
         setTranslateError(`Traduction partielle : ${data.errors.join(' ; ')}`)
       }
@@ -331,28 +327,69 @@ export default function EditCommunicationPage() {
     }
   }
 
-  const previewText = (text: string) => {
+  const previewText = (text: string, ctaText?: string) => {
     return text
       .replace(/\[username\]/gi, profile?.username || 'JohnDoe')
       .replace(/\[email\]/gi, profile?.email || 'john@example.com')
-      .replace(/\[CTA_TEXT\]/gi, communication?.email_cta_text || 'Découvrir')
+      .replace(/\[CTA_TEXT\]/gi, ctaText || communication?.email_cta_text || 'Découvrir')
       .replace(/\[CTA_URL\]/gi, communication?.email_cta_url || 'https://www.pronohub.club/dashboard')
   }
 
   // Mode legacy = pas de email_content_html (ancien record avec HTML brut)
   const isLegacy = communication ? !communication.email_content_html && !!communication.email_body_html : false
 
-  // Construire le HTML complet (template + contenu)
-  const getFullEmailHtml = () => {
-    if (!communication) return ''
-    if (isLegacy) return communication.email_body_html || ''
+  // --- Valeurs par langue (repli FR champ par champ) ---
+  const contentForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.email_content_html || '') : (translations[lang].email_content_html || '')
+  const subjectForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.email_subject || '') : (translations[lang].email_subject || communication?.email_subject || '')
+  const previewForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.email_preview_text || '') : (translations[lang].email_preview_text || communication?.email_preview_text || '')
+  const ctaForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.email_cta_text || '') : (translations[lang].email_cta_text || communication?.email_cta_text || '')
+  const notifTitleForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.notification_title || '') : (translations[lang].notification_title || communication?.notification_title || '')
+  const notifBodyForLang = (lang: 'fr' | TransLang): string =>
+    lang === 'fr' ? (communication?.notification_body || '') : (translations[lang].notification_body || communication?.notification_body || '')
+
+  // Corps HTML complet d'une langue (legacy = HTML brut traduit ; sinon template + contenu)
+  const buildHtmlForLang = (lang: 'fr' | TransLang): string => {
+    if (isLegacy) {
+      if (lang !== 'fr' && translations[lang].email_body_html?.trim()) return translations[lang].email_body_html!
+      return communication?.email_body_html || ''
+    }
     return buildEmailHtml(
-      communication.email_template_id || null,
-      communication.email_content_html || '',
-      communication.email_cta_text || undefined,
-      communication.email_cta_url || undefined,
-      communication.email_subject || undefined
+      communication?.email_template_id || null,
+      contentForLang(lang) || communication?.email_content_html || '',
+      ctaForLang(lang) || undefined,
+      communication?.email_cta_url || undefined,
+      subjectForLang(lang) || undefined
     )
+  }
+
+  // Construire le HTML complet FR (template + contenu) — pour email_body_html en base
+  const getFullEmailHtml = () => buildHtmlForLang('fr')
+
+  /** Prépare le JSONB translations : champs traduits + email_body_html reconstruit par langue. */
+  const buildTranslationsForSave = (): Record<string, Record<string, string>> => {
+    const out: Record<string, Record<string, string>> = {}
+    const copyFields: TransField[] = isLegacy
+      ? ['email_subject', 'email_preview_text', 'email_body_html', 'email_cta_text', 'notification_title', 'notification_body']
+      : ['email_subject', 'email_preview_text', 'email_content_html', 'email_cta_text', 'notification_title', 'notification_body']
+    for (const lang of TRANS_LANGS) {
+      const t = translations[lang] || {}
+      const entry: Record<string, string> = {}
+      for (const f of copyFields) {
+        const v = t[f]
+        if (typeof v === 'string' && v.trim()) entry[f] = v
+      }
+      // Nouveau flux : reconstruire le corps complet pour l'envoi
+      if (!isLegacy && (entry.email_subject || entry.email_content_html || entry.email_cta_text)) {
+        entry.email_body_html = buildHtmlForLang(lang)
+      }
+      if (Object.keys(entry).length > 0) out[lang] = entry
+    }
+    return out
   }
 
   const handleSave = async () => {
@@ -383,7 +420,7 @@ export default function EditCommunicationPage() {
         notification_image_url: communication.notification_image_url || null,
         notification_click_url: communication.notification_click_url || '/dashboard',
         targeting_filters: communication.targeting_filters || null,
-        translations: cleanTranslations(translations)
+        translations: buildTranslationsForSave()
       })
       .eq('id', communicationId)
 
@@ -924,42 +961,56 @@ export default function EditCommunicationPage() {
                     )}
                   </div>
 
-                  {activeLang !== 'fr' ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Corps de l'email (HTML complet)
-                      </label>
-                      <textarea
-                        value={translations[activeLang].email_body_html || ''}
-                        onChange={(e) => setTransField(activeLang, 'email_body_html', e.target.value)}
-                        disabled={!canEdit}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
-                        rows={12}
-                        placeholder="<html>...</html>"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        HTML complet de l'email traduit. Laisse vide pour utiliser le FR. Utilise « 🌐 Traduire automatiquement » pour pré-remplir.
-                      </p>
-                    </div>
-                  ) : isLegacy ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Corps de l'email (HTML)
-                      </label>
-                      <textarea
-                        value={communication.email_body_html || ''}
-                        onChange={(e) => handleChange('email_body_html', e.target.value)}
-                        disabled={!canEdit}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
-                        rows={10}
-                        placeholder="<html>...</html>"
-                      />
-                    </div>
+                  {isLegacy ? (
+                    activeLang !== 'fr' ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Corps de l'email (HTML complet)
+                        </label>
+                        <textarea
+                          value={translations[activeLang].email_body_html || ''}
+                          onChange={(e) => setTransField(activeLang, 'email_body_html', e.target.value)}
+                          disabled={!canEdit}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                          rows={12}
+                          placeholder="<html>...</html>"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          HTML complet de l'email traduit (record legacy). Laisse vide pour utiliser le FR.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Corps de l'email (HTML)
+                        </label>
+                        <textarea
+                          value={communication.email_body_html || ''}
+                          onChange={(e) => handleChange('email_body_html', e.target.value)}
+                          disabled={!canEdit}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                          rows={10}
+                          placeholder="<html>...</html>"
+                        />
+                      </div>
+                    )
                   ) : (
-                    <EmailEditor
-                      value={communication.email_content_html || ''}
-                      onChange={(value) => handleChange('email_content_html', value)}
-                    />
+                    <div>
+                      <EmailEditor
+                        key={`${activeLang}-${translateNonce}`}
+                        value={contentForLang(activeLang)}
+                        onChange={(value) =>
+                          activeLang === 'fr'
+                            ? handleChange('email_content_html', value)
+                            : setTransField(activeLang, 'email_content_html', value)
+                        }
+                      />
+                      {activeLang !== 'fr' && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Laisse vide pour utiliser le corps FR à l'envoi. Le gabarit (couleurs, logo, bouton) est repris automatiquement.
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   <div className="border-t border-gray-200 pt-4">
@@ -1004,24 +1055,29 @@ export default function EditCommunicationPage() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Email</h2>
 
               <div className="border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
-                {communication.email_subject || communication.email_content_html || communication.email_body_html ? (
+                {activeLang !== 'fr' && (
+                  <p className="text-[11px] text-purple-700 bg-purple-50 px-4 py-1.5 border-b border-purple-100">
+                    Aperçu en {activeLang.toUpperCase()} (repli FR pour les champs vides)
+                  </p>
+                )}
+                {subjectForLang(activeLang) || buildHtmlForLang(activeLang) ? (
                   <div className="space-y-3">
                     <div className="px-4 pt-4">
                       <p className="text-xs text-gray-500">Sujet:</p>
-                      <p className="font-semibold text-gray-900">{previewText(communication.email_subject || '')}</p>
+                      <p className="font-semibold text-gray-900">{previewText(subjectForLang(activeLang), ctaForLang(activeLang))}</p>
                     </div>
-                    {communication.email_preview_text && (
+                    {previewForLang(activeLang) && (
                       <div className="px-4">
                         <p className="text-xs text-gray-500">Prévisualisation:</p>
-                        <p className="text-sm text-gray-600">{previewText(communication.email_preview_text)}</p>
+                        <p className="text-sm text-gray-600">{previewText(previewForLang(activeLang), ctaForLang(activeLang))}</p>
                       </div>
                     )}
-                    {(communication.email_content_html || communication.email_body_html) && (
+                    {buildHtmlForLang(activeLang) && (
                       <div className="border-t border-gray-200">
                         <p className="text-xs text-gray-500 px-4 pt-3 mb-2">Corps:</p>
                         {!isLegacy && communication.email_template_id && communication.email_template_id !== 'blank' ? (
                           <iframe
-                            srcDoc={previewText(getFullEmailHtml())}
+                            srcDoc={previewText(buildHtmlForLang(activeLang), ctaForLang(activeLang))}
                             className="w-full border-0"
                             style={{ minHeight: '200px' }}
                             title="Aperçu email"
@@ -1035,7 +1091,7 @@ export default function EditCommunicationPage() {
                         ) : (
                           <div
                             className="prose prose-sm max-w-none px-4 pb-4"
-                            dangerouslySetInnerHTML={{ __html: previewText(isLegacy ? (communication.email_body_html || '') : (communication.email_content_html || '')) }}
+                            dangerouslySetInnerHTML={{ __html: previewText(isLegacy ? buildHtmlForLang(activeLang) : (contentForLang(activeLang) || communication.email_content_html || ''), ctaForLang(activeLang)) }}
                           />
                         )}
                       </div>
@@ -1153,7 +1209,7 @@ export default function EditCommunicationPage() {
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Aperçu Notification Push</h2>
 
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                {communication.notification_title ? (
+                {notifTitleForLang(activeLang) ? (
                   <div className="bg-white rounded-lg shadow-md p-4 max-w-sm">
                     <div className="flex items-start gap-3">
                       <div className="shrink-0">
@@ -1162,11 +1218,11 @@ export default function EditCommunicationPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-gray-500 mb-1">PronoHub</p>
                         <p className="text-sm font-semibold text-gray-900 mb-1">
-                          {communication.notification_title}
+                          {previewText(notifTitleForLang(activeLang))}
                         </p>
-                        {communication.notification_body && (
+                        {notifBodyForLang(activeLang) && (
                           <p className="text-sm text-gray-600">
-                            {communication.notification_body}
+                            {previewText(notifBodyForLang(activeLang))}
                           </p>
                         )}
                         {communication.notification_image_url && (
