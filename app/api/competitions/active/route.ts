@@ -24,7 +24,8 @@ export async function GET() {
     const [
       competitionsResult,
       customCompetitionsResult,
-      tournamentCountsResult
+      tournamentCountsResult,
+      publicCustomLinksResult
     ] = await Promise.all([
       // 1. Compétitions importées actives
       supabase
@@ -46,12 +47,26 @@ export async function GET() {
       supabase
         .from('tournaments')
         .select('competition_id')
-        .not('competition_id', 'is', null)
+        .not('competition_id', 'is', null),
+
+      // 4. Compétitions custom qui servent de base à un tournoi PUBLIC → réservées, à masquer
+      //    de la grille de création (un user ne doit pas baser son tournoi perso dessus).
+      admin
+        .from('tournaments')
+        .select('custom_competition_id')
+        .eq('is_public', true)
+        .not('custom_competition_id', 'is', null)
     ])
 
     const { data: competitions, error } = competitionsResult
     const { data: customCompetitions, error: customError } = customCompetitionsResult
     const { data: tournamentCounts } = tournamentCountsResult
+    const { data: publicCustomLinks } = publicCustomLinksResult
+
+    // IDs des compétitions custom réservées aux tournois publics
+    const reservedCustomIds = new Set(
+      (publicCustomLinks || []).map((t: any) => t.custom_competition_id).filter(Boolean)
+    )
 
     if (error) throw error
     if (customError) {
@@ -201,7 +216,9 @@ export async function GET() {
     const closingBuffer = 30 * 60 * 1000 // 30 minutes en ms
     const closingTime = new Date(now.getTime() + closingBuffer).toISOString()
 
-    const customCompetitionsFormatted = (customCompetitions || []).map((customComp: any) => {
+    const customCompetitionsFormatted = (customCompetitions || [])
+      .filter((customComp: any) => !reservedCustomIds.has(customComp.id))
+      .map((customComp: any) => {
       // Compter les journées RÉELLEMENT jouables basées sur les dates des matchs
       const matchdays = customComp.custom_competition_matchdays || []
 

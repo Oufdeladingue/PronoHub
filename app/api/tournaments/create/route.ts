@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { TournamentType, PRICES, TOURNAMENT_RULES } from '@/types/monetization'
 import { sendEmail } from '@/lib/email/send'
@@ -192,6 +192,25 @@ export async function POST(request: Request) {
         { success: false, error: 'Ce code de tournoi existe déjà' },
         { status: 409 }
       )
+    }
+
+    // Garde : une compétition custom qui sert de base à un tournoi PUBLIC est réservée.
+    // Un user ne doit pas pouvoir baser son tournoi perso dessus (défense côté serveur en
+    // plus du masquage dans la grille de création).
+    if (isCustomCompetition && customCompetitionId) {
+      const admin = createAdminClient()
+      const { data: publicBacked } = await admin
+        .from('tournaments')
+        .select('id')
+        .eq('custom_competition_id', customCompetitionId)
+        .eq('is_public', true)
+        .limit(1)
+      if (publicBacked && publicBacked.length > 0) {
+        return NextResponse.json(
+          { success: false, error: 'Cette compétition est réservée à un tournoi public et ne peut pas servir de base à un tournoi personnel.' },
+          { status: 403 }
+        )
+      }
     }
 
     // Vérifier si la compétition est un événement (Coupe du Monde, Euro, etc.)
