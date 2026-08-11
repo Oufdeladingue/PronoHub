@@ -7,10 +7,10 @@ import type { TargetingFilters } from './email-templates'
 export async function calculateRecipients(
   supabase: SupabaseClient,
   filters: TargetingFilters
-): Promise<Array<{ id: string; email: string; fcm_token: string | null; username: string }>> {
+): Promise<Array<{ id: string; email: string; fcm_token: string | null; username: string; locale: string | null }>> {
   let query = supabase
     .from('profiles')
-    .select('id, email, fcm_token, username, last_seen_at, created_at')
+    .select('id, email, fcm_token, username, locale, last_seen_at, created_at')
     .not('email', 'is', null)
 
   // Filtres de base

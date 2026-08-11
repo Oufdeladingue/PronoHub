@@ -112,10 +112,31 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Pré-traitement : remplacer les shortcodes matchs (indépendant de l'utilisateur)
-    let preProcessedBody = communication.email_body_html || ''
+    // ---- Multilingue : contenu par langue du destinataire (repli FR par champ) ----
+    // FR = colonnes racine ; les autres langues sont dans communication.translations.
+    const TRANS_LOCALES = ['en', 'es', 'de', 'it'] as const
+    const trans = (communication.translations || {}) as Record<string, Record<string, string>>
+    const localeOf = (l?: string | null): string =>
+      l && (TRANS_LOCALES as readonly string[]).includes(l) ? l : 'fr'
+    // Résout un champ texte pour une locale (repli FR si vide/absent).
+    const pick = (loc: string, field: string, frValue: string): string => {
+      if (loc !== 'fr') {
+        const v = trans[loc]?.[field]
+        if (typeof v === 'string' && v.trim()) return v
+      }
+      return frValue
+    }
+
+    // Pré-traitement des corps email (shortcodes matchs) — une fois par langue présente.
+    const processedBodyByLocale: Record<string, string> = {}
     if (hasEmail) {
-      preProcessedBody = await replaceMatchShortcodes(preProcessedBody, supabase)
+      processedBodyByLocale['fr'] = await replaceMatchShortcodes(communication.email_body_html || '', supabase)
+      for (const loc of TRANS_LOCALES) {
+        const body = trans[loc]?.email_body_html
+        if (typeof body === 'string' && body.trim()) {
+          processedBodyByLocale[loc] = await replaceMatchShortcodes(body, supabase)
+        }
+      }
     }
 
     // Envoi en ARRIÈRE-PLAN : on répond immédiatement au client, puis la campagne se poursuit
@@ -135,6 +156,7 @@ export async function POST(request: NextRequest) {
     // retry/backoff de sendEmail couvre un éventuel throttling)
     for (let idx = 0; idx < recipients.length; idx++) {
       const recipient = recipients[idx]
+      const loc = localeOf((recipient as any).locale) // langue du destinataire (repli FR)
       const logs: Array<{
         communication_id: string
         user_id: string
@@ -151,14 +173,16 @@ export async function POST(request: NextRequest) {
       if (hasEmail && recipient.email && !skipEmailForThisUser) {
         try {
           // Remplacer les variables utilisateur et CTA
-          const personalizedSubject = replaceUserVariables(communication.email_subject!, recipient)
-          let personalizedBody = replaceUserVariables(preProcessedBody, recipient, true)
+          const personalizedSubject = replaceUserVariables(pick(loc, 'email_subject', communication.email_subject!), recipient)
+          const localizedBody = processedBodyByLocale[loc] || processedBodyByLocale['fr']
+          let personalizedBody = replaceUserVariables(localizedBody, recipient, true)
           personalizedBody = personalizedBody
             .replace(/\[HEADER_TITLE\]/gi, personalizedSubject)
-            .replace(/\[CTA_TEXT\]/gi, communication.email_cta_text || 'Découvrir')
+            .replace(/\[CTA_TEXT\]/gi, pick(loc, 'email_cta_text', communication.email_cta_text || 'Découvrir'))
             .replace(/\[CTA_URL\]/gi, communication.email_cta_url || 'https://www.pronohub.club/dashboard')
-          const personalizedPreview = communication.email_preview_text
-            ? replaceUserVariables(communication.email_preview_text, recipient)
+          const localizedPreview = pick(loc, 'email_preview_text', communication.email_preview_text || '')
+          const personalizedPreview = localizedPreview
+            ? replaceUserVariables(localizedPreview, recipient)
             : undefined
 
           const result = await sendEmail(
@@ -212,8 +236,8 @@ export async function POST(request: NextRequest) {
       if (hasPush && recipient.fcm_token) {
         try {
           // Remplacer les variables utilisateur
-          const personalizedTitle = replaceUserVariables(communication.notification_title!, recipient)
-          const personalizedBody = replaceUserVariables(communication.notification_body!, recipient)
+          const personalizedTitle = replaceUserVariables(pick(loc, 'notification_title', communication.notification_title!), recipient)
+          const personalizedBody = replaceUserVariables(pick(loc, 'notification_body', communication.notification_body!), recipient)
 
           await sendPushNotification(
             recipient.fcm_token,

@@ -14,6 +14,38 @@ import EmailEditor from '@/components/admin/EmailEditor'
 import EmojiPicker from '@/components/admin/EmojiPicker'
 import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
 
+// --- Multilingue (composer) ---
+type TransLang = 'en' | 'es' | 'de' | 'it'
+type TransField =
+  | 'email_subject'
+  | 'email_preview_text'
+  | 'email_body_html'
+  | 'email_cta_text'
+  | 'notification_title'
+  | 'notification_body'
+type TranslationsState = Record<TransLang, Partial<Record<TransField, string>>>
+
+const LANGS: Array<{ code: 'fr' | TransLang; label: string; flag: string }> = [
+  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+  { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'es', label: 'ES', flag: '🇪🇸' },
+  { code: 'de', label: 'DE', flag: '🇩🇪' },
+  { code: 'it', label: 'IT', flag: '🇮🇹' },
+]
+
+/** Retire les langues (et champs) entièrement vides avant persistance. */
+function cleanTranslations(tr: TranslationsState): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  for (const [lang, fields] of Object.entries(tr)) {
+    const nonEmpty: Record<string, string> = {}
+    for (const [k, v] of Object.entries(fields || {})) {
+      if (typeof v === 'string' && v.trim()) nonEmpty[k] = v
+    }
+    if (Object.keys(nonEmpty).length > 0) out[lang] = nonEmpty
+  }
+  return out
+}
+
 interface FormData {
   title: string
   email_template_id: string
@@ -58,6 +90,11 @@ export default function NewCommunicationPage() {
   const [loadingCount, setLoadingCount] = useState(false)
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
   const [filterChangeCounter, setFilterChangeCounter] = useState(0)
+  // Multilingue
+  const [activeLang, setActiveLang] = useState<'fr' | TransLang>('fr')
+  const [translations, setTranslations] = useState<TranslationsState>({ en: {}, es: {}, de: {}, it: {} })
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState<string | null>(null)
 
   // Charger le nombre de destinataires quand les filtres changent
   useEffect(() => {
@@ -139,12 +176,77 @@ export default function NewCommunicationPage() {
 
   const handleEmojiSelect = (emoji: string) => {
     if (activeEmojiField) {
-      setFormData(prev => ({
-        ...prev,
-        [activeEmojiField]: (prev[activeEmojiField as keyof FormData] as string) + emoji
-      }))
+      if (activeLang === 'fr') {
+        setFormData(prev => ({
+          ...prev,
+          [activeEmojiField]: (prev[activeEmojiField as keyof FormData] as string) + emoji
+        }))
+      } else {
+        const f = activeEmojiField as TransField
+        setTransField(activeLang, f, (translations[activeLang][f] || '') + emoji)
+      }
     }
     setActiveEmojiField(null)
+  }
+
+  // --- Helpers multilingue ---
+  const setTransField = (lang: TransLang, field: TransField, value: string) => {
+    setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], [field]: value } }))
+  }
+
+  /** Valeur du champ pour l'onglet actif (FR = formData ; sinon translations). */
+  const fieldVal = (field: TransField): string => {
+    if (activeLang === 'fr') return (formData[field as keyof FormData] as string) || ''
+    return translations[activeLang][field] || ''
+  }
+
+  /** Setter du champ pour l'onglet actif. */
+  const setField = (field: TransField, value: string) => {
+    if (activeLang === 'fr') handleChange(field as keyof FormData, value)
+    else setTransField(activeLang, field, value)
+  }
+
+  const hasFrContent = !!(
+    formData.email_subject ||
+    formData.email_preview_text ||
+    formData.email_content_html ||
+    formData.email_cta_text ||
+    formData.notification_title ||
+    formData.notification_body
+  )
+
+  const handleTranslate = async () => {
+    setTranslateError(null)
+    setTranslating(true)
+    try {
+      const response = await fetch('/api/admin/communications/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            email_subject: formData.email_subject,
+            email_preview_text: formData.email_preview_text,
+            email_body_html: getFullEmailHtml(),
+            email_cta_text: formData.email_cta_text,
+            notification_title: formData.notification_title,
+            notification_body: formData.notification_body
+          }
+        })
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data?.translations) {
+        throw new Error(data?.error || `Erreur serveur (HTTP ${response.status})`)
+      }
+      setTranslations(prev => ({ ...prev, ...data.translations }))
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        setTranslateError(`Traduction partielle : ${data.errors.join(' ; ')}`)
+      }
+    } catch (error: any) {
+      console.error('[Translate] error:', error)
+      setTranslateError(error.message || 'Erreur lors de la traduction')
+    } finally {
+      setTranslating(false)
+    }
   }
 
   // Remplacer les variables pour la preview
@@ -206,6 +308,7 @@ export default function NewCommunicationPage() {
           notification_image_url: formData.notification_image_url || null,
           notification_click_url: formData.notification_click_url || '/dashboard',
           targeting_filters: formData.targeting_filters,
+          translations: cleanTranslations(translations),
           created_by: user.id
         })
         .select()
@@ -367,11 +470,59 @@ export default function NewCommunicationPage() {
             </div>
           </div>
 
+          {/* Barre d'onglets de langue + traduction auto */}
+          <div className="admin-card">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-1 flex-wrap">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setActiveLang(l.code)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeLang === l.code
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="mr-1">{l.flag}</span>{l.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleTranslate}
+                disabled={translating || !hasFrContent}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {translating ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    Traduction en cours...
+                  </>
+                ) : (
+                  <>🌐 Traduire automatiquement (EN/ES/DE/IT)</>
+                )}
+              </button>
+            </div>
+            {activeLang !== 'fr' && (
+              <p className="text-xs text-gray-500 mt-3">
+                Onglet {activeLang.toUpperCase()} — laisse un champ vide pour utiliser automatiquement le FR à l'envoi.
+              </p>
+            )}
+            {translateError && (
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {translateError}
+              </div>
+            )}
+          </div>
+
           {/* Template Email + Contenu Email + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Email */}
             <div className="space-y-6">
-              {/* Template Email */}
+              {/* Template Email (FR uniquement — non traduit) */}
+              {activeLang === 'fr' && (
               <div className="admin-card">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Template Email</h2>
 
@@ -397,6 +548,7 @@ export default function NewCommunicationPage() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Contenu Email */}
               <div className="admin-card">
@@ -412,15 +564,17 @@ export default function NewCommunicationPage() {
                   </div>
                   <input
                     type="text"
-                    value={formData.email_subject}
-                    onChange={(e) => handleChange('email_subject', e.target.value)}
+                    value={fieldVal('email_subject')}
+                    onChange={(e) => setField('email_subject', e.target.value)}
                     onFocus={() => setActiveEmojiField('email_subject')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: 🎉 Découvrez notre nouvelle fonctionnalité !"
                     maxLength={255}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>
+                    {activeLang === 'fr'
+                      ? <>Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code></>
+                      : 'Laisse vide pour utiliser le FR'}
                   </p>
                 </div>
 
@@ -430,21 +584,41 @@ export default function NewCommunicationPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.email_preview_text}
-                    onChange={(e) => handleChange('email_preview_text', e.target.value)}
+                    value={fieldVal('email_preview_text')}
+                    onChange={(e) => setField('email_preview_text', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
                     maxLength={255}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Texte affiché dans les clients email avant l'ouverture
+                    {activeLang === 'fr'
+                      ? 'Texte affiché dans les clients email avant l\'ouverture'
+                      : 'Laisse vide pour utiliser le FR'}
                   </p>
                 </div>
 
-                <EmailEditor
-                  value={formData.email_content_html}
-                  onChange={(value) => handleChange('email_content_html', value)}
-                />
+                {activeLang === 'fr' ? (
+                  <EmailEditor
+                    value={formData.email_content_html}
+                    onChange={(value) => handleChange('email_content_html', value)}
+                  />
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Corps de l'email (HTML complet)
+                    </label>
+                    <textarea
+                      value={translations[activeLang].email_body_html || ''}
+                      onChange={(e) => setTransField(activeLang, 'email_body_html', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white"
+                      rows={12}
+                      placeholder="<html>...</html>"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      HTML complet de l'email traduit. Laisse vide pour utiliser le FR. Utilise « 🌐 Traduire automatiquement » pour pré-remplir.
+                    </p>
+                  </div>
+                )}
 
                 {/* Champs CTA */}
                 <div className="border-t border-gray-200 pt-4 mt-4">
@@ -456,13 +630,17 @@ export default function NewCommunicationPage() {
                       </label>
                       <input
                         type="text"
-                        value={formData.email_cta_text}
-                        onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                        value={fieldVal('email_cta_text')}
+                        onChange={(e) => setField('email_cta_text', e.target.value)}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                         placeholder="Ex: Découvrir"
                         maxLength={50}
                       />
+                      {activeLang !== 'fr' && (
+                        <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                      )}
                     </div>
+                    {activeLang === 'fr' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Lien du bouton
@@ -476,6 +654,7 @@ export default function NewCommunicationPage() {
                       />
                       <CtaQuickLinks onSelect={(url) => handleChange('email_cta_url', url)} />
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -552,13 +731,16 @@ export default function NewCommunicationPage() {
                   </div>
                   <input
                     type="text"
-                    value={formData.notification_title}
-                    onChange={(e) => handleChange('notification_title', e.target.value)}
+                    value={fieldVal('notification_title')}
+                    onChange={(e) => setField('notification_title', e.target.value)}
                     onFocus={() => setActiveEmojiField('notification_title')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="Ex: Nouvelle fonctionnalité disponible"
                     maxLength={100}
                   />
+                  {activeLang !== 'fr' && (
+                    <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                  )}
                 </div>
 
                 <div>
@@ -566,8 +748,8 @@ export default function NewCommunicationPage() {
                     Corps de la notification
                   </label>
                   <textarea
-                    value={formData.notification_body}
-                    onChange={(e) => handleChange('notification_body', e.target.value)}
+                    value={fieldVal('notification_body')}
+                    onChange={(e) => setField('notification_body', e.target.value)}
                     onFocus={() => setActiveEmojiField('notification_body')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white"
                     rows={3}
@@ -575,10 +757,13 @@ export default function NewCommunicationPage() {
                     maxLength={200}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Maximum 200 caractères | Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code>
+                    {activeLang === 'fr'
+                      ? <>Maximum 200 caractères | Variables: <code className="bg-gray-100 px-1 py-0.5 rounded">[username]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded">[email]</code></>
+                      : 'Maximum 200 caractères | Laisse vide pour utiliser le FR'}
                   </p>
                 </div>
 
+                {activeLang === 'fr' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image de notification (optionnelle)
@@ -602,7 +787,9 @@ export default function NewCommunicationPage() {
                     />
                   </div>
                 </div>
+                )}
 
+                {activeLang === 'fr' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Lien de destination
@@ -615,6 +802,7 @@ export default function NewCommunicationPage() {
                     placeholder="/dashboard"
                   />
                 </div>
+                )}
               </div>
             </div>
 

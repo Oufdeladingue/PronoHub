@@ -14,6 +14,49 @@ import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/ad
 import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
 import ImageUploader from '@/components/admin/ImageUploader'
 
+// --- Multilingue (composer) ---
+type TransLang = 'en' | 'es' | 'de' | 'it'
+type TransField =
+  | 'email_subject'
+  | 'email_preview_text'
+  | 'email_body_html'
+  | 'email_cta_text'
+  | 'notification_title'
+  | 'notification_body'
+type TranslationsState = Record<TransLang, Partial<Record<TransField, string>>>
+
+const LANGS: Array<{ code: 'fr' | TransLang; label: string; flag: string }> = [
+  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+  { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'es', label: 'ES', flag: '🇪🇸' },
+  { code: 'de', label: 'DE', flag: '🇩🇪' },
+  { code: 'it', label: 'IT', flag: '🇮🇹' },
+]
+
+/** Normalise le JSONB translations chargé en un state complet (4 langues). */
+function normalizeTranslations(raw: any): TranslationsState {
+  const r = raw && typeof raw === 'object' ? raw : {}
+  return {
+    en: r.en || {},
+    es: r.es || {},
+    de: r.de || {},
+    it: r.it || {},
+  }
+}
+
+/** Retire les langues (et champs) entièrement vides avant persistance. */
+function cleanTranslations(tr: TranslationsState): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  for (const [lang, fields] of Object.entries(tr)) {
+    const nonEmpty: Record<string, string> = {}
+    for (const [k, v] of Object.entries(fields || {})) {
+      if (typeof v === 'string' && v.trim()) nonEmpty[k] = v
+    }
+    if (Object.keys(nonEmpty).length > 0) out[lang] = nonEmpty
+  }
+  return out
+}
+
 interface Communication {
   id: string
   title: string
@@ -30,6 +73,7 @@ interface Communication {
   notification_image_url: string | null
   notification_click_url: string | null
   targeting_filters: TargetingFilters | null
+  translations: Record<string, Record<string, string>> | null
   created_at: string
   updated_at: string
   scheduled_at: string | null
@@ -87,6 +131,11 @@ export default function EditCommunicationPage() {
   const [recipientCount, setRecipientCount] = useState({ total: 0, email: 0, push: 0 })
   const [countingRecipients, setCountingRecipients] = useState(false)
   const [activeEmojiField, setActiveEmojiField] = useState<string | null>(null)
+  // Multilingue
+  const [activeLang, setActiveLang] = useState<'fr' | TransLang>('fr')
+  const [translations, setTranslations] = useState<TranslationsState>({ en: {}, es: {}, de: {}, it: {} })
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState<string | null>(null)
   const [showSendModal, setShowSendModal] = useState(false)
   const [sendChannels, setSendChannels] = useState({ email: true, push: true })
   const [avoidDoubleSend, setAvoidDoubleSend] = useState(false) // Push prioritaire : pas d'email si l'user a l'app
@@ -174,6 +223,7 @@ export default function EditCommunicationPage() {
       }
 
       setCommunication(comm)
+      setTranslations(normalizeTranslations(comm.translations))
 
       // Charger les vagues d'envoi
       if (comm.status === 'sent') {
@@ -207,9 +257,78 @@ export default function EditCommunicationPage() {
   const handleEmojiSelect = (emoji: string) => {
     if (!activeEmojiField || !communication) return
 
-    const currentValue = communication[activeEmojiField as keyof Communication] as string || ''
-    handleChange(activeEmojiField as keyof Communication, currentValue + emoji)
+    if (activeLang === 'fr') {
+      const currentValue = communication[activeEmojiField as keyof Communication] as string || ''
+      handleChange(activeEmojiField as keyof Communication, currentValue + emoji)
+    } else {
+      const f = activeEmojiField as TransField
+      setTransField(activeLang, f, (translations[activeLang][f] || '') + emoji)
+    }
     setActiveEmojiField(null)
+  }
+
+  // --- Helpers multilingue ---
+  const setTransField = (lang: TransLang, field: TransField, value: string) => {
+    setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], [field]: value } }))
+  }
+
+  /** Valeur du champ pour l'onglet actif (FR = communication ; sinon translations). */
+  const fieldVal = (field: TransField): string => {
+    if (activeLang === 'fr') return (communication?.[field as keyof Communication] as string) || ''
+    return translations[activeLang][field] || ''
+  }
+
+  /** Setter du champ pour l'onglet actif. */
+  const setField = (field: TransField, value: string) => {
+    if (activeLang === 'fr') handleChange(field as keyof Communication, value)
+    else setTransField(activeLang, field, value)
+  }
+
+  const hasFrContent = !!(
+    communication && (
+      communication.email_subject ||
+      communication.email_preview_text ||
+      communication.email_content_html ||
+      communication.email_body_html ||
+      communication.email_cta_text ||
+      communication.notification_title ||
+      communication.notification_body
+    )
+  )
+
+  const handleTranslate = async () => {
+    if (!communication) return
+    setTranslateError(null)
+    setTranslating(true)
+    try {
+      const response = await fetch('/api/admin/communications/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            email_subject: communication.email_subject || '',
+            email_preview_text: communication.email_preview_text || '',
+            email_body_html: getFullEmailHtml(),
+            email_cta_text: communication.email_cta_text || '',
+            notification_title: communication.notification_title || '',
+            notification_body: communication.notification_body || ''
+          }
+        })
+      })
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data?.translations) {
+        throw new Error(data?.error || `Erreur serveur (HTTP ${response.status})`)
+      }
+      setTranslations(prev => ({ ...prev, ...data.translations }))
+      if (Array.isArray(data.errors) && data.errors.length > 0) {
+        setTranslateError(`Traduction partielle : ${data.errors.join(' ; ')}`)
+      }
+    } catch (error: any) {
+      console.error('[Translate] error:', error)
+      setTranslateError(error.message || 'Erreur lors de la traduction')
+    } finally {
+      setTranslating(false)
+    }
   }
 
   const previewText = (text: string) => {
@@ -263,7 +382,8 @@ export default function EditCommunicationPage() {
         notification_body: communication.notification_body || null,
         notification_image_url: communication.notification_image_url || null,
         notification_click_url: communication.notification_click_url || '/dashboard',
-        targeting_filters: communication.targeting_filters || null
+        targeting_filters: communication.targeting_filters || null,
+        translations: cleanTranslations(translations)
       })
       .eq('id', communicationId)
 
@@ -683,12 +803,59 @@ export default function EditCommunicationPage() {
               </div>
             </div>
 
+          {/* Barre d'onglets de langue + traduction auto */}
+          <div className="admin-card">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-1 flex-wrap">
+                {LANGS.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setActiveLang(l.code)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeLang === l.code
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="mr-1">{l.flag}</span>{l.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleTranslate}
+                disabled={translating || !hasFrContent}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {translating ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    Traduction en cours...
+                  </>
+                ) : (
+                  <>🌐 Traduire automatiquement (EN/ES/DE/IT)</>
+                )}
+              </button>
+            </div>
+            {activeLang !== 'fr' && (
+              <p className="text-xs text-gray-500 mt-3">
+                Onglet {activeLang.toUpperCase()} — laisse un champ vide pour utiliser automatiquement le FR à l'envoi.
+              </p>
+            )}
+            {translateError && (
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {translateError}
+              </div>
+            )}
+          </div>
+
           {/* Email + Aperçu - Grid 2 colonnes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Colonne gauche: Contenu Email */}
             <div className="space-y-6">
-              {/* Template (seulement pour new-style) */}
-              {!isLegacy && (
+              {/* Template (seulement pour new-style, FR uniquement) */}
+              {!isLegacy && activeLang === 'fr' && (
                 <div className="admin-card">
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Template Email</h2>
                   <select
@@ -726,14 +893,17 @@ export default function EditCommunicationPage() {
                     </div>
                     <input
                       type="text"
-                      value={communication.email_subject || ''}
-                      onChange={(e) => handleChange('email_subject', e.target.value)}
+                      value={fieldVal('email_subject')}
+                      onChange={(e) => setField('email_subject', e.target.value)}
                       onFocus={() => setActiveEmojiField('email_subject')}
                       disabled={!canEdit}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                       placeholder="Ex: Découvrez notre nouvelle fonctionnalité !"
                       maxLength={255}
                     />
+                    {activeLang !== 'fr' && (
+                      <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                    )}
                   </div>
 
                   <div>
@@ -742,16 +912,36 @@ export default function EditCommunicationPage() {
                     </label>
                     <input
                       type="text"
-                      value={communication.email_preview_text || ''}
-                      onChange={(e) => handleChange('email_preview_text', e.target.value)}
+                      value={fieldVal('email_preview_text')}
+                      onChange={(e) => setField('email_preview_text', e.target.value)}
                       disabled={!canEdit}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                       placeholder="Ex: Ce texte apparaît dans la prévisualisation de l'email"
                       maxLength={255}
                     />
+                    {activeLang !== 'fr' && (
+                      <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                    )}
                   </div>
 
-                  {isLegacy ? (
+                  {activeLang !== 'fr' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Corps de l'email (HTML complet)
+                      </label>
+                      <textarea
+                        value={translations[activeLang].email_body_html || ''}
+                        onChange={(e) => setTransField(activeLang, 'email_body_html', e.target.value)}
+                        disabled={!canEdit}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm text-gray-900 bg-white disabled:bg-gray-100"
+                        rows={12}
+                        placeholder="<html>...</html>"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        HTML complet de l'email traduit. Laisse vide pour utiliser le FR. Utilise « 🌐 Traduire automatiquement » pour pré-remplir.
+                      </p>
+                    </div>
+                  ) : isLegacy ? (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Corps de l'email (HTML)
@@ -779,13 +969,17 @@ export default function EditCommunicationPage() {
                         <label className="block text-xs text-gray-600 mb-1">Texte du bouton</label>
                         <input
                           type="text"
-                          value={communication.email_cta_text || ''}
-                          onChange={(e) => handleChange('email_cta_text', e.target.value)}
+                          value={fieldVal('email_cta_text')}
+                          onChange={(e) => setField('email_cta_text', e.target.value)}
                           disabled={!canEdit}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white disabled:bg-gray-100"
                           placeholder="Ex: Découvrir"
                         />
+                        {activeLang !== 'fr' && (
+                          <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                        )}
                       </div>
+                      {activeLang === 'fr' && (
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">Lien du bouton</label>
                         <input
@@ -798,6 +992,7 @@ export default function EditCommunicationPage() {
                         />
                         <CtaQuickLinks onSelect={(url) => handleChange('email_cta_url', url)} disabled={!canEdit} />
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -874,14 +1069,17 @@ export default function EditCommunicationPage() {
                   </div>
                   <input
                     type="text"
-                    value={communication.notification_title || ''}
-                    onChange={(e) => handleChange('notification_title', e.target.value)}
+                    value={fieldVal('notification_title')}
+                    onChange={(e) => setField('notification_title', e.target.value)}
                     onFocus={() => setActiveEmojiField('notification_title')}
                     disabled={!canEdit}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
                     placeholder="Ex: Nouvelle fonctionnalité disponible"
                     maxLength={100}
                   />
+                  {activeLang !== 'fr' && (
+                    <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                  )}
                 </div>
 
                 <div>
@@ -889,8 +1087,8 @@ export default function EditCommunicationPage() {
                     Corps de la notification
                   </label>
                   <textarea
-                    value={communication.notification_body || ''}
-                    onChange={(e) => handleChange('notification_body', e.target.value)}
+                    value={fieldVal('notification_body')}
+                    onChange={(e) => setField('notification_body', e.target.value)}
                     onFocus={() => setActiveEmojiField('notification_body')}
                     disabled={!canEdit}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-600"
@@ -898,8 +1096,12 @@ export default function EditCommunicationPage() {
                     placeholder="Ex: Découvrez dès maintenant les nouvelles fonctionnalités de PronoHub !"
                     maxLength={200}
                   />
+                  {activeLang !== 'fr' && (
+                    <p className="text-xs text-gray-500 mt-1">Laisse vide pour utiliser le FR</p>
+                  )}
                 </div>
 
+                {activeLang === 'fr' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image de notification (optionnelle)
@@ -926,7 +1128,9 @@ export default function EditCommunicationPage() {
                     />
                   </div>
                 </div>
+                )}
 
+                {activeLang === 'fr' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Lien de destination
@@ -940,6 +1144,7 @@ export default function EditCommunicationPage() {
                     placeholder="/dashboard"
                   />
                 </div>
+                )}
               </div>
             </div>
 
