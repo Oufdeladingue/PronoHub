@@ -38,6 +38,49 @@ async function generateBackground(prompt: string): Promise<Buffer> {
   return Buffer.from(b64, 'base64')
 }
 
+// --- Support des emojis dans satori (Inter n'a pas les glyphes emoji) ---
+// On convertit chaque emoji en SVG Twemoji, chargé par satori via loadAdditionalAsset.
+const emojiCache = new Map<string, string>()
+
+function toCodePoint(unicodeSurrogates: string): string {
+  const r: string[] = []
+  let c = 0, p = 0, i = 0
+  while (i < unicodeSurrogates.length) {
+    c = unicodeSurrogates.charCodeAt(i++)
+    if (p) {
+      r.push((0x10000 + ((p - 0xd800) << 10) + (c - 0xdc00)).toString(16))
+      p = 0
+    } else if (0xd800 <= c && c <= 0xdbff) {
+      p = c
+    } else {
+      r.push(c.toString(16))
+    }
+  }
+  return r.join('-')
+}
+
+function getIconCode(segment: string): string {
+  const U200D = String.fromCharCode(0x200d)
+  // Retirer le sélecteur de variante FE0F sauf pour les séquences ZWJ
+  return toCodePoint(segment.indexOf(U200D) < 0 ? segment.replace(/️/g, '') : segment)
+}
+
+async function loadEmojiSvg(segment: string): Promise<string> {
+  const code = getIconCode(segment)
+  const cached = emojiCache.get(code)
+  if (cached) return cached
+  try {
+    const res = await fetch(`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${code}.svg`)
+    if (!res.ok) return ''
+    const svg = await res.text()
+    const dataUri = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
+    emojiCache.set(code, dataUri)
+    return dataUri
+  } catch {
+    return ''
+  }
+}
+
 /** Overlay satori : dégradé sombre en bas + wordmark + titre net. Retourne un PNG transparent. */
 async function buildOverlay(title: string): Promise<Buffer> {
   const [reg, bold, black] = await Promise.all([loadOgFont(400), loadOgFont(700), loadOgFont(900)])
@@ -121,6 +164,11 @@ async function buildOverlay(title: string): Promise<Buffer> {
       { name: 'Inter', data: bold, weight: 700 as const, style: 'normal' as const },
       { name: 'Inter', data: black, weight: 900 as const, style: 'normal' as const },
     ],
+    // Rendu des emojis en images Twemoji (Inter n'a pas les glyphes emoji)
+    loadAdditionalAsset: async (code: string, segment: string) => {
+      if (code === 'emoji') return loadEmojiSvg(segment)
+      return '' // autres scripts non gérés → ignorés (nos titres = latin + emoji)
+    },
   })
   return sharp(Buffer.from(svg)).png().toBuffer()
 }
