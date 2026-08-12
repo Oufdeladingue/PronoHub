@@ -31,17 +31,14 @@ export default function ReferralStatsModal({ active, tournamentId, tournamentCod
 
   useEffect(() => {
     if (!active || !userId) return
-    const seenKey = `refStatsModalSeen:${tournamentId}`
-    // Déjà vu sur cet appareil → rien à faire.
-    if (typeof localStorage !== 'undefined' && localStorage.getItem(seenKey)) return
     let cancelled = false
     ;(async () => {
       try {
         const supabase = createClient()
-        // Accès stats déjà actif ? On vérifie CÔTÉ CLIENT (session déjà prête via userId) pour
-        // éviter le race des cookies de session serveur au moment de la connexion, qui faisait
-        // apparaître la modale à tort à un user ayant déjà les stats (à vie ou sur ce tournoi).
-        const [lifetimeRes, tournamentRes, refRes] = await Promise.all([
+        // Vérifs CÔTÉ CLIENT (session prête via userId → pas de race cookie serveur) :
+        //  - accès stats déjà actif ? (à vie OU sur ce tournoi) → jamais de modale
+        //  - fréquence : au plus 1×/semaine/user (should_show_weekly_modal, serveur)
+        const [lifetimeRes, tournamentRes, refRes, showRes] = await Promise.all([
           supabase
             .from('tournament_purchases')
             .select('id')
@@ -58,6 +55,11 @@ export default function ReferralStatsModal({ active, tournamentId, tournamentCod
             .eq('status', 'completed')
             .limit(1),
           fetch(`/api/tournaments/${tournamentId}/referrals`).then((r) => r.json()).catch(() => null),
+          supabase.rpc('should_show_weekly_modal', {
+            p_tournament_id: tournamentId,
+            p_modal_type: 'referral_stats',
+            p_days: 7,
+          }),
         ])
         if (cancelled) return
         const hasStatsAccess =
@@ -66,11 +68,16 @@ export default function ReferralStatsModal({ active, tournamentId, tournamentCod
         const th = refRes?.threshold ?? 2
         setCount(c)
         setThreshold(th)
-        // Ne pas afficher si stats déjà actives (à vie OU sur ce tournoi), ou seuil atteint.
+        // Ne pas afficher si : stats déjà actives, seuil atteint, ou déjà vue cette semaine.
         if (hasStatsAccess) return
         if (c >= th) return
+        if (showRes.data !== true) return
         setOpen(true)
-        try { localStorage.setItem(seenKey, '1') } catch {}
+        // Enregistre l'affichage (rafraîchit viewed_at → prochaine fois dans 7 jours)
+        supabase.rpc('mark_weekly_modal_shown', {
+          p_tournament_id: tournamentId,
+          p_modal_type: 'referral_stats',
+        })
       } catch {
         // En cas d'erreur, on n'affiche pas (évite de solliciter un user à accès).
       }
