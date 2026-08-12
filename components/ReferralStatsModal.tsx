@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
+import { createClient } from '@/lib/supabase/client'
 
 interface ReferralStatsModalProps {
   active: boolean          // tournoi public + user participant
@@ -31,25 +32,48 @@ export default function ReferralStatsModal({ active, tournamentId, tournamentCod
   useEffect(() => {
     if (!active || !userId) return
     const seenKey = `refStatsModalSeen:${tournamentId}`
+    // Déjà vu sur cet appareil → rien à faire.
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(seenKey)) return
     let cancelled = false
     ;(async () => {
       try {
-        const [refRes, accessRes] = await Promise.all([
+        const supabase = createClient()
+        // Accès stats déjà actif ? On vérifie CÔTÉ CLIENT (session déjà prête via userId) pour
+        // éviter le race des cookies de session serveur au moment de la connexion, qui faisait
+        // apparaître la modale à tort à un user ayant déjà les stats (à vie ou sur ce tournoi).
+        const [lifetimeRes, tournamentRes, refRes] = await Promise.all([
+          supabase
+            .from('tournament_purchases')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('purchase_type', 'stats_access_lifetime')
+            .eq('status', 'completed')
+            .limit(1),
+          supabase
+            .from('tournament_purchases')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('tournament_id', tournamentId)
+            .eq('purchase_type', 'stats_access_tournament')
+            .eq('status', 'completed')
+            .limit(1),
           fetch(`/api/tournaments/${tournamentId}/referrals`).then((r) => r.json()).catch(() => null),
-          fetch(`/api/stats/access?tournamentId=${tournamentId}`).then((r) => r.json()).catch(() => null),
         ])
         if (cancelled) return
+        const hasStatsAccess =
+          (lifetimeRes.data?.length ?? 0) > 0 || (tournamentRes.data?.length ?? 0) > 0
         const c = refRes?.count ?? 0
         const th = refRes?.threshold ?? 2
         setCount(c)
         setThreshold(th)
-        // Ne pas afficher si déjà accès stats, seuil déjà atteint, ou déjà vu sur cet appareil.
-        if (accessRes?.hasAccess) return
+        // Ne pas afficher si stats déjà actives (à vie OU sur ce tournoi), ou seuil atteint.
+        if (hasStatsAccess) return
         if (c >= th) return
-        if (typeof localStorage !== 'undefined' && localStorage.getItem(seenKey)) return
         setOpen(true)
         try { localStorage.setItem(seenKey, '1') } catch {}
-      } catch {}
+      } catch {
+        // En cas d'erreur, on n'affiche pas (évite de solliciter un user à accès).
+      }
     })()
     return () => { cancelled = true }
   }, [active, userId, tournamentId])
