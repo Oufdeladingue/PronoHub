@@ -13,6 +13,7 @@ import EmailEditor from '@/components/admin/EmailEditor'
 import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
 import CtaQuickLinks from '@/components/admin/CtaQuickLinks'
 import ImageUploader from '@/components/admin/ImageUploader'
+import PushImageGenerator from '@/components/admin/PushImageGenerator'
 
 // --- Multilingue (composer) ---
 type TransLang = 'en' | 'es' | 'de' | 'it'
@@ -1176,6 +1177,13 @@ export default function EditCommunicationPage() {
                       currentImageUrl={communication.notification_image_url || undefined}
                     />
                   )}
+
+                  <div className="mt-3">
+                    <PushImageGenerator
+                      defaultTitle={communication.notification_title || communication.email_subject || ''}
+                      onGenerated={(url) => handleChange('notification_image_url', url)}
+                    />
+                  </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">

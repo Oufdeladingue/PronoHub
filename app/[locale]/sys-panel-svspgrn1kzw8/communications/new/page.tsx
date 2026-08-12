@@ -9,6 +9,7 @@ import Navigation from '@/components/Navigation'
 import { getAdminUrl } from '@/lib/admin-path'
 import { EMAIL_TEMPLATES, buildEmailHtml, type TargetingFilters } from '@/lib/admin/email-templates'
 import ImageUploader from '@/components/admin/ImageUploader'
+import PushImageGenerator from '@/components/admin/PushImageGenerator'
 import TargetingSelector from '@/components/admin/TargetingSelector'
 import EmailEditor from '@/components/admin/EmailEditor'
 import EmojiPicker from '@/components/admin/EmojiPicker'
@@ -807,6 +808,13 @@ export default function NewCommunicationPage() {
                     onImageUploaded={(url) => handleChange('notification_image_url', url)}
                     currentImageUrl={formData.notification_image_url}
                   />
+
+                  <div className="mt-3">
+                    <PushImageGenerator
+                      defaultTitle={formData.notification_title || formData.email_subject}
+                      onGenerated={(url) => handleChange('notification_image_url', url)}
+                    />
+                  </div>
 
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
