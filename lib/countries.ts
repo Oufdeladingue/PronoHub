@@ -16,6 +16,7 @@ export const COUNTRIES: Country[] = [
   { code: 'CH', name: 'Suisse', flag: '🇨🇭' },
   { code: 'LU', name: 'Luxembourg', flag: '🇱🇺' },
   { code: 'MC', name: 'Monaco', flag: '🇲🇨' },
+  { code: 'LI', name: 'Liechtenstein', flag: '🇱🇮' },
   { code: 'DE', name: 'Allemagne', flag: '🇩🇪' },
   { code: 'AT', name: 'Autriche', flag: '🇦🇹' },
   { code: 'NL', name: 'Pays-Bas', flag: '🇳🇱' },
@@ -39,6 +40,8 @@ export const COUNTRIES: Country[] = [
   { code: 'HU', name: 'Hongrie', flag: '🇭🇺' },
   { code: 'HR', name: 'Croatie', flag: '🇭🇷' },
   { code: 'RS', name: 'Serbie', flag: '🇷🇸' },
+  { code: 'SK', name: 'Slovaquie', flag: '🇸🇰' },
+  { code: 'SI', name: 'Slovénie', flag: '🇸🇮' },
   // Amérique
   { code: 'CA', name: 'Canada', flag: '🇨🇦' },
   { code: 'US', name: 'États-Unis', flag: '🇺🇸' },
