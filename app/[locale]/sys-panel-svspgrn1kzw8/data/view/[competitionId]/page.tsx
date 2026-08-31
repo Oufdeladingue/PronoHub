@@ -60,7 +60,7 @@ export default function ViewCompetitionPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/football/competition-matches?competitionId=${competitionId}`)
+      const response = await fetch(`/api/football/competition-matches?competitionId=${competitionId}&currentSeasonOnly=true`)
       if (!response.ok) throw new Error('Failed to fetch competition data')
 
       const result = await response.json()
