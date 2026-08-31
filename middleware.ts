@@ -28,15 +28,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301)
   }
 
-  // Normalisation du slash final (SEO) : /pricing/ et /pricing servent tous deux un 200
-  // car skipTrailingSlashRedirect est actif (requis par le webhook Stripe). On 301 vers la
-  // version sans slash — SAUF /api (le webhook Stripe est posté avec un slash final).
-  const rawPath = request.nextUrl.pathname
-  if (rawPath.length > 1 && rawPath.endsWith('/') && !rawPath.startsWith('/api')) {
-    const noSlash = request.nextUrl.clone()
-    noSlash.pathname = rawPath.replace(/\/+$/, '') || '/'
-    return NextResponse.redirect(noSlash, 301)
-  }
+  // NB : pas de normalisation du slash final ici — une redirection /pricing/ → /pricing via
+  // request.nextUrl.clone() bouclait sur ce runtime (Next standalone derrière Cloudflare).
+  // Le doublon /path/ vs /path est de toute façon consolidé par le canonical auto-référent
+  // (sans slash) émis par buildAlternates, et aucun lien interne ne produit de slash final.
 
   // Les routes API ne sont pas localisées : on saute next-intl et on garde
   // uniquement le rafraîchissement de session (comportement historique).
