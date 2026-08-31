@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/server'
 import { SeoHeader, SeoFooter } from '@/components/seo/PronosticsChrome'
 import { getTranslations, getLocale } from 'next-intl/server'
+import { buildAlternates, localizedUrl } from '@/lib/seo/alternates'
 
 export const dynamic = 'force-dynamic'
 const BASE = 'https://www.pronohub.club'
@@ -86,8 +87,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/tournoi-public/${t.slug}` },
-    openGraph: { title, description, url: `${BASE}/tournoi-public/${t.slug}`, type: 'website', images: [{ url: image, width: 1200, height: 630 }] },
+    alternates: buildAlternates(`/tournoi-public/${t.slug}`, locale),
+    openGraph: { title, description, url: localizedUrl(locale, `/tournoi-public/${t.slug}`), type: 'website', images: [{ url: image, width: 1200, height: 630 }] },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
   }
 }

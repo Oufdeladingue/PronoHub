@@ -48,9 +48,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   // Pages non localisées (FR uniquement).
+  // NB : /auth/login et /auth/signup retirés du sitemap — désormais noindex (géo-bloquées
+  // pour les crawlers, aucune valeur SEO), on évite le conflit sitemap ↔ noindex.
   const frOnly: MetadataRoute.Sitemap = [
-    { url: `${baseUrl}/auth/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/auth/signup`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
   ]

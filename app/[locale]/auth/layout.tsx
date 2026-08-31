@@ -7,8 +7,11 @@ export const metadata: Metadata = {
     title: 'Connexion - PronoHub Football',
     description: 'Connectez-vous ou créez votre compte PronoHub.',
   },
+  // Pages utilitaires (connexion, inscription, choix pseudo, mot de passe oublié, vérif…) :
+  // noindex. Elles n'ont aucune valeur SEO, sont géo-bloquées pour Googlebot (US) sur
+  // login/signup, et se dupliquaient à l'identique sur les 5 préfixes de langue.
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
 }

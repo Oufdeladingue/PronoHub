@@ -5,7 +5,15 @@ import { routing } from '@/i18n/routing'
 import { updateSession } from '@/lib/supabase/middleware'
 import { localeForCountry } from '@/lib/i18n/country-locale'
 
+// Détection de langue ACTIVE pour les humains (auto-redirection /→/es selon cookie/pays),
+// DÉSACTIVÉE pour les crawlers : une URL canonique FR non préfixée doit répondre 200 à
+// Googlebot au lieu de rediriger vers /en (sinon Google retient /en comme canonique et
+// classe la version FR en doublon — cause des alertes GSC « canonique différente choisie »).
 const handleI18nRouting = createMiddleware(routing)
+const handleI18nRoutingBot = createMiddleware({ ...routing, localeDetection: false })
+
+// Crawlers moteurs + scrapers d'aperçu social : jamais d'auto-redirection de langue.
+const BOT_UA = /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|duckduckbot|baiduspider|yandex|sogou|applebot|petalbot|ahrefs|semrush|mj12|dotbot|facebookexternalhit|twitterbot|linkedinbot|slackbot|telegrambot|discordbot|whatsapp|embedly|pinterest|redditbot/i
 
 export async function middleware(request: NextRequest) {
   const host = request.headers.get('host') || ''
@@ -20,11 +28,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301)
   }
 
+  // Normalisation du slash final (SEO) : /pricing/ et /pricing servent tous deux un 200
+  // car skipTrailingSlashRedirect est actif (requis par le webhook Stripe). On 301 vers la
+  // version sans slash — SAUF /api (le webhook Stripe est posté avec un slash final).
+  const rawPath = request.nextUrl.pathname
+  if (rawPath.length > 1 && rawPath.endsWith('/') && !rawPath.startsWith('/api')) {
+    const noSlash = request.nextUrl.clone()
+    noSlash.pathname = rawPath.replace(/\/+$/, '') || '/'
+    return NextResponse.redirect(noSlash, 301)
+  }
+
   // Les routes API ne sont pas localisées : on saute next-intl et on garde
   // uniquement le rafraîchissement de session (comportement historique).
   if (request.nextUrl.pathname.startsWith('/api')) {
     return await updateSession(request, NextResponse.next({ request }))
   }
+
+  // Crawler / scraper social ? → pas de semis de langue ni d'auto-redirection (SEO/OG).
+  const isBot = BOT_UA.test(request.headers.get('user-agent') || '')
 
   // Détermination de la langue quand aucune n'est encore mémorisée (cookie NEXT_LOCALE
   // absent = premier passage / nouvel appareil / cookies effacés). Priorité :
@@ -33,7 +54,7 @@ export async function middleware(request: NextRequest) {
   // next-intl lira le cookie ce tour-ci (appliqué dès cette requête, sans flash) et le
   // persistera. L'utilisateur peut toujours changer via le sélecteur de langue.
   let seededLocale: string | null = null
-  if (!request.cookies.get('NEXT_LOCALE')) {
+  if (!isBot && !request.cookies.get('NEXT_LOCALE')) {
     let seeded: string | null = null
 
     // 1. Préférence du compte connecté (autoritaire). getUser uniquement ici (chemin rare
@@ -79,8 +100,9 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
-  // Routing i18n (locale, préfixe /en, cookie NEXT_LOCALE)
-  const response = handleI18nRouting(request)
+  // Routing i18n (locale, préfixe /en, cookie NEXT_LOCALE). Détection de langue désactivée
+  // pour les bots → les URLs canoniques FR répondent 200 (pas de 307 vers /en).
+  const response = (isBot ? handleI18nRoutingBot : handleI18nRouting)(request)
 
   // Si next-intl décide une redirection (normalisation / détection de langue),
   // on la laisse passer telle quelle.
