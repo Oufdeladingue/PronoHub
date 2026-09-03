@@ -55,7 +55,17 @@ export async function POST(
     // Service role : suppression de ses propres données (bypass RLS après vérif de propriété).
     const admin = createAdminClient()
     await admin.from('tournament_team_members').delete().eq('tournament_id', tournamentId).eq('user_id', user.id)
-    await admin.from('predictions').delete().eq('tournament_id', tournamentId).eq('user_id', user.id)
+    // Supprimer les pronostics AVANT le participant, en vérifiant l'erreur : un participant retiré
+    // dont les pronos resteraient créerait un prono ORPHELIN qui corrompt classements/trophées.
+    const { error: predError } = await admin
+      .from('predictions')
+      .delete()
+      .eq('tournament_id', tournamentId)
+      .eq('user_id', user.id)
+    if (predError) {
+      console.error('[leave] delete predictions error:', predError)
+      return NextResponse.json({ error: 'Échec du retrait (pronostics)' }, { status: 500 })
+    }
     const { error: delError } = await admin
       .from('tournament_participants')
       .delete()

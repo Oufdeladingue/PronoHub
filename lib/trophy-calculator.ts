@@ -5,6 +5,11 @@
  */
 
 import { calculatePoints, type PointsSettings } from '@/lib/scoring'
+import { getStageOrder, type StageType } from '@/lib/stage-formatter'
+
+// Un match compte comme "terminé" s'il est FINISHED, AWARDED (forfait/tapis vert) ou finished=true.
+// Le reste du code (finalize-tournaments, sync-standings, live-poll) traite déjà AWARDED comme terminal.
+const isMatchFinished = (m: any) => !!m && (m.status === 'FINISHED' || m.status === 'AWARDED' || m.finished === true)
 
 export interface TriggerMatchInfo {
   homeTeamName: string
@@ -92,6 +97,15 @@ export async function calculateTrophiesForTournament(
     }
   }
 
+  // Retirer les pronos ORPHELINS (laissés par un participant retiré du tournoi) avant tout calcul :
+  // sinon ils faussent les classements de journée et le classement final (cas El nino, prod).
+  {
+    const participantSet = new Set(allParticipantIds)
+    for (let i = allPredictions.length - 1; i >= 0; i--) {
+      if (!participantSet.has(allPredictions[i].user_id)) allPredictions.splice(i, 1)
+    }
+  }
+
   const [
     existingTrophiesResult,
     bonusMatchesResult
@@ -159,6 +173,31 @@ export async function calculateTrophiesForTournament(
     }
   }
 
+  // Tournoi STANDARD à phases finales (Coupe du Monde, Ligue des Champions, coupes) : football-data
+  // remet le matchday à 1 à chaque phase (LAST_32…FINAL tous en matchday=1). On construit la même
+  // "journée virtuelle" stage-aware que l'affichage → J4-9 = phases finales (sinon vides → aucun
+  // trophée de fin de tournoi). Pour une ligue classique, journée virtuelle = matchday (identité).
+  // On réutilise matchIdToCustomMatchday (null en standard jusqu'ici) : match.id → journée virtuelle.
+  if (!tournament.custom_competition_id) {
+    const pairKey = (st: string | null, md: number) => `${st || 'REGULAR_SEASON'}__${md}`
+    const seen = new Set<string>()
+    const matchList: { id: string; stage: string | null; matchday: number }[] = []
+    for (const pred of allPredictions) {
+      const m = getMatch(pred.imported_matches)
+      if (m && !seen.has(m.id)) { seen.add(m.id); matchList.push({ id: m.id, stage: m.stage || null, matchday: m.matchday ?? 1 }) }
+    }
+    const pairs = new Map<string, { stage: string | null; matchday: number; order: number }>()
+    for (const m of matchList) {
+      const k = pairKey(m.stage, m.matchday)
+      if (!pairs.has(k)) pairs.set(k, { stage: m.stage, matchday: m.matchday, order: getStageOrder(m.stage as StageType) })
+    }
+    const sortedPairs = [...pairs.values()].sort((a, b) => a.order !== b.order ? a.order - b.order : a.matchday - b.matchday)
+    const virtualByPair = new Map<string, number>()
+    sortedPairs.forEach((p, i) => virtualByPair.set(pairKey(p.stage, p.matchday), i + 1))
+    matchIdToCustomMatchday = new Map()
+    for (const m of matchList) matchIdToCustomMatchday.set(m.id, virtualByPair.get(pairKey(m.stage, m.matchday))!)
+  }
+
   // ============================================
   // ÉTAPE 2 : Préparer les structures de données
   // ============================================
@@ -214,9 +253,7 @@ export async function calculateTrophiesForTournament(
   // Helper : journée terminée ?
   const isJourneyComplete = (matches: any[]) => {
     return matches.length > 0 && matches.every(m =>
-      (m.status === 'FINISHED' || m.finished === true) &&
-      m.home_score !== null &&
-      m.away_score !== null
+      isMatchFinished(m) && m.home_score !== null && m.away_score !== null
     )
   }
 
@@ -228,12 +265,14 @@ export async function calculateTrophiesForTournament(
     }
 
     for (const pred of predictions) {
-      if (userPoints[pred.user_id] === undefined) return userPoints
+      // Prono ORPHELIN (participant retiré du tournoi) : on l'IGNORE, sans abandonner la journée.
+      // Avant : `return userPoints` tronquait tout le classement dès le 1er prono orphelin rencontré.
+      if (userPoints[pred.user_id] === undefined) continue
 
       const match = getMatch(pred.imported_matches)
       if (!match) continue
       if (match.home_score === null || match.away_score === null) continue
-      if (match.status !== 'FINISHED' && match.finished !== true) continue
+      if (!isMatchFinished(match)) continue
 
       const isBonusMatch = bonusMatchIds.has(pred.match_id)
       const isDefaultPrediction = pred.is_default_prediction || false
@@ -342,7 +381,7 @@ export async function calculateTrophiesForTournament(
     }
     for (const pred of (predictionsByJourney[key] || [])) {
       const m = getMatch(pred.imported_matches)
-      if (!m || (m.status !== 'FINISHED' && m.finished !== true)) continue
+      if (!isMatchFinished(m)) continue
       if (m.home_score === null || m.away_score === null) continue
       const st = tournamentStats[pred.user_id]
       if (!st) continue
@@ -377,7 +416,7 @@ export async function calculateTrophiesForTournament(
       const userPredictions = allPredictions.filter((p: any) => p.user_id === userId)
       for (const pred of userPredictions) {
         const match = getMatch(pred.imported_matches)
-        if (!match || (match.status !== 'FINISHED' && match.finished !== true)) continue
+        if (!isMatchFinished(match)) continue
         if (match.home_score === null || match.away_score === null) continue
 
         const isExact = pred.predicted_home_score === match.home_score &&
@@ -438,7 +477,7 @@ export async function calculateTrophiesForTournament(
       // SEUL premier (sans égalité) ET avec des points (≠ 0) — critères "king_of_day"/"double_king".
       // Avant : `isFirst && (maxPoints > 0 || usersWithMax === 1)` acceptait à tort les égalités en
       // tête dès que maxPoints > 0 → trophées attribués à plusieurs joueurs ex-æquo.
-      const isSoleLeader = isFirst && meta.usersWithMax === 1 && meta.maxPoints > 0
+      const isSoleLeader = isFirst && meta.usersWithMax === 1 && meta.maxPoints > 0 && allParticipantIds.length > 1
       const isLast = myPoints === meta.minPoints
       const isSoleLast = isLast && meta.usersWithMin === 1 && allParticipantIds.length > 1
 
