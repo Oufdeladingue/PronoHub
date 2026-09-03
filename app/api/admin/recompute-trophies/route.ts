@@ -11,8 +11,10 @@ import { calculateTrophiesForTournament } from '@/lib/trophy-calculator'
  *
  * - GET (par défaut) = DRY-RUN : renvoie, par user, les trophées à RETIRER (présents à tort) et
  *   les MANQUANTS (mérités mais absents). Ne modifie rien.
- * - ?apply=revoke  : supprime les trophées présents à tort.
- * - ?apply=full    : supprime les présents à tort ET ajoute les manquants mérités.
+ * - ?apply=add     : ajoute UNIQUEMENT les manquants mérités (JAMAIS de suppression). Mode SÛR :
+ *                    à utiliser tant que le calculateur peut sous-estimer certains trophées légitimes.
+ * - ?apply=revoke  : supprime les trophées présents à tort. ⚠️ DANGER si le calculateur sous-estime.
+ * - ?apply=full    : supprime les présents à tort ET ajoute les manquants. ⚠️ inclut le revoke.
  *
  * Sécurisé par CRON_SECRET (?secret=...).
  */
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
 
     // 2. Set légitime de trophées par user (union sur tous ses tournois)
     const correctByUser = new Map<string, Set<string>>()
+    const datesByUser = new Map<string, Map<string, string>>() // user -> (type -> date d'unlock la plus ancienne)
 
     for (const tournament of tournaments) {
       const { data: parts } = await supabase
@@ -46,8 +49,14 @@ export async function GET(request: NextRequest) {
       const results = await calculateTrophiesForTournament(supabase, tournament, ids, true)
       for (const [userId, r] of results) {
         if (!correctByUser.has(userId)) correctByUser.set(userId, new Set())
+        if (!datesByUser.has(userId)) datesByUser.set(userId, new Map())
         const set = correctByUser.get(userId)!
-        for (const t of r.newTrophies) set.add(t)
+        const dmap = datesByUser.get(userId)!
+        for (const t of r.newTrophies) {
+          set.add(t)
+          const d = r.trophyDates[t]
+          if (d && (!dmap.has(t) || d < dmap.get(t)!)) dmap.set(t, d) // garder la date la plus ancienne
+        }
       }
     }
 
@@ -98,11 +107,12 @@ export async function GET(request: NextRequest) {
         applied.revoked = ids.length
       }
     }
-    if (apply === 'full' && missing.length > 0) {
+    if ((apply === 'add' || apply === 'full') && missing.length > 0) {
       const rows = missing.map(m => ({
         user_id: m.user_id,
         trophy_type: m.trophy_type,
-        unlocked_at: new Date().toISOString(),
+        // Vraie date d'unlock (dernier match déclencheur) au lieu de "maintenant" → bon palmarès.
+        unlocked_at: datesByUser.get(m.user_id)?.get(m.trophy_type) || new Date().toISOString(),
         is_new: false
       }))
       const { error } = await supabase

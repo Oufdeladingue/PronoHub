@@ -390,6 +390,22 @@ export async function calculateTrophiesForTournament(
       const ar = m.home_score > m.away_score ? 'H' : m.home_score < m.away_score ? 'A' : 'D'
       if (pr === ar) st.correct++
     }
+    // Bonus d'avant-match (aligné sur le classement officiel, cf. calculate-tournament-stats) :
+    // +1 par journée si TOUS les pronos de la journée sont non-défaut. Sans ça, le vainqueur des
+    // trophées pouvait différer du 1er du classement affiché.
+    if (tournament.early_prediction_bonus) {
+      const jMatches = matchesByJourney[key] || []
+      const jPreds = predictionsByJourney[key] || []
+      if (jMatches.length > 0) {
+        for (const uid of allParticipantIds) {
+          const allNonDefault = jMatches.every((jm: any) => {
+            const p = jPreds.find((pp: any) => pp.user_id === uid && pp.match_id === jm.id)
+            return p && !p.is_default_prediction
+          })
+          if (allNonDefault && tournamentStats[uid]) tournamentStats[uid].points += 1
+        }
+      }
+    }
   }
   const finalSorted = Object.entries(tournamentStats).sort((a, b) =>
     b[1].points !== a[1].points ? b[1].points - a[1].points :
