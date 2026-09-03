@@ -47,9 +47,12 @@ export async function GET(request: NextRequest) {
 
     console.log('[CHECK-TROPHIES] Start')
 
-    // 1. Récupérer les tournois actifs + récemment terminés (48h)
-    //    Les tournois terminés sont nécessaires pour tournament_winner, legend, abyssal
-    const cutoffDate = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()
+    // 1. Récupérer les tournois actifs + récemment terminés
+    //    Les tournois terminés sont nécessaires pour tournament_winner, legend, abyssal.
+    //    #9 : le cron tourne 1×/jour → une fenêtre 48h ne laissait que ~2 passages ; un run raté ou
+    //    un score arrivé en retard pouvait faire manquer un trophée pour toujours. Fenêtre = 7 jours,
+    //    sans risque : upsert(ignoreDuplicates) → ni doublon ni notification répétée.
+    const cutoffDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
     const { data: activeTournaments } = await supabase
       .from('tournaments')

@@ -1,0 +1,51 @@
+name: Self-Heal Trophies
+
+# Filet de sécurité PROFOND (#9) : rejoue la logique corrigée des trophées sur TOUS les tournois de
+# l'historique et n'AJOUTE que les trophées mérités mais absents (apply=add → jamais de retrait).
+# Complète check-trophies (fenêtre 7 jours, avec notifications) : ici on rattrape silencieusement les
+# vieux tournois (>7 jours) qui auraient manqué un trophée à cause d'un ancien bug de calcul.
+
+on:
+  schedule:
+    # Une fois par semaine, lundi 6h30 UTC (peu de tournois se terminent → coût faible)
+    - cron: '30 6 * * 1'
+
+  # Déclenchement manuel depuis GitHub UI
+  workflow_dispatch:
+
+jobs:
+  self-heal-trophies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 🩹 Trigger recompute-trophies (add-only)
+        run: |
+          response=$(curl -X GET --max-time 600 --connect-timeout 20 \
+            -w "\n%{http_code}" \
+            -s \
+            "https://www.pronohub.club/api/admin/recompute-trophies?apply=add&secret=${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+
+          if command -v jq &> /dev/null; then
+            echo "$body" | jq '{mode, summary, applied}' || echo "$body"
+          else
+            echo "$body"
+          fi
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "❌ Erreur: HTTP $http_code"
+            exit 1
+          fi
+
+          echo "✅ Self-heal exécuté avec succès"
+
+      - name: 📊 Log execution time
+        if: always()
+        run: |
+          echo "Execution time (UTC): $(date -u +"%Y-%m-%d %H:%M:%S")"
+          echo "Execution time (Paris): $(TZ=Europe/Paris date +"%Y-%m-%d %H:%M:%S")"

@@ -258,16 +258,19 @@ export async function calculateTrophiesForTournament(
   }
 
   // Helper : calculer le ranking d'une journée (points par user)
+  // Classement d'une journée : points ET critères de départage (scores exacts, bons résultats),
+  // exactement comme scoring.ts calculateRankings (points → exacts → bons résultats).
+  type JourneyStat = { points: number, exact: number, correct: number }
   const getJourneyRanking = (predictions: any[], participantIds: string[]) => {
-    const userPoints: Record<string, number> = {}
+    const stats: Record<string, JourneyStat> = {}
     for (const uid of participantIds) {
-      userPoints[uid] = 0
+      stats[uid] = { points: 0, exact: 0, correct: 0 }
     }
 
     for (const pred of predictions) {
       // Prono ORPHELIN (participant retiré du tournoi) : on l'IGNORE, sans abandonner la journée.
       // Avant : `return userPoints` tronquait tout le classement dès le 1er prono orphelin rencontré.
-      if (userPoints[pred.user_id] === undefined) continue
+      if (stats[pred.user_id] === undefined) continue
 
       const match = getMatch(pred.imported_matches)
       if (!match) continue
@@ -285,10 +288,22 @@ export async function calculateTrophiesForTournament(
         isDefaultPrediction
       )
 
-      userPoints[pred.user_id] += result.points
+      stats[pred.user_id].points += result.points
+
+      // Départage secondaire (comme scoring.ts) : scores exacts puis bons résultats.
+      const predResult = pred.predicted_home_score > pred.predicted_away_score ? 'HOME' :
+                         pred.predicted_home_score < pred.predicted_away_score ? 'AWAY' : 'DRAW'
+      const actualResult = match.home_score > match.away_score ? 'HOME' :
+                           match.home_score < match.away_score ? 'AWAY' : 'DRAW'
+      if (pred.predicted_home_score === match.home_score && pred.predicted_away_score === match.away_score) {
+        stats[pred.user_id].exact++
+      }
+      if (predResult === actualResult) {
+        stats[pred.user_id].correct++
+      }
     }
 
-    return userPoints
+    return stats
   }
 
   // Helper : date la plus récente
@@ -344,7 +359,9 @@ export async function calculateTrophiesForTournament(
 
   // Pré-calculer les rankings par journée (partagé entre tous les participants)
   const journeyRankings: Record<string, Record<string, number>> = {}
-  const journeyMeta: Record<string, { maxPoints: number, minPoints: number, usersWithMax: number, usersWithMin: number, latestDate: string }> = {}
+  // soleLeaderId / soleLastId : #12 — 1er et dernier déterminés par le VRAI départage
+  // (points → exacts → bons résultats), null si égalité PARFAITE (les 3 critères identiques).
+  const journeyMeta: Record<string, { maxPoints: number, minPoints: number, soleLeaderId: string | null, soleLastId: string | null, latestDate: string }> = {}
 
   for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
     const key = `${matchday}`
@@ -353,20 +370,28 @@ export async function calculateTrophiesForTournament(
     if (!isJourneyComplete(journeyMatches)) continue
 
     const journeyPredictions = predictionsByJourney[key] || []
-    const userPoints = getJourneyRanking(journeyPredictions, allParticipantIds)
-    journeyRankings[key] = userPoints
+    const stats = getJourneyRanking(journeyPredictions, allParticipantIds)
+    journeyRankings[key] = Object.fromEntries(Object.entries(stats).map(([u, s]) => [u, s.points]))
 
-    const pointValues = Object.values(userPoints)
-    const maxPoints = Math.max(...pointValues)
-    const minPoints = Math.min(...pointValues)
+    const pointValues = Object.values(stats).map(s => s.points)
+    const maxPoints = pointValues.length ? Math.max(...pointValues) : 0
+    const minPoints = pointValues.length ? Math.min(...pointValues) : 0
 
-    journeyMeta[key] = {
-      maxPoints,
-      minPoints,
-      usersWithMax: pointValues.filter(pts => pts === maxPoints).length,
-      usersWithMin: pointValues.filter(pts => pts === minPoints).length,
-      latestDate: getLatestDate(journeyMatches)
-    }
+    // Départage identique à scoring.ts : points → exacts → bons résultats. Égalité = les 3 égaux.
+    const entries = Object.entries(stats) as [string, JourneyStat][]
+    const sorted = [...entries].sort((a, b) =>
+      (b[1].points - a[1].points) || (b[1].exact - a[1].exact) || (b[1].correct - a[1].correct)
+    )
+    const perfectTie = (x: JourneyStat, y: JourneyStat) =>
+      x.points === y.points && x.exact === y.exact && x.correct === y.correct
+    const soleLeaderId = sorted.length === 1
+      ? sorted[0][0]
+      : sorted.length > 1 && !perfectTie(sorted[0][1], sorted[1][1]) ? sorted[0][0] : null
+    const soleLastId = sorted.length === 1
+      ? sorted[0][0]
+      : sorted.length > 1 && !perfectTie(sorted[sorted.length - 1][1], sorted[sorted.length - 2][1]) ? sorted[sorted.length - 1][0] : null
+
+    journeyMeta[key] = { maxPoints, minPoints, soleLeaderId, soleLastId, latestDate: getLatestDate(journeyMatches) }
   }
 
   // Stats tournoi par user (journées TERMINÉES) pour le classement FINAL avec le tie-break officiel
@@ -477,6 +502,63 @@ export async function calculateTrophiesForTournament(
 
     for (let matchday = startMatchday; matchday <= endMatchday; matchday++) {
       const key = `${matchday}`
+      const journeyPredictions = predictionsByJourney[key] || []
+      const myJourneyPredictions = journeyPredictions.filter((p: any) => p.user_id === userId)
+      const realJourneyPredictions = myJourneyPredictions.filter((p: any) => !p.is_default_prediction)
+
+      // --- TROPHÉES MONOTONES (opportunist, nostradamus, bonus_profiteer/optimizer) ---
+      // Évalués sur les matchs TERMINÉS de la journée, SANS attendre la journée complète : une fois
+      // la condition atteinte le trophée est acquis (#4 : ne plus les bloquer si 1 match traîne).
+      let correctResults = 0
+      let exactScores = 0
+      let lastCorrectPred: any = null
+      let lastExactPred: any = null
+
+      for (const pred of myJourneyPredictions) {
+        // #15/#17 : un prono PAR DÉFAUT (rempli automatiquement) ne doit jamais débloquer un trophée
+        // "positif" (opportunist / nostradamus / bonus) — ceux-ci récompensent une VRAIE prédiction.
+        if (pred.is_default_prediction) continue
+        const match = getMatch(pred.imported_matches)
+        if (!isMatchFinished(match) || match.home_score === null || match.away_score === null) continue
+
+        const predResult = pred.predicted_home_score > pred.predicted_away_score ? 'HOME' :
+                          pred.predicted_home_score < pred.predicted_away_score ? 'AWAY' : 'DRAW'
+        const actualResult = match.home_score > match.away_score ? 'HOME' :
+                            match.home_score < match.away_score ? 'AWAY' : 'DRAW'
+
+        const isExact = pred.predicted_home_score === match.home_score &&
+                        pred.predicted_away_score === match.away_score
+        const isCorrect = predResult === actualResult
+
+        if (isExact) { exactScores++; lastExactPred = { pred, match } }
+        if (isCorrect) { correctResults++; lastCorrectPred = { pred, match } }
+
+        if (bonusMatchIds.has(pred.match_id)) {
+          if (isCorrect && !hasBonusProfiteer) {
+            trophiesToUnlock['bonus_profiteer'] = match.utc_date
+            triggerMatches['bonus_profiteer'] = buildTriggerMatch(pred, match)
+            hasBonusProfiteer = true
+          }
+          if (isExact && !hasBonusOptimizer) {
+            trophiesToUnlock['bonus_optimizer'] = match.utc_date
+            triggerMatches['bonus_optimizer'] = buildTriggerMatch(pred, match)
+            hasBonusOptimizer = true
+          }
+        }
+      }
+
+      if (!hasOpportunist && correctResults >= 2 && lastCorrectPred) {
+        trophiesToUnlock['opportunist'] = lastCorrectPred.match.utc_date
+        triggerMatches['opportunist'] = buildTriggerMatch(lastCorrectPred.pred, lastCorrectPred.match)
+        hasOpportunist = true
+      }
+      if (!hasNostradamus && exactScores >= 2 && lastExactPred) {
+        trophiesToUnlock['nostradamus'] = lastExactPred.match.utc_date
+        triggerMatches['nostradamus'] = buildTriggerMatch(lastExactPred.pred, lastExactPred.match)
+        hasNostradamus = true
+      }
+
+      // --- TROPHÉES DE CLASSEMENT DE JOURNÉE (exigent la journée COMPLÈTE) ---
       const ranking = journeyRankings[key]
       const meta = journeyMeta[key]
 
@@ -488,14 +570,11 @@ export async function calculateTrophiesForTournament(
 
       totalCompletedJourneys++
 
-      const myPoints = ranking[userId] || 0
-      const isFirst = myPoints === meta.maxPoints
-      // SEUL premier (sans égalité) ET avec des points (≠ 0) — critères "king_of_day"/"double_king".
-      // Avant : `isFirst && (maxPoints > 0 || usersWithMax === 1)` acceptait à tort les égalités en
-      // tête dès que maxPoints > 0 → trophées attribués à plusieurs joueurs ex-æquo.
-      const isSoleLeader = isFirst && meta.usersWithMax === 1 && meta.maxPoints > 0 && allParticipantIds.length > 1
-      const isLast = myPoints === meta.minPoints
-      const isSoleLast = isLast && meta.usersWithMin === 1 && allParticipantIds.length > 1
+      // #12 : SEUL premier / dernier au sens du VRAI départage (points → exacts → bons résultats),
+      // et avec des points (≠ 0) pour le leader. > 1 participant obligatoire.
+      const isSoleLeader = meta.soleLeaderId === userId && meta.maxPoints > 0 && allParticipantIds.length > 1
+      // #7 : ne pas compter "dernier" un joueur qui n'a PAS réellement joué la journée (0 prono réel).
+      const isSoleLast = meta.soleLastId === userId && allParticipantIds.length > 1 && realJourneyPredictions.length > 0
 
       // King of Day
       if (!hasKingOfDay && isSoleLeader) {
@@ -540,63 +619,7 @@ export async function calculateTrophiesForTournament(
         consecutiveLosses = 0
       }
 
-      // Opportunist, Nostradamus, Bonus, Cursed
-      const journeyPredictions = predictionsByJourney[key] || []
-      const myJourneyPredictions = journeyPredictions.filter((p: any) => p.user_id === userId)
-      let correctResults = 0
-      let exactScores = 0
-      let lastCorrectPred: any = null
-      let lastExactPred: any = null
-
-      for (const pred of myJourneyPredictions) {
-        const match = getMatch(pred.imported_matches)
-        if (!match) continue
-
-        const predResult = pred.predicted_home_score > pred.predicted_away_score ? 'HOME' :
-                          pred.predicted_home_score < pred.predicted_away_score ? 'AWAY' : 'DRAW'
-        const actualResult = match.home_score > match.away_score ? 'HOME' :
-                            match.home_score < match.away_score ? 'AWAY' : 'DRAW'
-
-        const isExact = pred.predicted_home_score === match.home_score &&
-                        pred.predicted_away_score === match.away_score
-        const isCorrect = predResult === actualResult
-
-        if (isExact) {
-          exactScores++
-          lastExactPred = { pred, match }
-        }
-        if (isCorrect) {
-          correctResults++
-          lastCorrectPred = { pred, match }
-        }
-
-        // Bonus trophies
-        if (bonusMatchIds.has(pred.match_id)) {
-          if (isCorrect && !hasBonusProfiteer) {
-            trophiesToUnlock['bonus_profiteer'] = match.utc_date
-            triggerMatches['bonus_profiteer'] = buildTriggerMatch(pred, match)
-            hasBonusProfiteer = true
-          }
-          if (isExact && !hasBonusOptimizer) {
-            trophiesToUnlock['bonus_optimizer'] = match.utc_date
-            triggerMatches['bonus_optimizer'] = buildTriggerMatch(pred, match)
-            hasBonusOptimizer = true
-          }
-        }
-      }
-
-      if (!hasOpportunist && correctResults >= 2 && lastCorrectPred) {
-        trophiesToUnlock['opportunist'] = meta.latestDate
-        triggerMatches['opportunist'] = buildTriggerMatch(lastCorrectPred.pred, lastCorrectPred.match)
-        hasOpportunist = true
-      }
-      if (!hasNostradamus && exactScores >= 2 && lastExactPred) {
-        trophiesToUnlock['nostradamus'] = meta.latestDate
-        triggerMatches['nostradamus'] = buildTriggerMatch(lastExactPred.pred, lastExactPred.match)
-        hasNostradamus = true
-      }
-      // "Le Maudit" exige d'avoir réellement joué la journée : au moins 1 prono NON par défaut
-      const realJourneyPredictions = myJourneyPredictions.filter((p: any) => !p.is_default_prediction)
+      // Cursed : journée complète + a réellement joué + aucun bon résultat.
       if (!hasCursed && realJourneyPredictions.length > 0 && correctResults === 0) {
         trophiesToUnlock['cursed'] = meta.latestDate
         const trigger = getLastMatchTrigger(key, userId)
