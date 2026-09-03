@@ -846,7 +846,10 @@
       "confirm": "Sì, lascia il torneo",
       "cancel": "Annulla",
       "success": "Hai lasciato il torneo.",
-      "error": "Impossibile lasciare il torneo."
+      "error": "Impossibile lasciare il torneo.",
+      "captainNote": "Come capitano, scegli il giocatore a cui passare la fascia prima di andartene:",
+      "successorPlaceholder": "— Scegli un successore —",
+      "chooseSuccessor": "Scegli un successore per continuare."
     },
     "tabs": {
       "predictions": "Pronostici",

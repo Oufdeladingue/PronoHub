@@ -3,7 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 /**
  * Auto-retrait : l'utilisateur connecté quitte définitivement un tournoi.
- * - Le créateur/capitaine ne peut PAS quitter (doit d'abord transférer le capitanat).
+ * - Le créateur/capitaine doit désigner un SUCCESSEUR (body { newCaptainId }) : on transfère le
+ *   capitanat PUIS on le retire, dans la même requête (sinon tournoi orphelin).
  * - Retire : appartenance à une équipe, pronostics de CE tournoi, et la participation.
  * - Les achats (bonus, slots…) NE sont PAS remboursés (on garde les enregistrements financiers).
  */
@@ -13,6 +14,8 @@ export async function POST(
 ) {
   try {
     const { tournamentId } = await params
+    const body = await request.json().catch(() => ({} as any))
+    const newCaptainId: string | undefined = body?.newCaptainId
     const supabase = await createClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -39,21 +42,41 @@ export async function POST(
       return NextResponse.json({ error: 'Vous ne participez pas à ce tournoi' }, { status: 400 })
     }
 
-    // Le créateur/capitaine doit transférer le capitanat avant de partir (sinon tournoi orphelin).
+    // Service role : bypass RLS après vérification de propriété.
+    const admin = createAdminClient()
+
+    // Créateur/capitaine : il doit désigner un SUCCESSEUR avant de partir (sinon tournoi orphelin).
+    // Transfert du capitanat + départ dans la même requête.
     const isCaptain =
       tournament.creator_id === user.id ||
       participant.participant_role === 'captain' ||
       participant.participant_role === 'creator' ||
       participant.participant_role === 'owner'
     if (isCaptain) {
-      return NextResponse.json(
-        { error: 'En tant que créateur, transférez d\'abord le capitanat à un autre joueur avant de quitter.' },
-        { status: 400 }
-      )
+      if (!newCaptainId || newCaptainId === user.id) {
+        return NextResponse.json(
+          { error: 'En tant que créateur, choisissez un successeur pour le capitanat avant de quitter.', needsSuccessor: true },
+          { status: 400 }
+        )
+      }
+      const { data: succ } = await admin
+        .from('tournament_participants')
+        .select('user_id')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', newCaptainId)
+        .maybeSingle()
+      if (!succ) {
+        return NextResponse.json({ error: 'Le successeur choisi ne participe pas au tournoi.' }, { status: 400 })
+      }
+      const { error: transferError } = await admin
+        .from('tournaments')
+        .update({ creator_id: newCaptainId })
+        .eq('id', tournamentId)
+      if (transferError) {
+        console.error('[leave] transfer captain error:', transferError)
+        return NextResponse.json({ error: 'Échec du transfert du capitanat' }, { status: 500 })
+      }
     }
-
-    // Service role : suppression de ses propres données (bypass RLS après vérif de propriété).
-    const admin = createAdminClient()
     await admin.from('tournament_team_members').delete().eq('tournament_id', tournamentId).eq('user_id', user.id)
     // Supprimer les pronostics AVANT le participant, en vérifiant l'erreur : un participant retiré
     // dont les pronos resteraient créerait un prono ORPHELIN qui corrompt classements/trophées.

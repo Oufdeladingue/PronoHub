@@ -846,7 +846,10 @@
       "confirm": "Sí, abandonar el torneo",
       "cancel": "Cancelar",
       "success": "Has abandonado el torneo.",
-      "error": "No se puede abandonar el torneo."
+      "error": "No se puede abandonar el torneo.",
+      "captainNote": "Como capitán, elige al jugador al que ceder el capitanato antes de salir:",
+      "successorPlaceholder": "— Elegir un sucesor —",
+      "chooseSuccessor": "Elige un sucesor para continuar."
     },
     "tabs": {
       "predictions": "Pronósticos",

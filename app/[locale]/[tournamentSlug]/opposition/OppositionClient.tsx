@@ -417,17 +417,58 @@ export default function OppositionClient({
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [matchdaysToAdd, setMatchdaysToAdd] = useState(1)
   const [extendLoading, setExtendLoading] = useState(false)
-  // Quitter le tournoi (auto-retrait)
+  // Quitter le tournoi (auto-retrait ; le capitaine doit désigner un successeur avant de partir)
   const [showLeaveModal, setShowLeaveModal] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [leaveError, setLeaveError] = useState<string | null>(null)
+  const [successorId, setSuccessorId] = useState('')
+  const [otherParticipants, setOtherParticipants] = useState<{ id: string; username: string }[]>([])
+
+  const openLeaveModal = async () => {
+    setLeaveError(null)
+    setSuccessorId('')
+    const iAmCaptain = !!username && !!captainUsername && username === captainUsername
+    if (iAmCaptain && tournament) {
+      // Charger les autres participants pour le choix du successeur.
+      try {
+        const supabase = createClient()
+        const { data: parts } = await supabase
+          .from('tournament_participants')
+          .select('user_id')
+          .eq('tournament_id', tournament.id)
+        const ids = (parts || []).map((p: any) => p.user_id).filter((id: string) => id !== userId)
+        if (ids.length > 0) {
+          const { data: profs } = await supabase.from('profiles').select('id, username').in('id', ids)
+          setOtherParticipants(
+            (profs || [])
+              .map((p: any) => ({ id: p.id, username: p.username || '—' }))
+              .sort((a: any, b: any) => a.username.localeCompare(b.username))
+          )
+        } else {
+          setOtherParticipants([])
+        }
+      } catch {
+        setOtherParticipants([])
+      }
+    }
+    setShowLeaveModal(true)
+  }
 
   const handleLeaveTournament = async () => {
     if (!tournament) return
+    const iAmCaptain = !!username && !!captainUsername && username === captainUsername
+    if (iAmCaptain && !successorId) {
+      setLeaveError(t('leave.chooseSuccessor'))
+      return
+    }
     setLeaving(true)
     setLeaveError(null)
     try {
-      const res = await fetchWithAuth(`/api/tournaments/${tournament.id}/leave`, { method: 'POST' })
+      const res = await fetchWithAuth(`/api/tournaments/${tournament.id}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(iAmCaptain ? { newCaptainId: successorId } : {}),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || t('leave.error'))
       // Succès : l'utilisateur n'a plus accès → rechargement complet vers le dashboard.
@@ -440,6 +481,8 @@ export default function OppositionClient({
 
   // État pour le pseudo du capitaine - pré-chargé depuis le server
   const [captainUsername, setCaptainUsername] = useState<string | null>(serverCaptainUsername)
+  // L'utilisateur courant est-il le capitaine ? (pseudos uniques)
+  const isCaptain = !!username && !!captainUsername && username === captainUsername
 
   // État pour la modale de score maximum
   const [showMaxScoreModal, setShowMaxScoreModal] = useState(false)
@@ -3884,8 +3927,8 @@ export default function OppositionClient({
               {userId && tournament && (
                 <div className="mt-8 pt-6 border-t theme-border">
                   <button
-                    onClick={() => { setLeaveError(null); setShowLeaveModal(true) }}
-                    className="theme-btn-secondary w-full text-sm"
+                    onClick={openLeaveModal}
+                    className="theme-btn-secondary w-full text-sm transition-all hover:!text-red-400 hover:!border-red-400/50"
                   >
                     {t('leave.button')}
                   </button>
@@ -3921,6 +3964,22 @@ export default function OppositionClient({
                 <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnRefund')}</span></li>
                 <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnData')}</span></li>
               </ul>
+              {isCaptain && (
+                <div className="mb-4">
+                  <p className="text-sm theme-text-secondary mb-2">{t('leave.captainNote')}</p>
+                  <select
+                    value={successorId}
+                    onChange={(e) => { setSuccessorId(e.target.value); setLeaveError(null) }}
+                    disabled={leaving}
+                    className="theme-input w-full"
+                  >
+                    <option value="">{t('leave.successorPlaceholder')}</option>
+                    {otherParticipants.map((p) => (
+                      <option key={p.id} value={p.id}>{p.username}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {leaveError && <p className="theme-accent-text-always text-sm text-center mb-4">{leaveError}</p>}
               <div className="flex gap-3">
                 <button
@@ -3932,7 +3991,7 @@ export default function OppositionClient({
                 </button>
                 <button
                   onClick={handleLeaveTournament}
-                  disabled={leaving}
+                  disabled={leaving || (isCaptain && !successorId)}
                   className="modal-btn-danger disabled:opacity-50"
                 >
                   {leaving ? '…' : t('leave.confirm')}

@@ -846,7 +846,10 @@
       "confirm": "Yes, leave the tournament",
       "cancel": "Cancel",
       "success": "You have left the tournament.",
-      "error": "Unable to leave the tournament."
+      "error": "Unable to leave the tournament.",
+      "captainNote": "As the captain, choose the player to hand the captaincy to before leaving:",
+      "successorPlaceholder": "— Choose a successor —",
+      "chooseSuccessor": "Choose a successor to continue."
     },
     "tabs": {
       "predictions": "Predictions",

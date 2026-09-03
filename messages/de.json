@@ -846,7 +846,10 @@
       "confirm": "Ja, Turnier verlassen",
       "cancel": "Abbrechen",
       "success": "Du hast das Turnier verlassen.",
-      "error": "Turnier konnte nicht verlassen werden."
+      "error": "Turnier konnte nicht verlassen werden.",
+      "captainNote": "Als Kapitän wähle den Spieler, dem du die Kapitänsrolle übergibst, bevor du gehst:",
+      "successorPlaceholder": "— Nachfolger wählen —",
+      "chooseSuccessor": "Wähle einen Nachfolger, um fortzufahren."
     },
     "tabs": {
       "predictions": "Tipps",

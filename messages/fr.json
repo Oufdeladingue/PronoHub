@@ -846,7 +846,10 @@
       "confirm": "Oui, quitter le tournoi",
       "cancel": "Annuler",
       "success": "Tu as quitté le tournoi.",
-      "error": "Impossible de quitter le tournoi."
+      "error": "Impossible de quitter le tournoi.",
+      "captainNote": "En tant que capitaine, choisis le joueur à qui transmettre le capitanat avant de partir :",
+      "successorPlaceholder": "— Choisir un successeur —",
+      "chooseSuccessor": "Choisis un successeur pour continuer."
     },
     "tabs": {
       "predictions": "Pronostics",
