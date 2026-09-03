@@ -836,6 +836,18 @@
     "leaveNote": "You won't be able to rejoin this tournament after leaving it"
   },
   "Opposition": {
+    "leave": {
+      "button": "I've lost the coach's trust, I'd rather leave the tournament",
+      "title": "Leave the tournament?",
+      "desc": "Are you sure you want to leave this tournament? This action is permanent.",
+      "warnAccess": "You will no longer have access to this tournament (ranking, predictions, chat).",
+      "warnRefund": "Any bonuses or options you purchased will not be refunded.",
+      "warnData": "Your predictions and points in this tournament will be deleted.",
+      "confirm": "Yes, leave the tournament",
+      "cancel": "Cancel",
+      "success": "You have left the tournament.",
+      "error": "Unable to leave the tournament."
+    },
     "tabs": {
       "predictions": "Predictions",
       "ranking": "Ranking",

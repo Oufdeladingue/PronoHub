@@ -836,6 +836,18 @@
     "leaveNote": "Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté"
   },
   "Opposition": {
+    "leave": {
+      "button": "J'ai perdu la confiance du coach, je préfère quitter le tournoi",
+      "title": "Quitter le tournoi ?",
+      "desc": "Es-tu sûr de vouloir quitter ce tournoi ? Cette action est définitive.",
+      "warnAccess": "Tu n'auras plus accès à ce tournoi (classement, pronostics, tchat).",
+      "warnRefund": "Les éventuels bonus ou options achetés ne seront pas remboursés.",
+      "warnData": "Tes pronostics et tes points sur ce tournoi seront supprimés.",
+      "confirm": "Oui, quitter le tournoi",
+      "cancel": "Annuler",
+      "success": "Tu as quitté le tournoi.",
+      "error": "Impossible de quitter le tournoi."
+    },
     "tabs": {
       "predictions": "Pronostics",
       "ranking": "Classement",

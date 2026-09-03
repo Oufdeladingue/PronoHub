@@ -836,6 +836,18 @@
     "leaveNote": "Du kannst diesem Turnier nach dem Verlassen nicht mehr beitreten"
   },
   "Opposition": {
+    "leave": {
+      "button": "Ich habe das Vertrauen des Trainers verloren, ich verlasse das Turnier lieber",
+      "title": "Turnier verlassen?",
+      "desc": "Möchtest du dieses Turnier wirklich verlassen? Diese Aktion ist endgültig.",
+      "warnAccess": "Du hast keinen Zugriff mehr auf dieses Turnier (Rangliste, Tipps, Chat).",
+      "warnRefund": "Gekaufte Boni oder Optionen werden nicht erstattet.",
+      "warnData": "Deine Tipps und Punkte in diesem Turnier werden gelöscht.",
+      "confirm": "Ja, Turnier verlassen",
+      "cancel": "Abbrechen",
+      "success": "Du hast das Turnier verlassen.",
+      "error": "Turnier konnte nicht verlassen werden."
+    },
     "tabs": {
       "predictions": "Tipps",
       "ranking": "Tabelle",

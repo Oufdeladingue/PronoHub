@@ -836,6 +836,18 @@
     "leaveNote": "Non potrai più partecipare a questo torneo dopo averlo lasciato"
   },
   "Opposition": {
+    "leave": {
+      "button": "Ho perso la fiducia del coach, preferisco lasciare il torneo",
+      "title": "Lasciare il torneo?",
+      "desc": "Sei sicuro di voler lasciare questo torneo? L'azione è definitiva.",
+      "warnAccess": "Non avrai più accesso a questo torneo (classifica, pronostici, chat).",
+      "warnRefund": "Eventuali bonus o opzioni acquistati non saranno rimborsati.",
+      "warnData": "I tuoi pronostici e i tuoi punti in questo torneo saranno eliminati.",
+      "confirm": "Sì, lascia il torneo",
+      "cancel": "Annulla",
+      "success": "Hai lasciato il torneo.",
+      "error": "Impossibile lasciare il torneo."
+    },
     "tabs": {
       "predictions": "Pronostici",
       "ranking": "Classifica",

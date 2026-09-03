@@ -417,6 +417,26 @@ export default function OppositionClient({
   const [showExtendModal, setShowExtendModal] = useState(false)
   const [matchdaysToAdd, setMatchdaysToAdd] = useState(1)
   const [extendLoading, setExtendLoading] = useState(false)
+  // Quitter le tournoi (auto-retrait)
+  const [showLeaveModal, setShowLeaveModal] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
+
+  const handleLeaveTournament = async () => {
+    if (!tournament) return
+    setLeaving(true)
+    setLeaveError(null)
+    try {
+      const res = await fetchWithAuth(`/api/tournaments/${tournament.id}/leave`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || t('leave.error'))
+      // Succès : l'utilisateur n'a plus accès → rechargement complet vers le dashboard.
+      window.location.href = `/${locale}/dashboard`
+    } catch (err: any) {
+      setLeaveError(err.message || t('leave.error'))
+      setLeaving(false)
+    }
+  }
 
   // État pour le pseudo du capitaine - pré-chargé depuis le server
   const [captainUsername, setCaptainUsername] = useState<string | null>(serverCaptainUsername)
@@ -3859,6 +3879,18 @@ export default function OppositionClient({
                   <p>{t('rules.rankingDesc')}</p>
                 </div>
               </div>
+
+              {/* Quitter le tournoi — zone "danger", tout en bas des règles */}
+              {userId && tournament && (
+                <div className="mt-8 pt-6 border-t border-red-500/20">
+                  <button
+                    onClick={() => { setLeaveError(null); setShowLeaveModal(true) }}
+                    className="w-full px-4 py-3 rounded-lg border border-red-500/40 text-red-500 hover:bg-red-500/10 font-semibold text-sm transition"
+                  >
+                    {t('leave.button')}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -3874,6 +3906,41 @@ export default function OppositionClient({
 
         {/* Footer */}
         <Footer />
+
+        {/* Modal de confirmation "Quitter le tournoi" */}
+        {showLeaveModal && tournament && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => { if (!leaving) setShowLeaveModal(false) }}
+          >
+            <div className="theme-card w-full max-w-md rounded-xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-red-500 mb-3 text-center">{t('leave.title')}</h3>
+              <p className="theme-text-secondary text-center mb-4">{t('leave.desc')}</p>
+              <ul className="space-y-2 mb-6 text-sm theme-text-secondary">
+                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnAccess')}</span></li>
+                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnRefund')}</span></li>
+                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnData')}</span></li>
+              </ul>
+              {leaveError && <p className="text-red-500 text-sm text-center mb-4">{leaveError}</p>}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLeaveModal(false)}
+                  disabled={leaving}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-medium transition disabled:opacity-50"
+                >
+                  {t('leave.cancel')}
+                </button>
+                <button
+                  onClick={handleLeaveTournament}
+                  disabled={leaving}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition disabled:opacity-50"
+                >
+                  {leaving ? '…' : t('leave.confirm')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal d'extension du tournoi */}
         {showExtendModal && (
