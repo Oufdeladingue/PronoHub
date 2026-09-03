@@ -3882,10 +3882,10 @@ export default function OppositionClient({
 
               {/* Quitter le tournoi — zone "danger", tout en bas des règles */}
               {userId && tournament && (
-                <div className="mt-8 pt-6 border-t border-red-500/20">
+                <div className="mt-8 pt-6 border-t theme-border">
                   <button
                     onClick={() => { setLeaveError(null); setShowLeaveModal(true) }}
-                    className="w-full px-4 py-3 rounded-lg border border-red-500/40 text-red-500 hover:bg-red-500/10 font-semibold text-sm transition"
+                    className="theme-btn-secondary w-full text-sm"
                   >
                     {t('leave.button')}
                   </button>
@@ -3914,26 +3914,26 @@ export default function OppositionClient({
             onClick={() => { if (!leaving) setShowLeaveModal(false) }}
           >
             <div className="theme-card w-full max-w-md rounded-xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold text-red-500 mb-3 text-center">{t('leave.title')}</h3>
+              <h3 className="text-xl font-bold theme-text mb-3 text-center">{t('leave.title')}</h3>
               <p className="theme-text-secondary text-center mb-4">{t('leave.desc')}</p>
               <ul className="space-y-2 mb-6 text-sm theme-text-secondary">
-                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnAccess')}</span></li>
-                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnRefund')}</span></li>
-                <li className="flex items-start gap-2"><span className="text-red-500 mt-0.5">•</span><span>{t('leave.warnData')}</span></li>
+                <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnAccess')}</span></li>
+                <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnRefund')}</span></li>
+                <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnData')}</span></li>
               </ul>
-              {leaveError && <p className="text-red-500 text-sm text-center mb-4">{leaveError}</p>}
+              {leaveError && <p className="theme-accent-text-always text-sm text-center mb-4">{leaveError}</p>}
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowLeaveModal(false)}
                   disabled={leaving}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-medium transition disabled:opacity-50"
+                  className="btn-cancel flex-1 px-4 py-3 font-medium disabled:opacity-50"
                 >
                   {t('leave.cancel')}
                 </button>
                 <button
                   onClick={handleLeaveTournament}
                   disabled={leaving}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition disabled:opacity-50"
+                  className="modal-btn-danger disabled:opacity-50"
                 >
                   {leaving ? '…' : t('leave.confirm')}
                 </button>
