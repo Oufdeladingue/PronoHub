@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { getAvatarUrl } from '@/lib/avatars'
@@ -68,6 +68,20 @@ const TEAM_AVATARS = [
   'team5', 'team6', 'team7', 'team8'
 ]
 
+// Trouver le 1er ancêtre réellement scrollable verticalement (la page échauffement scrolle dans
+// <main class="overflow-y-auto">, pas dans window → l'auto-scroll doit cibler CET élément).
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node: HTMLElement | null = el
+  while (node) {
+    const oy = window.getComputedStyle(node).overflowY
+    if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && node.scrollHeight > node.clientHeight) {
+      return node
+    }
+    node = node.parentElement
+  }
+  return null
+}
+
 export default function TeamsManager({
   tournamentId,
   tournamentType,
@@ -89,6 +103,7 @@ export default function TeamsManager({
   const [editTeamName, setEditTeamName] = useState('')
   const [editTeamAvatar, setEditTeamAvatar] = useState('')
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
 
   // States pour les demandes d'équipe (joueurs non-capitaines)
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([])
@@ -443,6 +458,47 @@ export default function TeamsManager({
     setDraggedPlayer(null)
   }
 
+  // Auto-scroll pendant le drag : le DnD HTML5 natif ne fait PAS défiler le conteneur quand le
+  // curseur atteint le bord. Tant qu'un joueur est "saisi", on écoute la position du pointeur et on
+  // fait défiler le conteneur scrollable (le <main> de la page) vers le haut/bas près des bords.
+  useEffect(() => {
+    if (!draggedPlayer) return
+    const scroller = getScrollParent(containerRef.current)
+    const isWindow = !scroller
+    const EDGE = 100      // zone (px) près du bord qui déclenche le défilement
+    const MAX_SPEED = 20  // vitesse max (px/frame)
+    let pointerY = 0
+    let raf: number | null = null
+    let hasPointer = false
+
+    const onDragOver = (e: DragEvent) => { pointerY = e.clientY; hasPointer = true }
+
+    const tick = () => {
+      if (hasPointer) {
+        const top = isWindow ? 0 : scroller!.getBoundingClientRect().top
+        const bottom = isWindow ? window.innerHeight : scroller!.getBoundingClientRect().bottom
+        let delta = 0
+        if (pointerY < top + EDGE) {
+          delta = -Math.ceil(MAX_SPEED * Math.min(1, (top + EDGE - pointerY) / EDGE))
+        } else if (pointerY > bottom - EDGE) {
+          delta = Math.ceil(MAX_SPEED * Math.min(1, (pointerY - (bottom - EDGE)) / EDGE))
+        }
+        if (delta !== 0) {
+          if (isWindow) window.scrollBy(0, delta)
+          else scroller!.scrollBy(0, delta)
+        }
+      }
+      raf = requestAnimationFrame(tick)
+    }
+
+    document.addEventListener('dragover', onDragOver)
+    raf = requestAnimationFrame(tick)
+    return () => {
+      document.removeEventListener('dragover', onDragOver)
+      if (raf !== null) cancelAnimationFrame(raf)
+    }
+  }, [draggedPlayer])
+
   // Trouver les joueurs non assignes a une equipe
   const getUnassignedPlayers = () => {
     const assignedUserIds = new Set<string>()
@@ -471,7 +527,7 @@ export default function TeamsManager({
   const unassignedPlayers = getUnassignedPlayers()
 
   return (
-    <div className="theme-card">
+    <div className="theme-card" ref={containerRef}>
       {/* Header avec toggle */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
