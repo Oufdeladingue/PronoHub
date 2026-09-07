@@ -100,6 +100,18 @@ export async function POST(
       return NextResponse.json({ error: 'Échec du retrait du tournoi' }, { status: 500 })
     }
 
+    // Resynchroniser le compteur (jamais décrémenté auparavant → faux sur beaucoup de tournois).
+    // Best-effort : ne pas faire échouer le départ si ça rate.
+    try {
+      const { count } = await admin
+        .from('tournament_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+      await admin.from('tournaments').update({ current_participants: count ?? 0 }).eq('id', tournamentId)
+    } catch (e) {
+      console.error('[leave] resync current_participants failed:', e)
+    }
+
     return NextResponse.json({ success: true, message: 'Vous avez quitté le tournoi' })
   } catch (error: any) {
     console.error('[leave] error:', error)

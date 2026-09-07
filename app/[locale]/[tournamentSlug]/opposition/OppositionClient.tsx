@@ -35,6 +35,7 @@ interface Tournament {
   id: string
   name: string
   slug: string
+  creator_id?: string
   competition_id: number | null
   custom_competition_id?: string | null
   competition_name: string
@@ -423,66 +424,108 @@ export default function OppositionClient({
   const [leaveError, setLeaveError] = useState<string | null>(null)
   const [successorId, setSuccessorId] = useState('')
   const [otherParticipants, setOtherParticipants] = useState<{ id: string; username: string }[]>([])
+  // Révélé quand le SERVEUR répond needsSuccessor : garde-fou si la détection capitaine côté client rate.
+  const [mustChooseSuccessor, setMustChooseSuccessor] = useState(false)
+
+  // Charger les autres participants (pour le choix du successeur si le partant est capitaine).
+  const loadOtherParticipants = async () => {
+    if (!tournament) return
+    try {
+      const supabase = createClient()
+      const { data: parts } = await supabase
+        .from('tournament_participants')
+        .select('user_id')
+        .eq('tournament_id', tournament.id)
+      const ids = (parts || []).map((p: any) => p.user_id).filter((id: string) => id !== userId)
+      if (ids.length > 0) {
+        const { data: profs } = await supabase.from('profiles').select('id, username').in('id', ids)
+        setOtherParticipants(
+          (profs || [])
+            .map((p: any) => ({ id: p.id, username: p.username || '—' }))
+            .sort((a: any, b: any) => a.username.localeCompare(b.username))
+        )
+      } else {
+        setOtherParticipants([])
+      }
+    } catch {
+      setOtherParticipants([])
+    }
+  }
 
   const openLeaveModal = async () => {
     setLeaveError(null)
     setSuccessorId('')
-    const iAmCaptain = !!username && !!captainUsername && username === captainUsername
-    if (iAmCaptain && tournament) {
-      // Charger les autres participants pour le choix du successeur.
-      try {
-        const supabase = createClient()
-        const { data: parts } = await supabase
-          .from('tournament_participants')
-          .select('user_id')
-          .eq('tournament_id', tournament.id)
-        const ids = (parts || []).map((p: any) => p.user_id).filter((id: string) => id !== userId)
-        if (ids.length > 0) {
-          const { data: profs } = await supabase.from('profiles').select('id, username').in('id', ids)
-          setOtherParticipants(
-            (profs || [])
-              .map((p: any) => ({ id: p.id, username: p.username || '—' }))
-              .sort((a: any, b: any) => a.username.localeCompare(b.username))
-          )
-        } else {
-          setOtherParticipants([])
-        }
-      } catch {
-        setOtherParticipants([])
-      }
-    }
+    setMustChooseSuccessor(false)
+    if (isCaptain) await loadOtherParticipants()
     setShowLeaveModal(true)
   }
 
   const handleLeaveTournament = async () => {
     if (!tournament) return
-    const iAmCaptain = !!username && !!captainUsername && username === captainUsername
-    if (iAmCaptain && !successorId) {
+    // Le capitaine (détecté côté client OU imposé par le serveur via needsSuccessor) DOIT choisir un successeur.
+    const needsSuccessor = isCaptain || mustChooseSuccessor
+    if (needsSuccessor && !successorId) {
+      if (otherParticipants.length === 0) await loadOtherParticipants()
+      setMustChooseSuccessor(true)
       setLeaveError(t('leave.chooseSuccessor'))
       return
     }
     setLeaving(true)
     setLeaveError(null)
+
+    // POST avec timeout dur (15s) : évite le bouton figé sur "…" indéfiniment (WebView/réseau qui pend).
+    const doPost = async () => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 15000)
+      try {
+        return await fetchWithAuth(`/api/tournaments/${tournament.id}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(needsSuccessor ? { newCaptainId: successorId } : {}),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+
     try {
-      const res = await fetchWithAuth(`/api/tournaments/${tournament.id}/leave`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(iAmCaptain ? { newCaptainId: successorId } : {}),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || t('leave.error'))
-      // Succès : l'utilisateur n'a plus accès → rechargement complet vers le dashboard.
+      let res = await doPost()
+      // 401 : le token (cookie web roté, ou Bearer Capacitor périmé) peut être invalide → on rafraîchit
+      // la session UNE fois puis on réessaie, au lieu d'échouer sur un utilisateur pourtant connecté.
+      if (res.status === 401) {
+        try { await createClient().auth.refreshSession() } catch {}
+        res = await doPost()
+      }
+      const data = await res.json().catch(() => ({} as any))
+
+      if (!res.ok) {
+        // Vrai capitaine mal détecté côté client : le serveur réclame un successeur → on révèle le sélecteur.
+        if (data?.needsSuccessor) {
+          setMustChooseSuccessor(true)
+          await loadOtherParticipants()
+          setLeaveError(t('leave.chooseSuccessor'))
+          setLeaving(false)
+          return
+        }
+        throw new Error(data?.error || t('leave.error'))
+      }
+      // Succès UNIQUEMENT si le serveur le confirme (jamais de redirect "optimiste" masquant un échec).
+      if (!data?.success) throw new Error(t('leave.error'))
       window.location.href = `/${locale}/dashboard`
     } catch (err: any) {
-      setLeaveError(err.message || t('leave.error'))
+      setLeaveError(err?.message || t('leave.error'))
       setLeaving(false)
     }
   }
 
   // État pour le pseudo du capitaine - pré-chargé depuis le server
   const [captainUsername, setCaptainUsername] = useState<string | null>(serverCaptainUsername)
-  // L'utilisateur courant est-il le capitaine ? (pseudos uniques)
-  const isCaptain = !!username && !!captainUsername && username === captainUsername
+  // L'utilisateur courant est-il le capitaine ? Vérité serveur (creator_id) en priorité — la comparaison
+  // de pseudo était fragile (captainUsername parfois non chargé → un vrai capitaine ne pouvait pas partir).
+  const isCaptain =
+    (!!userId && !!tournament?.creator_id && tournament.creator_id === userId) ||
+    (!!username && !!captainUsername && username === captainUsername)
 
   // État pour la modale de score maximum
   const [showMaxScoreModal, setShowMaxScoreModal] = useState(false)
@@ -3964,7 +4007,7 @@ export default function OppositionClient({
                 <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnRefund')}</span></li>
                 <li className="flex items-start gap-2"><span className="theme-accent-text-always mt-0.5">•</span><span>{t('leave.warnData')}</span></li>
               </ul>
-              {isCaptain && (
+              {(isCaptain || mustChooseSuccessor) && (
                 <div className="mb-4">
                   <p className="text-sm theme-text-secondary mb-2">{t('leave.captainNote')}</p>
                   <select
@@ -3991,7 +4034,7 @@ export default function OppositionClient({
                 </button>
                 <button
                   onClick={handleLeaveTournament}
-                  disabled={leaving || (isCaptain && !successorId)}
+                  disabled={leaving || ((isCaptain || mustChooseSuccessor) && !successorId)}
                   className="modal-btn-danger disabled:opacity-50"
                 >
                   {leaving ? '…' : t('leave.confirm')}
