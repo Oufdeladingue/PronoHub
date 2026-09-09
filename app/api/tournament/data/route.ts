@@ -70,6 +70,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
   }
 
+  // Garde d'abandon (équivalent Capacitor de opposition/page.tsx) : un joueur ayant quitté ce
+  // tournoi ne doit plus y accéder → 403 → le wrapper redirige vers le dashboard.
+  const { data: myParticipation } = await supabase
+    .from('tournament_participants')
+    .select('abandoned_at')
+    .eq('tournament_id', tournamentData.id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (myParticipation?.abandoned_at) {
+    return NextResponse.json({ error: 'Abandoned', abandoned: true }, { status: 403 })
+  }
+
   // Compétition (nom + logos en UNE requête, c'était la même ligne lue 2 fois), pseudo du
   // capitaine et matchs récupérés EN PARALLÈLE (étaient 4 awaits séquentiels). (perf P-8)
   const isCustomComp = !!tournamentData.custom_competition_id
