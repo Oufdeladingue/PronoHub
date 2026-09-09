@@ -63,6 +63,7 @@ export async function PUT(request: Request) {
       .from('tournament_participants')
       .select('tournament_id, tournaments!inner(*)')
       .eq('user_id', user.id)
+      .is('abandoned_at', null) // ne pas recalculer les trophées des tournois abandonnés
 
     const getJoined = (d: any) => (Array.isArray(d) ? d[0] : d)
     const seen = new Set<string>()
@@ -85,6 +86,7 @@ export async function PUT(request: Request) {
         .from('tournament_participants')
         .select('user_id')
         .eq('tournament_id', tournament.id)
+        .is('abandoned_at', null) // exclure les abandonnés du set de participants (trophées)
       const participantIds = (allP || []).map((p: any) => p.user_id)
       if (participantIds.length === 0) continue
 

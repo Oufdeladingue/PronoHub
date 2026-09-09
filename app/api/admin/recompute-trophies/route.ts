@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         .from('tournament_participants')
         .select('user_id')
         .eq('tournament_id', tournament.id)
+        .is('abandoned_at', null) // les abandonnés ne sont pas éligibles aux trophées
       const ids = (parts || []).map((p: any) => p.user_id)
       if (ids.length === 0) continue
 

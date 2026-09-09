@@ -433,6 +433,7 @@
     "privacyLink": "Privacy Policy"
   },
   "Dashboard": {
+    "abandonedBadge": "Left",
     "meta": {
       "title": "Dashboard - PronoHub",
       "description": "Manage your prediction tournaments, track your performance and join new competitions on PronoHub."
@@ -836,6 +837,7 @@
     "leaveNote": "You won't be able to rejoin this tournament after leaving it"
   },
   "Opposition": {
+    "abandoned": "Left",
     "leave": {
       "button": "I've lost the coach's trust, I'd rather leave the tournament",
       "title": "Leave the tournament?",
@@ -970,6 +972,7 @@
     }
   },
   "Rankings": {
+    "abandoned": "Left",
     "title": "Ranking",
     "evolution": "📈 Evolution",
     "prevViews": "Previous views",

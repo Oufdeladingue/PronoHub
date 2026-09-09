@@ -1350,7 +1350,7 @@ export default function OppositionClient({
           if (!prediction.has_prediction) {
             return {
               username,
-              avatar: prediction.avatar || 'avatar1',
+              avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
               predictedHome: 0,
               predictedAway: 0,
               isDefaultPrediction: false,
@@ -1367,7 +1367,7 @@ export default function OppositionClient({
           if (prediction.masked) {
             return {
               username,
-              avatar: prediction.avatar || 'avatar1',
+              avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
               predictedHome: null,
               predictedAway: null,
               isDefaultPrediction: false,
@@ -1431,7 +1431,7 @@ export default function OppositionClient({
 
           return {
             username,
-            avatar: prediction.avatar || 'avatar1',
+            avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
             predictedHome: prediction.predicted_home_score,
             predictedAway: prediction.predicted_away_score,
             isDefaultPrediction: prediction.is_default_prediction || false,
@@ -1494,7 +1494,7 @@ export default function OppositionClient({
             if (!prediction.has_prediction) {
               return {
                 username,
-                avatar: prediction.avatar || 'avatar1',
+                avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
                 predictedHome: 0,
                 predictedAway: 0,
                 isDefaultPrediction: false,
@@ -1510,7 +1510,7 @@ export default function OppositionClient({
             if (prediction.masked) {
               return {
                 username,
-                avatar: prediction.avatar || 'avatar1',
+                avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
                 predictedHome: null,
                 predictedAway: null,
                 isDefaultPrediction: false,
@@ -1574,7 +1574,7 @@ export default function OppositionClient({
 
             return {
               username,
-              avatar: prediction.avatar || 'avatar1',
+              avatar: prediction.avatar || 'avatar1', abandoned: prediction.abandoned || false,
               predictedHome: prediction.predicted_home_score,
               predictedAway: prediction.predicted_away_score,
               isDefaultPrediction: prediction.is_default_prediction || false,
@@ -3567,7 +3567,7 @@ export default function OppositionClient({
                                           allPlayersPredictions[match.id].map((playerPred, idx) => (
                                             <div
                                               key={`${match.id}-${playerPred.username}-${idx}`}
-                                              className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 theme-bg"
+                                              className={`p-3 rounded-lg border border-gray-200 dark:border-gray-700 theme-bg ${playerPred.abandoned ? 'opacity-50' : ''}`}
                                             >
                                               {/* Version MOBILE */}
                                               <div className="block md:hidden">
@@ -3584,6 +3584,9 @@ export default function OppositionClient({
                                                       />
                                                     </div>
                                                     <span className="theme-text font-medium text-xs text-center leading-tight">{playerPred.username}</span>
+                                                    {playerPred.abandoned && (
+                                                      <span className="text-[8px] uppercase tracking-wide px-1 py-0.5 rounded theme-text-secondary border theme-border leading-none">{t('abandoned')}</span>
+                                                    )}
                                                   </div>
 
                                                   {/* Colonne 2 - Pronostic */}
@@ -3651,6 +3654,9 @@ export default function OppositionClient({
                                                       />
                                                     </div>
                                                     <span className="theme-text font-medium truncate">{playerPred.username}</span>
+                                                    {playerPred.abandoned && (
+                                                      <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded theme-text-secondary border theme-border flex-shrink-0">{t('abandoned')}</span>
+                                                    )}
                                                   </div>
 
                                                   {/* COLONNE CENTRALE - Pronostic centré */}

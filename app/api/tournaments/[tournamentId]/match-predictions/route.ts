@@ -41,7 +41,7 @@ export async function GET(
     const [participantsResult, predictionsResult, matchResult, tournamentResult] = await Promise.all([
       supabase
         .from('tournament_participants')
-        .select('user_id, profiles(username, avatar), joined_at')
+        .select('user_id, profiles(username, avatar), joined_at, abandoned_at')
         .eq('tournament_id', tournamentId)
         .order('joined_at', { ascending: true }),
       supabase
@@ -104,7 +104,9 @@ export async function GET(
         has_prediction: hasPrediction || shouldApplyDefault,
         // masked = le joueur a pronostiqué mais c'est caché à l'appelant (anti-triche, avant verrouillage)
         masked: hasPrediction && !reveal,
-        predicted_qualifier: reveal ? (pred?.predicted_qualifier ?? null) : null
+        predicted_qualifier: reveal ? (pred?.predicted_qualifier ?? null) : null,
+        // abandoned = a quitté le tournoi → affiché grisé, hors classement
+        abandoned: !!(participant as any).abandoned_at
       }
     })
 

@@ -433,6 +433,7 @@
     "privacyLink": "Política de privacidad"
   },
   "Dashboard": {
+    "abandonedBadge": "Abandonado",
     "meta": {
       "title": "Panel de control - PronoHub",
       "description": "Gestiona tus torneos de pronósticos, consulta tus resultados y únete a nuevas competiciones en PronoHub."
@@ -836,6 +837,7 @@
     "leaveNote": "Ya no podrás volver a unirte a este torneo después de salir"
   },
   "Opposition": {
+    "abandoned": "Abandonado",
     "leave": {
       "button": "He perdido la confianza del entrenador, prefiero abandonar el torneo",
       "title": "¿Abandonar el torneo?",
@@ -970,6 +972,7 @@
     }
   },
   "Rankings": {
+    "abandoned": "Abandonado",
     "title": "Clasificación",
     "evolution": "📈 Evolución",
     "prevViews": "Vistas anteriores",

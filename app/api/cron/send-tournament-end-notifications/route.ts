@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
         .from('tournament_participants')
         .select('user_id, profiles(id, username, avatar, email, fcm_token, notification_preferences, locale)')
         .eq('tournament_id', tournament.id)
+        .is('abandoned_at', null) // ne pas notifier la fin de tournoi à un joueur ayant abandonné
 
       if (!participants || participants.length === 0) {
         continue

@@ -68,10 +68,10 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .eq('status', 'active')
       .maybeSingle(),
-    // Participations aux tournois
+    // Participations aux tournois (abandoned_at : le joueur a quitté → carte grisée en historique)
     supabase
       .from('tournament_participants')
-      .select('tournament_id')
+      .select('tournament_id, abandoned_at')
       .eq('user_id', user.id),
     // Slots one-shot disponibles (legacy)
     supabase
@@ -103,6 +103,10 @@ export default async function DashboardPage() {
   const isSuper = isSuperAdmin(profile?.role as UserRole)
   const hasSubscription = subscription?.status === 'active'
   const tournamentIds = participations?.map(p => p.tournament_id) || []
+  // Tournois que l'utilisateur a ABANDONNÉS (participation marquée abandoned_at).
+  const abandonedTournamentIds = new Set(
+    (participations || []).filter((p: any) => p.abandoned_at).map((p: any) => p.tournament_id)
+  )
   const FREE_KICK_MAX = pricingConfig?.config_value || 2
 
   const credits = {
@@ -642,6 +646,7 @@ export default async function DashboardPage() {
       custom_emblem_white: emblemData.custom_emblem_white,
       custom_emblem_color: emblemData.custom_emblem_color,
       isCaptain: t.creator_id === user.id,
+      hasAbandoned: abandonedTournamentIds.has(t.id), // le joueur a quitté ce tournoi
       journeyInfo: journeyInfo[t.id] || null,
       nextMatchDate: nextMatchDates[t.id] || null,
       lastMatchDate: lastMatchDates[t.id] || null, // Date du dernier match pour tournois terminés

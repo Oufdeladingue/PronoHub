@@ -44,10 +44,11 @@ export async function GET(
         .select('setting_key, setting_value')
         .in('setting_key', ['points_exact_score', 'points_correct_result', 'points_incorrect_result']),
 
-      // 3. Récupérer tous les participants
+      // 3. Récupérer tous les participants (abandoned_at : les abandonnés sont affichés grisés,
+      //    HORS classement — pas de rang, pas comptés dans les rangs des joueurs actifs).
       supabase
         .from('tournament_participants')
-        .select('user_id, profiles(username, avatar)')
+        .select('user_id, abandoned_at, profiles(username, avatar)')
         .eq('tournament_id', tournamentId)
     ])
 
@@ -63,6 +64,11 @@ export async function GET(
       return NextResponse.json({ error: 'Erreur lors de la récupération des participants' }, { status: 500 })
     }
 
+    // Abandons : ces joueurs restent affichés (grisés) mais sont EXCLUS du calcul des rangs.
+    const abandonedSet = new Set(
+      (participants as any[]).filter(p => p.abandoned_at).map(p => p.user_id)
+    )
+
     // Tournoi en attente → pas de calcul de points
     if (tournament.status === 'pending') {
       const emptyRankings = participants.map((p: any) => ({
@@ -76,6 +82,7 @@ export async function GET(
         matchesAvailable: 0,
         rank: null,
         predictionsCount: 0,
+        abandoned: !!p.abandoned_at,
       }))
       return NextResponse.json({
         rankings: emptyRankings,
@@ -523,7 +530,8 @@ export async function GET(
         correctResults,
         matchesPlayed,
         matchesAvailable: finishedMatches?.length || 0,
-        earlyPredictionBonus: earlyPredictionBonusPoints
+        earlyPredictionBonus: earlyPredictionBonusPoints,
+        abandoned: abandonedSet.has(userId)
       } as any)
     }
 
@@ -556,6 +564,8 @@ export async function GET(
 
         for (const participant of participants) {
           const userId = participant.user_id
+          // Abandonnés : hors classement → ne pas les inclure dans la référence des flèches.
+          if (abandonedSet.has(userId)) continue
           const username = (participant.profiles as any)?.username || 'Inconnu'
           const avatar = (participant.profiles as any)?.avatar || 'avatar1'
 
@@ -644,7 +654,15 @@ export async function GET(
       }
     }
 
-    const rankings = calculateRankings(playersArray, previousRankings)
+    // Classement : seuls les joueurs ACTIFS sont classés (rangs 1..N). Les abandonnés sont ajoutés
+    // à la fin, sans rang, flaggés (l'UI les grise + badge « abandonné »).
+    const activePlayers = playersArray.filter(p => !abandonedSet.has((p as any).playerId))
+    const abandonedPlayers = playersArray.filter(p => abandonedSet.has((p as any).playerId))
+    const activeRankings = calculateRankings(activePlayers, previousRankings)
+    const abandonedRankings = [...abandonedPlayers]
+      .sort((a, b) => (b as any).totalPoints - (a as any).totalPoints)
+      .map(p => ({ ...(p as any), rank: null, previousRank: undefined, rankChange: undefined, abandoned: true }))
+    const rankings = [...activeRankings, ...abandonedRankings]
 
     // Vérifier si des journées du tournoi n'ont pas encore de matchs importés
     // (ex: phases éliminatoires pas encore commencées)

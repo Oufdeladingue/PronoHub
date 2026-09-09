@@ -353,11 +353,16 @@ function DashboardContent({
   // Masquer les tournois "mort-nés" : jamais démarrés et dont la compétition est terminée
   // (plus aucun match à venir) → aucun historique, on ne les affiche pas aux users.
   const visibleTournaments = tournaments.filter(t => !t.isDead)
-  // Séparer les tournois actifs/en attente des tournois terminés
-  const activeTournaments = visibleTournaments.filter(t => t.status !== 'finished' && t.status !== 'completed')
-  // Trier les tournois terminés par date du dernier match (plus récent en premier)
+  const isFinishedStatus = (t: any) => t.status === 'finished' || t.status === 'completed'
+  // Séparer les tournois actifs/en attente des tournois terminés.
+  // Un tournoi ABANDONNÉ par l'utilisateur sort des ACTIFS.
+  const activeTournaments = visibleTournaments.filter(t => !isFinishedStatus(t) && !t.hasAbandoned)
+  // Historique / terminés :
+  //  - non abandonné : les tournois réellement terminés ;
+  //  - abandonné : visible avec le badge « Abandonné » TANT QUE le tournoi n'est pas fini,
+  //    puis il disparaît de l'historique une fois le tournoi terminé.
   const finishedTournaments = visibleTournaments
-    .filter(t => t.status === 'finished' || t.status === 'completed')
+    .filter(t => t.hasAbandoned ? !isFinishedStatus(t) : isFinishedStatus(t))
     .sort((a, b) => {
       const dateA = a.lastMatchDate ? new Date(a.lastMatchDate).getTime() : 0
       const dateB = b.lastMatchDate ? new Date(b.lastMatchDate).getTime() : 0
@@ -1007,8 +1012,9 @@ function DashboardContent({
                         {finishedTournaments.map((tournament) => (
                           <a
                             key={tournament.id}
-                            href={`/${tournament.slug}/opposition?tab=classement`}
-                            className="archived-card relative flex items-center gap-4 p-3 border theme-border hover-theme-accent-border rounded-lg transition-colors"
+                            // Un tournoi abandonné n'est plus accessible (garde serveur) → carte non cliquable.
+                            href={tournament.hasAbandoned ? undefined : `/${tournament.slug}/opposition?tab=classement`}
+                            className={`archived-card relative flex items-center gap-4 p-3 border theme-border rounded-lg transition-colors ${tournament.hasAbandoned ? 'opacity-60 cursor-not-allowed' : 'hover-theme-accent-border'}`}
                           >
                             {/* Badge type de tournoi */}
                             <div className="absolute top-1 left-1 z-20">
@@ -1059,15 +1065,21 @@ function DashboardContent({
                               )}
                             </div>
 
-                            {/* Badge "Terminé" + Vainqueur */}
+                            {/* Badge "Terminé" (ou "Abandonné") + Vainqueur */}
                             <div className="flex-shrink-0 text-right">
-                              <span className="badge-finished px-2 py-1 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1">
-                                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                                {t('statusFinished')}
-                              </span>
-                              {tournament.winner && (
+                              {tournament.hasAbandoned ? (
+                                <span className="badge-left px-2 py-1 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                                  {t('abandonedBadge')}
+                                </span>
+                              ) : (
+                                <span className="badge-finished px-2 py-1 rounded-lg text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                  </svg>
+                                  {t('statusFinished')}
+                                </span>
+                              )}
+                              {!tournament.hasAbandoned && tournament.winner && (
                                 <p className="text-[10px] theme-text-secondary mt-1 flex items-center justify-end gap-1">
                                   <img src="/images/icons/king.svg" alt="" className="w-3 h-3 icon-filter-yellow" />
                                   {t('winner', { name: tournament.winner })}

@@ -433,6 +433,7 @@
     "privacyLink": "Politica sulla privacy"
   },
   "Dashboard": {
+    "abandonedBadge": "Ritirato",
     "meta": {
       "title": "Bacheca - PronoHub",
       "description": "Gestisci i tuoi tornei di pronostici, consulta le tue prestazioni e partecipa a nuove competizioni su PronoHub."
@@ -836,6 +837,7 @@
     "leaveNote": "Non potrai più partecipare a questo torneo dopo averlo lasciato"
   },
   "Opposition": {
+    "abandoned": "Ritirato",
     "leave": {
       "button": "Ho perso la fiducia del coach, preferisco lasciare il torneo",
       "title": "Lasciare il torneo?",
@@ -970,6 +972,7 @@
     }
   },
   "Rankings": {
+    "abandoned": "Ritirato",
     "title": "Classifica",
     "evolution": "📈 Evoluzione",
     "prevViews": "Viste precedenti",

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('user_subscriptions').select('*').eq('user_id', userId).eq('status', 'active').maybeSingle(),
-    supabase.from('tournament_participants').select('tournament_id').eq('user_id', userId),
+    supabase.from('tournament_participants').select('tournament_id, abandoned_at').eq('user_id', userId),
     supabase.from('user_oneshot_purchases').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'available'),
     supabase.from('user_available_credits').select('*').eq('user_id', userId).maybeSingle(),
     supabase.from('pricing_config').select('config_value').eq('config_key', 'free_max_tournaments').eq('is_active', true).maybeSingle()
@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
   const isSuper = isSuperAdmin(profile?.role as UserRole)
   const hasSubscription = subscription?.status === 'active'
   const tournamentIds = participations?.map(p => p.tournament_id) || []
+  const abandonedTournamentIds = new Set(
+    (participations || []).filter((p: any) => p.abandoned_at).map((p: any) => p.tournament_id)
+  )
   const FREE_KICK_MAX = pricingConfig?.config_value || 2
 
   const credits = {
@@ -175,6 +178,7 @@ export async function GET(request: NextRequest) {
       custom_emblem_white: emblemData.custom_emblem_white,
       custom_emblem_color: emblemData.custom_emblem_color,
       isCaptain: t.creator_id === userId,
+      hasAbandoned: abandonedTournamentIds.has(t.id),
       journeyInfo: null,
       nextMatchDate: null,
       lastMatchDate: null,

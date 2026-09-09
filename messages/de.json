@@ -433,6 +433,7 @@
     "privacyLink": "Datenschutzrichtlinie"
   },
   "Dashboard": {
+    "abandonedBadge": "Ausgestiegen",
     "meta": {
       "title": "Dashboard - PronoHub",
       "description": "Verwalte deine Tipp-Turniere, verfolge deine Leistungen und tritt neuen Wettbewerben auf PronoHub bei."
@@ -836,6 +837,7 @@
     "leaveNote": "Du kannst diesem Turnier nach dem Verlassen nicht mehr beitreten"
   },
   "Opposition": {
+    "abandoned": "Ausgestiegen",
     "leave": {
       "button": "Ich habe das Vertrauen des Trainers verloren, ich verlasse das Turnier lieber",
       "title": "Turnier verlassen?",
@@ -970,6 +972,7 @@
     }
   },
   "Rankings": {
+    "abandoned": "Ausgestiegen",
     "title": "Tabelle",
     "evolution": "📈 Entwicklung",
     "prevViews": "Vorherige Ansichten",

@@ -82,6 +82,18 @@ export default async function OppositionPage({ params }: PageProps) {
     redirect('/dashboard')
   }
 
+  // Garde d'abandon : un joueur ayant quitté ce tournoi ne peut plus y accéder (il le retrouve
+  // dans son historique jusqu'à la fin du tournoi, mais n'ouvre plus la page).
+  const { data: myParticipation } = await supabase
+    .from('tournament_participants')
+    .select('abandoned_at')
+    .eq('tournament_id', tournamentData.id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (myParticipation?.abandoned_at) {
+    redirect('/dashboard')
+  }
+
   // ========== GROUPE 2: Requêtes dépendant du tournoi et user ==========
   const [
     { data: profile },

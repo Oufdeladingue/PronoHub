@@ -433,6 +433,7 @@
     "privacyLink": "Politique de confidentialité"
   },
   "Dashboard": {
+    "abandonedBadge": "Abandonné",
     "meta": {
       "title": "Tableau de bord - PronoHub",
       "description": "Gérez vos tournois de pronostics, consultez vos performances et rejoignez de nouvelles compétitions sur PronoHub."
@@ -836,6 +837,7 @@
     "leaveNote": "Vous ne pourrez plus rejoindre ce tournoi après l'avoir quitté"
   },
   "Opposition": {
+    "abandoned": "Abandonné",
     "leave": {
       "button": "J'ai perdu la confiance du coach, je préfère quitter le tournoi",
       "title": "Quitter le tournoi ?",
@@ -970,6 +972,7 @@
     }
   },
   "Rankings": {
+    "abandoned": "Abandonné",
     "title": "Classement",
     "evolution": "📈 Évolution",
     "prevViews": "Vues précédentes",

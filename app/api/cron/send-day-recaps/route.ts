@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
           .from('tournament_participants')
           .select('user_id, profiles(username, avatar, email, locale)')
           .eq('tournament_id', tournament.id)
+          .is('abandoned_at', null) // les abandonnés ne reçoivent plus les récaps et ne sont plus classés
 
         if (!participants || participants.length === 0) continue
 

@@ -20,9 +20,10 @@ interface PlayerStats {
   correctResults: number
   matchesPlayed: number
   matchesAvailable: number
-  rank: number
+  rank: number | null
   previousRank?: number
   rankChange?: 'up' | 'down' | 'same'
+  abandoned?: boolean
 }
 
 interface TeamStats {
@@ -276,12 +277,14 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
   // Meilleurs scores exacts/bons résultats — mémoïsé (évite un O(n²) : avant, recalculé 2× par
   // ligne dans le map du tableau). Mêmes valeurs (étoiles ★ identiques).
   const bestStats = useMemo(() => {
-    if (!rankingsData || rankingsData.rankings.length === 0) {
+    // Les abandonnés (hors classement) ne comptent pas pour les "meilleurs" (étoiles).
+    const active = rankingsData?.rankings.filter(p => !p.abandoned) || []
+    if (active.length === 0) {
       return { maxExactScores: 0, maxCorrectResults: 0 }
     }
     return {
-      maxExactScores: Math.max(...rankingsData.rankings.map(p => p.exactScores)),
-      maxCorrectResults: Math.max(...rankingsData.rankings.map(p => p.correctResults)),
+      maxExactScores: Math.max(...active.map(p => p.exactScores)),
+      maxCorrectResults: Math.max(...active.map(p => p.correctResults)),
     }
   }, [rankingsData])
 
@@ -672,12 +675,12 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                 {rankingsData.rankings.map((player) => (
                   <tr
                     key={player.playerId}
-                    className="border-b theme-border hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                    className={`border-b theme-border hover:bg-gray-50 dark:hover:bg-gray-800 transition ${player.abandoned ? 'opacity-50' : ''}`}
                   >
-                    {/* Rang */}
+                    {/* Rang (— pour un abandon, hors classement) */}
                     <td className="py-2 md:py-4 px-1 md:px-2 theme-text font-bold text-xs md:text-base">
                       <div className="flex items-center gap-1 md:gap-2">
-                        <span className="w-4 md:w-6 text-center">{player.rank}</span>
+                        <span className="w-4 md:w-6 text-center">{player.abandoned ? '—' : player.rank}</span>
                       </div>
                     </td>
 
@@ -703,12 +706,17 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                         <span className={`text-xs md:text-base truncate max-w-[80px] md:max-w-none ${player.playerId === currentUserId ? 'text-[#ff9900] font-bold' : 'theme-text'}`}>
                           {player.playerName}
                         </span>
+                        {player.abandoned && (
+                          <span className="text-[9px] md:text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded theme-text-secondary border theme-border flex-shrink-0">
+                            {t('abandoned')}
+                          </span>
+                        )}
                       </div>
                     </td>
 
                     {/* Points */}
                     <td className="py-2 md:py-4 px-1 md:px-2 text-center">
-                      {selectedView === 'general' && player.rank <= 3 ? (
+                      {selectedView === 'general' && !player.abandoned && player.rank != null && player.rank <= 3 ? (
                         <span className={`inline-block px-2 py-0.5 md:px-3 md:py-1 rounded-full font-bold text-xs md:text-base ${
                           player.rank === 1
                             ? 'bg-yellow-500 text-[#0f172a]'
@@ -730,7 +738,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                       <div className="flex items-center justify-center">
                         <span className="text-right">{player.correctResults}</span>
                         <span className="w-3 md:w-4 text-left">
-                          {player.correctResults === bestStats.maxCorrectResults && player.correctResults > 0 && (
+                          {!player.abandoned && player.correctResults === bestStats.maxCorrectResults && player.correctResults > 0 && (
                             <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>
@@ -742,7 +750,7 @@ export default function TournamentRankings({ tournamentId, availableMatchdays, t
                       <div className="flex items-center justify-center">
                         <span className="text-right">{player.exactScores}</span>
                         <span className="w-3 md:w-4 text-left">
-                          {player.exactScores === bestStats.maxExactScores && player.exactScores > 0 && (
+                          {!player.abandoned && player.exactScores === bestStats.maxExactScores && player.exactScores > 0 && (
                             <span className="text-yellow-500 text-xs md:text-base">★</span>
                           )}
                         </span>

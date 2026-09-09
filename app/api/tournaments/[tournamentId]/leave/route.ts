@@ -77,39 +77,21 @@ export async function POST(
         return NextResponse.json({ error: 'Échec du transfert du capitanat' }, { status: 500 })
       }
     }
-    await admin.from('tournament_team_members').delete().eq('tournament_id', tournamentId).eq('user_id', user.id)
-    // Supprimer les pronostics AVANT le participant, en vérifiant l'erreur : un participant retiré
-    // dont les pronos resteraient créerait un prono ORPHELIN qui corrompt classements/trophées.
-    const { error: predError } = await admin
-      .from('predictions')
-      .delete()
-      .eq('tournament_id', tournamentId)
-      .eq('user_id', user.id)
-    if (predError) {
-      console.error('[leave] delete predictions error:', predError)
-      return NextResponse.json({ error: 'Échec du retrait (pronostics)' }, { status: 500 })
-    }
-    const { error: delError } = await admin
+    // ABANDON SOFT : on ne supprime RIEN. On marque la participation comme abandonnée.
+    // - La ligne participant + les pronostics restent en base (le joueur reste affiché GRISÉ,
+    //   hors classement, chez les autres ; il n'est plus éligible aux trophées).
+    // - La place reste RÉSERVÉE (pas de décrément de current_participants ni de quota).
+    // - L'appartenance à une équipe est conservée telle quelle.
+    // Le capitaine a déjà transféré le capitanat ci-dessus (creator_id) avant d'arriver ici.
+    const { error: abandonError } = await admin
       .from('tournament_participants')
-      .delete()
+      .update({ abandoned_at: new Date().toISOString() })
       .eq('tournament_id', tournamentId)
       .eq('user_id', user.id)
 
-    if (delError) {
-      console.error('[leave] delete participant error:', delError)
-      return NextResponse.json({ error: 'Échec du retrait du tournoi' }, { status: 500 })
-    }
-
-    // Resynchroniser le compteur (jamais décrémenté auparavant → faux sur beaucoup de tournois).
-    // Best-effort : ne pas faire échouer le départ si ça rate.
-    try {
-      const { count } = await admin
-        .from('tournament_participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', tournamentId)
-      await admin.from('tournaments').update({ current_participants: count ?? 0 }).eq('id', tournamentId)
-    } catch (e) {
-      console.error('[leave] resync current_participants failed:', e)
+    if (abandonError) {
+      console.error('[leave] abandon update error:', abandonError)
+      return NextResponse.json({ error: 'Échec de l\'abandon du tournoi' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, message: 'Vous avez quitté le tournoi' })
