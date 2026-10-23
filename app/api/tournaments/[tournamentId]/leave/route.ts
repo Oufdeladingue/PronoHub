@@ -42,6 +42,11 @@ export async function POST(
       return NextResponse.json({ error: 'Vous ne participez pas à ce tournoi' }, { status: 400 })
     }
 
+    // On ne quitte pas un tournoi TERMINÉ (l'historique et le classement final doivent rester intacts).
+    if (tournament.status === 'completed' || tournament.status === 'finished') {
+      return NextResponse.json({ error: 'Ce tournoi est terminé, impossible de le quitter' }, { status: 400 })
+    }
+
     // Service role : bypass RLS après vérification de propriété.
     const admin = createAdminClient()
 

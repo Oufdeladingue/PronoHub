@@ -3973,7 +3973,7 @@ export default function OppositionClient({
               </div>
 
               {/* Quitter le tournoi — zone "danger", tout en bas des règles */}
-              {userId && tournament && (
+              {userId && tournament && tournament.status !== 'completed' && tournament.status !== 'finished' && (
                 <div className="mt-8 pt-6 border-t theme-border">
                   <button
                     onClick={openLeaveModal}
