@@ -149,6 +149,7 @@ export default function OppositionCapacitorWrapper({ tournamentSlug }: Oppositio
   return (
     <div id="capacitor-scroll-container" className="fixed inset-0 overflow-y-auto">
       <OppositionClient
+        key={data.tournament.id}
         serverTournament={data.tournament}
         serverUser={data.user}
         serverPointsSettings={data.pointsSettings}

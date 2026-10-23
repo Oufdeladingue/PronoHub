@@ -203,6 +203,7 @@ export default async function OppositionPage({ params }: PageProps) {
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-400" />
     </div>}>
       <OppositionClient
+        key={tournament.id}
         serverTournament={tournament}
         serverUser={{
           id: user.id,
